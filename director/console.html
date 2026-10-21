@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Director's desk</title>
+<style>
+:root {
+  --bg: #EFEAE0; --panel: #F8F5EE; --ink: #1E2A33; --muted: #5E6B73; --line: #D6CDBD;
+  --brass: #9A6F22; --brass-soft: #E9DCC0; --ok: #2F7A6E; --bad: #B0452F; --event: #3D5A80;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14202B; --panel: #1C2C3A; --ink: #E6E1D3; --muted: #93A1AB; --line: #2E4152;
+    --brass: #D4AE66; --brass-soft: #33362F; --ok: #6CC2B4; --bad: #E07A62; --event: #8FB3DE;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 18px; }
+h1, h2 { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 600; margin: 0; }
+h1 { font-size: 26px; letter-spacing: .2px; }
+h2 { font-size: 17px; margin-bottom: 8px; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; cursor: pointer;
+}
+button:hover { border-color: var(--brass); }
+button.primary { background: var(--brass); border-color: var(--brass); color: var(--bg); font-weight: 600; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+textarea, input, select { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%; }
+
+header { display: flex; flex-wrap: wrap; gap: 14px; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+.lights { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--bad); margin-right: 5px; vertical-align: 1px; }
+.dot.on { background: var(--ok); }
+.dot.busy { background: var(--brass); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+
+/* The one loud element: the slip you write orders on. */
+.slip { border: 2px solid var(--brass); background: var(--brass-soft); }
+.slip textarea { min-height: 76px; background: var(--panel); font-size: 16px; resize: vertical; }
+.slip .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+.slip .hint { color: var(--muted); font-size: 13px; margin-left: auto; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.quick button { font-size: 13px; padding: 3px 9px; }
+
+.intent { font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-size: 16px; font-style: italic; color: var(--muted); margin: 0 0 10px; min-height: 1.4em; }
+#log { max-height: 52vh; overflow-y: auto; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.entry { display: grid; grid-template-columns: 62px 58px 1fr; gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.entry .t { color: var(--muted); }
+.entry .k { font-weight: 600; }
+.k.event { color: var(--event); } .k.think { color: var(--brass); } .k.action { color: var(--ok); }
+.k.error, .k.reject { color: var(--bad); } .k.result { color: var(--muted); } .k.gm { color: var(--ink); }
+.entry .x { overflow-wrap: anywhere; }
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+ul.plain { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+ul.plain li { padding: 4px 0; border-bottom: 1px dashed var(--line); display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+ul.plain li:last-child { border-bottom: 0; }
+.fired { color: var(--muted); text-decoration: line-through; }
+.hostile { color: var(--bad); }
+.empty { color: var(--muted); font-size: 14px; }
+.approval { border: 1px solid var(--brass); border-radius: 8px; padding: 8px; margin-bottom: 8px; font-size: 14px; }
+.approval .why { color: var(--muted); font-style: italic; margin-bottom: 4px; }
+.approval .btns { display: flex; gap: 6px; margin-top: 6px; }
+.fields { display: grid; gap: 6px; margin: 8px 0; }
+.fields label { font-size: 13px; color: var(--muted); }
+details summary { cursor: pointer; font-weight: 600; }
+#toast { position: fixed; bottom: 16px; right: 16px; background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; opacity: 0; transition: opacity .2s; }
+#toast.show { opacity: .95; }
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Director's desk</h1>
+  <div class="lights" aria-live="polite">
+    <span><span id="d-ee" class="dot"></span><span id="t-ee">Game: offline</span></span>
+    <span><span id="d-ai" class="dot on"></span><span id="t-ai">Model: idle</span></span>
+    <span id="t-run">No scenario running</span>
+  </div>
+</header>
+
+<div class="grid">
+  <main>
+    <section class="slip">
+      <h2><label for="prompt">Tell the director what you want</label></h2>
+      <textarea id="prompt" placeholder="e.g. Have Grinning Teeth taunt them about the bribe, then send two scouts from behind."></textarea>
+      <div class="row">
+        <button class="primary" id="send">Send instruction</button>
+        <span class="hint">Ctrl+Enter sends</span>
+      </div>
+      <div class="quick" aria-label="Quick instructions">
+        <button data-q="Add a surprise complication right now that fits the story.">Twist</button>
+        <button data-q="Raise the pressure a notch, but keep it survivable.">Escalate</button>
+        <button data-q="The crew is struggling. Ease off and give them a breather or a lucky break.">Ease off</button>
+        <button data-q="Add some flavour radio chatter from someone nearby. No combat.">Chatter</button>
+        <button data-q="Give Engineering a small problem to solve, justified in-fiction.">Engineering task</button>
+        <button data-q="Give Science something interesting to scan nearby.">Science task</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>What the director is thinking</h2>
+      <p class="intent" id="intent"></p>
+      <div id="log" role="log"></div>
+    </section>
+
+    <section>
+      <details>
+        <summary>Standing directives</summary>
+        <p class="empty">Apply to every decision until you change them. For example: "Keep fights short tonight, we only have an hour."</p>
+        <textarea id="directives" rows="3"></textarea>
+        <div style="margin-top:8px"><button id="save-dir">Save directives</button></div>
+      </details>
+    </section>
+
+    <section>
+      <details>
+        <summary>Campaign memory</summary>
+        <div id="memory"></div>
+        <div style="margin-top:8px"><button id="restore">Restore campaign save to the game server</button></div>
+      </details>
+    </section>
+  </main>
+
+  <aside>
+    <section>
+      <h2>Control</h2>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+        <label for="mode" style="color:var(--muted)">Model actions</label>
+        <select id="mode" style="width:auto">
+          <option value="auto">run immediately</option>
+          <option value="approve">wait for my approval</option>
+        </select>
+        <button id="pause">Pause director</button>
+      </div>
+    </section>
+
+    <section id="approvals-sec">
+      <h2>Waiting for approval</h2>
+      <div id="approvals"><p class="empty">Nothing waiting.</p></div>
+    </section>
+
+    <section>
+      <h2>Ship</h2>
+      <dl class="kv" id="ship"></dl>
+    </section>
+
+    <section>
+      <h2>Story beats</h2>
+      <ul class="plain" id="beats"></ul>
+    </section>
+
+    <section>
+      <h2>Nearby</h2>
+      <ul class="plain" id="nearby"></ul>
+    </section>
+
+    <section>
+      <h2>Do it yourself</h2>
+      <label for="act" class="empty">Send an action directly, without the model.</label>
+      <select id="act"></select>
+      <div class="fields" id="fields"></div>
+      <button id="send-act">Send action</button>
+    </section>
+  </aside>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const token = new URLSearchParams(location.search).get("token") || "";
+let status = null, actionsBuilt = false, lastLogLen = -1, lastLogKey = "";
+
+function api(path, body) {
+  const opts = body === undefined ? {} : {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)};
+  return fetch(path + (token ? "?token=" + encodeURIComponent(token) : ""), opts).then(r => r.json());
+}
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 2200); }
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+function fmtTime(s) { s = Math.floor(s || 0); return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); }
+
+function send() {
+  const text = $("prompt").value.trim();
+  if (!text) return;
+  api("/api/prompt", {text}).then(() => { $("prompt").value = ""; toast("Instruction sent"); });
+}
+$("send").onclick = send;
+$("prompt").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); });
+document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => api("/api/prompt", {text: b.dataset.q}).then(() => toast("Instruction sent")));
+$("save-dir").onclick = () => api("/api/directives", {text: $("directives").value}).then(() => toast("Directives saved"));
+$("mode").onchange = () => api("/api/mode", {mode: $("mode").value}).then(r => toast("Model actions: " + (r.mode === "auto" ? "run immediately" : "wait for approval")));
+$("pause").onclick = () => api("/api/pause", {paused: !status.paused}).then(() => toast(status.paused ? "Director resumed" : "Director paused"));
+$("restore").onclick = () => { if (confirm("Overwrite the campaign save on the game server with the director's backup?")) api("/api/restore_campaign", {}).then(r => toast(r.msg)); };
+
+function buildActions(actions) {
+  const sel = $("act");
+  sel.innerHTML = Object.keys(actions).filter(k => k !== "noop").map(k => `<option value="${k}">${k}</option>`).join("");
+  sel.onchange = () => renderFields(actions[sel.value]);
+  renderFields(actions[sel.value]);
+  $("send-act").onclick = () => {
+    const spec = actions[sel.value], args = {};
+    for (const [name] of Object.entries(spec.args)) {
+      const el = document.getElementById("f-" + name);
+      if (el && el.value !== "") args[name] = el.value;
+    }
+    if (sel.value === "restore_campaign") { toast("Use the campaign memory panel for this"); return; }
+    api("/api/action", {action: sel.value, args}).then(r => toast(r.ok ? "Action sent" : "Not sent: " + r.msg));
+  };
+  actionsBuilt = true;
+}
+function renderFields(spec) {
+  $("fields").innerHTML = `<p class="empty" style="margin:0">${esc(spec.help)}</p>` + Object.entries(spec.args).map(([n, a]) => {
+    const label = `<label for="f-${n}">${esc(n)}${a.required ? "" : " (optional)"}</label>`;
+    if (a.choices) return label + `<select id="f-${n}"><option value=""></option>${a.choices.map(c => `<option>${esc(c)}</option>`).join("")}</select>`;
+    if (n === "text" || n === "greeting" || n === "description") return label + `<textarea id="f-${n}" rows="2"></textarea>`;
+    return label + `<input id="f-${n}">`;
+  }).join("");
+}
+
+function fireBeat(id) { api("/api/action", {action: "fire_beat", args: {beat: id}}).then(r => toast(r.ok ? "Beat sent: " + id : r.msg)); }
+function approve(id, yes) { api(yes ? "/api/approve" : "/api/reject", {id}).then(r => toast(r.msg)); }
+window.fireBeat = fireBeat; window.approve = approve;
+
+function render(s) {
+  status = s;
+  $("d-ee").className = "dot" + (s.ee_online ? " on" : "");
+  $("t-ee").textContent = s.ee_online ? "Game: connected" : ("Game: offline" + (s.ee_error ? " (" + s.ee_error.slice(0, 60) + ")" : ""));
+  $("d-ai").className = "dot " + (s.paused ? "" : (s.busy ? "busy" : "on"));
+  $("t-ai").textContent = s.paused ? "Director paused" : (s.busy ? "Model: thinking…" : "Model: " + s.model);
+  $("t-run").textContent = s.session && s.session.title ? `${s.session.title}${s.pending_events ? " · " + s.pending_events + " new events" : ""}` : (s.run ? "Scenario running" : "No scenario running");
+  $("pause").textContent = s.paused ? "Resume director" : "Pause director";
+  if (document.activeElement !== $("mode")) $("mode").value = s.mode;
+  if (document.activeElement !== $("directives") && $("directives").dataset.loaded !== "1") { $("directives").value = s.directives || ""; $("directives").dataset.loaded = "1"; }
+  $("intent").textContent = s.last_intent ? "“" + s.last_intent + "”" : "";
+
+  const key = s.log.length + (s.log.length ? s.log[s.log.length - 1].t + s.log[s.log.length - 1].text : "");
+  if (key !== lastLogKey) {
+    lastLogKey = key;
+    const box = $("log"), atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 20;
+    box.innerHTML = s.log.map(e => `<div class="entry"><span class="t">${esc(e.t)}</span><span class="k ${esc(e.kind)}">${esc(e.kind)}</span><span class="x">${esc(e.text)}</span></div>`).join("");
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  }
+
+  $("approvals").innerHTML = s.approvals.length ? s.approvals.map(a => `<div class="approval">
+      <div class="why">${esc(a.intent)}</div><strong>${esc(a.action)}</strong> ${esc(JSON.stringify(a.args))}
+      <div class="btns"><button class="primary" onclick="approve(${a.id}, true)">Approve</button><button onclick="approve(${a.id}, false)">Reject</button></div></div>`).join("")
+    : `<p class="empty">Nothing waiting.</p>`;
+
+  const st = s.state || {}, p = st.player || {};
+  $("ship").innerHTML = p.callsign ? `
+    <dt>Ship</dt><dd>${esc(p.callsign)} in ${esc(p.sector)}</dd>
+    <dt>Hull</dt><dd>${p.hull} / ${p.hull_max}</dd>
+    <dt>Credits</dt><dd>${p.credits}</dd>
+    <dt>Docked</dt><dd>${esc(p.docked_with || "no")}</dd>
+    <dt>Objective</dt><dd>${esc(st.objective || "none")}</dd>
+    <dt>Game time</dt><dd>${fmtTime(st.time)}</dd>` : `<dt>Ship</dt><dd>${p.destroyed ? "destroyed" : "waiting for a scenario"}</dd>`;
+
+  const beats = st.beats || [];
+  $("beats").innerHTML = beats.length ? beats.map(b => `<li><span class="${b.fired ? "fired" : ""}" title="${esc(b.desc)}">${esc(b.id)}${b.ai ? "" : " (scripted)"}</span>${b.fired ? "" : `<button onclick="fireBeat('${esc(b.id)}')">Fire</button>`}</li>`).join("") : `<li class="empty">No beats yet.</li>`;
+
+  const near = p.nearby || [];
+  $("nearby").innerHTML = near.length ? near.map(n => `<li><span class="${n.hostile ? "hostile" : ""}">${esc(n.callsign)}</span><span class="empty">${esc(n.faction)} · ${n.dist_u}u</span></li>`).join("") : `<li class="empty">Nothing within 30u.</li>`;
+
+  const mem = (s.campaign_log || []).map(c => `<p><strong>${esc(c.title || c.session)}</strong> (${esc(c.outcome || "")})<br>${(c.summary || []).map(esc).join("<br>")}</p>`).join("");
+  const npcs = Object.entries(s.npcs || {}).map(([k, v]) => `<li><span><strong>${esc(k)}</strong>: ${esc(v)}</span></li>`).join("");
+  $("memory").innerHTML = (mem || `<p class="empty">No sessions summarised yet.</p>`) + (npcs ? `<h2 style="margin-top:10px">Characters</h2><ul class="plain">${npcs}</ul>` : "");
+
+  if (!actionsBuilt && s.actions) buildActions(s.actions);
+}
+
+function tick() { api("/api/status").then(render).catch(() => { $("t-ee").textContent = "Console lost contact with the director"; }).finally(() => setTimeout(tick, 1500)); }
+tick();
+</script>
+</body>
+</html>

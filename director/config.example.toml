@@ -1,0 +1,41 @@
+# Copy to config.toml and edit.
+
+[ee]
+# The PC running the EmptyEpsilon *server*, with httpserver=8080 in its options.ini.
+url = "http://192.168.1.50:8080"
+poll_seconds = 1.5
+timeout = 4
+
+[llm]
+# Any OpenAI-compatible endpoint. Defaults are for Ollama on this machine.
+#   Ollama:     http://127.0.0.1:11434/v1
+#   llama.cpp:  http://127.0.0.1:8080/v1   (llama-server; pick a port that isn't EE's)
+#   LM Studio:  http://127.0.0.1:1234/v1
+base_url = "http://127.0.0.1:11434/v1"
+# An instruction-tuned model in the 8B-14B range that follows JSON well is plenty.
+# Use whatever you've pulled, e.g. "qwen2.5:14b-instruct" or "llama3.1:8b".
+model = "qwen2.5:14b-instruct"
+api_key = "local"
+temperature = 0.8
+timeout = 90
+# Ask the server for JSON output. Turned off automatically if unsupported.
+json_mode = true
+max_tokens = 900
+
+[director]
+# "auto" runs model actions immediately; "approve" queues them for the GM.
+mode = "auto"
+console_bind = "0.0.0.0"
+console_port = 8765
+# Optional: require ?token=... on the console URL.
+console_token = ""
+
+min_seconds_between_urgent_calls = 4
+min_seconds_between_calls = 20
+max_actions_per_reply = 4
+max_actions_per_minute = 8
+react_to_ticks = true
+
+system_prompt = "prompts/system.md"
+campaign_bible = "campaign_bible.md"
+memory_file = "director_memory.json"
