@@ -103,10 +103,11 @@ def test_actions(b: Bridge) -> None:
         ("spawn_salvage", "spawn_salvage", {"credits": 25, "label": "Test pod", "distance": 3}, True),
         ("give_credits", "give_credits", {"amount": 10, "reason": "smoke test"}, True),
         ("system_glitch", "system_glitch", {"system": "impulse", "severity": 0.2, "reason": "smoke test"}, True),
-        ("spawn_group light Exuari", "spawn_group", {"faction": "Exuari", "strength": "light", "distance": 25, "behavior": "idle", "callsign": "Test Raider"}, True),
-        ("spawn cooldown enforced", "spawn_group", {"faction": "Exuari", "strength": "scout", "distance": 25}, False),
+        ("spawn_group light Corsairs", "spawn_group", {"faction": "Corsairs", "strength": "light", "distance": 25, "behavior": "idle", "callsign": "Test Raider"}, True),
+        ("spawn cooldown enforced", "spawn_group", {"faction": "Corsairs", "strength": "scout", "distance": 25}, False),
         ("npc_order", "npc_order", {"callsign": "Test Trader", "order": "flee"}, True),
         ("scripted beat refused for model", "fire_beat", {"beat": "delivery"}, False),
+        ("Hollow not spawnable by model", "spawn_group", {"faction": "Hollow", "strength": "heavy"}, False),
         ("unknown action refused", "launch_nukes", {}, False),
         ("GM-only refused for model", "rename_ship", {"name": "Hacked"}, False),
     ]
@@ -162,9 +163,10 @@ def playthrough(b: Bridge) -> None:
 
     check("ambush fallback near Halcyon", wait_beat("ambush", 20))
     st = b.sync()["state"]
-    raiders = [n for n in st["player"]["nearby"] if n["faction"] == "Exuari"]
+    raiders = [n for n in st["player"]["nearby"] if n["faction"] == "Corsairs" and n["callsign"].startswith(("Grinning", "Teeth"))]
     check("raiders spawned", len(raiders) >= 1, ", ".join(n["callsign"] for n in raiders))
-    b.lua('for _, o in ipairs(getObjectsInRadius(0, 0, 200000)) do if o:getFaction() == "Exuari" then o:destroy() end end return "ok"')
+    b.lua('for _, o in ipairs(getObjectsInRadius(0, 0, 200000)) do local c = o:getCallSign() '
+          'if c == "Grinning Teeth" or c:find("^Teeth") then o:destroy() end end return "ok"')
 
     b.lua(P + obj("Halcyon Rest") + "local x, y = o:getPosition() p:setPosition(x + 1000, y) p:commandDock(o) return 'ok'")
     check("delivery on docking at Halcyon", wait_beat("delivery", 40))
@@ -178,9 +180,37 @@ def playthrough(b: Bridge) -> None:
     b.lua(P + obj("Sealed data core") + "local x, y = o:getPosition() p:setPosition(x, y) return 'ok'")
     ev = b.wait_event(lambda e: e["type"] == "pickup", 15)
     check("data core picked up", ev is not None)
-    camp = json.loads(b.ee.get_key("ragtag.campaign") or "{}")
+    camp = json.loads(b.ee.get_key("ragtag.campaign.longhaul") or "{}")
     check("campaign flags saved", camp.get("flags", {}).get("lantern_core") is True and camp["flags"].get("ran_from_concord") is True,
           json.dumps(camp.get("flags")))
+
+
+def test_verse(b: Bridge) -> None:
+    print("The verse:")
+    r = b.lua(
+        'local c = {stations = 0, freighters = 0, planets = 0, pods = 0, hostiles = 0}\n'
+        'for _, o in ipairs(getObjectsInRadius(0, 0, 400000)) do\n'
+        '  if o.components.typename ~= nil then\n'
+        '    local tn = o:getTypeName()\n'
+        '    if tn:find("Station") then c.stations = c.stations + 1 end\n'
+        '    if tn:find("Freighter") and o:getImpulseMaxSpeed() > 0 then c.freighters = c.freighters + 1 end\n'
+        '    local f = o:getFaction()\n'
+        '    if f == "Corsairs" or f == "Hollow" or f == "Relic" then c.hostiles = c.hostiles + 1 end\n'
+        '  end\n'
+        '  if o.components.planet_render ~= nil then c.planets = c.planets + 1 end\n'
+        '  if o.components.pickup ~= nil then c.pods = c.pods + 1 end\n'
+        'end\n'
+        'return string.format(\'{"stations":%d,"freighters":%d,"hostiles":%d,"pods":%d}\', c.stations, c.freighters, c.hostiles, c.pods)')
+    c = json.loads(r)
+    check("stations built", c["stations"] >= 16, str(c["stations"]))
+    check("transports flying", c["freighters"] >= 12, str(c["freighters"]))
+    check("hostile garrisons present", c["hostiles"] >= 30, str(c["hostiles"]))
+    check("salvage pods placed", c["pods"] >= 60, str(c["pods"]))
+    for f in ("Concord", "Corsairs", "Hollow", "Relic", "Unknown", "Derelict"):
+        ok = b.lua(f'return tostring(getFactionInfo("{f}") ~= nil)') == "true"
+        check(f"faction {f}", ok)
+    st = b.sync()["state"]
+    check("region reported", st["extra"].get("region") not in (None, ""), st["extra"].get("region"))
 
 
 def main() -> int:
@@ -198,6 +228,7 @@ def main() -> int:
     b = Bridge(ee)
     b.sync()
     print(f"Scenario run {b.msg['run']}")
+    test_verse(b)
     test_actions(b)
     if args.playthrough:
         playthrough(b)

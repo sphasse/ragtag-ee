@@ -1,4 +1,4 @@
--- ragtag_core.lua
+-- ee/ragtag/core.lua
 -- Shared library for the "Long Haul" ragtag campaign.
 --
 -- Provides:
@@ -11,14 +11,15 @@
 --
 -- Usage in a scenario:
 --   require("utils.lua")
---   require("ragtag_core.lua")
---   require("ragtag_director.lua")
+--   require("ragtag/core.lua")
+--   require("ragtag/verse.lua")
+--   require("ragtag/director.lua")
 --
 -- Written against the ECS-era EmptyEpsilon scripting API (2024+ releases).
 
 RT = RT or {}
 RT.VERSION = "1.0"
-RT.CAMPAIGN_KEY = "ragtag.campaign"
+RT.CAMPAIGN_KEY = "ragtag.campaign"   -- set per campaign by RT.useCampaign()
 RT.PLAYER_FACTION = "Independent"
 RT.PLAYER_TEMPLATE = "Flavia P.Falcon"
 
@@ -123,7 +124,24 @@ local function defaultCampaign()
         sessions = {},   -- "s1" -> {outcome="success", at=...}
         flags = {},      -- story flags: string -> bool/number/string
         notes = {},      -- short human-readable campaign log lines
+        discovered = {}, -- names of charted regions (see ragtag_verse.lua)
     }
+end
+
+-- Each campaign keeps its own save, so scenarios from different campaigns
+-- (or one-shots) never overwrite each other. Call before RT.loadCampaign().
+function RT.useCampaign(id)
+    RT.campaign_id = id
+    RT.CAMPAIGN_KEY = "ragtag.campaign." .. id
+    -- Saves from before the repo layout used a single shared key; adopt it once.
+    if id == "longhaul" then
+        local s = getScriptStorage()
+        local cur = s:get(RT.CAMPAIGN_KEY)
+        local legacy = s:get("ragtag.campaign")
+        if (cur == nil or cur == "") and type(legacy) == "string" and legacy ~= "" then
+            s:set(RT.CAMPAIGN_KEY, legacy)
+        end
+    end
 end
 
 function RT.loadCampaign(fresh)
@@ -145,6 +163,7 @@ function RT.loadCampaign(fresh)
         -- toJSON turns empty tables into arrays; normalise the keyed ones.
         if type(c.flags) ~= "table" then c.flags = {} end
         if type(c.sessions) ~= "table" then c.sessions = {} end
+        if type(c.discovered) ~= "table" then c.discovered = {} end
     end
     RT.campaign = c
     return c
@@ -260,6 +279,34 @@ RT.UPGRADES = {
     {id = "jump_drive", name = "Second-hand jump drive", cost = 500,
      desc = "Jump drive, 5u - 30u.",
      apply = function(p) p:setJumpDrive(true); p:setJumpDriveRange(5000, 30000) end},
+
+    -- Second tier: what it takes to survive Blackwater, the Boneyard and, eventually, the Maw.
+    {id = "reactor_overhaul", name = "Reactor overhaul", cost = 200,
+     desc = "+50% energy capacity.",
+     apply = function(p) p:setMaxEnergy(p:getMaxEnergy() * 1.5); p:setEnergy(p:getMaxEnergy()) end},
+    {id = "warp_overhaul", name = "Warp coil overhaul", cost = 250,
+     desc = "Warp speed +50%.",
+     apply = function(p) p:setWarpSpeed(p:getWarpSpeed() * 1.5) end},
+    {id = "combat_thrusters", name = "Combat thrusters", cost = 300,
+     desc = "Much stronger combat boost and strafe. Gets you out of trouble.",
+     apply = function(p) p:setCombatManeuver(450, 300) end},
+    {id = "hull_plating_2", name = "Armoured hull", cost = 450, requires = "hull_plating",
+     desc = "+100 hull.",
+     apply = function(p) p:setHullMax(p:getHullMax() + 100); p:setHull(p:getHullMax()) end},
+    {id = "heavy_beams", name = "Heavy beam emitters", cost = 400, requires = "beam_coils",
+     desc = "+400 range on every beam.",
+     apply = function(p)
+        for i = 0, 15 do
+            local range = p:getBeamWeaponRange(i)
+            if range ~= nil and range > 0 then
+                p:setBeamWeapon(i, p:getBeamWeaponArc(i), p:getBeamWeaponDirection(i), range + 400,
+                    p:getBeamWeaponCycleTime(i), p:getBeamWeaponDamage(i))
+            end
+        end
+     end},
+    {id = "shield_mk3", name = "Military shield generators", cost = 600, requires = "shield_mk2",
+     desc = "Shields to 160 / 160. Concord military surplus, officially.",
+     apply = function(p) p:setShieldsMax(160, 160); p:setShields(160, 160) end},
 }
 
 function RT.upgradeById(id)
@@ -367,10 +414,17 @@ function RT.stationComms(source, target)
     end
 
     if source:isDocked(target) then
-        if info.shop then
-            addCommsReply("Shipwright: browse upgrades", function(s, t) RT.shipwrightMenu(s, t) end)
+        if info.concord and RT.campaign.flags.wanted then
+            addCommsReply("Request services", function(s, t)
+                setCommsMessage("\"Your transponder is flagged, " .. s:getCallSign() .. ". No services for wanted vessels. " ..
+                    "Undock and consider yourself lucky we're not detaining you.\"")
+            end)
+        else
+            if info.shop then
+                addCommsReply("Shipwright: browse upgrades", function(s, t) RT.shipwrightMenu(s, t) end)
+            end
+            addCommsReply("Restock missiles (15 cr each)", function(s, t) RT.restockMenu(s, t) end)
         end
-        addCommsReply("Restock missiles (15 cr each)", function(s, t) RT.restockMenu(s, t) end)
     end
 
     addCommsReply("Any news worth hearing?", function(s, t)
@@ -382,11 +436,22 @@ function RT.stationComms(source, target)
     end)
 end
 
+-- Does this station's shipwright sell the upgrade? shop = true sells everything.
+function RT.stocks(info, id)
+    if info.shop == true then return true end
+    if type(info.shop) ~= "table" then return false end
+    for _, s in ipairs(info.shop) do
+        if s == id then return true end
+    end
+    return false
+end
+
 function RT.shipwrightMenu(source, target)
+    local info = RT.stations[target:getCallSign()] or {shop = true}
     local lines = {"Shipwright. Balance: " .. RT.credits() .. " credits.\n"}
     local any = false
     for _, u in ipairs(RT.UPGRADES) do
-        if not RT.hasUpgrade(u.id) and (u.requires == nil or RT.hasUpgrade(u.requires)) then
+        if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id) and (u.requires == nil or RT.hasUpgrade(u.requires)) then
             any = true
             table.insert(lines, string.format("%s (%d cr): %s", u.name, u.cost, u.desc))
             addCommsReply(string.format("Buy %s (%d)", u.name, u.cost), function(s, t)
@@ -404,7 +469,24 @@ function RT.shipwrightMenu(source, target)
             end)
         end
     end
-    if not any then table.insert(lines, "Nothing left I can bolt onto that hull.") end
+    if not any then table.insert(lines, "Nothing here I can bolt onto that hull. Try another yard.") end
+    -- Point the crew at where else to look.
+    local elsewhere = {}
+    for cs, other in pairs(RT.stations) do
+        if cs ~= target:getCallSign() and other.shop then
+            for _, u in ipairs(RT.UPGRADES) do
+                if RT.stocks(other, u.id) and not RT.hasUpgrade(u.id) and not RT.stocks(info, u.id) then
+                    elsewhere[u.name] = elsewhere[u.name] or cs
+                end
+            end
+        end
+    end
+    local tips = {}
+    for name, cs in pairs(elsewhere) do table.insert(tips, name .. " (" .. cs .. ")") end
+    table.sort(tips)
+    if #tips > 0 then
+        table.insert(lines, "\nHeard you can get elsewhere: " .. table.concat(tips, ", ", 1, math.min(#tips, 6)) .. ".")
+    end
     setCommsMessage(table.concat(lines, "\n"))
     addCommsReply("Back", function(s, t) RT.stationComms(s, t) end)
 end

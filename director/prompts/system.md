@@ -31,6 +31,9 @@ Reply with exactly one JSON object and nothing else:
  "actions": [{"action": "say", "args": {"speaker": "Port Vesper", "text": "..."}}],
  "remember": "optional: one short fact worth remembering for future sessions"}
 
+# The universe
+{{WORLD}}
+
 # Campaign bible
 {{BIBLE}}
 

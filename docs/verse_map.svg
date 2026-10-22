@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 940" font-family="system-ui, sans-serif">
+<rect width="1240" height="940" fill="#0d1520"/>
+<line x1="40" y1="0" x2="40" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="120" y1="0" x2="120" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="200" y1="0" x2="200" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="280" y1="0" x2="280" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="360" y1="0" x2="360" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="440" y1="0" x2="440" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="520" y1="0" x2="520" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="600" y1="0" x2="600" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="680" y1="0" x2="680" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="760" y1="0" x2="760" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="840" y1="0" x2="840" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="920" y1="0" x2="920" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="1000" y1="0" x2="1000" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="1080" y1="0" x2="1080" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="1160" y1="0" x2="1160" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="1240" y1="0" x2="1240" y2="940" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="40" x2="1240" y2="40" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="120" x2="1240" y2="120" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="200" x2="1240" y2="200" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="280" x2="1240" y2="280" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="360" x2="1240" y2="360" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="440" x2="1240" y2="440" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="520" x2="1240" y2="520" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="600" x2="1240" y2="600" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="680" x2="1240" y2="680" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="760" x2="1240" y2="760" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="840" x2="1240" y2="840" stroke="#1a2635" stroke-width="1"/>
+<line x1="0" y1="920" x2="1240" y2="920" stroke="#1a2635" stroke-width="1"/>
+<circle cx="808.0" cy="416.0" r="96.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="1080.0" cy="352.0" r="128.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="768.0" cy="744.0" r="52.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="712.0" cy="144.0" r="72.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="420.0" cy="520.0" r="40.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="660.0" cy="488.0" r="32.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="300.0" cy="380.0" r="40.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="504.0" cy="512.0" r="36.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+<line x1="560.0" y1="624.0" x2="792.0" y2="672.0" stroke="#8a7f6a" stroke-width="24.0" stroke-dasharray="3 5" opacity="0.6"/>
+<circle cx="920.0" cy="328.0" r="28.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+<circle cx="712.0" cy="144.0" r="72.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+<circle cx="1080.0" cy="776.0" r="88.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+<line x1="624.0" y1="376.0" x2="688.0" y2="456.0" stroke="#8a7f6a" stroke-width="12.0" stroke-dasharray="3 5" opacity="0.6"/>
+<circle cx="320.0" cy="460.0" r="32.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+<circle cx="984.0" cy="680.0" r="32.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+<circle cx="840.0" cy="488.0" r="24.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+<circle cx="672.0" cy="652.0" r="88.0" fill="#c9a227" opacity="0.12" stroke="#c9a227" stroke-width="2"/>
+<circle cx="768.0" cy="744.0" r="64.0" fill="#d0662c" opacity="0.12" stroke="#d0662c" stroke-width="2"/>
+<circle cx="1080.0" cy="352.0" r="136.0" fill="#c9a227" opacity="0.12" stroke="#c9a227" stroke-width="2"/>
+<circle cx="712.0" cy="144.0" r="88.0" fill="#d0662c" opacity="0.12" stroke="#d0662c" stroke-width="2"/>
+<circle cx="1080.0" cy="776.0" r="120.0" fill="#c0392b" opacity="0.12" stroke="#c0392b" stroke-width="2"/>
+<circle cx="140.0" cy="152.0" r="16.0" fill="#ffe9a8"/>
+<text x="140.0" y="130.0" fill="#ffe9a8" font-size="12" text-anchor="middle">Lumen</text>
+<circle cx="440.0" cy="416.0" r="12.0" fill="#ffe9a8"/>
+<text x="440.0" y="398.0" fill="#ffe9a8" font-size="12" text-anchor="middle">Cardinal</text>
+<circle cx="380.0" cy="640.0" r="12.0" fill="#ffe9a8"/>
+<text x="380.0" y="622.0" fill="#ffe9a8" font-size="12" text-anchor="middle">Cinder</text>
+<circle cx="968.0" cy="552.0" r="14.0" fill="#ffe9a8"/>
+<text x="968.0" y="532.0" fill="#ffe9a8" font-size="12" text-anchor="middle">Kestrel</text>
+<circle cx="1128.0" cy="824.0" r="12.0" fill="#ffe9a8"/>
+<text x="1128.0" y="806.0" fill="#ffe9a8" font-size="12" text-anchor="middle">Pale Sun</text>
+<circle cx="232.0" cy="96.0" r="12.0" fill="#5b7a99"/>
+<text x="232.0" y="121.0" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Ostia</text>
+<circle cx="80.0" cy="256.0" r="8.8" fill="#5b7a99"/>
+<text x="80.0" y="277.8" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Valcourt</text>
+<circle cx="456.0" cy="612.0" r="8.8" fill="#5b7a99"/>
+<text x="456.0" y="633.8" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Tamsin</text>
+<circle cx="476.0" cy="524.0" r="6.0" fill="#5b7a99"/>
+<text x="476.0" y="543.0" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Shale</text>
+<circle cx="720.0" cy="144.0" r="10.4" fill="#5b7a99"/>
+<text x="720.0" y="167.4" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Ashgrave</text>
+<circle cx="900.0" cy="608.0" r="9.6" fill="#5b7a99"/>
+<text x="900.0" y="630.6" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Hob</text>
+<circle cx="1048.0" cy="456.0" r="18.0" fill="#5b7a99"/>
+<text x="1048.0" y="487.0" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Corvid</text>
+<circle cx="1096.0" cy="728.0" r="8.0" fill="#5b7a99"/>
+<text x="1096.0" y="749.0" fill="#9fb6cc" font-size="11" text-anchor="middle" font-style="italic">Bleak</text>
+<rect x="259.0" y="119.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 264.0 124.0)"/>
+<text x="273.0" y="128.0" fill="#6fa8ff" font-size="12">Ostia Highport $</text>
+<rect x="187.0" y="203.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 192.0 208.0)"/>
+<text x="201.0" y="212.0" fill="#6fa8ff" font-size="12">Lumen Exchange $</text>
+<rect x="107.0" y="291.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 112.0 296.0)"/>
+<text x="121.0" y="300.0" fill="#6fa8ff" font-size="12">Sentinel Fleet Yard</text>
+<rect x="363.0" y="275.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 368.0 280.0)"/>
+<text x="377.0" y="284.0" fill="#6fa8ff" font-size="12">Concord Waypoint Galen</text>
+<rect x="531.0" y="351.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 536.0 356.0)"/>
+<text x="545.0" y="360.0" fill="#6fa8ff" font-size="12">Concord Station Arbiter</text>
+<rect x="595.0" y="435.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 600.0 440.0)"/>
+<text x="609.0" y="444.0" fill="#d9d4c7" font-size="12">Port Vesper $</text>
+<rect x="507.0" y="491.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 512.0 496.0)"/>
+<text x="521.0" y="500.0" fill="#d9d4c7" font-size="12">Calder's Reach $</text>
+<rect x="479.0" y="579.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 484.0 584.0)"/>
+<text x="493.0" y="588.0" fill="#d9d4c7" font-size="12">Tamsin Hollow $</text>
+<rect x="675.0" y="547.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 680.0 552.0)"/>
+<text x="689.0" y="556.0" fill="#d9d4c7" font-size="12">Greywater Depot $</text>
+<rect x="723.0" y="363.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 728.0 368.0)"/>
+<text x="737.0" y="372.0" fill="#d9d4c7" font-size="12">Halcyon Rest $</text>
+<rect x="859.0" y="571.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 864.0 576.0)"/>
+<text x="873.0" y="580.0" fill="#d9d4c7" font-size="12">Hob's Landing $</text>
+<rect x="915.0" y="323.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 920.0 328.0)"/>
+<text x="929.0" y="332.0" fill="#d9d4c7" font-size="12">Dustmote Salvage $</text>
+<rect x="815.0" y="243.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 820.0 248.0)"/>
+<text x="829.0" y="252.0" fill="#d9d4c7" font-size="12">Saint Brennan's Mission</text>
+<rect x="1011.0" y="635.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 1016.0 640.0)"/>
+<text x="1025.0" y="644.0" fill="#d9d4c7" font-size="12">Lastchance Outpost $</text>
+<rect x="763.0" y="739.0" width="10" height="10" fill="#ff8c3c" transform="rotate(45 768.0 744.0)"/>
+<text x="777.0" y="748.0" fill="#ff8c3c" font-size="12">Blackwater</text>
+<rect x="1059.0" y="787.0" width="10" height="10" fill="#e03030" transform="rotate(45 1064.0 792.0)"/>
+<text x="1073.0" y="796.0" fill="#e03030" font-size="12">The Maw</text>
+<text x="180.0" y="42.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CONCORD CORE</text>
+<text x="672.0" y="580.0" fill="#c9a227" font-size="15" font-weight="700" text-anchor="middle">THE GAUNTLET</text>
+<text x="768.0" y="696.0" fill="#d0662c" font-size="15" font-weight="700" text-anchor="middle">BLACKWATER REACH</text>
+<text x="808.0" y="330.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE SHROUD</text>
+<text x="1080.0" y="232.0" fill="#c9a227" font-size="15" font-weight="700" text-anchor="middle">THE DEEP SHROUD</text>
+<text x="712.0" y="72.0" fill="#d0662c" font-size="15" font-weight="700" text-anchor="middle">THE BONEYARD</text>
+<text x="1080.0" y="672.0" fill="#c0392b" font-size="15" font-weight="700" text-anchor="middle">THE MAW</text>
+<circle cx="1144.0" cy="280.0" r="7" fill="none" stroke="#fff" stroke-width="2"/>
+<text x="1154.0" y="284.0" fill="#fff" font-size="11">black hole</text>
+<circle cx="1128.0" cy="432.0" r="7" fill="none" stroke="#fff" stroke-width="2"/>
+<text x="1138.0" y="436.0" fill="#fff" font-size="11">rift</text>
+<rect x="16" y="748" width="12" height="12" fill="#6fa8ff"/><text x="34" y="758" fill="#d9d4c7" font-size="12">Concord station</text>
+<rect x="16" y="766" width="12" height="12" fill="#d9d4c7"/><text x="34" y="776" fill="#d9d4c7" font-size="12">Independent station ($ = shipwright)</text>
+<rect x="16" y="784" width="12" height="12" fill="#ff8c3c"/><text x="34" y="794" fill="#d9d4c7" font-size="12">Corsair base</text>
+<rect x="16" y="802" width="12" height="12" fill="#e03030"/><text x="34" y="812" fill="#d9d4c7" font-size="12">Hollow</text>
+<rect x="16" y="820" width="12" height="12" fill="#c9a227"/><text x="34" y="830" fill="#d9d4c7" font-size="12">risky zone</text>
+<rect x="16" y="838" width="12" height="12" fill="#d0662c"/><text x="34" y="848" fill="#d9d4c7" font-size="12">dangerous zone</text>
+<rect x="16" y="856" width="12" height="12" fill="#c0392b"/><text x="34" y="866" fill="#d9d4c7" font-size="12">deadly zone</text>
+<rect x="16" y="874" width="12" height="12" fill="#6a4c93"/><text x="34" y="884" fill="#d9d4c7" font-size="12">nebula</text>
+<rect x="16" y="892" width="12" height="12" fill="#8a7f6a"/><text x="34" y="902" fill="#d9d4c7" font-size="12">asteroids</text>
+<text x="1224" y="904" fill="#d9d4c7" font-size="20" font-weight="700" text-anchor="end">The Drift</text>
+<text x="1224" y="922" fill="#93a1ab" font-size="12" text-anchor="end">Grid squares are EmptyEpsilon sectors (20u). Port Vesper is at the origin.</text>
+</svg>

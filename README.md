@@ -1,44 +1,52 @@
-# The Long Haul — an AI-directed EmptyEpsilon campaign
+# ragtag-ee — an AI-directed EmptyEpsilon universe
 
-A five-session space-western campaign for EmptyEpsilon. Your crew flies the *Magpie*, a battered light freighter, earning credits to buy upgrades between jobs. A local language model running on another PC acts as a live director: it voices characters, answers hails, times ambushes and reacts to your instructions, so the GM doesn't have to do everything by hand on the GM screen.
+Space-western scenarios for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/), set in a shared,
+living universe of trade lanes, frontier stations, pirate havens and places your crew isn't ready for yet.
+An optional local language model on another PC acts as a live director: it voices characters, answers
+hails, times ambushes and takes plain-English instructions from the GM.
 
-Status: the framework and Session 1 are built and tested against EmptyEpsilon (build 20261019) running headless. Sessions 2–5 are planned in detail in the skill (`references/campaign_plan.md`) but not yet written.
+The first campaign, **The Long Haul**, puts your crew aboard the *Magpie*, a battered light freighter,
+earning credits for upgrades across five sessions. Session 1 is built and tested; sessions 2–5 are planned.
 
-## How it fits together
+![The Drift](docs/verse_map.svg)
 
-```
- Game server PC                                 AI PC (with GPU)
-┌───────────────────────────────┐   LAN       ┌───────────────────────────────────┐
-│ EmptyEpsilon (server)         │  HTTP       │ director/main.py                  │
-│  scenario_70_longhaul_1.lua   │◄───────────►│  polls the mailbox every 1.5 s    │
-│   ragtag_core.lua    (RT)     │ /exec.lua   │  asks the model when needed       │
-│   ragtag_director.lua (DIR)   │  :8080      │  validates and sends actions      │
-│  ScriptStorage mailbox        │             │  GM web console on :8765          │
-│   rt.from_scenario  ──────────┼─ events ───►│        │                          │
-│   rt.from_director  ◄─────────┼─ actions ───┤        ▼ OpenAI-compatible API    │
-└───────────────────────────────┘             │  Ollama / llama.cpp / LM Studio   │
-     ▲ crew stations (LAN)                     └───────────────────────────────────┘
-```
+## Repository layout
 
-Scenario Lua can't make network calls, and EmptyEpsilon's `/exec.lua` endpoint runs code in a separate environment from the scenario. Both can see the process-wide ScriptStorage, so the scenario and director exchange JSON through two storage keys, each written by one side only. The model never sends Lua: it chooses from a fixed list of actions, and the scenario checks and clamps every argument. Every AI-timed story beat also has a scripted fallback, so the scenario plays fine with the director off.
+| Path | What | Who edits it |
+|---|---|---|
+| `ee/ragtag/` | Lua framework installed into EmptyEpsilon's `scripts/ragtag/` | framework contributors |
+| `ee/ragtag/verse/drift.lua` | The base universe, as data | rarely; see CONTRIBUTING |
+| `ee/ragtag/verse/extensions/` | Community additions to the universe | **anyone** |
+| `scenarios/<campaign>/` | Scenarios, plus each campaign's story bible and plans | **anyone** |
+| `scenarios/_template/` | Starting point for new scenarios | |
+| `director/` | AI director and GM web console (Python, standard library only) | |
+| `tools/` | `check.py`, `install.py`, `smoke_test.py`, `ci_headless.sh`, map and world generators | |
+| `docs/` | Architecture, GM map, example extension | |
+| `.claude/skills/` | Claude Code skill with EmptyEpsilon scripting knowledge | |
 
-## Contents
+Universe and scenarios are decoupled: scenarios refer to universe places by name and declare them, extensions
+only add, and `tools/check.py` (also run in CI) fails if a universe change would break any scenario.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
-| Path | What |
-|---|---|
-| `ee_scripts/` | Copy into EmptyEpsilon's `scripts/` folder on the game server |
-| `ee_scripts/ragtag_core.lua` | Campaign save, ship and upgrades, credits, stations, shipwright, objectives |
-| `ee_scripts/ragtag_director.lua` | Mailbox, events, state snapshot, the action list, AI buttons on the GM screen |
-| `ee_scripts/scenario_70_longhaul_1.lua` | Session 1: Cold Cargo |
-| `director/` | The AI director (Python 3.11+, standard library only) |
-| `director/campaign_bible.md` | World, cast and arc the model is given; edit freely |
-| `director/prompts/system.md` | The director's instructions |
-| `tools/smoke_test.py` | Tests the bridge and plays through Session 1 against a live server |
+## The Drift
+
+Five suns, loosely modelled on the shape of the Firefly 'Verse with names of our own: a rich Concord Core around the white sun Lumen, Border worlds around Port Vesper, a lawless Rim, a dead world bombed in the Settlement War, and at the far edge, under the blue Pale Sun, the Hollow. See `docs/verse_map.svg`.
+
+- **It's the same map every session.** The layout is generated from a fixed seed. Salvage is re-rolled each session so there's always something to find.
+- **Traffic:** 15 freighters on Core, Border and Rim routes dock, linger, and move on. Hail them for rumours (several point at places worth exploring, or avoiding); fuel haulers sell energy and equipment haulers sell missiles. Ships lost to pirates are replaced later, out of sight.
+- **Danger tiers.** Each region shows on Helm, Relay and Operations with its danger level:
+  - *Safe:* the Core, the Border, the Rim, the Shroud.
+  - *Risky:* the Gauntlet, an asteroid belt with Corsair ambush packs (a stock Magpie can win small fights here); the uncharted Deep Shroud.
+  - *Dangerous:* Blackwater Reach, the mined Corsair haven; the Boneyard, where war drones guard wrecks.
+  - *Deadly:* the Maw, Hollow territory with heavy warships and defense platforms. A turn-back warning appears on every main screen.
+- **Salvage:** 25 clusters of pods (credits, missiles, hull patches, data chips). Safe pods are worth 15–30 credits; Maw pods 120–200. Scanning a wreck fully reveals extra salvage. Freighters occasionally lose a crate on the lanes. Charting a region for the first time pays a survey bonus.
+- **Upgrades:** 16 in total, spread across different shipwrights; each yard tells you where to find what it doesn't stock. Concord stations refuse service to a ship flagged wanted. The second-tier upgrades (armoured hull, military shields, heavy beams, combat thrusters, warp and reactor overhauls) are what it takes to survive the dangerous zones.
+- **Hazards:** a black hole, minefields around the hostile bases, and a rift in the Deep Shroud whose far end you won't like.
 
 ## Setup
 
 ### 1. Game server PC
-1. Copy everything in `ee_scripts/` into EmptyEpsilon's `scripts/` folder.
+1. Install the framework and scenarios: `python tools/install.py --ee <EmptyEpsilon folder>` (the folder containing `scripts/`). Re-run it after pulling updates.
 2. Enable the HTTP API: in `options.ini`, change `httpserver=` to `httpserver=8080`.
    - Windows: `options.ini` is in the EmptyEpsilon folder.
    - Linux/macOS: `~/.emptyepsilon/options.ini` (Flatpak and Steam installs differ; see the EmptyEpsilon wiki "Preferences file" page).
@@ -75,20 +83,14 @@ Start order doesn't matter. The director waits for a scenario and picks up new r
 **What the crew sees:** hails from characters (Relay), ship's log entries, objectives on the Relay/Operations screens, credits as reputation on Relay, and a shipwright menu when docked at Port Vesper or Halcyon Rest. Station and NPC comms include "Any news?", "Who are you?" and similar options; the director answers those with a hail a few seconds later.
 
 ## Campaign progress
-Progress is stored on the **game server** in `scriptstorage.json` (`~/.emptyepsilon/` on Linux, the EmptyEpsilon folder on Windows) under the key `ragtag.campaign`: ship name, credits, upgrades, session outcomes and story flags. Each session re-applies purchased upgrades to a fresh ship. Choose *Campaign: Fresh start* in the scenario settings to reset.
+Progress is stored on the **game server** in `scriptstorage.json` (`~/.emptyepsilon/` on Linux, the EmptyEpsilon folder on Windows) under one key per campaign (`ragtag.campaign.longhaul` for the Long Haul): ship name, credits, upgrades, session outcomes and story flags. Each session re-applies purchased upgrades to a fresh ship. Choose *Campaign: Fresh start* in the scenario settings to reset.
 
 If the lab reimages its PCs, that file may vanish. The director keeps a copy in `director/director_memory.json`; use *Restore campaign save to the game server* in the console, then restart the scenario.
 
-## Session 1: Cold Cargo
-Fixer Mags Oduya hires the crew to haul twelve sealed crates from Port Vesper to Halcyon Rest. On the way: a Concord patrol demanding an inspection (submit, bribe, or run, and each sets a flag later sessions remember), Exuari raiders, and a crate that hums. After delivery, an optional detour into the Shroud nebula leads to a derelict and the first lantern core. 45–70 minutes. Easy / Normal / Hard settings change raider numbers and the director's hostile budget.
-
 ## Testing
-On a test server running a Long Haul scenario, with the director stopped:
-```
-python tools/smoke_test.py --ee http://<server>:8080               # every director action
-python tools/smoke_test.py --ee http://<server>:8080 --playthrough # plus a teleporting Session 1 run
-```
-The playthrough cheats (teleports, forced scans) and changes the campaign save, so don't run it on your real campaign. Restore with Campaign: Fresh start afterwards. Latest result: 26 passed, 0 failed.
+- `python tools/check.py`: universe validation, scenario dependencies, numbering, generated files, syntax. Needs Lua 5.4.
+- `tools/ci_headless.sh` (Linux): builds EmptyEpsilon at a pinned commit (or uses `EE_DIR`), installs, runs Session 1 headless and plays through it with `tools/smoke_test.py`. Latest: 38 passed, 0 failed.
+- The smoke test's playthrough cheats (teleports, forced scans) and changes the campaign save. Don't run it against your real campaign.
 
 ## Troubleshooting
 | Symptom | Fix |
@@ -98,8 +100,9 @@ The playthrough cheats (teleports, forced scans) and changes the campaign save, 
 | GM screen says "AI director offline" | The director isn't running or can't reach the server |
 | Director connected but never acts | Check the console log for model errors; run `--probe`; try a GM instruction to force a call |
 | Model replies are cut off or ignore the rules | Raise the model context length (setup step 3) or use a larger model |
-| Actions show "FAILED: spawn cooldown" | Working as intended; the limits are in `DIR.config` in `ragtag_director.lua` |
+| Actions show "FAILED: spawn cooldown" | Working as intended; the limits are in `DIR.config` in `ee/ragtag/director.lua` |
 | Lua errors on the server | Read `EmptyEpsilon.log`; the error names the file and line |
 
-## Writing more sessions
-Install the `empty-epsilon-scenarios` skill (shipped alongside this project) and ask Claude to write Session 2. The skill contains the session plans, a tested template, the framework reference and API notes verified against the engine source.
+## Contributing
+Universe extensions, new scenarios and campaigns are all welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
+If you use Claude Code, `CLAUDE.md` and the project skill give it the project's conventions and the engine's quirks.

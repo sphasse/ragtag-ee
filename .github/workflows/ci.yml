@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Checks (lint, universe, scenarios, generated files)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y lua5.4
+      - run: python tools/check.py
+      - name: Director runs against the mock game
+        run: |
+          cd director
+          timeout 20 python main.py --mock --mock-llm --config config.example.toml || [ $? -eq 124 ]
+
+  headless:
+    name: Headless EmptyEpsilon smoke test
+    needs: check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++ libsdl2-dev lua5.4
+      - uses: actions/cache@v4
+        with:
+          path: .ee-build
+          key: ee-build-${{ hashFiles('tools/ci_headless.sh') }}
+      - run: tools/ci_headless.sh

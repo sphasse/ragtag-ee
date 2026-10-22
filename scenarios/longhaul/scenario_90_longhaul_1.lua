@@ -1,5 +1,5 @@
 -- Name: Long Haul 1: Cold Cargo
--- Description: Session 1 of 5. The crew of the Magpie, a battered light freighter, takes a simple delivery job from a fixer who never tells the whole story. Concord patrols, Exuari raiders, and a crate that hums.
+-- Description: Session 1 of 5. The crew of the Magpie, a battered light freighter, takes a simple delivery job from a fixer who never tells the whole story. Concord patrols, Corsair raiders, and a crate that hums. Set in a wide-open verse with traffic, salvage, and places you are not ready for yet.
 ---
 --- Campaign scenario. Progress (credits, upgrades, story flags) is saved in scriptstorage.json on the server.
 --- Optional: run the AI director (director/main.py) on another PC for live NPCs and pacing. Plays fine without it.
@@ -17,8 +17,9 @@
 -- Director[Off]: Purely scripted. Every story beat still fires on its own.
 
 require("utils.lua")
-require("ragtag_core.lua")
-require("ragtag_director.lua")
+require("ragtag/core.lua")
+require("ragtag/verse.lua")
+require("ragtag/director.lua")
 
 -- Map layout (1u = 1000)
 local VESPER_X, VESPER_Y = 0, 0
@@ -46,6 +47,8 @@ local S = {
 --------------------------------------------------------------------------------
 
 function init()
+    VERSE.setupFactions()
+    RT.useCampaign("longhaul")
     local fresh = getScenarioSetting("Campaign") == "Fresh start"
     RT.loadCampaign(fresh)
     if fresh then RT.saveCampaign() end
@@ -63,6 +66,9 @@ function init()
     end
     DIR.enabled = getScenarioSetting("Director") ~= "Off"
 
+    VERSE.build({session = 1})
+    -- Universe places this session depends on (tools/check.py verifies them).
+    VERSE.requirePlaces({"Port Vesper", "Halcyon Rest", "Concord Station Arbiter"})
     buildMap()
     RT.spawnPlayer(VESPER_X + 900, VESPER_Y + 1400, 0)
     RT.addCampaignGMFunctions()
@@ -76,19 +82,20 @@ function init()
 
     DIR.init({
         id = "s1",
+        campaign = "longhaul",
         title = "Cold Cargo",
         premise = "The Magpie, a battered light freighter with a crew of drifters, takes a delivery job from fixer Mags Oduya: twelve sealed crates from Port Vesper to Halcyon Rest. No questions asked. One crate is not what the manifest says.",
-        tone = "Scrappy frontier western in space. Wry humour, real stakes, never grimdark. The crew are underdogs; the Concord is the law, the Exuari are raiders.",
+        tone = "Scrappy frontier western in space. Wry humour, real stakes, never grimdark. The crew are underdogs; the Concord is the law, the Corsairs are pirates, and nobody talks about the Hollow.",
         cast = {
             {name = "Mags Oduya", where = "Port Vesper", role = "fixer", voice = "dry, warm, quietly menacing; always owed a favour; calls the crew 'my lambs'"},
             {name = "Lt. Corin Vashti", where = "CPV Diligence", role = "Concord patrol officer", voice = "by-the-book, tired, can be reasoned with; hates paperwork"},
-            {name = "Grinning Teeth", where = "Exuari raiders", role = "raider gang", voice = "theatrical, mocking, greedy; PG-13 menace"},
+            {name = "Grinning Teeth", where = "Corsair raiders", role = "raider gang", voice = "theatrical, mocking, greedy; PG-13 menace"},
             {name = "Doc Salo", where = "Halcyon Rest", role = "dockmaster and medic", voice = "nervous, honest, talks too fast"},
         },
         locations = {
             {name = "Port Vesper", note = "Independent trading post, shipwright on site"},
             {name = "Halcyon Rest", note = "Independent waystation at the edge of the Shroud nebula, shipwright on site"},
-            {name = "Concord Station Arbiter", note = "Concord (Human Navy) customs station"},
+            {name = "Concord Station Arbiter", note = "Concord customs station"},
             {name = "Wren's Folly", note = "Derelict hidden in the Shroud nebula"},
         },
         director_guidance = "Use 'say' as the cast for colour and hints. Fire 'inspection' when the Magpie is underway and near the Diligence, and 'ambush' somewhere mid-route; both have fallbacks, so only fire them when timing feels right. Keep total extra hostiles modest: the Magpie is weak. Reward clever play with small salvage.",
@@ -96,29 +103,8 @@ function init()
 end
 
 function buildMap()
-    RT.station({template = "Medium Station", faction = "Independent", callsign = "Port Vesper",
-        x = VESPER_X, y = VESPER_Y, shop = true,
-        flavor = "Port Vesper traffic control. Mind the dock clamps, they bite.",
-        description = "A crowded independent trading post built around an old ore refinery."})
-    RT.station({template = "Small Station", faction = "Independent", callsign = "Halcyon Rest",
-        x = HALCYON_X, y = HALCYON_Y, shop = true,
-        flavor = "Halcyon Rest. Fuel, food, and no questions. Mostly.",
-        description = "A waystation clinging to the edge of the Shroud nebula."})
-    RT.station({template = "Medium Station", faction = "Human Navy", callsign = "Concord Station Arbiter",
-        x = -16000, y = -21000,
-        flavor = "Concord Station Arbiter, customs and patrol. Transmit your manifest.",
-        description = "Concord customs station. Flies the Human Navy colours."})
-
-    -- The Shroud: nebulae around Wren's Folly, east of Halcyon Rest.
-    for i = 1, 7 do
-        local a = random(0, 360)
-        local d = random(2000, 9000)
-        local dx, dy = vectorFromAngle(a, d, true)
-        Nebula():setPosition(FOLLY_X + dx, FOLLY_Y + dy)
-    end
-    -- An asteroid belt the route crosses.
-    createObjectsOnLine(6000, -16000, 22000, 4000, 900, Asteroid, 2, 70, 2500)
-    placeRandomAroundPoint(VisualAsteroid, 30, 1000, 9000, 14000, -6000)
+    -- Stations, the Shroud, asteroid fields, traffic and salvage come from
+    -- ragtag_verse.lua. This adds only what belongs to this session.
 
     -- Wren's Folly: derelict, unscanned until science looks closely.
     local folly = CpuShip():setTemplate("Tug"):setFaction("Independent"):setCallSign("Wren's Folly")
@@ -134,7 +120,7 @@ function buildMap()
     S.folly = folly
 
     -- The Concord patrol, idling near the route.
-    local dil = CpuShip():setTemplate("Phobos M3"):setFaction("Human Navy"):setCallSign("CPV Diligence")
+    local dil = CpuShip():setTemplate("Phobos M3"):setFaction("Concord"):setCallSign("CPV Diligence")
     dil:setPosition(DILIGENCE_X, DILIGENCE_Y):orderIdle()
     dil:setCommsFunction(diligenceComms)
     RT.register(dil)
@@ -172,19 +158,19 @@ function defineBeats()
         RT.setObjective("The Concord wants an inspection. Hail CPV Diligence - or don't.")
     end})
 
-    DIR.defineBeat("ambush", {ai = true, desc = "Exuari raiders ('Grinning Teeth') jump the Magpie for the crates", fn = function()
+    DIR.defineBeat("ambush", {ai = true, desc = "Corsair raiders ('Grinning Teeth') jump the Magpie for the crates", fn = function()
         local x, y = RT.player:getPosition()
         local h = RT.player:getHeading()
         local dx, dy = vectorFromAngle(h + random(-50, 50), 9000, true)
         for i, tmpl in ipairs(S.ambush_templates) do
-            local s = CpuShip():setTemplate(tmpl):setFaction("Exuari"):setCallSign(i == 1 and "Grinning Teeth" or ("Teeth-" .. i))
+            local s = CpuShip():setTemplate(tmpl):setFaction("Corsairs"):setCallSign(i == 1 and "Grinning Teeth" or ("Teeth-" .. i))
             s:setPosition(x + dx + random(-800, 800), y + dy + random(-800, 800)):orderAttack(RT.player)
             s:setCommsFunction(DIR.npcComms)
             DIR.npc_info[s:getCallSign()] = {role = "raider", greeting = "\"Ooh, a freighter with manners. Drop the crates and we'll only take half your hull.\""}
             DIR.allowControl(s)
             RT.register(s)
             s:onDestruction(function(ship, instigator)
-                DIR.emit("destroyed", {callsign = ship:getCallSign(), faction = "Exuari", by_player = instigator == RT.player}, "normal")
+                DIR.emit("destroyed", {callsign = ship:getCallSign(), faction = "Corsairs", by_player = instigator == RT.player}, "normal")
             end)
             table.insert(S.ambush_ships, s)
         end
@@ -192,7 +178,7 @@ function defineBeats()
         if RT.valid(lead) then
             RT.hail(lead, "Grinning Teeth here! Pretty boat, pretty crates. Let's play.")
         end
-        RT.player:addToShipLog("Contacts! Exuari raiders on an intercept course.", "#FF8080")
+        RT.player:addToShipLog("Contacts! Corsair raiders on an intercept course.", "#FF8080")
     end})
 
     DIR.defineBeat("delivery", {desc = "Crates delivered to Doc Salo at Halcyon Rest; the humming crate is revealed", fn = function()
@@ -227,7 +213,7 @@ function defineBeats()
     DIR.defineBeat("watcher", {ai = true, desc = "An unknown Ghost ship watches the Magpie from the Shroud, then vanishes (foreshadowing; not hostile)", fn = function()
         local x, y = RT.player:getPosition()
         local dx, dy = vectorFromAngle(random(0, 360), 11000, true)
-        local g = CpuShip():setTemplate("Stalker Q7"):setFaction("Ghosts"):setCallSign("UNKNOWN")
+        local g = CpuShip():setTemplate("Stalker Q7"):setFaction("Unknown"):setCallSign("UNKNOWN")
         g:setPosition(x + dx, y + dy):orderIdle()
         g:setCommsFunction(function() setCommsMessage("A burst of compressed tone. It sounds like the data core.") end)
         RT.register(g)
@@ -407,6 +393,7 @@ end
 
 function update(delta)
     RT.update(delta)
+    VERSE.update(delta)
     DIR.update(delta)
 
     if S.phase == "done" then return end
@@ -416,7 +403,7 @@ function update(delta)
             S.ending = true
             RT.completeSession("s1", "failed", "The Magpie was lost.")
             DIR.emit("session_end", {session = "s1", outcome = "failed"}, "high")
-            RT.after(6, function() victory("Exuari") end, "defeat")
+            RT.after(6, function() victory("Corsairs") end, "defeat")
         end
         return
     end

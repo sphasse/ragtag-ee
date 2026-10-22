@@ -1,0 +1,15 @@
+# Director: local config and memory
+director/config.toml
+director/director_memory.json
+director/*.tmp
+__pycache__/
+*.pyc
+
+# Headless EmptyEpsilon build used by tools/ci_headless.sh
+.ee-build/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

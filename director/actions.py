@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-FACTIONS = ["Exuari", "Independent", "Human Navy", "Kraylor", "Ghosts"]
+FACTIONS = ["Corsairs", "Independent", "Concord", "Unknown"]
 SYSTEMS = ["reactor", "beams", "missiles", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"]
 
 

@@ -59,7 +59,7 @@ class MockLink:
                 "player": {"callsign": "Magpie", "sector": "F5", "x": 9000, "y": -5000, "heading": 120,
                            "hull": 100 if now < 90 else 48, "hull_max": 100, "shields_up": True, "credits": 150,
                            "docked_with": None, "damaged_systems": {}, "homing": 2, "hvli": 5,
-                           "nearby": [{"callsign": "CPV Diligence", "type": "Phobos M3", "faction": "Human Navy",
+                           "nearby": [{"callsign": "CPV Diligence", "type": "Phobos M3", "faction": "Concord",
                                        "dist_u": 5.2, "hostile": False, "ai_spawned": True},
                                       {"callsign": "Port Vesper", "type": "Medium Station", "faction": "Independent",
                                        "dist_u": 10.4, "hostile": False, "ai_spawned": False}]},

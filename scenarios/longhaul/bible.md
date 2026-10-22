@@ -1,21 +1,12 @@
-## The Long Haul — campaign bible
+## The Long Haul — campaign bible (story only)
 
-### The setting
-The Drift: a frontier region at the edge of Concord space. Independent stations, ore refineries, waystations, and the Shroud, a vast nebula where navigation goes bad and ships go missing. Money is tight, law is far away, and everyone owes someone.
-
-### Factions (EmptyEpsilon faction in brackets)
-- The crew [Independent]: drifters aboard the Magpie, a light freighter with rear-facing guns. Underdogs.
-- Independent stations [Independent]: traders, fixers, dockworkers. Friendly but mercenary.
-- The Concord [Human Navy]: the law. Customs patrols, permits, inspections. Mostly honest people in a system that is not.
-- Exuari raiders [Exuari]: gangs who prey on freight lanes. The main gang is Grinning Teeth: theatrical and greedy.
-- The Ghosts [Ghosts]: ships seen deep in the Shroud. No transponders, no voices, only tones. Spacers tell stories. Not hostile to independents.
-- Kraylor [Kraylor]: far away, mentioned in rumours only, until the GM says otherwise.
+The universe itself (regions, stations, factions, traffic) is described to the director separately, generated from `ee/ragtag/verse/`. This bible holds only the Long Haul story.
 
 ### Recurring cast
 - Mags Oduya, fixer at Port Vesper. Dry, warm, quietly dangerous. Calls the crew "my lambs". Always owed a favour.
 - Lt. Corin Vashti, Concord officer on CPV Diligence. Tired, by-the-book, decent underneath.
 - Doc Salo, dockmaster and medic at Halcyon Rest. Nervous, honest, talks too fast.
-- Grinning Teeth, Exuari raider boss. Mocking, theatrical, PG-13 menace.
+- Grinning Teeth, Corsair raider boss. Mocking, theatrical, PG-13 menace.
 - Admiral Hesper Vane (introduced session 3): Concord flag officer. Calm, polite, ruthless.
 - Rook (introduced session 2): rival salvager captaining the Second Chance with her sons. Competitive, not evil.
 

@@ -1,4 +1,4 @@
--- ragtag_director.lua
+-- ee/ragtag/director.lua
 -- Scenario side of the AI director bridge.
 --
 -- EmptyEpsilon scenario Lua cannot open network connections, and the HTTP
@@ -56,8 +56,10 @@ DIR.config = {
     credit_cap_per_action = 300,
     credit_cap_per_session = 900,
     tick_minutes = 4,             -- periodic "anything to add?" event
-    allowed_factions = {"Exuari", "Independent", "Human Navy", "Kraylor", "Ghosts"},
-    hostile_factions = {Exuari = true, Kraylor = true, Ghosts = true},
+    -- Factions come from ragtag_verse.lua. Hollow and Relic are deliberately not
+    -- spawnable by the director: they belong to their zones.
+    allowed_factions = {"Corsairs", "Independent", "Concord", "Unknown"},
+    hostile_factions = {Corsairs = true, Hollow = true, Relic = true},
 }
 DIR.cooldowns = {}
 DIR.credits_given = 0
@@ -172,6 +174,9 @@ end
 
 function DIR.buildState()
     local st = {
+        -- Repeated in every snapshot so a director that starts (or restarts)
+        -- mid-session still gets the briefing and campaign id.
+        session = DIR.session,
         time = round(getScenarioTime()),
         objective = RT and RT.objective or "",
         paused = DIR.paused,
@@ -417,10 +422,20 @@ function DIR.npcComms(source, target)
     else
         setCommsMessage("\"" .. cs .. " here. Go ahead.\"")
     end
+    local fallback = {
+        identity = "\"Just another crew trying to make a living out here.\"",
+        intent = "\"Same as you. Get paid, stay breathing.\"",
+        work = "\"Nothing for you. Try the stations.\"",
+        negotiate = "\"Ha! No.\"",
+    }
     local function ask(label, topic)
         addCommsReply(label, function(s, t)
-            setCommsMessage("(They consider this. Stand by...)")
-            DIR.emit("npc_hailed", {callsign = cs, faction = t:getFaction(), topic = topic, role = info.role}, "high")
+            if DIR.online and not DIR.paused then
+                setCommsMessage("(They consider this. Stand by...)")
+                DIR.emit("npc_hailed", {callsign = cs, faction = t:getFaction(), topic = topic, role = info.role}, "high")
+            else
+                setCommsMessage(fallback[topic] or "\"...\"")
+            end
         end)
     end
     ask("Who are you?", "identity")
@@ -483,7 +498,7 @@ end
 
 -- Spawn a group of ships. args: faction, strength, near, distance, side, behavior, callsign
 DIR.ACTIONS.spawn_group = function(a)
-    local faction = str(a.faction, 30, "Exuari")
+    local faction = str(a.faction, 30, "Corsairs")
     if not factionAllowed(faction) then return false, "faction not allowed" end
     local strength = str(a.strength, 10, "light")
     local templates = DIR.GROUPS[strength]
@@ -551,7 +566,7 @@ end
 -- args: role = trader|patrol|derelict|stranger, faction, callsign, near, distance, side, greeting, description
 DIR.ACTIONS.spawn_npc = function(a)
     local role = str(a.role, 12, "trader")
-    local faction = str(a.faction, 30, role == "patrol" and "Human Navy" or "Independent")
+    local faction = str(a.faction, 30, role == "patrol" and "Concord" or "Independent")
     if not factionAllowed(faction) then return false, "faction not allowed" end
     if DIR.config.hostile_factions[faction] and role ~= "derelict" then
         return false, "use spawn_group for hostile factions"

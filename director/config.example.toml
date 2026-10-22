@@ -37,5 +37,10 @@ max_actions_per_minute = 8
 react_to_ticks = true
 
 system_prompt = "prompts/system.md"
-campaign_bible = "campaign_bible.md"
+# Universe description, generated from ee/ragtag/verse by tools/gen_world.py.
+world_file = "generated/world.md"
+# Campaign bibles: <campaigns_dir>/<campaign>/bible.md, chosen by the running scenario.
+campaigns_dir = "../scenarios"
+# Optional fallback bible for scenarios that don't name a campaign.
+campaign_bible = ""
 memory_file = "director_memory.json"

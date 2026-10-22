@@ -49,8 +49,15 @@ class Director:
 
         prompt_path = base_dir / dcfg.get("system_prompt", "prompts/system.md")
         self.system_template = prompt_path.read_text(encoding="utf-8")
-        bible_path = base_dir / dcfg.get("campaign_bible", "campaign_bible.md")
-        self.bible = bible_path.read_text(encoding="utf-8") if bible_path.exists() else ""
+        # The universe description is generated from ee/ragtag/verse (tools/gen_world.py);
+        # each campaign's story bible lives at scenarios/<campaign>/bible.md.
+        world_path = base_dir / dcfg.get("world_file", "generated/world.md")
+        self.world = world_path.read_text(encoding="utf-8") if world_path.exists() else ""
+        self.campaigns_dir = (base_dir / dcfg.get("campaigns_dir", "../scenarios")).resolve()
+        fallback = dcfg.get("campaign_bible", "")
+        fb_path = base_dir / fallback if fallback else None
+        self.bible = fb_path.read_text(encoding="utf-8") if fb_path and fb_path.exists() else ""
+        self.campaign = ""
         self.memory_path = base_dir / dcfg.get("memory_file", "director_memory.json")
         self.memory = self._load_memory()
 
@@ -157,6 +164,11 @@ class Director:
 
             if isinstance(msg.get("state"), dict):
                 self.state = msg["state"]
+                ses = self.state.get("session")
+                if isinstance(ses, dict) and ses.get("id") and ses.get("id") != self.session.get("id"):
+                    # Joined mid-session (or missed session_start): adopt the briefing.
+                    self.session = ses
+                    self._load_campaign_bible(str(ses.get("campaign") or ""))
                 camp = self.state.get("campaign")
                 if isinstance(camp, dict) and camp != self.memory.get("campaign_mirror"):
                     self.memory["campaign_mirror"] = camp
@@ -172,6 +184,7 @@ class Director:
 
     def _new_run(self, run: str | None) -> None:
         self.run = run
+        self.session = {}
         self.event_ack = 0
         self.next_cmd_id = 1
         self.outgoing = []
@@ -187,11 +200,23 @@ class Director:
         etype = ev.get("type")
         if etype == "session_start":
             self.session = (ev.get("data") or {}).get("session") or {}
+            self._load_campaign_bible(str(self.session.get("campaign") or ""))
         self.history.append(ev)
         self.pending.append(ev)
         self._log("event", f"[{_fmt_time(ev.get('t'))}] {etype} {_compact(ev.get('data'), 200)}")
         if etype == "session_end":
             threading.Thread(target=self._summarise_session, args=(ev,), daemon=True).start()
+
+    def _load_campaign_bible(self, campaign: str) -> None:
+        self.campaign = campaign
+        if not campaign or "/" in campaign or "\\" in campaign or campaign.startswith("."):
+            return
+        path = self.campaigns_dir / campaign / "bible.md"
+        if path.exists():
+            self.bible = path.read_text(encoding="utf-8")
+            self._log("info", f"Loaded campaign bible for '{campaign}'.")
+        else:
+            self._log("info", f"No bible at {path}; using the default.")
 
     # ----------------------------------------------------------------- actions
 
@@ -300,6 +325,7 @@ class Director:
         notes = "\n".join(f"- {n}" for n in mem.get("notes", [])[-10:]) or "(none)"
         return (self.system_template
                 .replace("{{ACTIONS}}", act.catalog_for_prompt())
+                .replace("{{WORLD}}", self.world.strip() or "(no world description generated)")
                 .replace("{{BIBLE}}", self.bible.strip() or "(no campaign bible provided)")
                 .replace("{{CAMPAIGN_LOG}}", camp_log)
                 .replace("{{NPCS}}", npcs)
@@ -450,6 +476,8 @@ class Director:
     def _summarise_session(self, ev: dict) -> None:
         data = ev.get("data") or {}
         sid = data.get("session") or self.session.get("id") or "?"
+        if self.campaign:
+            sid = f"{self.campaign}:{sid}"   # keep campaigns' logs apart
         hist = "\n".join(f"- [{_fmt_time(e.get('t'))}] {e.get('type')}: {_compact(e.get('data'), 200)}" for e in self.history)
         prompt = (
             "You are the chronicler of a space-western campaign. Summarise the session below for the campaign log.\n"
