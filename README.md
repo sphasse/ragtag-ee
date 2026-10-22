@@ -5,10 +5,21 @@ living universe of trade lanes, frontier stations, pirate havens and places your
 An optional local language model on another PC acts as a live director: it voices characters, answers
 hails, times ambushes and takes plain-English instructions from the GM.
 
-The first campaign, **The Long Haul**, puts your crew aboard the *Magpie*, a battered light freighter,
-earning credits for upgrades across five sessions. Session 1 is built and tested; sessions 2–5 are planned.
+**Two campaigns available:**
+- **Sandbox**: Open-play exploration, make your own story (perfect for learning the universe)
+- **The Long Haul**: 5-session narrative with the *Magpie* freighter (Session 1 built, 2-5 planned)
 
 ![The Drift](docs/verse_map.svg)
+
+## For Players
+
+**New to the Drift?** Start here:
+- 📖 **[Player Documentation Index](docs/PLAYER_DOCS_INDEX.md)** — Find the right guide for you
+- 🎮 **[Station Quick Reference](docs/STATION_REFERENCE.md)** — 2-page printable reference card
+- 🚀 **[Player Guide](docs/PLAYER_GUIDE.md)** — Complete manual (read after your first session)
+- 🌌 **[The Drift Setting](docs/THE_DRIFT_SETTING.md)** — Universe lore and backstory
+
+**First session prep:** Read your station's section in the [Station Reference](docs/STATION_REFERENCE.md) (5 minutes). That's it—learn the rest by playing!
 
 ## Repository layout
 
