@@ -518,11 +518,135 @@ end
 --------------------------------------------------------------------------------
 
 function RT.addCampaignGMFunctions()
-    addGMFunction("RT: +100 credits", function() RT.addCredits(100, "GM") end)
-    addGMFunction("RT: -100 credits", function() RT.addCredits(-100, "GM") end)
-    addGMFunction("RT: save campaign", function()
+    addGMFunction("Campaign: show status", function()
+        local c = RT.campaign
+        local msg = "Campaign: " .. (RT.campaign_id or "unknown") .. "\n"
+        msg = msg .. "Ship: " .. c.ship_name .. "\n"
+        msg = msg .. "Credits: " .. RT.credits() .. "\n"
+        msg = msg .. "Upgrades (" .. #c.upgrades .. "): " .. (c.upgrades[1] and table.concat(c.upgrades, ", ") or "none") .. "\n"
+        local session_list = {}
+        for sid, _ in pairs(c.sessions) do table.insert(session_list, sid) end
+        table.sort(session_list)
+        msg = msg .. "Completed sessions: " .. (session_list[1] and table.concat(session_list, ", ") or "none")
+        addGMMessage(msg)
+    end)
+
+    addGMFunction("Campaign: +200 credits", function() RT.addCredits(200, "GM") end)
+    addGMFunction("Campaign: -200 credits", function() RT.addCredits(-200, "GM") end)
+
+    addGMFunction("Campaign: save now", function()
         RT.saveCampaign()
-        addGMMessage("Campaign saved. Credits " .. RT.credits() .. ", upgrades: " .. table.concat(RT.campaign.upgrades, ", "))
+        addGMMessage("Campaign saved. Credits: " .. RT.credits() .. ", Upgrades: " .. #RT.campaign.upgrades)
+    end)
+
+    addGMFunction("Ship: reset to fresh (keep credits)", function()
+        if not RT.valid(RT.player) then
+            addGMMessage("No player ship to reset.")
+            return
+        end
+        -- Store current state
+        local px, py = RT.player:getPosition()
+        local heading = RT.player:getHeading()
+        local old_upgrades = #RT.campaign.upgrades
+
+        -- Clear upgrades but keep credits and story progress
+        RT.campaign.upgrades = {}
+        RT.saveCampaign()
+
+        -- Respawn with fresh ship
+        RT.player:destroy()
+        RT.spawnPlayer(px, py, heading)
+
+        addGMMessage("Ship reset to stock template. Removed " .. old_upgrades .. " upgrades. Credits preserved: " .. RT.credits())
+    end)
+
+    addGMFunction("Ship: full repair + refuel", function()
+        if not RT.valid(RT.player) then
+            addGMMessage("No player ship to repair.")
+            return
+        end
+        -- Repair hull
+        RT.player:setHull(RT.player:getHullMax())
+
+        -- Restore shields
+        local front_max, rear_max = RT.player:getShieldsMax()
+        RT.player:setShields(front_max, rear_max)
+
+        -- Refuel energy
+        RT.player:setEnergy(RT.player:getMaxEnergy())
+
+        -- Restock missiles
+        for _, missile_type in ipairs({"Homing", "Nuke", "Mine", "EMP", "HVLI"}) do
+            RT.player:setWeaponStorage(missile_type, RT.player:getWeaponStorageMax(missile_type))
+        end
+
+        -- Repair all systems to 100%
+        for _, system in ipairs({"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}) do
+            RT.player:setSystemHealth(system, 1.0)
+            RT.player:setSystemHeat(system, 0.0)
+        end
+
+        addGMMessage("Ship fully repaired and refueled: Hull, shields, energy, missiles, and all systems restored.")
+    end)
+
+    addGMFunction("Ship: snapshot current state", function()
+        if not RT.valid(RT.player) then
+            addGMMessage("No player ship to snapshot.")
+            return
+        end
+        -- Save current hull/shields/energy as percentages
+        local hull_pct = RT.player:getHull() / RT.player:getHullMax()
+        local front_shield, rear_shield = RT.player:getShieldLevel()
+        local front_max, rear_max = RT.player:getShieldsMax()
+        local energy_pct = RT.player:getEnergy() / RT.player:getMaxEnergy()
+
+        RT.campaign.ship_snapshot = {
+            hull_pct = hull_pct,
+            front_shield_pct = front_max > 0 and front_shield / front_max or 0,
+            rear_shield_pct = rear_max > 0 and rear_shield / rear_max or 0,
+            energy_pct = energy_pct,
+            position = {x = RT.player:getPosition()},
+            heading = RT.player:getHeading(),
+        }
+        RT.saveCampaign()
+
+        addGMMessage(string.format("Ship snapshot saved: Hull %.0f%%, Shields %.0f/%.0f%%, Energy %.0f%%, Position recorded.",
+            hull_pct * 100,
+            (front_max > 0 and front_shield / front_max or 0) * 100,
+            (rear_max > 0 and rear_shield / rear_max or 0) * 100,
+            energy_pct * 100))
+    end)
+
+    addGMFunction("Ship: restore from snapshot", function()
+        if not RT.valid(RT.player) then
+            addGMMessage("No player ship to restore.")
+            return
+        end
+        local snap = RT.campaign.ship_snapshot
+        if not snap then
+            addGMMessage("No snapshot saved. Use 'Ship: snapshot current state' first.")
+            return
+        end
+
+        -- Restore hull/shields/energy
+        RT.player:setHull(RT.player:getHullMax() * snap.hull_pct)
+        local front_max, rear_max = RT.player:getShieldsMax()
+        RT.player:setShields(front_max * snap.front_shield_pct, rear_max * snap.rear_shield_pct)
+        RT.player:setEnergy(RT.player:getMaxEnergy() * snap.energy_pct)
+
+        -- Restore position if saved
+        if snap.position and snap.position.x then
+            RT.player:setPosition(snap.position.x, snap.position[2] or 0)
+        end
+        if snap.heading then
+            RT.player:setHeading(snap.heading)
+        end
+
+        addGMMessage(string.format("Ship restored from snapshot: Hull %.0f%%, Shields %.0f/%.0f%%, Energy %.0f%%",
+            snap.hull_pct * 100,
+            snap.front_shield_pct * 100,
+            snap.rear_shield_pct * 100,
+            snap.energy_pct * 100))
     end)
 end
 
