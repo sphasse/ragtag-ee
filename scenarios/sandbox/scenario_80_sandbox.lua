@@ -143,7 +143,7 @@ end
 function getCurrentRegion()
     if not RT.valid(RT.player) then return "unknown" end
     local px, py = RT.player:getPosition()
-    local region = VERSE.getRegion(px, py)
+    local region = VERSE.regionAt(px, py)
     return region and region.name or "deep space"
 end
 
@@ -304,7 +304,7 @@ function update(delta)
     if not DIR.enabled and S.phase == "exploring" then
         -- Simple fallback: occasional random encounters in dangerous areas
         if now - S.last_encounter_time > 300 then  -- 5 minutes
-            local region_data = VERSE.getRegion(RT.player:getPosition())
+            local region_data = VERSE.regionAt(RT.player:getPosition())
             if region_data and region_data.danger >= 1 and math.random() < 0.3 then
                 spawnScriptedEncounter(region_data)
                 S.last_encounter_time = now

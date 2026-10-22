@@ -599,13 +599,14 @@ function RT.addCampaignGMFunctions()
         local front_shield, rear_shield = RT.player:getShieldLevel()
         local front_max, rear_max = RT.player:getShieldsMax()
         local energy_pct = RT.player:getEnergy() / RT.player:getMaxEnergy()
+        local snap_x, snap_y = RT.player:getPosition()
 
         RT.campaign.ship_snapshot = {
             hull_pct = hull_pct,
             front_shield_pct = front_max > 0 and front_shield / front_max or 0,
             rear_shield_pct = rear_max > 0 and rear_shield / rear_max or 0,
             energy_pct = energy_pct,
-            position = {x = RT.player:getPosition()},
+            position = {x = snap_x, y = snap_y},
             heading = RT.player:getHeading(),
         }
         RT.saveCampaign()
@@ -636,7 +637,7 @@ function RT.addCampaignGMFunctions()
 
         -- Restore position if saved
         if snap.position and snap.position.x then
-            RT.player:setPosition(snap.position.x, snap.position[2] or 0)
+            RT.player:setPosition(snap.position.x, snap.position.y or 0)
         end
         if snap.heading then
             RT.player:setHeading(snap.heading)
