@@ -221,7 +221,7 @@ function DIR.buildState()
         for _, obj in ipairs(getObjectsInRadius(x, y, 30000)) do
             -- Only ships and stations: asteroids, nebulae etc. have no typename
             -- component, and calling getTypeName() on them raises an error.
-            if obj ~= p and obj.components.typename ~= nil then
+            if obj ~= p and obj.components ~= nil and obj.components.typename ~= nil then
                 local ok, info = pcall(function()
                     return {
                         callsign = obj:getCallSign(), type = obj:getTypeName(), faction = obj:getFaction(),
