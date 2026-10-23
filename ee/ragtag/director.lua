@@ -309,10 +309,15 @@ function DIR.update(delta)
     -- 2. Write our side when something changed, or periodically for fresh state.
     if DIR.dirty or now - DIR.last_write >= DIR.state_interval then
         DIR.seq = DIR.seq + 1
+        local state_ok, state_val = pcall(DIR.buildState)
+        if not state_ok then
+            print("[DIR] buildState failed: " .. tostring(state_val))
+            state_val = {}
+        end
         local out = {
             proto = DIR.PROTO, run = DIR.run, seq = DIR.seq,
             events = DIR.events, cmd_ack = DIR.last_cmd_id, results = DIR.results,
-            state = DIR.buildState(),
+            state = state_val,
         }
         local ok, s = pcall(toJSON, out)
         if ok then
