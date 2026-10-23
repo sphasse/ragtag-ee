@@ -20,6 +20,7 @@
 RT = RT or {}
 RT.VERSION = "1.0"
 RT.CAMPAIGN_KEY = "ragtag.campaign"   -- set per campaign by RT.useCampaign()
+RT.SHIP_KEY     = "ragtag.ship"        -- portable ship record, not tied to any campaign
 RT.PLAYER_FACTION = "Independent"
 RT.PLAYER_TEMPLATE = "Flavia P.Falcon"
 
@@ -175,6 +176,58 @@ function RT.saveCampaign()
         RT.campaign.credits = math.floor(RT.player:getReputationPoints())
     end
     getScriptStorage():set(RT.CAMPAIGN_KEY, toJSON(RT.campaign))
+end
+
+--------------------------------------------------------------------------------
+-- Portable ship record (upgrades + damage state, no campaign or position)
+-- Use to carry a ship between campaigns or hand it off to a new scenario.
+--------------------------------------------------------------------------------
+
+-- Write current ship state to the shared, campaign-independent key.
+function RT.saveShipRecord()
+    if not RT.valid(RT.player) then return nil end
+    local hull_pct = RT.player:getHull() / RT.player:getHullMax()
+    local fs, rs   = RT.player:getShieldLevel()
+    local fm, rm   = RT.player:getShieldsMax()
+    local record = {
+        ship_name        = RT.player:getCallSign(),
+        upgrades         = RT.campaign and RT.campaign.upgrades or {},
+        hull_pct         = hull_pct,
+        front_shield_pct = fm > 0 and fs / fm or 0,
+        rear_shield_pct  = rm > 0 and rs / rm or 0,
+        energy_pct       = RT.player:getEnergy() / RT.player:getMaxEnergy(),
+    }
+    getScriptStorage():set(RT.SHIP_KEY, toJSON(record))
+    return record
+end
+
+function RT.loadShipRecord()
+    local raw = getScriptStorage():get(RT.SHIP_KEY)
+    if type(raw) ~= "string" or raw == "" then return nil end
+    local ok, v = pcall(fromJSON, raw)
+    return (ok and type(v) == "table") and v or nil
+end
+
+function RT.clearShipRecord()
+    getScriptStorage():set(RT.SHIP_KEY, "")
+end
+
+-- Merge a ship record into the current campaign so the next RT.spawnPlayer
+-- spawns with the right upgrades and wear. Omit `record` to read from storage.
+function RT.importShipRecord(record)
+    record = record or RT.loadShipRecord()
+    if not record then return false end
+    local c = RT.campaign or RT.loadCampaign()
+    if record.ship_name then c.ship_name = record.ship_name end
+    if type(record.upgrades) == "table" then c.upgrades = record.upgrades end
+    c.ship_condition = {
+        hull_pct         = record.hull_pct         or 1,
+        front_shield_pct = record.front_shield_pct or 1,
+        rear_shield_pct  = record.rear_shield_pct  or 1,
+        energy_pct       = record.energy_pct       or 1,
+    }
+    RT.saveCampaign()
+    return true
 end
 
 function RT.flag(name, value)
@@ -351,6 +404,13 @@ function RT.spawnPlayer(x, y, heading)
     p:setWeaponStorageMax("Mine", 0):setWeaponStorage("Mine", 0)
     p:setWeaponStorage("Homing", 2)
     for _, id in ipairs(c.upgrades) do RT.applyUpgrade(p, id) end
+    if c.ship_condition then
+        local cond = c.ship_condition
+        local cm_f, cm_r = p:getShieldsMax()
+        p:setHull(p:getHullMax() * cond.hull_pct)
+        p:setShields(cm_f * cond.front_shield_pct, cm_r * cond.rear_shield_pct)
+        p:setEnergy(p:getMaxEnergy() * cond.energy_pct)
+    end
     p:setReputationPoints(c.credits or 0)
     RT.player = p
     RT.named[p:getCallSign()] = p
@@ -648,6 +708,39 @@ function RT.addCampaignGMFunctions()
             snap.front_shield_pct * 100,
             snap.rear_shield_pct * 100,
             snap.energy_pct * 100))
+    end)
+
+    addGMFunction("Ship: export to portable record", function()
+        local rec = RT.saveShipRecord()
+        if not rec then
+            addGMMessage("No player ship to export.")
+            return
+        end
+        addGMMessage(string.format(
+            "Portable ship record saved.\nShip: %s\nUpgrades (%d): %s\nHull %.0f%%, Shields %.0f/%.0f%%, Energy %.0f%%",
+            rec.ship_name, #rec.upgrades,
+            #rec.upgrades > 0 and table.concat(rec.upgrades, ", ") or "none",
+            rec.hull_pct * 100,
+            rec.front_shield_pct * 100, rec.rear_shield_pct * 100,
+            rec.energy_pct * 100))
+    end)
+
+    addGMFunction("Ship: import portable record", function()
+        local rec = RT.loadShipRecord()
+        if not rec then
+            addGMMessage("No portable ship record found. Export one first.")
+            return
+        end
+        RT.importShipRecord(rec)
+        addGMMessage(string.format(
+            "Portable record imported into campaign.\nShip: %s\nUpgrades (%d): %s\nCondition will be applied on next spawn.",
+            rec.ship_name, #(rec.upgrades or {}),
+            (rec.upgrades and #rec.upgrades > 0) and table.concat(rec.upgrades, ", ") or "none"))
+    end)
+
+    addGMFunction("Ship: clear portable record", function()
+        RT.clearShipRecord()
+        addGMMessage("Portable ship record cleared.")
     end)
 end
 
