@@ -88,13 +88,18 @@ function DIR.init(session)
     DIR.session = session or {}
     DIR.run = string.format("%s-%d-%d", DIR.session.id or "run", math.floor(random(0, 999999)), math.floor(random(0, 999999)))
     DIR.addGMFunctions()
-    DIR.emit("session_start", {
-        session = DIR.session,
-        campaign = RT and RT.campaign and {
-            credits = RT.campaign.credits, upgrades = RT.campaign.upgrades,
-            flags = RT.campaign.flags, notes = RT.campaign.notes, ship = RT.campaign.ship_name,
-        } or nil,
-    }, "high")
+    -- Build fresh copies of campaign sub-tables so toJSON never sees the same
+    -- table object twice (shared refs across events+state trigger a Lua next() error).
+    local camp_snap = nil
+    if RT and RT.campaign then
+        local c = RT.campaign
+        local upg, flg, nts = {}, {}, {}
+        for i, v in ipairs(c.upgrades or {}) do upg[i] = v end
+        for k, v in pairs(c.flags or {}) do flg[k] = v end
+        for i, v in ipairs(c.notes or {}) do nts[i] = v end
+        camp_snap = {credits = c.credits, upgrades = upg, flags = flg, notes = nts, ship = c.ship_name}
+    end
+    DIR.emit("session_start", {session = DIR.session, campaign = camp_snap}, "high")
 end
 
 -- Define a story beat. ai=true lets the director choose when to fire it.
@@ -247,7 +252,18 @@ function DIR.buildState()
         end
     end
     if RT and RT.campaign then
-        st.campaign = RT.campaign
+        local c = RT.campaign
+        local upg, flg = {}, {}
+        for i, v in ipairs(c.upgrades or {}) do upg[i] = v end
+        for k, v in pairs(c.flags or {}) do flg[k] = v end
+        local sess_count = 0
+        if type(c.sessions) == "table" then
+            for _ in pairs(c.sessions) do sess_count = sess_count + 1 end
+        end
+        st.campaign = {
+            credits = c.credits, ship = c.ship_name,
+            upgrades = upg, flags = flg, sessions_count = sess_count,
+        }
     end
     return st
 end
@@ -324,6 +340,17 @@ function DIR.update(delta)
             storage:set(DIR.KEY_OUT, s)
         else
             print("[DIR] toJSON failed: " .. tostring(s))
+            -- Bisect to find the failing sub-table.
+            for _, part in ipairs({"events", "state", "results"}) do
+                local ok2, _ = pcall(toJSON, {[part] = out[part]})
+                print("[DIR]   " .. part .. " ok=" .. tostring(ok2))
+            end
+            if out.state then
+                for _, k in ipairs({"player", "beats", "extra", "campaign", "budget"}) do
+                    local ok2, _ = pcall(toJSON, {[k] = out.state[k]})
+                    print("[DIR]   state." .. k .. " ok=" .. tostring(ok2))
+                end
+            end
         end
         DIR.dirty = false
         DIR.last_write = now
