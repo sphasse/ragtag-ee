@@ -512,6 +512,22 @@ function DIR.npcComms(source, target)
     else
         setCommsMessage("\"" .. cs .. " here. Go ahead.\"")
     end
+
+    -- Pre-generated tree from comms_tree action: instant replies, no LLM round-trip.
+    if info.tree and #info.tree > 0 then
+        for _, opt in ipairs(info.tree) do
+            local reply = opt.reply
+            addCommsReply(opt.label, function(s, t)
+                setCommsMessage(reply)
+            end)
+        end
+        addCommsReply("Nothing, thanks.", function(s, t)
+            setCommsMessage("\"Safe travels.\"")
+        end)
+        return
+    end
+
+    -- Generic LLM-driven comms: crew picks a topic, director answers with "say".
     local fallback = {
         identity = "\"Just another crew trying to make a living out here.\"",
         intent = "\"Same as you. Get paid, stay breathing.\"",
@@ -570,6 +586,35 @@ function DIR.processPendingHails(now)
             table.remove(DIR.pending_hails, i)
         end
     end
+end
+
+-- Queue several lines from one speaker at timed intervals.
+-- args: speaker, lines = [{text, delay}] (delay = seconds after previous line)
+DIR.ACTIONS.say_sequence = function(a)
+    if not RT.valid(RT.player) then return false, "no player" end
+    local speaker = str(a.speaker, 40, "Unknown")
+    if type(a.lines) ~= "table" or #a.lines == 0 then return false, "lines required" end
+    local seq_id = "dir_seq_" .. DIR.seq
+    local cum = 0
+    local count = 0
+    for i, line in ipairs(a.lines) do
+        if i > 8 then break end
+        local text = type(line) == "table" and str(line.text, 500, nil) or nil
+        if text and text ~= "" then
+            local d = type(line) == "table" and num(line.delay or 0, 0, 120, 0) or 0
+            cum = cum + d
+            count = count + 1
+            if cum <= 0 then
+                DIR.ACTIONS.say({speaker = speaker, text = text})
+            else
+                local cap = {spk = speaker, txt = text}
+                RT.after(cum, function()
+                    DIR.ACTIONS.say({speaker = cap.spk, text = cap.txt})
+                end, seq_id .. "_" .. i)
+            end
+        end
+    end
+    return count > 0, count > 0 and ("queued " .. count .. " lines") or "no valid lines"
 end
 
 -- Text on every main screen. args: text
@@ -787,6 +832,28 @@ DIR.ACTIONS.rename_ship = function(a, cmd)
 end
 
 DIR.ACTIONS.noop = function(a) return true, "ok" end
+
+-- Pre-load a reply tree onto a director NPC so comms hail is instant.
+-- args: callsign, opening, options = [{label, reply}]
+DIR.ACTIONS.comms_tree = function(a)
+    local cs = str(a.callsign, 24, "")
+    if cs == "" then return false, "callsign required" end
+    if type(a.options) ~= "table" or #a.options == 0 then return false, "options required" end
+    DIR.npc_info[cs] = DIR.npc_info[cs] or {}
+    if a.opening then DIR.npc_info[cs].greeting = str(a.opening, 300, nil) end
+    local opts = {}
+    for i, opt in ipairs(a.options) do
+        if i > 4 then break end
+        if type(opt) == "table" then
+            local label = str(opt.label, 80, nil)
+            local reply = str(opt.reply, 300, nil)
+            if label and reply then table.insert(opts, {label = label, reply = reply}) end
+        end
+    end
+    if #opts == 0 then return false, "no valid options" end
+    DIR.npc_info[cs].tree = opts
+    return true, "comms tree set for " .. cs .. " (" .. #opts .. " options)"
+end
 
 --------------------------------------------------------------------------------
 -- GM screen buttons

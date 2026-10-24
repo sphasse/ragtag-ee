@@ -18,7 +18,7 @@ SYSTEMS = ["reactor", "beams", "missiles", "maneuver", "impulse", "warp", "jumpd
 
 @dataclass
 class Arg:
-    type: str                      # "str" | "int" | "float" | "enum" | "dict"
+    type: str                      # "str" | "int" | "float" | "enum" | "dict" | "list"
     required: bool = False
     choices: list[str] | None = None
     lo: float | None = None
@@ -98,6 +98,15 @@ _add(Action("npc_order", "Give an order to an NPC you spawned (or one the scenar
     "target": Arg("str", max_len=40, help="station callsign for dock"),
 }))
 _add(Action("noop", "Do nothing this time.", {}))
+_add(Action("say_sequence", "Queue several lines from one speaker at timed intervals. Use this for any encounter that needs more than one NPC line — taunts, negotiations, reveals. One LLM call covers the whole interaction; no further calls needed.", {
+    "speaker": Arg("str", True, max_len=40, help="character name or ship/station callsign"),
+    "lines": Arg("list", True, max_len=8, help='[{"text":"...","delay":5}, ...] — first line fires immediately; delay is seconds after the previous line'),
+}))
+_add(Action("comms_tree", "Pre-load a reply tree onto a director NPC so the crew gets instant answers when they hail. Use right after spawning the NPC. No LLM round-trip at hail time.", {
+    "callsign": Arg("str", True, max_len=24, help="callsign of the NPC"),
+    "opening": Arg("str", True, max_len=300, help="what the NPC says when the crew opens comms"),
+    "options": Arg("list", True, max_len=4, help='[{"label":"What do you want?","reply":"Credits, like everyone."}] — up to 4 crew choices and NPC responses'),
+}))
 
 # GM-only: the console can send these, the model cannot.
 _add(Action("set_objective", "Set the crew's displayed objective.", {"text": Arg("str", True, max_len=160)}, llm_allowed=False))
@@ -147,6 +156,11 @@ def validate(action: str, args: Any, *, from_llm: bool) -> tuple[bool, dict, str
             elif arg.type == "dict":
                 if not isinstance(v, dict):
                     return False, {}, f"arg '{name}' must be an object"
+            elif arg.type == "list":
+                if not isinstance(v, list):
+                    return False, {}, f"arg '{name}' must be an array"
+                if arg.max_len:
+                    v = v[:arg.max_len]
         except (TypeError, ValueError):
             return False, {}, f"arg '{name}' has the wrong type"
         cleaned[name] = v
