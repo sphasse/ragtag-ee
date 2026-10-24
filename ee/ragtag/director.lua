@@ -18,6 +18,46 @@
 -- The scenario must stay fully playable with the director offline: every beat
 -- the AI may trigger should also have a deterministic fallback in the scenario.
 
+-- EE's built-in toJSON fails with "invalid key to 'next'" whenever a table
+-- has two or more values that are themselves non-empty tables.  Root cause:
+-- a relative Lua C stack index in EE's toJSON becomes stale after recursing
+-- into the first nested table, so the outer next() call gets the wrong table.
+-- We use this minimal encoder for the mailbox write only; RT.saveCampaign()
+-- and other callers that only nest empty tables are fine with EE's toJSON.
+local function _json(v, depth)
+    depth = depth or 0
+    local t = type(v)
+    if t == "nil" then return "null"
+    elseif t == "boolean" then return v and "true" or "false"
+    elseif t == "number" then
+        if v ~= v or v == math.huge or v == -math.huge then return "0" end
+        return (math.floor(v) == v) and string.format("%d", v) or string.format("%.10g", v)
+    elseif t == "string" then
+        return '"' .. v:gsub('\\','\\\\'):gsub('"','\\"'):gsub('\n','\\n')
+                       :gsub('\r','\\r'):gsub('\t','\\t')
+                       :gsub('[\x00-\x1f]', function(c)
+                           return string.format('\\u%04x', c:byte()) end) .. '"'
+    elseif t == "table" then
+        if depth > 30 then return '"<overflow>"' end
+        local n = #v
+        -- Array: consecutive integer keys starting at 1 with no gaps.
+        if n > 0 then
+            local parts = {}
+            for i = 1, n do parts[i] = _json(v[i], depth+1) end
+            return "[" .. table.concat(parts, ",") .. "]"
+        end
+        -- Object: string keys.
+        local parts = {}
+        for k, val in pairs(v) do
+            if type(k) == "string" then
+                table.insert(parts, '"'..k:gsub('\\','\\\\'):gsub('"','\\"')..'":'
+                                    .._json(val, depth+1))
+            end
+        end
+        return "{" .. table.concat(parts, ",") .. "}"
+    else return "null" end  -- userdata, function, thread
+end
+
 DIR = DIR or {}
 DIR.PROTO = 1
 DIR.KEY_OUT = "rt.from_scenario"
@@ -359,87 +399,10 @@ function DIR.update(delta)
             state = state_val,
         }
 
-        -- Pre-flight: drill down to find the EXACT value that toJSON can't handle.
-        -- Tests values in isolation before combining, so corruption from a failed
-        -- call never masks a sibling.  Stops at the first leaf that fails.
-        local _pf_done = false
-        local function drill(path, val, depth)
-            if _pf_done then return end
-            local ok, err = pcall(toJSON, val)
-            if ok then return end
-            -- This value fails.  If it's a table and we haven't gone too deep,
-            -- test each field so we can pinpoint the exact bad leaf.
-            if type(val) == "table" and depth < 6 then
-                local found_bad_child = false
-                for k, v in pairs(val) do
-                    local ok2, _ = pcall(toJSON, v)
-                    if not ok2 then
-                        drill(path .. "." .. tostring(k), v, depth + 1)
-                        found_bad_child = true
-                        break  -- stop after first bad child to avoid corruption
-                    end
-                end
-                if not found_bad_child then
-                    -- All children pass individually but the table itself fails.
-                    print("[DIR] DRILL: " .. path .. " fails COMBINED (all children ok)")
-                    print("[DIR]   type=table #=" .. tostring(#val) .. " err=" .. tostring(err))
-                    local n = 0
-                    for k, v in pairs(val) do
-                        local vt = type(v)
-                        local vs = (vt=="string") and ('"'..v:sub(1,50)..'"')
-                                or (vt=="number" or vt=="boolean") and tostring(v)
-                                or (vt=="table") and "{#"..#v.."}"
-                                or vt
-                        print("[DIR]     ."..tostring(k).."("..vt..")="..vs)
-                        n = n + 1; if n >= 12 then print("[DIR]     ..."); break end
-                    end
-                    _pf_done = true
-                end
-            else
-                -- Leaf value (non-table or max depth): this is the culprit.
-                print("[DIR] DRILL: " .. path .. " FAILS")
-                print("[DIR]   type=" .. type(val))
-                if type(val) == "string" then
-                    print("[DIR]   len=" .. #val .. " val=" .. val:sub(1,80))
-                elseif type(val) == "table" then
-                    print("[DIR]   #=" .. #val .. " (max depth reached)")
-                else
-                    print("[DIR]   val=" .. tostring(val))
-                end
-                print("[DIR]   err=" .. tostring(err))
-                _pf_done = true
-            end
-        end
-
-        -- Run the drill on events (confirmed failing) and state, each separately.
-        drill("events", DIR.events, 0)
-        if not _pf_done then
-            drill("state", state_val, 0)
-        end
-
-        -- Also run a one-shot capability check (fresh tables, no corruption risk).
-        if not _pf_done then
-            for _, t in ipairs({
-                {"cap.num",    42},
-                {"cap.str",    "hello"},
-                {"cap.bool",   false},
-                {"cap.nested", {a={b=1}}},
-                {"cap.quotes", 'say "hi"'},
-                {"cap.newline","\n"},
-            }) do
-                local ok2, err2 = pcall(toJSON, t[2])
-                if not ok2 then
-                    print("[DIR] CAP FAIL: " .. t[1] .. " err=" .. tostring(err2))
-                end
-            end
-        end
-
-        local ok, s = pcall(toJSON, out)
-        if ok then
-            storage:set(DIR.KEY_OUT, s)
-        else
-            print("[DIR] toJSON(out) FAIL: " .. tostring(s))
-        end
+        -- Use our own serialiser: EE's toJSON has a C stack-index bug that makes
+        -- it fail on any table containing two or more non-empty table values.
+        local s = _json(out)
+        storage:set(DIR.KEY_OUT, s)
         DIR.dirty = false
         DIR.last_write = now
     end
