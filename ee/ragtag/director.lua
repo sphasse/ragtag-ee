@@ -202,11 +202,12 @@ function DIR.buildState()
         cast = cast_copy, locations = loc_copy,
         director_guidance = sess.director_guidance or "",
     }
+    local function b01(v) return v and 1 or 0 end
     local st = {
         session = sess_snap,
         time = round(getScenarioTime()),
         objective = RT and RT.objective or "",
-        paused = DIR.paused,
+        paused = b01(DIR.paused),
         beats = {},
         budget = {
             ai_hostiles_alive = 0, max_ai_hostiles = DIR.config.max_ai_hostiles,
@@ -217,7 +218,7 @@ function DIR.buildState()
     for id, b in pairs(DIR.beats) do table.insert(list, {id = id, b = b}) end
     table.sort(list, function(a, c) return a.b.order < c.b.order end)
     for _, item in ipairs(list) do
-        table.insert(st.beats, {id = item.id, desc = item.b.desc, ai = item.b.ai, fired = item.b.fired})
+        table.insert(st.beats, {id = item.id, desc = item.b.desc, ai = b01(item.b.ai), fired = b01(item.b.fired)})
     end
 
     st.budget.ai_hostiles_alive = DIR.countAIHostiles()
@@ -239,7 +240,7 @@ function DIR.buildState()
             callsign = p:getCallSign(), sector = p:getSectorName(),
             x = round(x), y = round(y), heading = round(p:getHeading()),
             hull = round(p:getHull()), hull_max = round(p:getHullMax()),
-            shields_up = p:getShieldsActive(), credits = RT.credits(),
+            shields_up = b01(p:getShieldsActive()), credits = RT.credits(),
             docked_with = (docked and RT.valid(docked)) and docked:getCallSign() or nil,
             damaged_systems = damaged,
             homing = p:getWeaponStorage("Homing"), hvli = p:getWeaponStorage("HVLI"),
@@ -253,7 +254,7 @@ function DIR.buildState()
                     return {
                         callsign = obj:getCallSign(), type = obj:getTypeName(), faction = obj:getFaction(),
                         dist_u = round(RT.dist(p, obj) / 100) / 10,
-                        hostile = obj:isEnemy(p), ai_spawned = DIR.controllable[obj:getCallSign()] or false,
+                        hostile = b01(obj:isEnemy(p)), ai_spawned = b01(DIR.controllable[obj:getCallSign()]),
                     }
                 end)
                 if ok then table.insert(nearby, info) end
@@ -294,9 +295,28 @@ end
 -- Mailbox pump. Call DIR.update(delta) from the scenario's update().
 --------------------------------------------------------------------------------
 
+local _diag_done = false
 function DIR.update(delta)
     if not DIR.enabled or DIR.run == nil then return end
     local now = getScenarioTime()
+
+    -- One-shot: probe which value types EE's toJSON supports.
+    if not _diag_done then
+        _diag_done = true
+        local tests = {
+            {"num",    {v = 42}},
+            {"str",    {v = "hello"}},
+            {"bool",   {v = false}},
+            {"nested", {a = {b = 1}}},
+            {"quotes", {v = 'say "hi"'}},
+            {"newline",{v = "line1\nline2"}},
+            {"array",  {a = {"x", "y"}}},
+        }
+        for _, t in ipairs(tests) do
+            local ok, _ = pcall(toJSON, t[2])
+            print("[DIR] toJSON probe " .. t[1] .. "=" .. tostring(ok))
+        end
+    end
 
     DIR.processPendingHails(now)
 
