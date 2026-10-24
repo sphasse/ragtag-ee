@@ -230,7 +230,11 @@ class Director:
 
     # ----------------------------------------------------------------- actions
 
+    # LLM sometimes uses natural-language synonyms for action names.
+    _ACTION_ALIASES: dict[str, str] = {"talk": "say", "speak": "say", "inspect": "noop"}
+
     def queue_action(self, action: str, args: dict, source: str, intent: str = "") -> tuple[bool, str]:
+        action = self._ACTION_ALIASES.get(action, action)
         ok, cleaned, note = act.validate(action, args, from_llm=(source == "llm"))
         if not ok:
             return False, note
