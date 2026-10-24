@@ -578,7 +578,7 @@ end
 --------------------------------------------------------------------------------
 
 function RT.addCampaignGMFunctions()
-    addGMFunction("Campaign: show status", function()
+    addGMFunction("Campaign info", function()
         local c = RT.campaign
         local msg = "Campaign: " .. (RT.campaign_id or "unknown") .. "\n"
         msg = msg .. "Ship: " .. c.ship_name .. "\n"
@@ -591,15 +591,15 @@ function RT.addCampaignGMFunctions()
         addGMMessage(msg)
     end)
 
-    addGMFunction("Campaign: +200 credits", function() RT.addCredits(200, "GM") end)
-    addGMFunction("Campaign: -200 credits", function() RT.addCredits(-200, "GM") end)
+    addGMFunction("+200 credits", function() RT.addCredits(200, "GM") end)
+    addGMFunction("-200 credits", function() RT.addCredits(-200, "GM") end)
 
-    addGMFunction("Campaign: save now", function()
+    addGMFunction("Save campaign", function()
         RT.saveCampaign()
         addGMMessage("Campaign saved. Credits: " .. RT.credits() .. ", Upgrades: " .. #RT.campaign.upgrades)
     end)
 
-    addGMFunction("Ship: reset to fresh (keep credits)", function()
+    addGMFunction("Ship: reset", function()
         if not RT.valid(RT.player) then
             addGMMessage("No player ship to reset.")
             return
@@ -620,7 +620,7 @@ function RT.addCampaignGMFunctions()
         addGMMessage("Ship reset to stock template. Removed " .. old_upgrades .. " upgrades. Credits preserved: " .. RT.credits())
     end)
 
-    addGMFunction("Ship: full repair + refuel", function()
+    addGMFunction("Ship: repair", function()
         if not RT.valid(RT.player) then
             addGMMessage("No player ship to repair.")
             return
@@ -649,7 +649,7 @@ function RT.addCampaignGMFunctions()
         addGMMessage("Ship fully repaired and refueled: Hull, shields, energy, missiles, and all systems restored.")
     end)
 
-    addGMFunction("Ship: snapshot current state", function()
+    addGMFunction("Ship: snapshot", function()
         if not RT.valid(RT.player) then
             addGMMessage("No player ship to snapshot.")
             return
@@ -678,7 +678,7 @@ function RT.addCampaignGMFunctions()
             energy_pct * 100))
     end)
 
-    addGMFunction("Ship: restore from snapshot", function()
+    addGMFunction("Ship: restore", function()
         if not RT.valid(RT.player) then
             addGMMessage("No player ship to restore.")
             return
@@ -710,7 +710,7 @@ function RT.addCampaignGMFunctions()
             snap.energy_pct * 100))
     end)
 
-    addGMFunction("Ship: export to portable record", function()
+    addGMFunction("Ship: export", function()
         local rec = RT.saveShipRecord()
         if not rec then
             addGMMessage("No player ship to export.")
@@ -725,7 +725,7 @@ function RT.addCampaignGMFunctions()
             rec.energy_pct * 100))
     end)
 
-    addGMFunction("Ship: import portable record", function()
+    addGMFunction("Ship: import", function()
         local rec = RT.loadShipRecord()
         if not rec then
             addGMMessage("No portable ship record found. Export one first.")
@@ -738,7 +738,7 @@ function RT.addCampaignGMFunctions()
             (rec.upgrades and #rec.upgrades > 0) and table.concat(rec.upgrades, ", ") or "none"))
     end)
 
-    addGMFunction("Ship: clear portable record", function()
+    addGMFunction("Ship: clear", function()
         RT.clearShipRecord()
         addGMMessage("Portable ship record cleared.")
     end)

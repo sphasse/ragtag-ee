@@ -720,7 +720,7 @@ function DIR.addGMFunctions()
     addGMFunction("AI: chatter", function()
         DIR.emit("gm_request", {kind = "chatter", note = "GM wants some flavour comms"}, "high")
     end)
-    addGMFunction("AI: pause/resume", function()
+    addGMFunction("AI: pause", function()
         DIR.paused = not DIR.paused
         DIR.dirty = true
         addGMMessage(DIR.paused and "AI director paused (its actions will be refused)." or "AI director resumed.")

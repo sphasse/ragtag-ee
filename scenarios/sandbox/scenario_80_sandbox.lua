@@ -189,7 +189,7 @@ function defineBeats()
 end
 
 function addSessionGMFunctions()
-    addGMFunction("Sandbox: End session (dock to finish)", function()
+    addGMFunction("End session", function()
         if RT.valid(RT.player) then
             local docked = RT.player:getDockedWith()
             if docked and RT.valid(docked) then
@@ -200,13 +200,13 @@ function addSessionGMFunctions()
         end
     end)
 
-    addGMFunction("Sandbox: +500 credits (reward)", function()
+    addGMFunction("+500 credits", function()
         if RT.valid(RT.player) then
             RT.addCredits(500, "GM reward")
         end
     end)
 
-    addGMFunction("Sandbox: Spawn salvage nearby", function()
+    addGMFunction("Spawn salvage", function()
         if RT.valid(RT.player) then
             local px, py = RT.player:getPosition()
             local value = math.random(20, 80)
