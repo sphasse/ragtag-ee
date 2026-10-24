@@ -295,28 +295,9 @@ end
 -- Mailbox pump. Call DIR.update(delta) from the scenario's update().
 --------------------------------------------------------------------------------
 
-local _diag_done = false
 function DIR.update(delta)
     if not DIR.enabled or DIR.run == nil then return end
     local now = getScenarioTime()
-
-    -- One-shot: probe which value types EE's toJSON supports.
-    if not _diag_done then
-        _diag_done = true
-        local tests = {
-            {"num",    {v = 42}},
-            {"str",    {v = "hello"}},
-            {"bool",   {v = false}},
-            {"nested", {a = {b = 1}}},
-            {"quotes", {v = 'say "hi"'}},
-            {"newline",{v = "line1\nline2"}},
-            {"array",  {a = {"x", "y"}}},
-        }
-        for _, t in ipairs(tests) do
-            local ok, _ = pcall(toJSON, t[2])
-            print("[DIR] toJSON probe " .. t[1] .. "=" .. tostring(ok))
-        end
-    end
 
     DIR.processPendingHails(now)
 
@@ -377,21 +358,59 @@ function DIR.update(delta)
             events = DIR.events, cmd_ack = DIR.last_cmd_id, results = DIR.results,
             state = state_val,
         }
-        local ok, s = pcall(toJSON, out)
-        if ok then
-            storage:set(DIR.KEY_OUT, s)
-        else
-            print("[DIR] toJSON failed: " .. tostring(s))
-            -- Bisect to find the failing sub-table.
-            for _, part in ipairs({"events", "state", "results"}) do
-                local ok2, _ = pcall(toJSON, {[part] = out[part]})
-                print("[DIR]   " .. part .. " ok=" .. tostring(ok2))
-            end
-            if out.state then
-                for _, k in ipairs({"player", "beats", "extra", "campaign", "budget"}) do
-                    local ok2, _ = pcall(toJSON, {[k] = out.state[k]})
-                    print("[DIR]   state." .. k .. " ok=" .. tostring(ok2))
+
+        -- Pre-flight: test each piece BEFORE calling toJSON(out) so corruption
+        -- from a failed call doesn't mask which piece is actually bad.
+        -- Stop immediately on first failure to avoid cascade corruption.
+        local function pf(label, val)
+            local ok, err = pcall(toJSON, val)
+            if not ok then
+                print("[DIR] PRE-FLIGHT FAIL: " .. label)
+                print("[DIR]   err: " .. tostring(err))
+                print("[DIR]   type: " .. type(val))
+                if type(val) == "table" then
+                    -- Show one level of fields (don't recurse to avoid more corruption)
+                    local n = 0
+                    for k, v in pairs(val) do
+                        n = n + 1
+                        local vt = type(v)
+                        local vs = vt == "string" and ('"' .. v:sub(1,40) .. '"')
+                                or vt == "table" and ("{#" .. tostring(#v) .. "}")
+                                or tostring(v)
+                        print("[DIR]   ." .. tostring(k) .. " (" .. vt .. ") = " .. vs)
+                        if n >= 10 then print("[DIR]   ..."); break end
+                    end
                 end
+                return false
+            end
+            return true
+        end
+
+        -- Test scalars first (should always pass)
+        local pieces_ok = true
+        for _, p in ipairs({
+            {"proto(num)",  DIR.PROTO},
+            {"run(str)",    DIR.run},
+            {"seq(num)",    DIR.seq},
+            {"cmd_ack",     DIR.last_cmd_id},
+            {"results({})", DIR.results},
+        }) do
+            if not pf(p[1], p[2]) then pieces_ok = false; break end
+        end
+
+        -- Test the two big tables; each is tested with the actual value (not wrapped)
+        -- so EE's toJSON gets it exactly as it would in the combined `out`.
+        if pieces_ok and not pf("events", DIR.events)     then pieces_ok = false end
+        if pieces_ok and not pf("state",  state_val)      then pieces_ok = false end
+
+        if pieces_ok then
+            local ok, s = pcall(toJSON, out)
+            if ok then
+                storage:set(DIR.KEY_OUT, s)
+            else
+                -- All pieces passed individually but combined `out` failed.
+                print("[DIR] toJSON(out) COMBINED FAIL (all pieces OK individually)")
+                print("[DIR]   err: " .. tostring(s))
             end
         end
         DIR.dirty = false
