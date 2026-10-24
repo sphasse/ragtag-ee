@@ -133,8 +133,18 @@ class Director:
             self.last_ee_error = str(e)
             return
 
-        if not msg or msg.get("proto") != PROTO:
+        if not msg:
+            if not hasattr(self, "_warned_empty"):
+                self._log("info", "Mailbox: read succeeded but JSON was empty or unparseable.")
+                self._warned_empty = True
             return
+        if msg.get("proto") != PROTO:
+            if not hasattr(self, "_warned_proto"):
+                self._log("info", f"Mailbox: proto={msg.get('proto')!r} expected {PROTO} — ignoring. (Version mismatch?)")
+                self._warned_proto = True
+            return
+        self._warned_empty = False
+        self._warned_proto = False
 
         with self.lock:
             if msg.get("run") != self.run:
