@@ -359,59 +359,86 @@ function DIR.update(delta)
             state = state_val,
         }
 
-        -- Pre-flight: test each piece BEFORE calling toJSON(out) so corruption
-        -- from a failed call doesn't mask which piece is actually bad.
-        -- Stop immediately on first failure to avoid cascade corruption.
-        local function pf(label, val)
+        -- Pre-flight: drill down to find the EXACT value that toJSON can't handle.
+        -- Tests values in isolation before combining, so corruption from a failed
+        -- call never masks a sibling.  Stops at the first leaf that fails.
+        local _pf_done = false
+        local function drill(path, val, depth)
+            if _pf_done then return end
             local ok, err = pcall(toJSON, val)
-            if not ok then
-                print("[DIR] PRE-FLIGHT FAIL: " .. label)
-                print("[DIR]   err: " .. tostring(err))
-                print("[DIR]   type: " .. type(val))
-                if type(val) == "table" then
-                    -- Show one level of fields (don't recurse to avoid more corruption)
-                    local n = 0
-                    for k, v in pairs(val) do
-                        n = n + 1
-                        local vt = type(v)
-                        local vs = vt == "string" and ('"' .. v:sub(1,40) .. '"')
-                                or vt == "table" and ("{#" .. tostring(#v) .. "}")
-                                or tostring(v)
-                        print("[DIR]   ." .. tostring(k) .. " (" .. vt .. ") = " .. vs)
-                        if n >= 10 then print("[DIR]   ..."); break end
+            if ok then return end
+            -- This value fails.  If it's a table and we haven't gone too deep,
+            -- test each field so we can pinpoint the exact bad leaf.
+            if type(val) == "table" and depth < 6 then
+                local found_bad_child = false
+                for k, v in pairs(val) do
+                    local ok2, _ = pcall(toJSON, v)
+                    if not ok2 then
+                        drill(path .. "." .. tostring(k), v, depth + 1)
+                        found_bad_child = true
+                        break  -- stop after first bad child to avoid corruption
                     end
                 end
-                return false
-            end
-            return true
-        end
-
-        -- Test scalars first (should always pass)
-        local pieces_ok = true
-        for _, p in ipairs({
-            {"proto(num)",  DIR.PROTO},
-            {"run(str)",    DIR.run},
-            {"seq(num)",    DIR.seq},
-            {"cmd_ack",     DIR.last_cmd_id},
-            {"results({})", DIR.results},
-        }) do
-            if not pf(p[1], p[2]) then pieces_ok = false; break end
-        end
-
-        -- Test the two big tables; each is tested with the actual value (not wrapped)
-        -- so EE's toJSON gets it exactly as it would in the combined `out`.
-        if pieces_ok and not pf("events", DIR.events)     then pieces_ok = false end
-        if pieces_ok and not pf("state",  state_val)      then pieces_ok = false end
-
-        if pieces_ok then
-            local ok, s = pcall(toJSON, out)
-            if ok then
-                storage:set(DIR.KEY_OUT, s)
+                if not found_bad_child then
+                    -- All children pass individually but the table itself fails.
+                    print("[DIR] DRILL: " .. path .. " fails COMBINED (all children ok)")
+                    print("[DIR]   type=table #=" .. tostring(#val) .. " err=" .. tostring(err))
+                    local n = 0
+                    for k, v in pairs(val) do
+                        local vt = type(v)
+                        local vs = (vt=="string") and ('"'..v:sub(1,50)..'"')
+                                or (vt=="number" or vt=="boolean") and tostring(v)
+                                or (vt=="table") and "{#"..#v.."}"
+                                or vt
+                        print("[DIR]     ."..tostring(k).."("..vt..")="..vs)
+                        n = n + 1; if n >= 12 then print("[DIR]     ..."); break end
+                    end
+                    _pf_done = true
+                end
             else
-                -- All pieces passed individually but combined `out` failed.
-                print("[DIR] toJSON(out) COMBINED FAIL (all pieces OK individually)")
-                print("[DIR]   err: " .. tostring(s))
+                -- Leaf value (non-table or max depth): this is the culprit.
+                print("[DIR] DRILL: " .. path .. " FAILS")
+                print("[DIR]   type=" .. type(val))
+                if type(val) == "string" then
+                    print("[DIR]   len=" .. #val .. " val=" .. val:sub(1,80))
+                elseif type(val) == "table" then
+                    print("[DIR]   #=" .. #val .. " (max depth reached)")
+                else
+                    print("[DIR]   val=" .. tostring(val))
+                end
+                print("[DIR]   err=" .. tostring(err))
+                _pf_done = true
             end
+        end
+
+        -- Run the drill on events (confirmed failing) and state, each separately.
+        drill("events", DIR.events, 0)
+        if not _pf_done then
+            drill("state", state_val, 0)
+        end
+
+        -- Also run a one-shot capability check (fresh tables, no corruption risk).
+        if not _pf_done then
+            for _, t in ipairs({
+                {"cap.num",    42},
+                {"cap.str",    "hello"},
+                {"cap.bool",   false},
+                {"cap.nested", {a={b=1}}},
+                {"cap.quotes", 'say "hi"'},
+                {"cap.newline","\n"},
+            }) do
+                local ok2, err2 = pcall(toJSON, t[2])
+                if not ok2 then
+                    print("[DIR] CAP FAIL: " .. t[1] .. " err=" .. tostring(err2))
+                end
+            end
+        end
+
+        local ok, s = pcall(toJSON, out)
+        if ok then
+            storage:set(DIR.KEY_OUT, s)
+        else
+            print("[DIR] toJSON(out) FAIL: " .. tostring(s))
         end
         DIR.dirty = false
         DIR.last_write = now
