@@ -1,0 +1,461 @@
+<title>ragtag-ee Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root {
+  /* layout: full-bleed dark canvas, single scrollable SVG diagram */
+  --bg:       #0D1117;
+  --surface:  #161B22;
+  --border:   #30363D;
+  --text:     #E6EDF3;
+  --sub:      #8B949E;
+
+  /* component palette */
+  --llm:      #7C3AED;
+  --python:   #1D6FD9;
+  --bridge:   #C07000;
+  --lua:      #1A7A3C;
+  --data:     #505A64;
+  --gm:       #A02050;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:      #F6F8FA;
+    --surface: #FFFFFF;
+    --border:  #D0D7DE;
+    --text:    #1F2328;
+    --sub:     #57606A;
+
+    --llm:     #6025C0;
+    --python:  #0550AE;
+    --bridge:  #9A5700;
+    --lua:     #116329;
+    --data:    #57606A;
+    --gm:      #8C1E40;
+
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg:      #F6F8FA;
+  --surface: #FFFFFF;
+  --border:  #D0D7DE;
+  --text:    #1F2328;
+  --sub:     #57606A;
+
+  --llm:     #6025C0;
+  --python:  #0550AE;
+  --bridge:  #9A5700;
+  --lua:     #116329;
+  --data:    #57606A;
+  --gm:      #8C1E40;
+
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding-block: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px));
+  padding-left:  max(16px, env(safe-area-inset-left,  0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  min-height: 100%;
+}
+
+header {
+  margin-bottom: 28px;
+}
+header h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+header p {
+  font-size: 0.82rem;
+  color: var(--sub);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.diagram-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+svg {
+  display: block;
+  min-width: 960px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 20px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  color: var(--sub);
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+</style>
+
+<header>
+  <h1>ragtag-ee — System Architecture</h1>
+  <p>How Ollama, the Python director, EmptyEpsilon, and the Lua scenario layer connect at runtime.</p>
+</header>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 960 500" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- arrow markers per colour -->
+  <marker id="arr-python" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L8,3 L0,6 Z" fill="#1D6FD9"/>
+  </marker>
+  <marker id="arr-llm" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L8,3 L0,6 Z" fill="#7C3AED"/>
+  </marker>
+  <marker id="arr-bridge" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L8,3 L0,6 Z" fill="#C07000"/>
+  </marker>
+  <marker id="arr-lua" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L8,3 L0,6 Z" fill="#1A7A3C"/>
+  </marker>
+  <marker id="arr-gm" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L8,3 L0,6 Z" fill="#A02050"/>
+  </marker>
+  <marker id="arr-data" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L8,3 L0,6 Z" fill="#505A64"/>
+  </marker>
+  <marker id="arr-rev-python" markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto">
+    <path d="M8,0 L0,3 L8,6 Z" fill="#1D6FD9"/>
+  </marker>
+  <marker id="arr-rev-bridge" markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto">
+    <path d="M8,0 L0,3 L8,6 Z" fill="#C07000"/>
+  </marker>
+
+  <style>
+    text { fill: #E6EDF3; }
+    @media (prefers-color-scheme: light) { text { fill: #1F2328; } }
+    .lbl { font-size: 9.5px; fill: #8B949E; font-family: 'Inter', sans-serif; }
+    .lbl-light { font-size: 9px; fill: #8B949E; font-family: 'JetBrains Mono', monospace; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .group-title { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  </style>
+</defs>
+
+<!-- ─── Background ─────────────────────────────────────── -->
+<rect width="960" height="500" fill="#0D1117"/>
+
+<!-- ═══════════════════════════════════════════════════════
+     GROUP: Python Director  (x=18 w=252)
+════════════════════════════════════════════════════════ -->
+<rect x="18" y="54" width="252" height="348" rx="6"
+      fill="rgba(29,111,217,0.06)" stroke="#1D6FD9" stroke-width="1.2" stroke-dasharray="5,3"/>
+<text x="144" y="45" text-anchor="middle" class="group-title" fill="#1D6FD9">Python Director</text>
+
+<!-- brain.py -->
+<rect x="32" y="68" width="224" height="44" rx="4"
+      fill="rgba(29,111,217,0.14)" stroke="#1D6FD9" stroke-width="1"/>
+<text x="44" y="86" class="mono" font-size="12" font-weight="600" fill="#79B8FF">brain.py</text>
+<text x="44" y="101" class="lbl">prompt builder · event queue · LLM decision loop</text>
+
+<!-- llm.py -->
+<rect x="32" y="120" width="224" height="44" rx="4"
+      fill="rgba(29,111,217,0.14)" stroke="#1D6FD9" stroke-width="1"/>
+<text x="44" y="138" class="mono" font-size="12" font-weight="600" fill="#79B8FF">llm.py</text>
+<text x="44" y="153" class="lbl">Ollama HTTP client · streaming · retries</text>
+
+<!-- ee_link.py -->
+<rect x="32" y="172" width="224" height="44" rx="4"
+      fill="rgba(29,111,217,0.14)" stroke="#1D6FD9" stroke-width="1"/>
+<text x="44" y="190" class="mono" font-size="12" font-weight="600" fill="#79B8FF">ee_link.py</text>
+<text x="44" y="205" class="lbl">polls rt.from_scenario · writes rt.from_director</text>
+
+<!-- actions.py -->
+<rect x="32" y="224" width="224" height="44" rx="4"
+      fill="rgba(29,111,217,0.14)" stroke="#1D6FD9" stroke-width="1"/>
+<text x="44" y="242" class="mono" font-size="12" font-weight="600" fill="#79B8FF">actions.py</text>
+<text x="44" y="257" class="lbl">validates action schema · mirrors director.lua ACTIONS</text>
+
+<!-- separator -->
+<line x1="32" y1="278" x2="256" y2="278" stroke="#30363D" stroke-width="1"/>
+
+<!-- GM Console -->
+<rect x="32" y="285" width="224" height="104" rx="4"
+      fill="rgba(160,32,80,0.12)" stroke="#A02050" stroke-width="1"/>
+<text x="44" y="304" class="mono" font-size="12" font-weight="600" fill="#F778A1">GM Console</text>
+<text x="44" y="319" class="lbl">WebSocket server :8765</text>
+<text x="44" y="334" class="lbl">approve / reject AI actions</text>
+<text x="44" y="349" class="lbl">queue manual director commands</text>
+<text x="44" y="364" class="lbl">view live state + action log</text>
+
+<!-- ═══════════════════════════════════════════════════════
+     GROUP: EmptyEpsilon Process  (x=308 w=634)
+════════════════════════════════════════════════════════ -->
+<rect x="308" y="54" width="634" height="348" rx="6"
+      fill="rgba(56,139,253,0.03)" stroke="#388BFD" stroke-width="1.2" stroke-dasharray="5,3"/>
+<text x="625" y="45" text-anchor="middle" class="group-title" fill="#388BFD">EmptyEpsilon Process</text>
+
+<!-- ── Bridge sub-area ── -->
+<rect x="320" y="66" width="175" height="326" rx="4"
+      fill="rgba(192,112,0,0.06)" stroke="#C07000" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="407" y="83" text-anchor="middle" class="group-title" font-size="9px" fill="#C07000">Transport Bridge</text>
+
+<!-- HTTP API box -->
+<rect x="330" y="90" width="155" height="60" rx="4"
+      fill="rgba(192,112,0,0.15)" stroke="#C07000" stroke-width="1"/>
+<text x="407" y="110" text-anchor="middle" class="mono" font-size="11" font-weight="600" fill="#E3A53A">HTTP /exec.lua</text>
+<text x="407" y="124" text-anchor="middle" class="lbl">port 8080</text>
+<text x="407" y="138" text-anchor="middle" class="lbl">executes Lua snippets</text>
+
+<!-- Script Storage box -->
+<rect x="330" y="168" width="155" height="75" rx="4"
+      fill="rgba(192,112,0,0.15)" stroke="#C07000" stroke-width="1"/>
+<text x="407" y="186" text-anchor="middle" class="mono" font-size="11" font-weight="600" fill="#E3A53A">Script Storage</text>
+<text x="407" y="200" text-anchor="middle" class="lbl">shared in-process KV</text>
+<text x="407" y="214" class="mono lbl-light" text-anchor="middle">rt.from_scenario</text>
+<text x="407" y="228" class="mono lbl-light" text-anchor="middle">rt.from_director</text>
+
+<!-- director.lua box -->
+<rect x="330" y="262" width="155" height="118" rx="4"
+      fill="rgba(26,122,60,0.12)" stroke="#1A7A3C" stroke-width="1"/>
+<text x="407" y="280" text-anchor="middle" class="mono" font-size="12" font-weight="600" fill="#56D364">director.lua</text>
+<text x="407" y="294" text-anchor="middle" class="lbl">DIR — Lua bridge</text>
+<text x="407" y="308" text-anchor="middle" class="lbl">mailbox pump (1 s)</text>
+<text x="407" y="322" text-anchor="middle" class="lbl">execute whitelisted</text>
+<text x="407" y="336" text-anchor="middle" class="lbl">actions + clamp args</text>
+<text x="407" y="350" text-anchor="middle" class="lbl">beat + event system</text>
+<text x="407" y="364" text-anchor="middle" class="lbl">buildState() → JSON</text>
+
+<!-- ── Scenario + Framework sub-area ── -->
+<rect x="508" y="66" width="262" height="326" rx="4"
+      fill="rgba(26,122,60,0.04)" stroke="#1A7A3C" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="639" y="83" text-anchor="middle" class="group-title" font-size="9px" fill="#1A7A3C">Scenario Lua</text>
+
+<!-- scenario box -->
+<rect x="518" y="90" width="242" height="62" rx="4"
+      fill="rgba(26,122,60,0.15)" stroke="#1A7A3C" stroke-width="1"/>
+<text x="524" y="109" class="mono" font-size="11" font-weight="600" fill="#56D364">scenario_80_sandbox.lua</text>
+<text x="524" y="124" class="lbl">init() · update(δ) · beats · GM fns</text>
+<text x="524" y="138" class="lbl">state providers · session lifecycle</text>
+
+<!-- Framework sub-group -->
+<rect x="518" y="164" width="242" height="218" rx="4"
+      fill="rgba(26,122,60,0.08)" stroke="rgba(26,122,60,0.4)" stroke-width="1"/>
+<text x="639" y="180" text-anchor="middle" font-size="9px" font-weight="600" fill="#56D364" letter-spacing="0.05em" text-transform="uppercase">FRAMEWORK</text>
+
+<rect x="528" y="186" width="222" height="42" rx="3"
+      fill="rgba(26,122,60,0.15)" stroke="#1A7A3C" stroke-width="0.8"/>
+<text x="539" y="202" class="mono" font-size="11" font-weight="600" fill="#56D364">core.lua</text>
+<text x="539" y="216" class="lbl">RT — campaign · ship · credits · upgrades · stations</text>
+
+<rect x="528" y="234" width="222" height="42" rx="3"
+      fill="rgba(26,122,60,0.15)" stroke="#1A7A3C" stroke-width="0.8"/>
+<text x="539" y="250" class="mono" font-size="11" font-weight="600" fill="#56D364">verse.lua + verse/schema.lua</text>
+<text x="539" y="265" class="lbl">VERSE — universe builder · region lookup · factions</text>
+
+<rect x="528" y="282" width="222" height="34" rx="3"
+      fill="rgba(80,90,100,0.15)" stroke="#505A64" stroke-width="0.8"/>
+<text x="539" y="297" class="mono" font-size="11" font-weight="600" fill="#9CA3AF">verse/drift.lua</text>
+<text x="539" y="309" class="lbl">universe data — regions, stations, routes</text>
+
+<rect x="528" y="322" width="222" height="50" rx="3"
+      fill="rgba(80,90,100,0.10)" stroke="#505A64" stroke-width="0.8" stroke-dasharray="3,2"/>
+<text x="539" y="340" class="mono" font-size="11" fill="#9CA3AF">verse/extensions/*.lua</text>
+<text x="539" y="354" class="lbl">community universe additions</text>
+<text x="539" y="366" class="lbl">(index.lua generated by check.py)</text>
+
+<!-- ── EE Engine box ── -->
+<rect x="782" y="66" width="148" height="326" rx="4"
+      fill="rgba(56,139,253,0.08)" stroke="#388BFD" stroke-width="1"/>
+<text x="856" y="185" text-anchor="middle" class="group-title" font-size="9px" fill="#388BFD" transform="rotate(-90,856,185)">EE ENGINE (C++)</text>
+<text x="856" y="246" text-anchor="middle" font-size="10" fill="#388BFD">ships</text>
+<text x="856" y="264" text-anchor="middle" font-size="10" fill="#388BFD">stations</text>
+<text x="856" y="282" text-anchor="middle" font-size="10" fill="#388BFD">physics</text>
+<text x="856" y="300" text-anchor="middle" font-size="10" fill="#388BFD">scripting API</text>
+<text x="856" y="318" text-anchor="middle" font-size="10" fill="#388BFD">HTTP server</text>
+<text x="856" y="336" text-anchor="middle" font-size="10" fill="#388BFD">script storage</text>
+
+<!-- ═══════════════════════════════════════════════════════
+     STANDALONE — Ollama + GM Browser + Data Files
+════════════════════════════════════════════════════════ -->
+
+<!-- Ollama -->
+<rect x="18" y="426" width="130" height="58" rx="4"
+      fill="rgba(124,58,237,0.14)" stroke="#7C3AED" stroke-width="1"/>
+<text x="83" y="446" text-anchor="middle" class="mono" font-size="12" font-weight="600" fill="#C084FC">Ollama</text>
+<text x="83" y="461" text-anchor="middle" class="lbl">local LLM service</text>
+<text x="83" y="474" text-anchor="middle" class="mono lbl-light">qwen2.5:7b · :11434</text>
+
+<!-- GM Browser -->
+<rect x="158" y="426" width="130" height="58" rx="4"
+      fill="rgba(160,32,80,0.12)" stroke="#A02050" stroke-width="1"/>
+<text x="223" y="446" text-anchor="middle" class="mono" font-size="12" font-weight="600" fill="#F778A1">GM Browser</text>
+<text x="223" y="461" text-anchor="middle" class="lbl">director's desk UI</text>
+<text x="223" y="474" text-anchor="middle" class="mono lbl-light">localhost:8765</text>
+
+<!-- Data files -->
+<rect x="308" y="426" width="156" height="58" rx="4"
+      fill="rgba(80,90,100,0.12)" stroke="#505A64" stroke-width="1"/>
+<text x="386" y="446" text-anchor="middle" font-size="11" font-weight="600" fill="#9CA3AF">Campaign Bible</text>
+<text x="386" y="461" text-anchor="middle" class="mono lbl-light">scenarios/*/bible.md</text>
+<text x="386" y="474" text-anchor="middle" class="lbl">narrative guide for LLM</text>
+
+<rect x="474" y="426" width="156" height="58" rx="4"
+      fill="rgba(80,90,100,0.12)" stroke="#505A64" stroke-width="1"/>
+<text x="552" y="446" text-anchor="middle" font-size="11" font-weight="600" fill="#9CA3AF">Campaign Save</text>
+<text x="552" y="461" text-anchor="middle" class="mono lbl-light">ragtag.campaign.sandbox</text>
+<text x="552" y="474" text-anchor="middle" class="lbl">credits · upgrades · flags · notes</text>
+
+<rect x="640" y="426" width="136" height="58" rx="4"
+      fill="rgba(80,90,100,0.12)" stroke="#505A64" stroke-width="1"/>
+<text x="708" y="446" text-anchor="middle" font-size="11" font-weight="600" fill="#9CA3AF">Generated Files</text>
+<text x="708" y="461" text-anchor="middle" class="mono lbl-light">extensions/index.lua</text>
+<text x="708" y="474" text-anchor="middle" class="mono lbl-light">director/generated/world.md</text>
+
+<rect x="786" y="426" width="136" height="58" rx="4"
+      fill="rgba(80,90,100,0.12)" stroke="#505A64" stroke-width="1"/>
+<text x="854" y="446" text-anchor="middle" font-size="11" font-weight="600" fill="#9CA3AF">Tools</text>
+<text x="854" y="461" text-anchor="middle" class="mono lbl-light">check.py · install.py</text>
+<text x="854" y="474" text-anchor="middle" class="mono lbl-light">gen_world.py · make_map.py</text>
+
+<!-- ═══════════════════════════════════════════════════════
+     ARROWS
+════════════════════════════════════════════════════════ -->
+
+<!-- 1. Ollama ↔ llm.py  (HTTP inference) -->
+<path d="M 83,426 L 83,172" stroke="#7C3AED" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-llm)"/>
+<path d="M 93,172 L 93,426" stroke="#7C3AED" stroke-width="1.2" fill="none" stroke-dasharray="4,3"
+      marker-end="url(#arr-llm)"/>
+<rect x="1" y="277" width="76" height="26" rx="3" fill="#0D1117"/>
+<text x="39" y="288" text-anchor="middle" font-size="8.5" fill="#C084FC">HTTP</text>
+<text x="39" y="299" text-anchor="middle" font-size="8.5" fill="#C084FC">inference</text>
+
+<!-- 2. GM Browser ↔ GM Console (WebSocket) -->
+<path d="M 223,426 L 223,389" stroke="#A02050" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-gm)"/>
+<path d="M 233,389 L 233,426" stroke="#A02050" stroke-width="1.2" fill="none" stroke-dasharray="4,3"
+      marker-end="url(#arr-gm)"/>
+<rect x="237" y="398" width="66" height="22" rx="3" fill="#0D1117"/>
+<text x="270" y="413" text-anchor="middle" font-size="8.5" fill="#F778A1">WebSocket</text>
+
+<!-- 3. ee_link.py → HTTP API (HTTP POST /exec.lua) -->
+<path d="M 270,194 C 300,194 310,120 330,120" stroke="#1D6FD9" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-python)"/>
+<path d="M 330,130 C 310,130 300,204 270,204" stroke="#1D6FD9" stroke-width="1.2" fill="none" stroke-dasharray="4,3"
+      marker-end="url(#arr-rev-python)"/>
+<rect x="272" y="154" width="50" height="26" rx="3" fill="#0D1117"/>
+<text x="297" y="165" text-anchor="middle" font-size="8" fill="#79B8FF">HTTP</text>
+<text x="297" y="176" text-anchor="middle" font-size="8" fill="#79B8FF">POST</text>
+
+<!-- 4. HTTP API ↔ Script Storage (internal exec context) -->
+<path d="M 407,150 L 407,168" stroke="#C07000" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-bridge)"/>
+<path d="M 417,168 L 417,150" stroke="#C07000" stroke-width="1.2" fill="none" stroke-dasharray="3,2"
+      marker-end="url(#arr-bridge)"/>
+<text x="430" y="162" font-size="8.5" fill="#E3A53A">reads/writes keys</text>
+
+<!-- 5. Script Storage ↔ director.lua (mailbox r/w) -->
+<path d="M 407,243 L 407,262" stroke="#C07000" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-bridge)"/>
+<path d="M 417,262 L 417,243" stroke="#C07000" stroke-width="1.2" fill="none" stroke-dasharray="3,2"
+      marker-end="url(#arr-bridge)"/>
+<text x="430" y="256" font-size="8.5" fill="#E3A53A">mailbox r/w</text>
+
+<!-- 6. director.lua → scenario (update/emit/execute) -->
+<path d="M 485,321 L 518,152" stroke="#1A7A3C" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-lua)"/>
+<rect x="487" y="220" width="60" height="34" rx="3" fill="#0D1117"/>
+<text x="517" y="232" text-anchor="middle" font-size="8" fill="#56D364">update(δ)</text>
+<text x="517" y="243" text-anchor="middle" font-size="8" fill="#56D364">emit(event)</text>
+<text x="517" y="254" text-anchor="middle" font-size="8" fill="#56D364">execute(cmd)</text>
+
+<!-- 7. Scenario → Framework (require + API calls) -->
+<path d="M 639,152 L 639,164" stroke="#1A7A3C" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-lua)"/>
+
+<!-- 8. Framework → EE Engine (EE scripting API) -->
+<path d="M 750,273 L 782,273" stroke="#388BFD" stroke-width="1.5" fill="none"
+      marker-end="url(#arr-python)"/>
+<rect x="749" y="290" width="37" height="22" rx="3" fill="#0D1117"/>
+<text x="767" y="304" text-anchor="middle" font-size="8" fill="#79B8FF">EE API</text>
+
+<!-- 9. director.lua → EE Engine (spawns, comms via EE API) -->
+<path d="M 485,350 C 600,380 740,340 782,290" stroke="#388BFD" stroke-width="1.2" fill="none" stroke-dasharray="4,3"
+      marker-end="url(#arr-python)"/>
+
+<!-- 10. Campaign Save ↔ core.lua -->
+<path d="M 552,426 L 552,380" stroke="#505A64" stroke-width="1.2" fill="none" stroke-dasharray="3,2"
+      marker-end="url(#arr-data)"/>
+<path d="M 562,380 L 562,426" stroke="#505A64" stroke-width="1.2" fill="none" stroke-dasharray="3,2"
+      marker-end="url(#arr-data)"/>
+
+<!-- 11. Campaign Bible → brain.py -->
+<path d="M 386,426 L 175,405" stroke="#505A64" stroke-width="1.2" fill="none" stroke-dasharray="3,2"
+      marker-end="url(#arr-data)"/>
+
+<!-- 12. Generated files ← check.py (build step label) -->
+<text x="790" y="422" text-anchor="middle" font-size="8" fill="#505A64">generated by tools/</text>
+
+<!-- ═══════════════════════════════════════════════════════
+     BOUNDARY LABEL: exec.lua is separate Lua env from scenario
+════════════════════════════════════════════════════════ -->
+<rect x="314" y="399" width="188" height="20" rx="3" fill="rgba(192,112,0,0.10)" stroke="none"/>
+<text x="408" y="413" text-anchor="middle" font-size="8" fill="#C07000">exec.lua runs in separate Lua env — shares storage only</text>
+
+</svg>
+</div>
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#1D6FD9"></div>
+    Python Director
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#7C3AED"></div>
+    Ollama LLM
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#C07000"></div>
+    Bridge / Transport
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#1A7A3C"></div>
+    Lua Scenario + Framework
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#388BFD"></div>
+    EmptyEpsilon Engine (C++)
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#A02050"></div>
+    GM Console / Browser
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:#505A64"></div>
+    Data Files / Tools
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="background:transparent; border: 1px dashed #8B949E"></div>
+    ─ ─  return path
+  </div>
+</div>
