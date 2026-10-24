@@ -99,7 +99,13 @@ function DIR.init(session)
         for i, v in ipairs(c.notes or {}) do nts[i] = v end
         camp_snap = {credits = c.credits, upgrades = upg, flags = flg, notes = nts, ship = c.ship_name}
     end
-    DIR.emit("session_start", {session = DIR.session, campaign = camp_snap}, "high")
+    -- Only include scalar session fields in the event — complex nested tables
+    -- (cast, locations, director_guidance) are included in every state snapshot.
+    local sess = DIR.session
+    local sess_id = sess and {
+        id = sess.id or "?", campaign = sess.campaign or "?", title = sess.title or "?"
+    } or {}
+    DIR.emit("session_start", {session = sess_id, campaign = camp_snap}, "high")
 end
 
 -- Define a story beat. ai=true lets the director choose when to fire it.
@@ -178,10 +184,26 @@ function DIR.countAIHostiles()
 end
 
 function DIR.buildState()
+    -- Build a full session snapshot using only fresh tables so toJSON never
+    -- encounters the same table object twice across events + state.
+    local sess = DIR.session or {}
+    local cast_copy = {}
+    for i, m in ipairs(sess.cast or {}) do
+        cast_copy[i] = {name = m.name or "", where = m.where or "", role = m.role or "", voice = m.voice or ""}
+    end
+    local loc_copy = {}
+    for i, l in ipairs(sess.locations or {}) do
+        loc_copy[i] = {name = l.name or "", note = l.note or ""}
+    end
+    local sess_snap = {
+        id = sess.id or "?", campaign = sess.campaign or "?",
+        title = sess.title or "?", run = DIR.run,
+        premise = sess.premise or "", tone = sess.tone or "",
+        cast = cast_copy, locations = loc_copy,
+        director_guidance = sess.director_guidance or "",
+    }
     local st = {
-        -- Repeated in every snapshot so a director that starts (or restarts)
-        -- mid-session still gets the briefing and campaign id.
-        session = DIR.session,
+        session = sess_snap,
         time = round(getScenarioTime()),
         objective = RT and RT.objective or "",
         paused = DIR.paused,
