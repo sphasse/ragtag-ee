@@ -3,7 +3,7 @@
 ---
 --- Campaign scenario. Progress (credits, upgrades, story flags) is saved in scriptstorage.json on the server.
 --- Optional: run the AI director (director/main.py) on another PC for live NPCs and pacing. Plays fine without it.
--- Type: Long Haul Campaign
+-- Type: The Drift Universe
 -- Author: Your game group
 -- Setting[Campaign]: Use saved campaign progress or start over.
 -- Campaign[Continue|Default]: Keep credits, upgrades and story choices from earlier sessions.

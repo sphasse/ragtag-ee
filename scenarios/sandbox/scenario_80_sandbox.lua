@@ -3,7 +3,7 @@
 ---
 --- Sandbox campaign. Credits and upgrades persist across sessions. No fixed objectives.
 --- Optional: run the AI director (director/main.py) for dynamic encounters and opportunities.
--- Type: Sandbox Campaign
+-- Type: The Drift Universe
 -- Setting[Campaign]: Use saved campaign progress or start over.
 -- Campaign[Continue|Default]: Keep credits and upgrades from earlier sessions.
 -- Campaign[Fresh start]: Wipe campaign progress and start with a stock ship.

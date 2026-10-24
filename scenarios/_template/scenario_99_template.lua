@@ -2,7 +2,7 @@
 -- Description: Session N of 5. One or two sentences the crew sees on the scenario list.
 ---
 --- Built on the ragtag framework (scripts/ragtag/). Install with tools/install.py.
--- Type: Long Haul Campaign
+-- Type: The Drift Universe
 -- Setting[Campaign]: Use saved campaign progress or start over.
 -- Campaign[Continue|Default]: Keep credits, upgrades and story choices from earlier sessions.
 -- Campaign[Fresh start]: Wipe campaign progress and start with a stock ship.
