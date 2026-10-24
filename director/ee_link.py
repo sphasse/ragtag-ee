@@ -54,6 +54,12 @@ class EELink:
                 body = resp.read().decode("utf-8", errors="replace")
         except (urllib.error.URLError, OSError) as e:
             raise EEError(f"cannot reach EmptyEpsilon at {self.url}: {e}") from e
+        # EE's /exec.lua wraps the Lua return value in outer JSON string quotes
+        # without escaping inner double-quotes, producing e.g. "{"key":"val"}".
+        # Strip those outer quotes so callers receive the raw Lua string.
+        body = body.strip()
+        if len(body) >= 2 and body[0] == '"' and body[-1] == '"':
+            body = body[1:-1]
         if body.startswith('{"ERROR"'):
             try:
                 raise EEError(json.loads(body)["ERROR"])
