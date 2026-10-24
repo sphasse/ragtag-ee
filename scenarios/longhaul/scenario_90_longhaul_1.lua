@@ -136,7 +136,7 @@ function defineBeats()
     DIR.defineBeat("briefing", {desc = "Mags hails with the job", fn = function()
         RT.hail(RT.find("Port Vesper"), "Morning, my lambs. Twelve sealed crates, Port Vesper to Halcyon Rest, 400 on delivery. " ..
             "Dock with me to load. Don't open them, don't scan them, don't get boarded. Easy money.", "Mags Oduya")
-        RT.setObjective("Dock at Port Vesper to load the cargo.")
+        RT.setObjective("Load cargo at Port Vesper")
     end})
 
     DIR.defineBeat("cargo_loaded", {desc = "Crates loaded at Port Vesper", fn = function()
@@ -144,7 +144,7 @@ function defineBeats()
         S.phase = "hauling"
         S.loaded_at = getScenarioTime()
         RT.player:addToShipLog("Twelve crates secured in the hold. One reads a few kilos light on the manifest scale.", "#E0E0A0")
-        RT.setObjective("Deliver the crates to Halcyon Rest, sector " .. RT.find("Halcyon Rest"):getSectorName() .. ".")
+        RT.setObjective("Deliver to Halcyon Rest")
     end})
 
     DIR.defineBeat("inspection", {ai = true, desc = "CPV Diligence demands to inspect the Magpie (choices: submit, bribe, run)", fn = function()
@@ -155,7 +155,7 @@ function defineBeats()
         dil:orderFlyTowards(RT.player:getPosition())
         RT.hail(dil, "Independent freighter " .. RT.player:getCallSign() .. ", this is Lieutenant Vashti, CPV Diligence. " ..
             "Cut your engines and prepare for a cargo inspection. Hail me to confirm.", "Lt. Corin Vashti")
-        RT.setObjective("The Concord wants an inspection. Hail CPV Diligence - or don't.")
+        RT.setObjective("Hail or evade Diligence")
     end})
 
     DIR.defineBeat("ambush", {ai = true, desc = "Corsair raiders ('Grinning Teeth') jump the Magpie for the crates", fn = function()
@@ -188,7 +188,7 @@ function defineBeats()
             "Mags said nothing about - look, there's a matching signal out in the Shroud. A derelict, Wren's Folly. " ..
             "If someone pulled something off that wreck, the rest of it is still out there. I'd pay for a look. Or forget I said it."
         RT.hail(RT.find("Halcyon Rest"), text, "Doc Salo")
-        RT.setObjective("Optional: scan the derelict Wren's Folly in the Shroud. Or tell Doc Salo you're done.")
+        RT.setObjective("Scan Wren's Folly?")
         RT.flag("s1_delivered", true)
     end})
 
@@ -203,11 +203,11 @@ function defineBeats()
             RT.flag("lantern_core", true)
             RT.addCredits(150, "salvage")
             RT.player:addToShipLog("Data core recovered. The hum syncs with the light crate's. Someone will want this.", "#E0C0FF")
-            RT.setObjective("Return to Halcyon Rest or Port Vesper.")
+            RT.setObjective("Return to port")
             DIR.emit("pickup", {label = "lantern data core", important = true}, "high")
         end)
         RT.player:addToShipLog("Science: debris cloud near Wren's Folly contains a powered object.", "#80C0FF")
-        RT.setObjective("Recover the powered object near Wren's Folly.")
+        RT.setObjective("Recover powered object")
     end})
 
     DIR.defineBeat("watcher", {ai = true, desc = "An unknown Ghost ship watches the Magpie from the Shroud, then vanishes (foreshadowing; not hostile)", fn = function()
@@ -248,7 +248,7 @@ function diligenceComms(source, target)
         S.inspection = "submitted"
         S.submit_hold_since = getScenarioTime()
         setCommsMessage("\"Good. Hold position within two units while my scanners do their work.\"")
-        RT.setObjective("Hold still near CPV Diligence for the inspection.")
+        RT.setObjective("Hold for inspection")
         DIR.emit("choice", {beat = "inspection", choice = "submit"}, "high")
     end)
     if RT.credits() >= 100 then
@@ -258,7 +258,7 @@ function diligenceComms(source, target)
             RT.flag("bribed_concord", true)
             setCommsMessage("\"...Your paperwork appears to be in order. Move along.\"")
             t:orderIdle()
-            RT.setObjective("Deliver the crates to Halcyon Rest.")
+            RT.setObjective("Deliver to Halcyon Rest")
             DIR.emit("choice", {beat = "inspection", choice = "bribe"}, "high")
         end)
     end
@@ -272,7 +272,7 @@ function startChase()
     S.inspection = "ran"
     S.chase_until = getScenarioTime() + 90
     RT.flag("ran_from_concord", true)
-    RT.setObjective("Shake the Concord patrol, then deliver the crates.")
+    RT.setObjective("Evade Concord, deliver")
     DIR.emit("choice", {beat = "inspection", choice = "run"}, "high")
 end
 
@@ -300,7 +300,7 @@ function updateInspection(delta)
                 dil:orderIdle()
                 RT.hail(dil, "\"One crate's... unusual. I'm impounding a sample. You're cleared, " ..
                     "but your client won't be happy.\" (Payout reduced by 100.)")
-                RT.setObjective("Deliver the crates to Halcyon Rest.")
+                RT.setObjective("Deliver to Halcyon Rest")
                 DIR.emit("choice", {beat = "inspection", choice = "submit_complete"}, "normal")
             end
         else
@@ -322,13 +322,13 @@ function updateInspection(delta)
             RT.addCredits(-150, "Concord fine")
             dil:orderIdle()
             RT.hail(dil, "\"Transponder tagged. You're in the system now, " .. RT.player:getCallSign() .. ". Enjoy the fine.\"")
-            RT.setObjective("Deliver the crates to Halcyon Rest.")
+            RT.setObjective("Deliver to Halcyon Rest")
             DIR.emit("choice", {beat = "inspection", choice = "tagged"}, "high")
         elseif now > S.chase_until or d > 20000 then
             S.inspection = "escaped"
             dil:orderIdle()
             RT.player:addToShipLog("CPV Diligence has broken off pursuit.", "#A0FFA0")
-            RT.setObjective("Deliver the crates to Halcyon Rest.")
+            RT.setObjective("Deliver to Halcyon Rest")
             DIR.emit("choice", {beat = "inspection", choice = "escaped"}, "high")
         end
     end

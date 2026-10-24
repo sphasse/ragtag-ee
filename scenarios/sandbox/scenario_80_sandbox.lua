@@ -163,7 +163,7 @@ function defineBeats()
     DIR.defineBeat("welcome", {desc = "Port Vesper dockmaster welcomes the crew", fn = function()
         local session_text = S.session_num == 1 and "Welcome to the Drift, independents." or "Back again, I see."
         RT.hail(RT.find("Port Vesper"), session_text .. " Port Vesper is neutral ground—you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe.", "Port Vesper Dockmaster")
-        RT.setObjective("Explore the Drift. Earn credits. Upgrade your ship. Make your own story.")
+        RT.setObjective("Explore the Drift")
     end})
 
     DIR.defineBeat("first_undock", {desc = "Crew undocks for the first time this session", fn = function()
