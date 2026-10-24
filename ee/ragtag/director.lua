@@ -336,7 +336,11 @@ end
 --------------------------------------------------------------------------------
 
 function DIR.update(delta)
-    if not DIR.enabled or DIR.run == nil then return end
+    if not DIR.enabled then
+        if DIR.run ~= nil then print("[DIR] update: disabled, skipping") end
+        return
+    end
+    if DIR.run == nil then return end
     local now = getScenarioTime()
 
     DIR.processPendingHails(now)
@@ -402,6 +406,9 @@ function DIR.update(delta)
         -- Use our own serialiser: EE's toJSON has a C stack-index bug that makes
         -- it fail on any table containing two or more non-empty table values.
         local s = _json(out)
+        if DIR.seq <= 3 then
+            print("[DIR] write seq=" .. DIR.seq .. " len=" .. #s .. " proto=" .. tostring(out.proto) .. " run=" .. tostring(out.run))
+        end
         storage:set(DIR.KEY_OUT, s)
         DIR.dirty = false
         DIR.last_write = now
