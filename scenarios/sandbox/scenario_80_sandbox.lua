@@ -305,6 +305,118 @@ function JOBS.update()
 end
 
 --------------------------------------------------------------------------------
+-- Rumors and wreck logs
+--------------------------------------------------------------------------------
+
+local RUMORS = {}
+
+-- Salvage tip sites: one per station, spawned only once per session.
+local _RUM_SITES = {
+    {cs="Port Vesper",             wx=-11000, wy=8000,   tier=0, val={20,50}, where="near the Calder's approach lane"},
+    {cs="Port Vesper",             wx=8000,   wy=-14000, tier=0, val={15,40}, where="in the Vesper Drift belt"},
+    {cs="Calder's Reach",          wx=-32000, wy=26000,  tier=0, val={25,55}, where="deep in the belt, past the mining rigs"},
+    {cs="Tamsin Hollow",           wx=-40000, wy=34000,  tier=0, val={20,45}, where="off the Tamsin approach, starboard side"},
+    {cs="Greywater Depot",         wx=22000,  wy=34000,  tier=0, val={20,45}, where="at the edge of the Gauntlet approach"},
+    {cs="Halcyon Rest",            wx=40000,  wy=-22000, tier=0, val={30,60}, where="just inside the Shroud edge"},
+    {cs="Hob's Landing",           wx=60000,  wy=30000,  tier=1, val={40,80}, where="in the Rim scatter off Hob"},
+    {cs="Dustmote Salvage",        wx=78000,  wy=-34000, tier=1, val={50,90}, where="near the outer Dustmote debris"},
+    {cs="Saint Brennan's Mission", wx=56000,  wy=-54000, tier=0, val={20,40}, where="off the mission's approach lane"},
+}
+
+local _RUM_HITS = {
+    'A supply runner said they had to jettison cargo {where} to make speed. Could still be out there.',
+    'Two miners were arguing about a cache they spotted {where}. Neither had fuel to check it.',
+    'Last freighter through said sensors pinged something floating {where}. Wasn\'t on the charts.',
+    'A salvager came through talking about a pod {where}. Walked off before finishing the story.',
+}
+local _RUM_DUDS = {
+    '"Nothing worth your time. Someone found a derelict last week but Dustmote already stripped it."',
+    '"Only thing floating out there is debt and regret. Same as always."',
+    '"Word is the Gauntlet\'s been quiet. Which usually means Corsairs are up to something."',
+    '"Concord\'s been asking questions at the checkpoints. Probably nothing."',
+    '"A stranger came through asking about jump drive parts. Paid cash, left fast."',
+}
+
+local _rum_spawned = {}  -- site index -> true
+local _rum_cd = {}       -- cs -> time of last offer
+
+function RUMORS.stationHook(source, target)
+    if not source:isDocked(target) then return end
+    local cs = target:getCallSign()
+    if _rum_cd[cs] and getScenarioTime() - _rum_cd[cs] < 480 then return end
+
+    local site_idx = nil
+    for i, site in ipairs(_RUM_SITES) do
+        if site.cs == cs and not _rum_spawned[i] then site_idx = i; break end
+    end
+
+    addCommsReply("Any salvage leads nearby?", function(s, t)
+        _rum_cd[cs] = getScenarioTime()
+        if site_idx and math.random() < 0.65 then
+            local site = _RUM_SITES[site_idx]
+            _rum_spawned[site_idx] = true
+            local val = math.random(site.val[1], site.val[2])
+            local jx, jy = math.random(-800, 800), math.random(-800, 800)
+            VERSE.spawnPod(site.wx + jx, site.wy + jy, val, {kind="credits", label="Cargo pod"}, site.tier)
+            local hit = _RUM_HITS[math.random(#_RUM_HITS)]:gsub("{where}", site.where)
+            setCommsMessage('"' .. hit .. '"')
+            s:addToShipLog("Salvage lead: " .. site.where .. ".", "#A0E0E0")
+        else
+            setCommsMessage(_RUM_DUDS[math.random(#_RUM_DUDS)])
+        end
+        addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+    end)
+end
+
+-- Wreck story fragments, keyed by callsign.
+local _WRECK_LOGS = {
+    -- Boneyard — Settlement War hulks
+    ["CWS Bulwark"]        = '"Day 47 of the siege. Captain Orin to any Concord command: we are holding Ashgrave approach. We are still holding. Please respond."',
+    ["Free Ship Defiance"] = '"They told us the vote would be bloodless. Somebody forgot to tell the gunships."  — last entry, Free Ship Defiance.',
+    ["CWS Morningside"]    = 'Distress beacon, CWS Morningside, crew of eleven. Hull breach compartments three through seven. "If anyone receives this — we were here."',
+    ["Free Ship Hollis"]   = 'Hollis crew manifest recovered from emergency memory. Forty-one names. The war ended six weeks after they launched.',
+    ["CWS Anvil"]          = '"We\'re not retreating. We\'re advancing in a new direction." — Commander Vayne, CWS Anvil. Last words before the bridge lost pressure.',
+    ["Free Ship Tallow"]   = '"If you\'re reading this, the settlement worked. Tell my kids I held the line."  — Tallow final transmission.',
+    ["CWS Equity"]         = '"We surrendered at 0400. The Concord officer was kind about it. I don\'t know what to make of that."  — Captain\'s log, CWS Equity.',
+    ["Free Ship Long Odds"] = 'Encrypted fragment, twenty-year-old code. "Rally at Ashgrave. One last push."  Free Ship Long Odds never arrived.',
+    ["CWS Clarion"]        = 'Automated beacon, CWS Clarion, looping since the war ended. Hull integrity: 12%. Crew status: unknown. Unknown. Unknown.',
+    ["Free Ship Harrow"]   = '"You\'re fighting for a rock." "We\'re fighting so the rock is ours."  End of argument. End of recording.',
+    ["CWS Mercy"]          = '"We have more injured than bay capacity. I am going to run out of things to write."  — Medical log, CWS Mercy.',
+    ["Free Ship Whistler"] = 'Navigation log, Free Ship Whistler. Last entry automated. Destination: Tamsin. Arrival: never.',
+    -- Dustmote — recent hulks
+    ["Hulk 7"]  = 'Salvage tag attached: "Strip to frame, sell the rest." Someone didn\'t finish the job.',
+    ["Hulk 12"] = 'Registry plate still readable: Persistent Hope. Someone scraped off the name but left the plate.',
+    ["Hulk 19"] = 'A coffee mug magnetically clamped to the helm. Still has coffee in it. Relatively recent.',
+    ["Hulk 23"] = 'Personal log found wedged in a console. First entry: "New ship, new start." Last entry: "Engine won\'t start." Three months between.',
+    -- Shroud — missing freighters
+    ["Penny Dreadful"]   = '"The Shroud doesn\'t mess with sensors. The Shroud messes with you. We\'re turning back."  — Penny Dreadful voice log. They didn\'t turn back.',
+    ["Calloway's Luck"]  = '"We found something. I don\'t know what it is. I don\'t think it\'s— [static] —beautiful."  — Final comms, Calloway\'s Luck.',
+    ["Seventh Son"]      = 'Automated log, Seventh Son. Navigation: position unknown. Course: unknown. Drift duration: 47 days. Hull: intact. Crew: [null].',
+}
+
+local _wrecks_logged = {}  -- callsign -> true
+
+function RUMORS.checkWrecks()
+    if not RT.valid(RT.player) then return end
+    for _, entry in ipairs(VERSE.wrecks) do
+        local s = entry.ship
+        if RT.valid(s) then
+            local cs = s:getCallSign()
+            if not _wrecks_logged[cs] then
+                local ok, scanned = pcall(function() return s:isFullyScannedBy(RT.player) end)
+                if ok and scanned then
+                    _wrecks_logged[cs] = true
+                    local log = _WRECK_LOGS[cs] or
+                        ('Automated beacon, ' .. cs .. '. Crew status: no response.')
+                    RT.player:addToShipLog("[Scan] " .. cs .. ": " .. log, "#C0A0A0")
+                    DIR.emit("wreck_scanned", {name=cs, tier=entry.tier}, "low")
+                end
+            end
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Setup
 --------------------------------------------------------------------------------
 
@@ -352,11 +464,12 @@ function init()
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
     RT.spawnPlayer(px, py, 0)
 
-    -- Mission board: generate pool and wire hooks into every friendly station
+    -- Mission board and rumors: generate pool and wire hooks into every friendly station
     JOBS.init()
     for _, d in ipairs(VERSE.STATIONS) do
         if d.fac ~= "Corsairs" and d.fac ~= "Hollow" then
             RT.addStationHook(d.cs, JOBS.stationHook)
+            RT.addStationHook(d.cs, RUMORS.stationHook)
         end
     end
 
@@ -580,6 +693,7 @@ function update(delta)
     end
 
     JOBS.update()
+    RUMORS.checkWrecks()
 
     -- Scripted random encounters when director is off
     if not DIR.enabled and S.phase == "exploring" then
