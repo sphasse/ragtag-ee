@@ -403,6 +403,7 @@ function RT.spawnPlayer(x, y, heading)
     p:setWeaponStorageMax("Nuke", 0):setWeaponStorage("Nuke", 0)
     p:setWeaponStorageMax("Mine", 0):setWeaponStorage("Mine", 0)
     p:setWeaponStorage("Homing", 2)
+    p:setRepairCrewCount(2)
     for _, id in ipairs(c.upgrades) do RT.applyUpgrade(p, id) end
     if c.ship_condition then
         local cond = c.ship_condition
