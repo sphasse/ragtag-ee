@@ -104,9 +104,11 @@ end
 function RT.shipStrength(ship)
     if not RT.valid(ship) then return {offense = 0, defense = 0, total = 0} end
     local hull = ship:getHullMax() or 0
-    local sm = {ship:getShieldsMax()}
+    -- Use the ECS API (getShieldCount/getShieldMax) — getShieldsMax() is
+    -- a PlayerSpaceship-only compat shim and errors on CpuShip.
     local shields = 0
-    for _, v in ipairs(sm) do shields = shields + (v or 0) end
+    local sc = ship:getShieldCount() or 0
+    for i = 0, sc - 1 do shields = shields + (ship:getShieldMax(i) or 0) end
     local defense = hull + shields
     local dps = 0
     for i = 0, 15 do
