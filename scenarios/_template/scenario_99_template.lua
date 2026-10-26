@@ -18,6 +18,7 @@ require("utils.lua")
 require("ragtag/core.lua")
 require("ragtag/verse.lua")
 require("ragtag/director.lua")
+require("ragtag/patrol.lua")
 
 local SESSION_ID = "sN"
 
@@ -46,6 +47,7 @@ function init()
     VERSE.build({session = 99})   -- the shared universe; use this session's number
     -- Every universe place this scenario uses. tools/check.py fails if one disappears.
     VERSE.requirePlaces({"Port Vesper", "Halcyon Rest"})
+    PATROL.init()
     buildMap()                          -- session-specific additions only
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
     RT.spawnPlayer(px, py, 0)
@@ -134,6 +136,7 @@ function update(delta)
     RT.update(delta)
     VERSE.update(delta)
     DIR.update(delta)
+    PATROL.update(delta)
     if S.phase == "done" then return end
 
     if not RT.valid(RT.player) then

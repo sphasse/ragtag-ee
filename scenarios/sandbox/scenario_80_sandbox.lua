@@ -23,6 +23,7 @@ require("utils.lua")
 require("ragtag/core.lua")
 require("ragtag/verse.lua")
 require("ragtag/director.lua")
+require("ragtag/patrol.lua")
 
 local SESSION_ID = "sandbox"
 
@@ -459,6 +460,7 @@ function init()
     VERSE.build({session = S.session_num})
     -- Sandbox uses the whole universe; only explicitly require the starting location
     VERSE.requirePlaces({"Port Vesper"})
+    PATROL.init()
 
     -- Spawn player at Port Vesper (safe starting location)
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
@@ -645,6 +647,7 @@ function update(delta)
     RT.update(delta)
     VERSE.update(delta)
     DIR.update(delta)
+    PATROL.update(delta)
 
     if S.phase == "ending" then return end
 
