@@ -14,14 +14,14 @@ The white sun Lumen anchors the rich Concord Core. The Border worlds sit around 
 - The Arbiter Line [safe]: The Arbiter Line, where Concord checkpoints watch traffic between the Core and the Border. Stations: Concord Waypoint Galen.
 - The Cinder Fields [safe]: The Cinder Fields: farming worlds under a cold red sun. Stations: Tamsin Hollow (shipwright).
 - The Concord Core [safe]: The Core: Concord worlds around the white sun Lumen. Rich, safe, and watched. Stations: Ostia Highport (shipwright), Lumen Exchange (shipwright), Sentinel Fleet Yard.
-- The Rim [safe]: The Rim: frontier worlds, long lanes, and law that arrives late or not at all.
+- The Rim [safe]: The Rim: frontier worlds, long lanes, and law that arrives late or not at all. Stations: Lastchance Outpost (shipwright).
 - The Shroud [safe]: The Shroud: a vast nebula where sensors fail and ships go missing. Spacers tell stories.
 - The Deep Shroud [risky]: The Deep Shroud. Uncharted. Your sensors pick up tones that aren't quite noise.
 - The Gauntlet [risky]: The Gauntlet: an asteroid belt where Corsair crews wait for freighters. Rich pickings, if you can keep them.
 - Blackwater Reach [dangerous]: Blackwater Reach: the Corsairs' home, wrapped in dark nebula and minefields. Stations: Blackwater.
 - The Boneyard [dangerous]: The Boneyard: the Settlement War battlefield around dead Ashgrave. Wrecks everywhere, and the drones never stopped fighting.
 - The Maw [DEADLY]: The Maw. Hollow space. Nobody comes back from here in a ship like yours. Stations: The Maw.
-- Elsewhere: Concord Station Arbiter, Lastchance Outpost.
+- Elsewhere: Concord Station Arbiter.
 
 ### Factions (EmptyEpsilon faction names)
 - Independent: the crew, independent stations and freighters. Friendly but mercenary.
