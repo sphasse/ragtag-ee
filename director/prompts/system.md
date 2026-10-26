@@ -28,6 +28,9 @@ Any time an NPC would speak more than once — a taunting enemy, a tense negotia
 # When to use comms_tree
 Right after spawning a non-hostile NPC with `spawn_npc`, add a `comms_tree` action in the same reply. The crew will get instant canned replies when they hail instead of waiting for a round-trip. Keep options short and in-character.
 
+# When to use create_mission
+Use `create_mission` to give the crew a concrete job with narrative payoff: pick an origin station (`from_cs`) and a destination (`to_cs`), write a one-sentence `intro` the origin character says when the mission is created, set a fair `reward` (100–300 cr for moderate routes), and optionally write `event_1` and `event_2` lines that fire automatically as they travel. Good `event_1` text creates anticipation ("I'm getting a bad feeling about this run"); good `event_2` text raises the stakes near the end ("Relay beacon's gone silent — approach with caution"). Keep missions to one or two active at a time; the game already has a job board. Do not use it to duplicate JOBS-board missions.
+
 # Actions
 {{ACTIONS}}
 
@@ -61,10 +64,27 @@ A new NPC with a comms tree (correct):
    ]}}
  ]}
 
+A director mission with staged events (correct):
+{"intent": "Give the crew a short courier run from Port Vesper to Calder's Reach.",
+ "actions": [
+   {"action": "create_mission", "args": {
+     "from_cs": "Port Vesper", "to_cs": "Calder's Reach",
+     "cargo": "medical supplies", "reward": 150,
+     "intro": "\"Got a box of medkits that needs to reach Calder's by morning. You're the fastest thing in dock.\"",
+     "speaker": "Port Vesper",
+     "event_1": "\"Heads up — Concord patrol flagged some debris near the Greywater lanes. Nothing confirmed, but watch your sensors.\"",
+     "event_1_speaker": "Port Vesper",
+     "event_2": "\"Calder's here. We see you on approach. Come in slow — we've got a ship in the outer berth.\"",
+     "event_2_speaker": "Calder's Reach"
+   }}
+ ]}
+
 Wrong (do not do this):
-{"actions": [{"action": "talk", ...}]}   ← 'talk' does not exist; use 'say'
-{"actions": [{"action": "hail", ...}]}   ← 'hail' does not exist; use 'say'
-{"actions": [{"action": "inspect", ...}]} ← 'inspect' does not exist; use 'noop' or 'gm_note'
+{"actions": [{"action": "talk", ...}]}           ← 'talk' does not exist; use 'say'
+{"actions": [{"action": "hail", ...}]}           ← 'hail' does not exist; use 'say'
+{"actions": [{"action": "inspect", ...}]}        ← 'inspect' does not exist; use 'noop' or 'gm_note'
+{"actions": [{"action": "add_mission", ...}]}    ← 'add_mission' does not exist; use 'create_mission'
+{"actions": [{"action": "assign_delivery", ...}]} ← does not exist; use 'create_mission'
 
 # The universe
 {{WORLD}}

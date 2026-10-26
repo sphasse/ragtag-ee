@@ -98,6 +98,18 @@ _add(Action("npc_order", "Give an order to an NPC you spawned (or one the scenar
     "target": Arg("str", max_len=40, help="station callsign for dock"),
 }))
 _add(Action("noop", "Do nothing this time.", {}))
+_add(Action("create_mission", "Create a director-driven delivery or escort mission. The crew must fly from the origin to the destination and dock there. Events fire automatically at 1/3 and 2/3 of the route. Pay is awarded on docking. Use sparingly: one or two active at a time.", {
+    "from_cs":         Arg("str",   True,  max_len=40,  help="callsign of the origin station or NPC"),
+    "to_cs":           Arg("str",   True,  max_len=40,  help="callsign of the destination station or NPC"),
+    "cargo":           Arg("str",   False, max_len=80,  help="what is being transported, e.g. 'medical supplies'"),
+    "reward":          Arg("int",   False, lo=50, hi=500, help="credits paid on completion, default 120"),
+    "intro":           Arg("str",   False, max_len=400, help="first thing the origin character says to kick off the job"),
+    "speaker":         Arg("str",   False, max_len=40,  help="who speaks the intro; defaults to from_cs"),
+    "event_1":         Arg("str",   False, max_len=400, help="message at ~1/3 of the route (optional)"),
+    "event_1_speaker": Arg("str",   False, max_len=40,  help="speaker for event_1; defaults to from_cs"),
+    "event_2":         Arg("str",   False, max_len=400, help="message at ~2/3 of the route (optional)"),
+    "event_2_speaker": Arg("str",   False, max_len=40,  help="speaker for event_2; defaults to from_cs"),
+}))
 _add(Action("say_sequence", "Queue several lines from one speaker at timed intervals. Use this for any encounter that needs more than one NPC line — taunts, negotiations, reveals. One LLM call covers the whole interaction; no further calls needed.", {
     "speaker": Arg("str", True, max_len=40, help="character name or ship/station callsign"),
     "lines": Arg("list", True, max_len=8, help='[{"text":"...","delay":5}, ...] — first line fires immediately; delay is seconds after the previous line'),
