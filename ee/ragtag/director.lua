@@ -194,11 +194,12 @@ function DIR.registerKill(ship)
     if not RT.valid(ship) then return end
     local str = RT.shipStrength(ship)
     ship:onDestruction(function(s, instigator)
-        local by_player = instigator ~= nil and instigator == RT.player
+        local by_player = RT.isPlayer(instigator)
         DIR.emit("destroyed", {callsign = s:getCallSign(), faction = s:getFaction(),
             by_player = by_player and 1 or 0}, "normal")
         if by_player then
-            local player_str = RT.shipStrength(RT.player)
+            local killer = RT.valid(instigator) and instigator or RT.player
+            local player_str = killer and RT.shipStrength(killer) or {total = 0}
             local ratio = str.total > 0 and math.floor(player_str.total * 100 / str.total) / 100 or 0
             DIR.emit("combat_kill", {
                 callsign   = s:getCallSign(),
@@ -206,6 +207,7 @@ function DIR.registerKill(ship)
                 enemy_str  = str,
                 player_str = player_str,
                 ratio      = ratio,
+                killer     = killer and killer:getCallSign() or "unknown",
             }, "normal")
         end
     end)
@@ -291,49 +293,53 @@ function DIR.buildState()
 
     st.budget.ai_hostiles_alive = DIR.countAIHostiles()
 
-    local p = RT and RT.player
-    if RT.valid(p) then
-        local x, y = p:getPosition()
-        local docked = p:getDockedWith()
-        local damaged = {}
-        for name, sys in pairs({reactor = "reactor", beams = "beamweapons", missiles = "missilesystem",
-                                maneuver = "maneuver", impulse = "impulse", warp = "warp",
-                                frontshield = "frontshield", rearshield = "rearshield"}) do
-            if p:hasSystem(sys) then
-                local h = p:getSystemHealth(sys)
-                if h < 0.8 then damaged[name] = round(h * 100) end
+    -- Build per-player snapshots. st.player = primary ship (backward compat).
+    st.players = {}
+    for _, p in ipairs(RT and RT.players or {}) do
+        if RT.valid(p) then
+            local x, y = p:getPosition()
+            local docked = p:getDockedWith()
+            local damaged = {}
+            for name, sys in pairs({reactor = "reactor", beams = "beamweapons", missiles = "missilesystem",
+                                    maneuver = "maneuver", impulse = "impulse", warp = "warp",
+                                    frontshield = "frontshield", rearshield = "rearshield"}) do
+                if p:hasSystem(sys) then
+                    local h = p:getSystemHealth(sys)
+                    if h < 0.8 then damaged[name] = round(h * 100) end
+                end
             end
-        end
-        st.player = {
-            callsign = p:getCallSign(), sector = p:getSectorName(),
-            x = round(x), y = round(y), heading = round(p:getHeading()),
-            hull = round(p:getHull()), hull_max = round(p:getHullMax()),
-            shields_up = b01(p:getShieldsActive()), credits = RT.credits(),
-            docked_with = (docked and RT.valid(docked)) and docked:getCallSign() or nil,
-            damaged_systems = damaged,
-            homing = p:getWeaponStorage("Homing"), hvli = p:getWeaponStorage("HVLI"),
-        }
-        local nearby = {}
-        for _, obj in ipairs(getObjectsInRadius(x, y, 30000)) do
-            -- Only ships and stations: asteroids, nebulae etc. have no typename
-            -- component, and calling getTypeName() on them raises an error.
-            if obj ~= p and obj.components ~= nil and obj.components.typename ~= nil then
-                local ok, info = pcall(function()
-                    return {
-                        callsign = obj:getCallSign(), type = obj:getTypeName(), faction = obj:getFaction(),
-                        dist_u = round(RT.dist(p, obj) / 100) / 10,
-                        hostile = b01(obj:isEnemy(p)), ai_spawned = b01(DIR.controllable[obj:getCallSign()]),
-                    }
-                end)
-                if ok then table.insert(nearby, info) end
+            local snap = {
+                callsign = p:getCallSign(), sector = p:getSectorName(),
+                x = round(x), y = round(y), heading = round(p:getHeading()),
+                hull = round(p:getHull()), hull_max = round(p:getHullMax()),
+                shields_up = b01(p:getShieldsActive()), credits = RT.credits(),
+                docked_with = (docked and RT.valid(docked)) and docked:getCallSign() or nil,
+                damaged_systems = damaged,
+                homing = p:getWeaponStorage("Homing"), hvli = p:getWeaponStorage("HVLI"),
+            }
+            -- Nearby contacts — only for the first (primary) player to keep state small.
+            if #st.players == 0 then
+                local nearby = {}
+                for _, obj in ipairs(getObjectsInRadius(x, y, 30000)) do
+                    if obj ~= p and obj.components ~= nil and obj.components.typename ~= nil then
+                        local ok, info = pcall(function()
+                            return {
+                                callsign = obj:getCallSign(), type = obj:getTypeName(), faction = obj:getFaction(),
+                                dist_u = round(RT.dist(p, obj) / 100) / 10,
+                                hostile = b01(obj:isEnemy(p)), ai_spawned = b01(DIR.controllable[obj:getCallSign()]),
+                            }
+                        end)
+                        if ok then table.insert(nearby, info) end
+                    end
+                    if #nearby >= 16 then break end
+                end
+                table.sort(nearby, function(a, b) return a.dist_u < b.dist_u end)
+                snap.nearby = nearby
             end
-            if #nearby >= 16 then break end
+            table.insert(st.players, snap)
         end
-        table.sort(nearby, function(a, b) return a.dist_u < b.dist_u end)
-        st.player.nearby = nearby
-    else
-        st.player = {destroyed = true}
     end
+    st.player = st.players[1] or {destroyed = true}
 
     st.extra = {}
     for _, fn in ipairs(DIR.state_providers) do
@@ -603,11 +609,26 @@ function DIR.processPendingHails(now)
     for i = #DIR.pending_hails, 1, -1 do
         local h = DIR.pending_hails[i]
         local ent = RT.find(h.speaker)
-        if not RT.valid(ent) or not RT.valid(RT.player) or now > h.until_t then
+        -- Remove expired or orphaned hails.
+        if not RT.valid(ent) or not RT.anyPlayerAlive() or now > h.until_t then
             table.remove(DIR.pending_hails, i)
-            if RT.valid(RT.player) then RT.player:addToShipLog("[" .. h.speaker .. "] " .. h.text, "#C0E0FF") end
-        elseif ent:sendCommsMessage(RT.player, h.text) then
-            table.remove(DIR.pending_hails, i)
+            -- Deliver as ship-log fallback to all alive ships.
+            RT.shipLog("[" .. h.speaker .. "] " .. h.text, "#C0E0FF")
+        else
+            -- Try to open comms to the primary ship; fall back to log on the rest.
+            local delivered = false
+            if RT.valid(RT.player) and ent:sendCommsMessage(RT.player, h.text) then
+                delivered = true
+            end
+            if delivered then
+                -- Secondary ships get a log copy so no one misses the hail.
+                for i2 = 2, #RT.players do
+                    if RT.valid(RT.players[i2]) then
+                        RT.players[i2]:addToShipLog("[" .. h.speaker .. "] " .. h.text, "#C0E0FF")
+                    end
+                end
+                table.remove(DIR.pending_hails, i)
+            end
         end
     end
 end

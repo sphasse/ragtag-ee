@@ -27,7 +27,8 @@ RT.PLAYER_TEMPLATE = "Flavia P.Falcon"
 RT.named = {}          -- callsign -> entity, for objects the scenario or director created
 RT.stations = {}       -- callsign -> {entity=..., shop=bool, flavor=string, hooks={fn,...}}
 RT.objective = ""
-RT.player = nil
+RT.player  = nil       -- first player ship (backward-compat alias for RT.players[1])
+RT.players = {}        -- all active player ships; append via RT.spawnPlayer()
 RT.timers = {}         -- list of {at=time, fn=function, name=string}
 
 --------------------------------------------------------------------------------
@@ -73,13 +74,14 @@ function RT.register(entity, callsign)
     return entity
 end
 
--- Find an entity by callsign: registry first, then a radius scan around the player.
+-- Find an entity by callsign: registry first, then a radius scan around the nearest player.
 function RT.find(callsign)
     if callsign == nil or callsign == "" then return nil end
     local e = RT.named[callsign]
     if RT.valid(e) then return e end
     local cx, cy = 0, 0
-    if RT.valid(RT.player) then cx, cy = RT.player:getPosition() end
+    local np = RT.nearestPlayer(0, 0)
+    if np then cx, cy = np:getPosition() end
     for _, obj in ipairs(getObjectsInRadius(cx, cy, 100000)) do
         if obj.getCallSign and obj:getCallSign() == callsign then
             RT.named[callsign] = obj
@@ -87,6 +89,51 @@ function RT.find(callsign)
         end
     end
     return nil
+end
+
+--------------------------------------------------------------------------------
+-- Multi-player helpers
+--------------------------------------------------------------------------------
+
+function RT.anyPlayerAlive()
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) then return true end
+    end
+    return false
+end
+
+function RT.isPlayer(entity)
+    if not RT.valid(entity) then return false end
+    for _, p in ipairs(RT.players) do
+        if p == entity then return true end
+    end
+    return false
+end
+
+-- Nearest valid player ship to (x, y). Returns nil when no players are alive.
+function RT.nearestPlayer(x, y)
+    local best, best_dist = nil, math.huge
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) then
+            local px, py = p:getPosition()
+            local d = math.sqrt((px - x) ^ 2 + (py - y) ^ 2)
+            if d < best_dist then best, best_dist = p, d end
+        end
+    end
+    return best
+end
+
+-- addToShipLog on every alive player ship.
+function RT.shipLog(msg, color)
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) then p:addToShipLog(msg, color or "#FFFFFF") end
+    end
+end
+
+function RT.forEachPlayer(fn)
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) then fn(p) end
+    end
 end
 
 function RT.dist(a, b)
@@ -133,12 +180,21 @@ function RT.shipStrength(ship)
     }
 end
 
--- Hail the player from an entity; if their comms are busy, fall back to the log.
+-- Hail all player ships from an entity; if comms are busy on a ship, fall back to its log.
+-- Returns true if at least one comms message landed.
 function RT.hail(from, text, speaker)
-    if not RT.valid(RT.player) then return false end
-    if RT.valid(from) and from:sendCommsMessage(RT.player, text) then return true end
-    RT.player:addToShipLog("[" .. (speaker or (RT.valid(from) and from:getCallSign()) or "Unknown") .. "] " .. text, "#C0E0FF")
-    return false
+    local sent = false
+    local tag = speaker or (RT.valid(from) and from:getCallSign()) or "Unknown"
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) then
+            if RT.valid(from) and from:sendCommsMessage(p, text) then
+                sent = true
+            else
+                p:addToShipLog("[" .. tag .. "] " .. text, "#C0E0FF")
+            end
+        end
+    end
+    return sent
 end
 
 -- Remove control characters and clamp length for anything shown to players.
@@ -306,13 +362,20 @@ end
 function RT.addCredits(amount, reason)
     if not RT.valid(RT.player) then return end
     amount = math.floor(amount)
+    local new_total
     if amount >= 0 then
         RT.player:addReputationPoints(amount)
+        new_total = math.floor(RT.player:getReputationPoints())
     else
-        RT.player:setReputationPoints(math.max(0, RT.credits() + amount))
+        new_total = math.max(0, RT.credits() + amount)
+        RT.player:setReputationPoints(new_total)
+    end
+    -- Mirror balance on every other player ship so all Relay screens agree.
+    for i = 2, #RT.players do
+        if RT.valid(RT.players[i]) then RT.players[i]:setReputationPoints(new_total) end
     end
     local sign = amount >= 0 and "+" or ""
-    RT.player:addToShipLog(string.format("Credits %s%d (%s). Balance: %d", sign, amount, reason or "misc", RT.credits()), "#E0C060")
+    RT.shipLog(string.format("Credits %s%d (%s). Balance: %d", sign, amount, reason or "misc", new_total), "#E0C060")
     RT.saveCampaign()
 end
 
@@ -419,10 +482,8 @@ end
 function RT.grantUpgrade(id, reason)
     if RT.hasUpgrade(id) or RT.upgradeById(id) == nil then return false end
     table.insert(RT.campaign.upgrades, id)
-    if RT.valid(RT.player) then
-        RT.applyUpgrade(RT.player, id)
-        RT.player:addToShipLog("Upgrade installed: " .. RT.upgradeById(id).name .. (reason and (" (" .. reason .. ")") or ""), "#80FF80")
-    end
+    RT.forEachPlayer(function(p) RT.applyUpgrade(p, id) end)
+    RT.shipLog("Upgrade installed: " .. RT.upgradeById(id).name .. (reason and (" (" .. reason .. ")") or ""), "#80FF80")
     RT.saveCampaign()
     if DIR then DIR.emit("upgrade", {id = id, how = "granted", reason = reason}) end
     return true
@@ -432,10 +493,19 @@ end
 -- Player ship
 --------------------------------------------------------------------------------
 
-function RT.spawnPlayer(x, y, heading)
+-- opts (optional 4th arg): {callsign, template, faction}
+-- First call creates the primary ship (RT.player alias). Subsequent calls add
+-- a second crew ship. Extra ships get their own callsign (opts.callsign or
+-- primary_name.."-2", "-3", …) and share the campaign's credit balance.
+function RT.spawnPlayer(x, y, heading, opts)
+    opts = opts or {}
     local c = RT.campaign or RT.loadCampaign()
-    local p = PlayerSpaceship():setTemplate(RT.PLAYER_TEMPLATE):setFaction(RT.PLAYER_FACTION)
-    p:setCallSign(c.ship_name):setPosition(x, y)
+    local is_primary = (#RT.players == 0)
+    local tmpl    = opts.template or RT.PLAYER_TEMPLATE
+    local faction = opts.faction  or RT.PLAYER_FACTION
+    local cs      = opts.callsign or (is_primary and c.ship_name or (c.ship_name .. "-" .. (#RT.players + 1)))
+    local p = PlayerSpaceship():setTemplate(tmpl):setFaction(faction)
+    p:setCallSign(cs):setPosition(x, y)
     if heading then p:setHeading(heading) end
     -- A modest, slightly battered start: no nukes or mines on a freight hauler.
     p:setWeaponStorageMax("Nuke", 0):setWeaponStorage("Nuke", 0)
@@ -443,7 +513,7 @@ function RT.spawnPlayer(x, y, heading)
     p:setWeaponStorage("Homing", 2)
     p:setRepairCrewCount(2)
     for _, id in ipairs(c.upgrades) do RT.applyUpgrade(p, id) end
-    if c.ship_condition then
+    if is_primary and c.ship_condition then
         local cond = c.ship_condition
         local cm_f, cm_r = p:getShieldsMax()
         p:setHull(p:getHullMax() * cond.hull_pct)
@@ -451,8 +521,9 @@ function RT.spawnPlayer(x, y, heading)
         p:setEnergy(p:getMaxEnergy() * cond.energy_pct)
     end
     p:setReputationPoints(c.credits or 0)
-    RT.player = p
-    RT.named[p:getCallSign()] = p
+    table.insert(RT.players, p)
+    RT.player = RT.players[1]   -- backward-compat alias always points to first ship
+    RT.named[cs] = p
     return p
 end
 
@@ -462,11 +533,11 @@ end
 
 function RT.setObjective(text, silent)
     RT.objective = RT.cleanText(text, 160)
-    if RT.valid(RT.player) then
-        RT.player:addCustomInfo("relay", "rt_objective", "Job: " .. RT.objective, 0)
-        RT.player:addCustomInfo("operations", "rt_objective_ops", "Job: " .. RT.objective, 0)
-        if not silent then RT.player:addToShipLog("New objective: " .. RT.objective, "#80C0FF") end
-    end
+    RT.forEachPlayer(function(p)
+        p:addCustomInfo("relay", "rt_objective", "Job: " .. RT.objective, 0)
+        p:addCustomInfo("operations", "rt_objective_ops", "Job: " .. RT.objective, 0)
+        if not silent then p:addToShipLog("New objective: " .. RT.objective, "#80C0FF") end
+    end)
     if DIR then DIR.emit("objective", {text = RT.objective}) end
 end
 
@@ -787,26 +858,33 @@ end
 -- Per-frame housekeeping. Call from update(delta).
 --------------------------------------------------------------------------------
 
-RT._last_save = 0
-RT._hull_marks = {}
+RT._last_save  = 0
+RT._hull_marks = {}   -- callsign -> {75=bool, 50=bool, 25=bool}
 
 function RT.update(delta)
     RT.updateTimers()
     local now = getScenarioTime()
-    if RT.valid(RT.player) then
+    if RT.anyPlayerAlive() then
         -- Autosave credits every 60s so a crash doesn't eat the crew's money.
         if now - RT._last_save > 60 then
             RT._last_save = now
             RT.saveCampaign()
         end
-        -- Report hull thresholds once each (75/50/25%).
-        local pct = RT.player:getHull() / RT.player:getHullMax() * 100
-        for _, mark in ipairs({75, 50, 25}) do
-            if pct < mark and not RT._hull_marks[mark] then
-                RT._hull_marks[mark] = true
-                if DIR then DIR.emit("player_damaged", {hull_pct = math.floor(pct)}, mark <= 50 and "high" or "normal") end
-            elseif pct > mark + 10 then
-                RT._hull_marks[mark] = nil
+    end
+    -- Report hull thresholds once per ship (75/50/25%).
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) then
+            local cs = p:getCallSign()
+            if not RT._hull_marks[cs] then RT._hull_marks[cs] = {} end
+            local marks = RT._hull_marks[cs]
+            local pct = p:getHull() / p:getHullMax() * 100
+            for _, mark in ipairs({75, 50, 25}) do
+                if pct < mark and not marks[mark] then
+                    marks[mark] = true
+                    if DIR then DIR.emit("player_damaged", {hull_pct = math.floor(pct), ship = cs}, mark <= 50 and "high" or "normal") end
+                elseif pct > mark + 10 then
+                    marks[mark] = nil
+                end
             end
         end
     end

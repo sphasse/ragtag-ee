@@ -271,17 +271,23 @@ function MISSION.update(delta)
     local now = getScenarioTime()
     if now < MISSION._next_check then return end
     MISSION._next_check = now + MISSION._check_interval
-    if not RT.valid(RT.player) then return end
-    local px, py = RT.player:getPosition()
+    if not RT.anyPlayerAlive() then return end
     for _, m in pairs(MISSION._tracked) do
         local ic = m.intercept
         if ic and not ic.fired and m._dist then
-            local tdx, tdy = m._dx - px, m._dy - py
-            local dist_to_dest = math.sqrt(tdx * tdx + tdy * tdy)
-            local progress = 1 - dist_to_dest / m._dist
-            if progress >= ic.trigger then
-                ic.fired = true
-                MISSION._spawnIntercept(m, px, py)
+            -- Trigger when ANY player has traveled far enough along the route.
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) then
+                    local px, py = p:getPosition()
+                    local tdx, tdy = m._dx - px, m._dy - py
+                    local dist_to_dest = math.sqrt(tdx * tdx + tdy * tdy)
+                    local progress = 1 - dist_to_dest / m._dist
+                    if progress >= ic.trigger then
+                        ic.fired = true
+                        MISSION._spawnIntercept(m, px, py)
+                        break
+                    end
+                end
             end
         end
     end
@@ -290,8 +296,6 @@ end
 -- Spawn an interception group.  Called internally when route trigger fires.
 function MISSION._spawnIntercept(m, px, py)
     local ic = m.intercept
-    RT.player:addToShipLog("[Route] " .. ic.msg_log, "#FF8080")
-
     local templates = DIR.GROUPS[ic.strength]
     if not templates then return end
 
@@ -309,6 +313,8 @@ function MISSION._spawnIntercept(m, px, py)
         faction   = "Concord"
         comms_msg = '"Independent vessel, this is a Concord inspection. Heave to."'
     end
+
+    RT.shipLog("[Route] " .. ic.msg_log, "#FF8080")
 
     local names = {}
     for _, tmpl in ipairs(templates) do

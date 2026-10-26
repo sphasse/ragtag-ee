@@ -152,7 +152,7 @@ function PATROL.update(delta)
     if now < PATROL._next_check then return end
     PATROL._next_check = now + PATROL.config.check_interval
 
-    if not RT.valid(RT.player) then return end
+    if not RT.anyPlayerAlive() then return end
 
     -- Sweep active patrols: mark cells cleared when an entire group is dead.
     for i = #PATROL._active, 1, -1 do
@@ -164,40 +164,44 @@ function PATROL.update(delta)
         if not alive then
             PATROL._cleared[pat.cell_key] = now
             table.remove(PATROL._active, i)
-            RT.player:addToShipLog("[" .. pat.region_name .. "] Area clear.", "#80FF80")
+            RT.shipLog("[" .. pat.region_name .. "] Area clear.", "#80FF80")
             DIR.emit("patrol_cleared", {region = pat.region_name}, "normal")
         end
     end
 
     if #PATROL._active >= PATROL.config.max_active then return end
 
-    -- Check whether the player is inside a zone that is ready to spawn.
-    local px, py = RT.player:getPosition()
-
-    -- Pick the deepest qualifying zone (spawn the most relevant one).
-    local best_name, best_depth = nil, 0
-    for name, region in pairs(PATROL._regions) do
-        local depth = depthIn(px, py, region)
-        if depth > 0 then
-            -- Region cooldown
-            local last = PATROL._region_cd[name] or -99999
-            if now - last < PATROL.config.region_cooldown then goto continue end
-            -- Cell cooldown (only check current cell)
-            local cell = cellKey(px, py)
-            local cleared_at = PATROL._cleared[cell]
-            if cleared_at and (now - cleared_at) < PATROL.config.cell_cooldown then goto continue end
-            -- No active patrol already in this cell
-            for _, pat in ipairs(PATROL._active) do
-                if pat.cell_key == cell then goto continue end
+    -- For zone triggering, use the player deepest inside any zone.
+    -- Iterate all players; pick position from the deepest one.
+    local best_name, best_depth, spawn_px, spawn_py = nil, 0, 0, 0
+    for _, p in ipairs(RT.players) do
+        if not RT.valid(p) then goto next_player end
+        local px, py = p:getPosition()
+        for name, region in pairs(PATROL._regions) do
+            local depth = depthIn(px, py, region)
+            if depth > 0 then
+                -- Region cooldown
+                local last = PATROL._region_cd[name] or -99999
+                if now - last < PATROL.config.region_cooldown then goto continue end
+                -- Cell cooldown
+                local cell = cellKey(px, py)
+                local cleared_at = PATROL._cleared[cell]
+                if cleared_at and (now - cleared_at) < PATROL.config.cell_cooldown then goto continue end
+                -- No active patrol already in this cell
+                for _, pat in ipairs(PATROL._active) do
+                    if pat.cell_key == cell then goto continue end
+                end
+                if depth > best_depth then
+                    best_name, best_depth = name, depth
+                    spawn_px, spawn_py = px, py
+                end
             end
-            if depth > best_depth then
-                best_name, best_depth = name, depth
-            end
+            ::continue::
         end
-        ::continue::
+        ::next_player::
     end
 
     if best_name then
-        spawnGroup(best_name, px, py)
+        spawnGroup(best_name, spawn_px, spawn_py)
     end
 end

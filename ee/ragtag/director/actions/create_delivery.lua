@@ -32,9 +32,8 @@ DIR.ACTIONS.create_delivery = function(a)
 
     table.insert(MISSION._dynamic_queue, m)
 
-    -- Notify the crew via ship log
-    RT.player:addToShipLog(
-        "[Board] New job posted at " .. origin .. ": " .. m.short
+    -- Notify all player ships via ship log
+    RT.shipLog("[Board] New job posted at " .. origin .. ": " .. m.short
         .. " (" .. m.reward .. " cr).", "#A0C0FF")
 
     DIR.emit("delivery_posted", {

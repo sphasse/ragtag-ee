@@ -103,7 +103,7 @@ function defineBeats()
     end})
 
     DIR.defineBeat("complication", {ai = true, desc = "Something goes wrong mid-job", fn = function(source)
-        RT.player:addToShipLog("Something went wrong.", "#FF8080")
+        RT.shipLog("Something went wrong.", "#FF8080")
     end})
 end
 
@@ -139,7 +139,7 @@ function update(delta)
     PATROL.update(delta)
     if S.phase == "done" then return end
 
-    if not RT.valid(RT.player) then
+    if not RT.anyPlayerAlive() then
         if not S.ending then
             S.ending = true
             RT.completeSession(SESSION_ID, "failed", "The ship was lost.")

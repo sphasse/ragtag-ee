@@ -54,8 +54,11 @@ end
 
 -- Called every frame from DIR.update() to advance active missions.
 function DIR.updateMissions()
-    if not RT.valid(RT.player) then return end
-    local px, py = RT.player:getPosition()
+    if not RT.anyPlayerAlive() then return end
+    -- Use the nearest player for route-progress and dock checks.
+    local ref = RT.nearestPlayer(0, 0)
+    if not ref then return end
+    local px, py = ref:getPosition()
     local to_remove = {}
     for id, m in pairs(DIR.missions) do
         if not m.completed then
@@ -78,13 +81,18 @@ function DIR.updateMissions()
                     DIR.ACTIONS.say({speaker = m.event_2_spk, text = m.event_2})
                 end
 
-                -- Complete when docked at destination
-                local docked = RT.player:getDockedWith()
-                if docked and docked == to_e then
+                -- Complete when any player docks at destination
+                local completed_by = nil
+                RT.forEachPlayer(function(p)
+                    if not completed_by then
+                        local docked = p:getDockedWith()
+                        if docked and docked == to_e then completed_by = p end
+                    end
+                end)
+                if completed_by then
                     m.completed = true
                     RT.addCredits(m.reward, "Mission: " .. m.to_cs)
-                    RT.player:addToShipLog(
-                        "[Mission complete] Delivered " .. m.cargo .. " to " .. m.to_cs ..
+                    RT.shipLog("[Mission complete] Delivered " .. m.cargo .. " to " .. m.to_cs ..
                         ". +" .. m.reward .. " cr.", "#80FF80")
                     DIR.emit("mission_complete", {
                         from=m.from_cs, to=m.to_cs, cargo=m.cargo, reward=m.reward

@@ -11,6 +11,6 @@ DIR.ACTIONS.system_glitch = function(a)
     local sev = h.num(a.severity, 0.1, 0.5, 0.25)
     local current = RT.player:getSystemHealth(sys)
     RT.player:setSystemHealth(sys, math.max(-0.3, current - sev))
-    if a.reason then RT.player:addToShipLog("Engineering: " .. h.str(a.reason, 120, ""), "#FFA060") end
+    if a.reason then RT.shipLog("Engineering: " .. h.str(a.reason, 120, ""), "#FFA060") end
     return true, sys .. " health " .. math.floor((current - sev) * 100) .. "%"
 end

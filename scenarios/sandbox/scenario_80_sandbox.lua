@@ -205,10 +205,9 @@ function JOBS.accept(m)
     MISSION.track(m)   -- register for route interception
     JOBS.updateObj()
     local dest = m.dest or "the target location"
-    RT.player:addToShipLog(
-        string.format("Contract: %s (%d cr). Head to %s.", m.short, m.reward, dest), "#A0C0FF")
+    RT.shipLog(string.format("Contract: %s (%d cr). Head to %s.", m.short, m.reward, dest), "#A0C0FF")
     if m.intercept then
-        RT.player:addToShipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
+        RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
     end
     return true
 end
@@ -280,17 +279,23 @@ function JOBS.stationHook(source, target)
 end
 
 function JOBS.update()
-    if not RT.valid(RT.player) then return end
-    local px, py = RT.player:getPosition()
+    if not RT.anyPlayerAlive() then return end
     for _, entry in ipairs(_active) do
         if entry.mission.type == "scout" and entry.phase == "active" then
-            local dx = px - entry.mission.wx
-            local dy = py - entry.mission.wy
-            if dx*dx + dy*dy < 8000*8000 then
-                entry.phase = "done"
-                local ent = entry
-                RT.player:addToShipLog("Scout complete — " .. ent.mission.short .. string.format(" (+%d cr)", ent.mission.reward), "#80FF80")
-                JOBS.complete(ent)
+            -- Scout completes when any player reaches the waypoint.
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) then
+                    local px, py = p:getPosition()
+                    local dx = px - entry.mission.wx
+                    local dy = py - entry.mission.wy
+                    if dx*dx + dy*dy < 8000*8000 then
+                        entry.phase = "done"
+                        local ent = entry
+                        RT.shipLog("Scout complete — " .. ent.mission.short .. string.format(" (+%d cr)", ent.mission.reward), "#80FF80")
+                        JOBS.complete(ent)
+                        break
+                    end
+                end
             end
         end
     end
@@ -400,7 +405,7 @@ function RUMORS.checkWrecks()
                     _wrecks_logged[cs] = true
                     local log = _WRECK_LOGS[cs] or
                         ('Automated beacon, ' .. cs .. '. Crew status: no response.')
-                    RT.player:addToShipLog("[Scan] " .. cs .. ": " .. log, "#C0A0A0")
+                    RT.shipLog("[Scan] " .. cs .. ": " .. log, "#C0A0A0")
                     DIR.emit("wreck_scanned", {name=cs, tier=entry.tier}, "low")
                 end
             end
@@ -552,9 +557,9 @@ function defineBeats()
     end})
 
     DIR.defineBeat("first_undock", {desc = "Crew undocks for the first time this session", fn = function()
-        RT.player:addToShipLog("Session " .. S.session_num .. " begins. Current funds: " .. RT.credits() .. " credits.", "#A0E0A0")
+        RT.shipLog("Session " .. S.session_num .. " begins. Current funds: " .. RT.credits() .. " credits.", "#A0E0A0")
         if S.session_num == 1 then
-            RT.player:addToShipLog("Helm: Stations are marked on the sector map. Science: Scan objects to reveal details. Relay: Hail stations for rumours. Engineering: Watch your power and repair damage. Weapons: Keep missiles loaded.", "#E0E0A0")
+            RT.shipLog("Helm: Stations are marked on the sector map. Science: Scan objects to reveal details. Relay: Hail stations for rumours. Engineering: Watch your power and repair damage. Weapons: Keep missiles loaded.", "#E0E0A0")
         end
     end})
 
@@ -597,7 +602,7 @@ function addSessionGMFunctions()
             local value = math.random(20, 80)
             local pod = SupplyDrop():setFaction("Independent"):setPosition(px + random(-3000, 3000), py + random(-3000, 3000))
             pod:setEnergy(value):setDescriptions("Supply pod", "Credits: " .. value)
-            RT.player:addToShipLog("Salvage detected nearby.", "#A0E0E0")
+            RT.shipLog("Salvage detected nearby.", "#A0E0E0")
         end
     end)
 end
@@ -643,7 +648,7 @@ function update(delta)
 
     if S.phase == "ending" then return end
 
-    if not RT.valid(RT.player) then
+    if not RT.anyPlayerAlive() then
         if not S.ending then
             finishSession("destroyed", "The ship was lost after " .. math.floor(S.time_exploring / 60) .. " minutes.")
         end
@@ -651,13 +656,13 @@ function update(delta)
     end
 
     local now = getScenarioTime()
-    local docked = RT.player:getDockedWith()
+    local docked = RT.valid(RT.player) and RT.player:getDockedWith() or nil
 
-    -- Track region visits
+    -- Track region visits (primary ship drives phase/region logic)
     local region = getCurrentRegion()
     if region and region ~= "unknown" and not S.visited_regions[region] then
         S.visited_regions[region] = true
-        RT.player:addToShipLog("Entered " .. region .. ".", "#C0C0C0")
+        RT.shipLog("Entered " .. region .. ".", "#C0C0C0")
         DIR.emit("region_visited", {region = region}, "low")
     end
 
@@ -694,7 +699,8 @@ function update(delta)
     if not DIR.enabled and S.phase == "exploring" then
         -- Simple fallback: occasional random encounters in dangerous areas
         if now - S.last_encounter_time > 300 then  -- 5 minutes
-            local region_data = VERSE.regionAt(RT.player:getPosition())
+            local ref = RT.nearestPlayer(0, 0)
+            local region_data = ref and VERSE.regionAt(ref:getPosition())
             if region_data and region_data.danger >= 1 and math.random() < 0.3 then
                 spawnScriptedEncounter(region_data)
                 S.last_encounter_time = now
@@ -706,9 +712,10 @@ end
 
 -- Fallback encounters when director is off
 function spawnScriptedEncounter(region_data)
-    if not RT.valid(RT.player) then return end
+    local ref = RT.nearestPlayer(0, 0)
+    if not ref then return end
 
-    local px, py = RT.player:getPosition()
+    local px, py = ref:getPosition()
     local angle = random(0, 360)
     local distance = random(8000, 15000)
     local sx = px + math.cos(math.rad(angle)) * distance
@@ -723,5 +730,5 @@ function spawnScriptedEncounter(region_data)
     local ship = CpuShip():setTemplate(template):setFaction("Corsairs")
     ship:setPosition(sx, sy):orderRoaming()
 
-    RT.player:addToShipLog("Contact: " .. template .. " detected in " .. region_data.name .. ".", "#FF8080")
+    RT.shipLog("Contact: " .. template .. " detected in " .. region_data.name .. ".", "#FF8080")
 end

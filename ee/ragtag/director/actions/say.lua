@@ -4,15 +4,21 @@ DIR.ACTIONS.say = function(a)
     local h = DIR._h
     local text = h.str(a.text, 500, nil)
     if text == nil or text == "" then return false, "text required" end
-    if not RT.valid(RT.player) then return false, "no player ship" end
+    if not RT.anyPlayerAlive() then return false, "no player ship" end
     local speaker = h.str(a.speaker, 40, "Unknown")
     local ent = RT.find(speaker)
-    if a.channel ~= "log" and RT.valid(ent) and ent ~= RT.player then
-        if ent:sendCommsMessage(RT.player, text) then return true, "hailed as " .. speaker end
+    if a.channel ~= "log" and RT.valid(ent) and not RT.isPlayer(ent) then
+        if RT.valid(RT.player) and ent:sendCommsMessage(RT.player, text) then
+            -- Log to secondary ships so no one misses it
+            for i = 2, #RT.players do
+                if RT.valid(RT.players[i]) then RT.players[i]:addToShipLog("[" .. speaker .. "] " .. text, "#C0E0FF") end
+            end
+            return true, "hailed as " .. speaker
+        end
         table.insert(DIR.pending_hails, {speaker = speaker, text = text, until_t = getScenarioTime() + 30})
         return true, "player comms busy; queued"
     end
-    RT.player:addToShipLog("[" .. speaker .. "] " .. text, "#C0E0FF")
+    RT.shipLog("[" .. speaker .. "] " .. text, "#C0E0FF")
     return true, "logged as " .. speaker
 end
 
@@ -20,7 +26,7 @@ end
 -- args: speaker, lines = [{text, delay}] (delay = seconds after previous line)
 DIR.ACTIONS.say_sequence = function(a)
     local h = DIR._h
-    if not RT.valid(RT.player) then return false, "no player" end
+    if not RT.anyPlayerAlive() then return false, "no player" end
     local speaker = h.str(a.speaker, 40, "Unknown")
     if type(a.lines) ~= "table" or #a.lines == 0 then return false, "lines required" end
     local seq_id = "dir_seq_" .. DIR.seq
