@@ -487,6 +487,79 @@ class Director:
             with self.lock:
                 self.busy = False
 
+    # ------------------------------------------------------ GM action drafting
+
+    def _draft_prompt(self, action_name: str, hint: str) -> str:
+        spec = act.ACTIONS.get(action_name)
+        if not spec:
+            raise ValueError(f"unknown action: {action_name!r}")
+        st = self.state or {}
+        p = st.get("player") or {}
+        near = p.get("nearby") or []
+        ses = self.session or {}
+
+        lines = [
+            "You help a GM pre-fill an action in an EmptyEpsilon tabletop-style bridge-simulator session.",
+            "",
+            "## Current state",
+        ]
+        if p.get("callsign"):
+            lines.append(f"Ship: {p['callsign']}, hull {p.get('hull')}/{p.get('hull_max')}, "
+                         f"sector {p.get('sector')}, docked with {p.get('docked_with') or 'nothing'}")
+        if st.get("objective"):
+            lines.append(f"Objective: {st['objective']}")
+        if near:
+            lines.append("Nearby: " + ", ".join(
+                f"{n['callsign']} ({n['faction']}, {n['dist_u']}u{'  HOSTILE' if n.get('hostile') else ''})"
+                for n in near[:8]))
+        cast = ses.get("cast") or []
+        if cast:
+            lines.append("Scene cast: " + ", ".join(f"{c.get('name')} at {c.get('where', '?')}" for c in cast))
+        recent = list(self.history)[-5:]
+        if recent:
+            lines.append("Recent events: " + "; ".join(
+                f"{e.get('type')} {_compact(e.get('data'), 80)}" for e in recent))
+
+        lines += [
+            "",
+            f"## Action to fill: {action_name}",
+            spec.help,
+            "Arguments (fill what you can):",
+        ]
+        for name, arg in spec.args.items():
+            req = "required" if arg.required else "optional"
+            t = "|".join(arg.choices) if arg.choices else arg.type
+            h = f" — {arg.help}" if arg.help else ""
+            lines.append(f"  {name} ({req}, {t}){h}")
+        if hint:
+            lines.append(f"\nGM note: {hint}")
+        lines += [
+            "",
+            "Reply with a single JSON object of argument names to values.",
+            "Use real callsigns from the state. Keep text in-character and concise (1-3 sentences max).",
+            "Omit any argument you are not confident about.",
+        ]
+        return "\n".join(lines)
+
+    def draft_action(self, action_name: str, hint: str) -> tuple[bool, object]:
+        """Ask the LLM to suggest argument values for one action. Returns (ok, args|error_str)."""
+        try:
+            prompt = self._draft_prompt(action_name, hint)
+        except ValueError as e:
+            return False, str(e)
+        try:
+            raw = self.llm.chat([{"role": "user", "content": prompt}])
+            reply = parse_json_reply(raw)
+        except (LLMError, ValueError) as e:
+            self._log("error", f"draft_action failed: {e}")
+            return False, str(e)
+        spec = act.ACTIONS[action_name]
+        result: dict = {}
+        for name in spec.args:
+            if name in reply and reply[name] not in (None, ""):
+                result[name] = reply[name]
+        return True, result
+
     def _summarise_session(self, ev: dict) -> None:
         data = ev.get("data") or {}
         sid = data.get("session") or self.session.get("id") or "?"

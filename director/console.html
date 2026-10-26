@@ -169,8 +169,16 @@ details summary { cursor: pointer; font-weight: 600; }
       <h2>Do it yourself</h2>
       <label for="act" class="empty">Send an action directly, without the model.</label>
       <select id="act"></select>
+      <div style="margin-top:6px">
+        <label for="act-hint" style="font-size:13px;color:var(--muted)">What do you want (optional — helps the AI draft)</label>
+        <input id="act-hint" placeholder="e.g. have the nearby trader warn about corsairs">
+      </div>
       <div class="fields" id="fields"></div>
-      <button id="send-act">Send action</button>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button id="draft-act">Draft with AI</button>
+        <button id="send-act" class="primary">Send action</button>
+      </div>
+      <p id="draft-status" style="font-size:13px;color:var(--muted);margin:6px 0 0;min-height:1.2em"></p>
     </section>
   </aside>
 </div>
@@ -202,10 +210,13 @@ $("mode").onchange = () => api("/api/mode", {mode: $("mode").value}).then(r => t
 $("pause").onclick = () => api("/api/pause", {paused: !status.paused}).then(() => toast(status.paused ? "Director resumed" : "Director paused"));
 $("restore").onclick = () => { if (confirm("Overwrite the campaign save on the game server with the director's backup?")) api("/api/restore_campaign", {}).then(r => toast(r.msg)); };
 
+let _actions = {};
+
 function buildActions(actions) {
+  _actions = actions;
   const sel = $("act");
   sel.innerHTML = Object.keys(actions).filter(k => k !== "noop").map(k => `<option value="${k}">${k}</option>`).join("");
-  sel.onchange = () => renderFields(actions[sel.value]);
+  sel.onchange = () => { renderFields(actions[sel.value]); $("draft-status").textContent = ""; };
   renderFields(actions[sel.value]);
   $("send-act").onclick = () => {
     const spec = actions[sel.value], args = {};
@@ -216,15 +227,56 @@ function buildActions(actions) {
     if (sel.value === "restore_campaign") { toast("Use the campaign memory panel for this"); return; }
     api("/api/action", {action: sel.value, args}).then(r => toast(r.ok ? "Action sent" : "Not sent: " + r.msg));
   };
+  $("draft-act").onclick = draftAction;
   actionsBuilt = true;
 }
+
 function renderFields(spec) {
   $("fields").innerHTML = `<p class="empty" style="margin:0">${esc(spec.help)}</p>` + Object.entries(spec.args).map(([n, a]) => {
-    const label = `<label for="f-${n}">${esc(n)}${a.required ? "" : " (optional)"}</label>`;
+    const req = a.required ? "" : " (optional)";
+    const hint = a.help ? ` · <span style="color:var(--muted);font-style:italic">${esc(a.help)}</span>` : "";
+    const label = `<label for="f-${n}">${esc(n)}${req}${hint}</label>`;
     if (a.choices) return label + `<select id="f-${n}"><option value=""></option>${a.choices.map(c => `<option>${esc(c)}</option>`).join("")}</select>`;
-    if (n === "text" || n === "greeting" || n === "description") return label + `<textarea id="f-${n}" rows="2"></textarea>`;
+    const multiline = ["text", "intro", "greeting", "description", "event_1", "event_2", "lines", "options"].includes(n);
+    if (multiline) return label + `<textarea id="f-${n}" rows="2"></textarea>`;
     return label + `<input id="f-${n}">`;
   }).join("");
+  // Clear AI-draft highlight when any field is edited manually
+  $("fields").querySelectorAll("input,textarea,select").forEach(el => {
+    el.addEventListener("input", () => { el.style.background = ""; el.dataset.aiDrafted = ""; });
+  });
+}
+
+function draftAction() {
+  const action = $("act").value;
+  const hint   = $("act-hint").value.trim();
+  const spec   = _actions[action];
+  if (!spec) return;
+  const btn = $("draft-act");
+  const status = $("draft-status");
+  btn.disabled = true;
+  btn.textContent = "Drafting…";
+  status.textContent = "";
+  api("/api/draft", {action, hint})
+    .then(r => {
+      if (!r.ok) { status.textContent = "Draft failed: " + (r.msg || "unknown error"); return; }
+      const args = r.args || {};
+      let filled = 0;
+      for (const [name, val] of Object.entries(args)) {
+        const el = document.getElementById("f-" + name);
+        if (!el || val == null) continue;
+        const s = typeof val === "string" ? val : JSON.stringify(val, null, 2);
+        el.value = s;
+        el.dataset.aiDrafted = "1";
+        el.style.background = "var(--brass-soft)";
+        filled++;
+      }
+      status.textContent = filled > 0
+        ? `AI filled ${filled} field${filled > 1 ? "s" : ""} — edit as needed, then Send.`
+        : "AI had no confident suggestions for this action.";
+    })
+    .catch(e => { status.textContent = "Draft failed: " + e.message; })
+    .finally(() => { btn.disabled = false; btn.textContent = "Draft with AI"; });
 }
 
 function fireBeat(id) { api("/api/action", {action: "fire_beat", args: {beat: id}}).then(r => toast(r.ok ? "Beat sent: " + id : r.msg)); }

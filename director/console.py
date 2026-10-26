@@ -76,6 +76,13 @@ def start_console(director: Director, bind: str, port: int, token: str = "") -> 
             if path == "/api/reject":
                 ok, msg = director.reject(int(body.get("id", 0)))
                 return self._json({"ok": ok, "msg": msg})
+            if path == "/api/draft":
+                action = str(body.get("action", ""))
+                hint = str(body.get("hint", ""))
+                ok, result = director.draft_action(action, hint)
+                if ok:
+                    return self._json({"ok": True, "args": result})
+                return self._json({"ok": False, "msg": result})
             if path == "/api/action":
                 args = body.get("args") or {}
                 ok, msg = director.queue_action(str(body.get("action", "")), args, "gm")
