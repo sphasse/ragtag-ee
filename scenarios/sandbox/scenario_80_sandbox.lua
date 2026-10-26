@@ -24,6 +24,7 @@ require("ragtag/core.lua")
 require("ragtag/verse.lua")
 require("ragtag/director.lua")
 require("ragtag/patrol.lua")
+require("ragtag/mission.lua")
 
 local SESSION_ID = "sandbox"
 
@@ -86,16 +87,6 @@ local _ROUTES = {
     },
 }
 
-local _CARGO = {
-    {name="medical kits",    note="Someone's waiting.",       pay={55, 100, 170}},
-    {name="ore samples",     note="Calder's assay work.",     pay={50,  90, 150}},
-    {name="farm tools",      note="Pre-paid order.",          pay={45,  80, 135}},
-    {name="spare parts",     note="Running out of excuses.",  pay={55,  95, 155}},
-    {name="fuel cells",      note="Cold run.",                pay={50,  90, 145}},
-    {name="data cores",      note="Handle with care.",        pay={80, 130, 200}},
-    {name="ration crates",   note="Boring but needed.",       pay={40,  75, 120}},
-    {name="a sealed crate",  note="Don't ask.",               pay={90, 145, 230}},
-}
 
 -- Scout missions: fly to a map location (world units); pay on arrival
 local _SCOUTS = {
@@ -137,10 +128,9 @@ local _SCOUTS = {
      brief='"Lastchance beacon is intermittent. Long run to confirm, 220 credits."'},
 }
 
-local _pool = {}          -- all generated missions, shuffled once at init
-local _offers = {}        -- cs -> {m,...} lazily assigned on first dock
-local _active = {}        -- list of {mission=m, phase="active"|"done"}
-local _done = {}          -- set of id -> true (taken or completed this session)
+local _pool   = {}   -- generated missions, shuffled once at init
+local _active = {}   -- list of {mission=m, phase="active"|"done"}
+local _done   = {}   -- id → true (taken or completed this session)
 
 function JOBS.maxTier()
     local n = RT.campaign and #(RT.campaign.upgrades or {}) or 0
@@ -148,33 +138,18 @@ function JOBS.maxTier()
 end
 
 function JOBS.init()
-    local id = 0
+    -- One rich delivery mission per route direction per tier
     for tier = 0, 2 do
         for _, route in ipairs(_ROUTES[tier] or {}) do
             for dir = 1, 2 do
                 local from = dir == 1 and route[1] or route[2]
                 local to   = dir == 1 and route[2] or route[1]
-                for _, c in ipairs(_CARGO) do
-                    id = id + 1
-                    local reward = c.pay[tier + 1]
-                    local dest_s = _sd(to)
-                    table.insert(_pool, {
-                        id      = "j" .. id,
-                        type    = "delivery",
-                        tier    = tier,
-                        origin  = from,
-                        dest    = to,
-                        cargo   = c.name,
-                        reward  = reward,
-                        short   = c.name .. " -> " .. dest_s,
-                        obj     = "Deliver to " .. dest_s,
-                        brief   = string.format('"Need %s at %s. %s %d credits on delivery."',
-                                      c.name, dest_s, c.note, reward),
-                    })
-                end
+                table.insert(_pool, MISSION.newDelivery({origin=from, dest=to, tier=tier}))
             end
         end
     end
+    -- Scout missions (unchanged)
+    local id = 0
     for _, sc in ipairs(_SCOUTS) do
         id = id + 1
         table.insert(_pool, {
@@ -199,28 +174,42 @@ function JOBS.init()
 end
 
 function JOBS.getOffers(cs)
-    if _offers[cs] then return _offers[cs] end
     local mt = JOBS.maxTier()
     local out, seen = {}, {}
+    -- Director-pushed deliveries first (no tier cap)
+    for _, m in ipairs(MISSION._dynamic_queue) do
+        if m.origin == cs and not _done[m.id] then
+            out[#out + 1] = m
+            if m.dest then seen[m.dest] = true end
+        end
+    end
+    -- Static pool (one delivery + one scout per station, up to 3 total)
     for _, m in ipairs(_pool) do
-        if #out >= 2 then break end
-        if m.origin == cs and m.tier <= mt and not _done[m.id] then
+        if #out >= 3 then break end
+        if m.origin == cs and (m.tier or 0) <= mt and not _done[m.id] then
             local key = m.dest or (m.wx .. "," .. m.wy)
             if not seen[key] then out[#out+1] = m; seen[key] = true end
         end
     end
-    _offers[cs] = out
     return out
 end
 
 function JOBS.accept(m)
     if #_active >= 2 then return false end
     _done[m.id] = true
+    -- Drain from dynamic queue if this was director-pushed
+    for i, dm in ipairs(MISSION._dynamic_queue) do
+        if dm.id == m.id then table.remove(MISSION._dynamic_queue, i); break end
+    end
     _active[#_active+1] = {mission = m, phase = "active"}
-    _offers[m.origin] = nil   -- refresh board next dock
+    MISSION.track(m)   -- register for route interception
     JOBS.updateObj()
     local dest = m.dest or "the target location"
-    RT.player:addToShipLog(string.format("Job: %s (%d cr). Head to %s.", m.short, m.reward, dest), "#A0C0FF")
+    RT.player:addToShipLog(
+        string.format("Contract: %s (%d cr). Head to %s.", m.short, m.reward, dest), "#A0C0FF")
+    if m.intercept then
+        RT.player:addToShipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
+    end
     return true
 end
 
@@ -229,6 +218,7 @@ function JOBS.complete(entry)
     for i, a in ipairs(_active) do
         if a == entry then table.remove(_active, i); break end
     end
+    MISSION.untrack(entry.mission.id)
     RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short)
     JOBS.updateObj()
     DIR.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward}, "low")
@@ -256,7 +246,8 @@ function JOBS.stationHook(source, target)
             local ent = entry
             addCommsReply(string.format("Hand off %s (+%d cr)", m.cargo, m.reward), function(s, t)
                 JOBS.complete(ent)
-                setCommsMessage(string.format('"Received. %d credits transferred. Good flying."', m.reward))
+                local recv = (ent.mission.complete_msg or '"Received. Good flying."')
+                setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                 addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
             end)
         end
@@ -648,6 +639,7 @@ function update(delta)
     VERSE.update(delta)
     DIR.update(delta)
     PATROL.update(delta)
+    MISSION.update(delta)
 
     if S.phase == "ending" then return end
 
