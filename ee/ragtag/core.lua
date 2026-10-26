@@ -95,6 +95,42 @@ function RT.dist(a, b)
     return math.sqrt((ax - bx) ^ 2 + (ay - by) ^ 2)
 end
 
+-- Compute a ship's combat strength from its max stats (unchanged by damage).
+-- Returns {offense=N, defense=N, total=N}:
+--   defense  = hull_max + sum of all shield segment maxima
+--   offense  = beam DPS (dmg/cycle across all slots) + missile capacity DPS equivalent
+--   total    = defense + offense * 30  (the single balancing number; compare player vs enemy)
+-- Safe to call on any valid ship at any time, including inside onDestruction callbacks.
+function RT.shipStrength(ship)
+    if not RT.valid(ship) then return {offense = 0, defense = 0, total = 0} end
+    local hull = ship:getHullMax() or 0
+    local sm = {ship:getShieldsMax()}
+    local shields = 0
+    for _, v in ipairs(sm) do shields = shields + (v or 0) end
+    local defense = hull + shields
+    local dps = 0
+    for i = 0, 15 do
+        local range = ship:getBeamWeaponRange(i)
+        if range ~= nil and range > 0 then
+            local dmg = ship:getBeamWeaponDamage(i) or 0
+            local cyc = ship:getBeamWeaponCycleTime(i) or 1
+            if cyc > 0 then dps = dps + dmg / cyc end
+        end
+    end
+    -- Missile capacity contributes as a burst spread over ~30 s.
+    local missile_dps = 0
+    for w, dmg_equiv in pairs({Homing = 8, HVLI = 2, Nuke = 60, EMP = 15}) do
+        local cap = ship:getWeaponStorageMax(w)
+        if cap and cap > 0 then missile_dps = missile_dps + cap * dmg_equiv / 30 end
+    end
+    local offense = dps + missile_dps
+    return {
+        offense = math.floor(offense * 10 + 0.5) / 10,
+        defense = math.floor(defense),
+        total   = math.floor(defense + offense * 30),
+    }
+end
+
 -- Hail the player from an entity; if their comms are busy, fall back to the log.
 function RT.hail(from, text, speaker)
     if not RT.valid(RT.player) then return false end
