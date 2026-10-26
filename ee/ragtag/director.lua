@@ -184,6 +184,33 @@ function DIR.allowControl(entity)
     RT.named[entity:getCallSign()] = entity
 end
 
+-- Register a kill-tracking callback on any ship (player or scenario spawned).
+-- Emits "destroyed" for every kill and "combat_kill" (with strength data) for
+-- player kills. Call this after creating any CpuShip the crew might fight:
+--   VERSE's garrison builder calls it automatically for all garrison ships.
+--   spawn_group calls it for director-spawned groups.
+--   Scenario scripts should call DIR.registerKill(ship) for their own spawns.
+function DIR.registerKill(ship)
+    if not RT.valid(ship) then return end
+    local str = RT.shipStrength(ship)
+    ship:onDestruction(function(s, instigator)
+        local by_player = instigator ~= nil and instigator == RT.player
+        DIR.emit("destroyed", {callsign = s:getCallSign(), faction = s:getFaction(),
+            by_player = by_player and 1 or 0}, "normal")
+        if by_player then
+            local player_str = RT.shipStrength(RT.player)
+            local ratio = str.total > 0 and math.floor(player_str.total * 100 / str.total) / 100 or 0
+            DIR.emit("combat_kill", {
+                callsign   = s:getCallSign(),
+                faction    = s:getFaction(),
+                enemy_str  = str,
+                player_str = player_str,
+                ratio      = ratio,
+            }, "normal")
+        end
+    end)
+end
+
 --------------------------------------------------------------------------------
 -- Events
 --------------------------------------------------------------------------------

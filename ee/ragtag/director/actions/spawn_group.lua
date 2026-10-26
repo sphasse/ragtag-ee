@@ -35,23 +35,7 @@ DIR.ACTIONS.spawn_group = function(a)
         table.insert(DIR.spawned, s)
         DIR.allowControl(s)
         s:setCommsFunction(DIR.npcComms)
-        local enemy_str = RT.shipStrength(s)
-        s:onDestruction(function(ship, instigator)
-            local by_player = instigator ~= nil and instigator == RT.player
-            DIR.emit("destroyed", {callsign = ship:getCallSign(), faction = ship:getFaction(),
-                by_player = by_player and 1 or 0}, "normal")
-            if by_player then
-                local player_str = RT.shipStrength(RT.player)
-                local ratio = enemy_str.total > 0 and math.floor(player_str.total * 100 / enemy_str.total) / 100 or 0
-                DIR.emit("combat_kill", {
-                    callsign   = ship:getCallSign(),
-                    faction    = ship:getFaction(),
-                    enemy_str  = enemy_str,
-                    player_str = player_str,
-                    ratio      = ratio,
-                }, "normal")
-            end
-        end)
+        DIR.registerKill(s)
         table.insert(names, s:getCallSign())
     end
     DIR.orderGroup(names, behavior)

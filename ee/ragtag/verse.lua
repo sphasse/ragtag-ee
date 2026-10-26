@@ -314,6 +314,7 @@ local function buildGarrisons()
                 end)
             end
             RT.register(s)
+            if DIR then DIR.registerKill(s) end
             n = n + 1
         end
     end
