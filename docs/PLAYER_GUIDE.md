@@ -346,18 +346,7 @@ You need credits to buy upgrades. Here's how to earn:
 - Dangerous zones: big payouts, high risk
 
 ### 2. Missions (Job Board)
-When docked at any station, ask **"Any work available?"** via the Comms menu. The station will offer up to two contracts drawn from four types:
-
-| Type | What You Do | Pay (tier 0 → 2) |
-|------|-------------|------------------|
-| **Delivery** `[D]` | Fly cargo to another station and dock to hand it off | ~70 → 230 cr |
-| **Salvage** `[S]` | Fly to a site in space, recover the item by flying close, return to origin | ~55 → 185 cr |
-| **Boarding** `[B]` | Disable a ship with beam weapons (target impulse), dock with it to retrieve cargo, return | ~85 → 370 cr |
-| **Hacking** `[H]` | Fly to a relay buoy, Relay station hacks the reactor subsystem to extract data, return | ~70 → 345 cr |
-
-**Active jobs appear on the Relay screen** (two persistent info panels) showing type, current status, reward, and time remaining. You can carry up to two jobs at once. Each job has a **20-minute time limit** — if you don't complete it in time, the contract is lost.
-
-Higher-tier jobs (riskier, better pay) unlock as your ship earns upgrades. Some runs may be intercepted by pirates or rivals en route.
+When docked at any station, ask **"Any work available?"** via the Comms menu. The station will offer whatever work it has. Accept a job and your active contracts appear on the **Relay screen** — you can carry up to two at once. Each has a time limit, so don't sit on them.
 
 ### 3. Trade Rumors (If GM/AI Director Offers)
 - Stations may hint: "Station X needs cargo Y, will pay well"
