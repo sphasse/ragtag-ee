@@ -132,9 +132,12 @@ function JOBS.accept(m)
     _active[#_active+1] = {mission = m, phase = "active"}
     MISSION.track(m)   -- register for route interception
     JOBS.updateObj()
-    local dest = m.dest or "the target location"
+    local dest_hint = m.dest or (m.wx and "waypoint set" or "the target location")
+    if m.wx and m.wy then
+        RT.forEachPlayer(function(p) p:commandAddWaypoint(m.wx, m.wy) end)
+    end
     RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
-        m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest), "#A0C0FF")
+        m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
     if m.intercept then
         RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
     end

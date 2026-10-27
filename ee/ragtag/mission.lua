@@ -674,8 +674,6 @@ function MISSION._spawnIntercept(m, px, py)
         comms_msg = '"Independent vessel, this is a Concord inspection. Heave to."'
     end
 
-    RT.shipLog("[Route] " .. ic.msg_log, "#FF8080")
-
     local names = {}
     for _, tmpl in ipairs(templates) do
         local s = CpuShip():setTemplate(tmpl):setFaction(faction)
@@ -687,6 +685,9 @@ function MISSION._spawnIntercept(m, px, py)
         s:setCommsFunction(function(src, tgt) setCommsMessage(msg) end)
         table.insert(names, s:getCallSign())
     end
+
+    RT.shipLog("[Route] " .. ic.msg_log .. " — " .. table.concat(names, ", ") .. ". Waypoint set.", "#FF8080")
+    RT.forEachPlayer(function(p) p:commandAddWaypoint(sx, sy) end)
 
     -- Concord patrols (don't immediately attack); pirates and rivals attack on sight
     DIR.orderGroup(names, ic.itype == "concord" and "patrol" or "attack")
