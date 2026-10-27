@@ -148,6 +148,42 @@ local function pickMissionType()
     return "delivery"
 end
 
+JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
+JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
+
+local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", scout="[R]"}
+local function jobLine(m, now)
+    local mins  = m._expires_at and math.max(0, math.ceil((m._expires_at - now) / 60)) or "?"
+    local where
+    if m.type == "delivery" then
+        where = "→ " .. _sd(m.dest or "?")
+    elseif m.type == "salvage" then
+        where = m._found and ("ret → " .. _sd(m.origin)) or "→ site"
+    elseif m.type == "boarding" then
+        if m._boarded        then where = "ret → " .. _sd(m.origin)
+        elseif m._disabled   then where = "→ board " .. (m.target_cs or "?")
+        else                      where = "→ disable" end
+    elseif m.type == "scout" then
+        where = "→ waypoint"
+    else
+        where = m.obj or "active"
+    end
+    return string.format("%s %s  %dcr  %sm", _TYPE_PFX[m.type] or "[?]", where, m.reward, mins)
+end
+
+function JOBS.refreshPanel()
+    local now = getScenarioTime()
+    RT.forEachPlayer(function(p)
+        for slot = 1, 2 do
+            local entry = _active[slot]
+            local txt = (entry and entry.phase == "active")
+                        and ("Job " .. slot .. ": " .. jobLine(entry.mission, now))
+                        or  ("Job " .. slot .. ": (none)")
+            p:addCustomInfo("relay", "rt_job_" .. slot, txt, slot)
+        end
+    end)
+end
+
 function JOBS.maxTier()
     local n = RT.campaign and #(RT.campaign.upgrades or {}) or 0
     if n >= 5 then return 2 elseif n >= 2 then return 1 else return 0 end
@@ -180,11 +216,13 @@ function JOBS.accept(m)
     for i, dm in ipairs(MISSION._dynamic_queue) do
         if dm.id == m.id then table.remove(MISSION._dynamic_queue, i); break end
     end
+    m._expires_at = getScenarioTime() + JOBS.MISSION_DURATION
     _active[#_active+1] = {mission = m, phase = "active"}
     MISSION.track(m)   -- register for route interception
     JOBS.updateObj()
     local dest = m.dest or "the target location"
-    RT.shipLog(string.format("Contract: %s (%d cr). Head to %s.", m.short, m.reward, dest), "#A0C0FF")
+    RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
+        m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest), "#A0C0FF")
     if m.intercept then
         RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
     end
@@ -210,6 +248,7 @@ function JOBS.updateObj()
     else
         RT.setObjective("2 jobs active", true)
     end
+    JOBS.refreshPanel()
 end
 
 function JOBS.stationHook(source, target)
@@ -348,10 +387,27 @@ end
 
 function JOBS.update()
     if not RT.anyPlayerAlive() then return end
+    local now = getScenarioTime()
+
+    -- Refresh relay panel countdown every 15 s
+    if now >= JOBS._panel_next then
+        JOBS._panel_next = now + 15
+        JOBS.refreshPanel()
+    end
+
     for i = #_active, 1, -1 do   -- iterate backwards; boarding failure may remove entry
         local entry = _active[i]
         local m = entry.mission
         if entry.phase ~= "active" then goto next_entry end
+
+        -- Expiry check (before any type logic so we never act on a dead mission)
+        if m._expires_at and now > m._expires_at then
+            RT.shipLog("[Contract] " .. m.short .. " — time expired. Contract lost.", "#FF8080")
+            MISSION.untrack(m.id)
+            table.remove(_active, i)
+            JOBS.updateObj()
+            goto next_entry
+        end
 
         if m.type == "scout" then
             for _, p in ipairs(RT.players) do
