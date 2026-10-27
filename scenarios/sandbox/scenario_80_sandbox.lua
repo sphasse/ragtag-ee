@@ -200,17 +200,27 @@ function JOBS.stationHook(source, target)
     if not source:isDocked(target) then return end
     local cs = target:getCallSign()
 
-    -- Complete deliveries due here
+    -- Complete deliveries and salvage returns due here
     for _, entry in ipairs(_active) do
         local m = entry.mission
-        if m.type == "delivery" and m.dest == cs and entry.phase == "active" then
-            local ent = entry
-            addCommsReply(string.format("Hand off %s (+%d cr)", m.cargo, m.reward), function(s, t)
-                JOBS.complete(ent)
-                local recv = (ent.mission.complete_msg or '"Received. Good flying."')
-                setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
-                addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
-            end)
+        if entry.phase == "active" then
+            if m.type == "delivery" and m.dest == cs then
+                local ent = entry
+                addCommsReply(string.format("Hand off %s (+%d cr)", m.cargo, m.reward), function(s, t)
+                    JOBS.complete(ent)
+                    local recv = (ent.mission.complete_msg or '"Received. Good flying."')
+                    setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
+                    addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+                end)
+            elseif m.type == "salvage" and m.origin == cs and m._found then
+                local ent = entry
+                addCommsReply(string.format("Deliver %s (+%d cr)", m.cargo, m.reward), function(s, t)
+                    JOBS.complete(ent)
+                    local recv = (ent.mission.complete_msg or '"Received. Good work."')
+                    setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
+                    addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+                end)
+            end
         end
     end
 
@@ -227,7 +237,7 @@ function JOBS.stationHook(source, target)
             end
         end
 
-        -- Generate fresh deliveries to fill up to 2 slots
+        -- Generate fresh missions to fill up to 2 slots (75% delivery, 25% salvage).
         if #offers < 2 then
             local candidates = {}
             for _, d in ipairs(VERSE.STATIONS) do
@@ -239,10 +249,25 @@ function JOBS.stationHook(source, target)
                 local j = math.random(i)
                 candidates[i], candidates[j] = candidates[j], candidates[i]
             end
+            local station_e = RT.find(cs)
             for _, dest in ipairs(candidates) do
                 if #offers >= 2 then break end
                 local tier = math.min(mt, math.random(0, 1))
-                offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = dest, tier = tier})
+                if math.random() < 0.75 then
+                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = dest, tier = tier})
+                elseif RT.valid(station_e) then
+                    local rx, ry = station_e:getPosition()
+                    local angle  = math.random() * 2 * math.pi
+                    local dist   = (15 + math.random() * 25) * 1000
+                    offers[#offers + 1] = MISSION.newSalvage({
+                        origin = cs,
+                        wx     = math.floor(rx + math.cos(angle) * dist),
+                        wy     = math.floor(ry + math.sin(angle) * dist),
+                        tier   = tier,
+                    })
+                else
+                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = dest, tier = tier})
+                end
             end
         end
 
@@ -285,19 +310,38 @@ end
 function JOBS.update()
     if not RT.anyPlayerAlive() then return end
     for _, entry in ipairs(_active) do
-        if entry.mission.type == "scout" and entry.phase == "active" then
-            -- Scout completes when any player reaches the waypoint.
-            for _, p in ipairs(RT.players) do
-                if RT.valid(p) then
-                    local px, py = p:getPosition()
-                    local dx = px - entry.mission.wx
-                    local dy = py - entry.mission.wy
-                    if dx*dx + dy*dy < 8000*8000 then
-                        entry.phase = "done"
-                        local ent = entry
-                        RT.shipLog("Scout complete — " .. ent.mission.short .. string.format(" (+%d cr)", ent.mission.reward), "#80FF80")
-                        JOBS.complete(ent)
-                        break
+        local m = entry.mission
+        if entry.phase == "active" then
+            if m.type == "scout" then
+                for _, p in ipairs(RT.players) do
+                    if RT.valid(p) then
+                        local px, py = p:getPosition()
+                        local dx, dy = px - m.wx, py - m.wy
+                        if dx*dx + dy*dy < 8000*8000 then
+                            entry.phase = "done"
+                            RT.shipLog("Scout complete — " .. m.short .. string.format(" (+%d cr)", m.reward), "#80FF80")
+                            JOBS.complete(entry)
+                            break
+                        end
+                    end
+                end
+            elseif m.type == "salvage" and not m._found then
+                for _, p in ipairs(RT.players) do
+                    if RT.valid(p) then
+                        local px, py = p:getPosition()
+                        local dx, dy = px - m.wx, py - m.wy
+                        if dx*dx + dy*dy < 5000*5000 then
+                            m._found = true
+                            m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                            RT.shipLog("[Salvage] " .. m.cargo .. " recovered. Return to " .. m.origin .. ".", "#80FF80")
+                            JOBS.updateObj()
+                            -- Fire interception on site reach
+                            if m.intercept and not m.intercept.fired then
+                                m.intercept.fired = true
+                                MISSION._spawnIntercept(m, px, py)
+                            end
+                            break
+                        end
                     end
                 end
             end

@@ -155,6 +155,85 @@ local _ARCHETYPES = {
     },
 }
 
+-- ---------------------------------------------------------------------------
+-- Salvage archetypes
+-- Fields mirror delivery archetypes; no origin/dest — just a site location.
+-- Interception fires on proximity (when the site is reached), not en-route.
+-- ---------------------------------------------------------------------------
+
+local _SALVAGE_ARCHETYPES = {
+    {
+        cargo  = "a drifting cargo pod",
+        lore   = "A sealed container came off a freighter in the belt. Transponder's still pinging.",
+        accept_msg = '"Finder\'s fee. Bring it back intact."',
+        recv_msg   = '"Container secured. That\'s what we were hoping for."',
+        reward_mult = 1.0, tier_min = 0,
+        intercept_types = {
+            {type="pirates", strength="scout", weight=2,
+             msg="Another ship is burning hard for the same beacon. They want the pod."},
+        },
+        intercept_chance = 0.20,
+    },
+    {
+        cargo  = "an emergency beacon kit",
+        lore   = "Evac pod came down in the field. No crew — just the kit. Still useful to someone.",
+        accept_msg = '"Salvage rights are clear. Just go get it."',
+        recv_msg   = '"That kit will save someone\'s life eventually."',
+        reward_mult = 0.9, tier_min = 0,
+        intercept_types = {}, intercept_chance = 0,
+    },
+    {
+        cargo  = "a lost survey drone",
+        lore   = "Mapping probe went dark after passing through a debris cloud. Data core may still be intact.",
+        accept_msg = '"If the core is readable, there\'s a bonus in it."',
+        recv_msg   = '"Data core intact. The bonus is yours."',
+        reward_mult = 1.1, tier_min = 0,
+        intercept_types = {
+            {type="rival", strength="scout", weight=2,
+             msg="Competing salvager just changed heading. They know about the drone."},
+        },
+        intercept_chance = 0.20,
+    },
+    {
+        cargo  = "a corporate flight recorder",
+        lore   = "A wreck that nobody is officially looking for. The flight recorder is worth more than the hull.",
+        accept_msg = '"Don\'t look at what\'s on it. Just bring it back."',
+        recv_msg   = '"We\'ll take it from here. You didn\'t find this."',
+        reward_mult = 1.3, tier_min = 1,
+        intercept_types = {
+            {type="rival", strength="light", weight=3,
+             msg="Corporate security ship just appeared on sensors. Someone tipped them off."},
+        },
+        intercept_chance = 0.40,
+    },
+    {
+        cargo  = "a sealed courier pouch",
+        lore   = "A courier ran into trouble. The ship is gone, but the pouch is hardened and should have survived.",
+        accept_msg = '"Delivery contract is intact if the pouch is. Same rate."',
+        recv_msg   = '"Seal\'s unbroken. Contract honoured."',
+        reward_mult = 1.2, tier_min = 1,
+        intercept_types = {
+            {type="pirates", strength="light", weight=3,
+             msg="Whoever took out the courier is still in the area."},
+        },
+        intercept_chance = 0.50,
+    },
+    {
+        cargo  = "a weapons locker",
+        lore   = "Patrol ship went down hard. The armory container ejected clean. Concord will want it, but finders keep it.",
+        accept_msg = '"Manifest says it\'s unsecured. Move fast."',
+        recv_msg   = '"Secured. We\'ll keep this one quiet."',
+        reward_mult = 1.4, tier_min = 2,
+        intercept_types = {
+            {type="concord", strength="medium", weight=2,
+             msg="Concord patrol is moving to secure the site. They want that locker."},
+            {type="pirates", strength="medium", weight=2,
+             msg="Corsair raider closing fast. They're after the weapons locker."},
+        },
+        intercept_chance = 0.55,
+    },
+}
+
 -- Base reward by tier (rounded to nearest 5 after archetype multiplier)
 local _BASE_REWARD = {[0] = 70, [1] = 140, [2] = 230}
 
@@ -240,6 +319,50 @@ function MISSION.newDelivery(opts)
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
         intercept    = intercept,
+    }
+end
+
+-- Generate a salvage mission record.
+-- opts: {origin, wx, wy, tier}
+--   wx/wy — world-unit coordinates of the salvage site (set by the caller)
+-- Interception fires on proximity when the site is reached (handled by scenario).
+function MISSION.newSalvage(opts)
+    local tier = opts.tier or 0
+    local pool = {}
+    for _, a in ipairs(_SALVAGE_ARCHETYPES) do
+        if a.tier_min <= tier then pool[#pool + 1] = a end
+    end
+    if #pool == 0 then pool = _SALVAGE_ARCHETYPES end
+    local arch   = pool[math.random(#pool)]
+    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    local intercept = nil
+    if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
+        local ic = _weightedPick(arch.intercept_types)
+        intercept = {
+            itype    = ic.type,
+            strength = ic.strength,
+            trigger  = 0,   -- fires on proximity, not route progress
+            msg_log  = ic.msg,
+            fired    = false,
+        }
+    end
+
+    return {
+        id           = _nextId(),
+        type         = "salvage",
+        tier         = tier,
+        origin       = opts.origin,
+        wx           = opts.wx,
+        wy           = opts.wy,
+        cargo        = arch.cargo,
+        reward       = reward,
+        short        = arch.cargo .. " (salvage)",
+        obj          = "Recover " .. arch.cargo,
+        brief        = arch.lore .. "\n\n" .. arch.accept_msg,
+        complete_msg = arch.recv_msg,
+        intercept    = intercept,
+        _found       = false,
     }
 end
 
