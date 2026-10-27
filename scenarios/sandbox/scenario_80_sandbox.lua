@@ -164,6 +164,7 @@ function JOBS.updateObj()
 end
 
 function JOBS.stationHook(source, target)
+    if not RT.isPlayer(source) then return end
     if not source:isDocked(target) then return end
     local cs = target:getCallSign()
 
@@ -485,64 +486,6 @@ end
 
 local RUMORS = {}
 
--- Salvage tip sites: one per station, spawned only once per session.
-local _RUM_SITES = {
-    {cs="Port Vesper",             wx=-14300, wy=10400,   tier=0, val={20,50}, where="near the Calder's approach lane"},
-    {cs="Port Vesper",             wx=10400,   wy=-18200, tier=0, val={15,40}, where="in the Vesper Drift belt"},
-    {cs="Calder's Reach",          wx=-41600, wy=33800,  tier=0, val={25,55}, where="deep in the belt, past the mining rigs"},
-    {cs="Tamsin Hollow",           wx=-52000, wy=44200,  tier=0, val={20,45}, where="off the Tamsin approach, starboard side"},
-    {cs="Greywater Depot",         wx=28600,  wy=44200,  tier=0, val={20,45}, where="at the edge of the Gauntlet approach"},
-    {cs="Halcyon Rest",            wx=52000,  wy=-28600, tier=0, val={30,60}, where="just inside the Shroud edge"},
-    {cs="Hob's Landing",           wx=78000,  wy=39000,  tier=1, val={40,80}, where="in the Rim scatter off Hob"},
-    {cs="Dustmote Salvage",        wx=101400,  wy=-44200, tier=1, val={50,90}, where="near the outer Dustmote debris"},
-    {cs="Saint Brennan's Mission", wx=72800,  wy=-70200, tier=0, val={20,40}, where="off the mission's approach lane"},
-}
-
-local _RUM_HITS = {
-    'A supply runner said they had to jettison cargo {where} to make speed. Could still be out there.',
-    'Two miners were arguing about a cache they spotted {where}. Neither had fuel to check it.',
-    'Last freighter through said sensors pinged something floating {where}. Wasn\'t on the charts.',
-    'A salvager came through talking about a pod {where}. Walked off before finishing the story.',
-}
-local _RUM_DUDS = {
-    '"Nothing worth your time. Someone found a derelict last week but Dustmote already stripped it."',
-    '"Only thing floating out there is debt and regret. Same as always."',
-    '"Word is the Gauntlet\'s been quiet. Which usually means Corsairs are up to something."',
-    '"Concord\'s been asking questions at the checkpoints. Probably nothing."',
-    '"A stranger came through asking about jump drive parts. Paid cash, left fast."',
-}
-
-local _rum_spawned = {}  -- site index -> true
-local _rum_cd = {}       -- cs -> time of last offer
-
-function RUMORS.stationHook(source, target)
-    if not source:isDocked(target) then return end
-    local cs = target:getCallSign()
-    if _rum_cd[cs] and getScenarioTime() - _rum_cd[cs] < 480 then return end
-
-    local site_idx = nil
-    for i, site in ipairs(_RUM_SITES) do
-        if site.cs == cs and not _rum_spawned[i] then site_idx = i; break end
-    end
-
-    addCommsReply("Any salvage leads nearby?", function(s, t)
-        _rum_cd[cs] = getScenarioTime()
-        if site_idx and math.random() < 0.65 then
-            local site = _RUM_SITES[site_idx]
-            _rum_spawned[site_idx] = true
-            local val = math.random(site.val[1], site.val[2])
-            local jx, jy = math.random(-800, 800), math.random(-800, 800)
-            VERSE.spawnPod(site.wx + jx, site.wy + jy, val, {kind="credits", label="Cargo pod"}, site.tier)
-            local hit = _RUM_HITS[math.random(#_RUM_HITS)]:gsub("{where}", site.where)
-            setCommsMessage('"' .. hit .. '"')
-            s:addToShipLog("Salvage lead: " .. site.where .. ".", "#A0E0E0")
-        else
-            setCommsMessage(_RUM_DUDS[math.random(#_RUM_DUDS)])
-        end
-        addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
-    end)
-end
-
 -- Wreck story fragments, keyed by callsign.
 local _WRECK_LOGS = {
     -- Boneyard — Settlement War hulks
@@ -640,12 +583,11 @@ function init()
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
     RT.spawnPlayer(px, py, 0)
 
-    -- Mission board and rumors: generate pool and wire hooks into every friendly station
+    -- Wire mission board into every friendly station
     JOBS.init()
     for _, d in ipairs(VERSE.STATIONS) do
         if d.fac ~= "Corsairs" and d.fac ~= "Hollow" then
             RT.addStationHook(d.cs, JOBS.stationHook)
-            RT.addStationHook(d.cs, RUMORS.stationHook)
         end
     end
 
