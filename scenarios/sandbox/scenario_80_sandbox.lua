@@ -138,17 +138,7 @@ function JOBS.maxTier()
 end
 
 function JOBS.init()
-    -- One rich delivery mission per route direction per tier
-    for tier = 0, 2 do
-        for _, route in ipairs(_ROUTES[tier] or {}) do
-            for dir = 1, 2 do
-                local from = dir == 1 and route[1] or route[2]
-                local to   = dir == 1 and route[2] or route[1]
-                table.insert(_pool, MISSION.newDelivery({origin=from, dest=to, tier=tier}))
-            end
-        end
-    end
-    -- Scout missions (unchanged)
+    -- Scout missions only; deliveries are generated on demand when players ask.
     local id = 0
     for _, sc in ipairs(_SCOUTS) do
         id = id + 1
@@ -165,33 +155,6 @@ function JOBS.init()
             brief  = sc.brief,
         })
     end
-    -- Fisher-Yates shuffle using session RNG
-    local rng = VERSE.rng(VERSE.SEED + (RT.campaign.sandbox_sessions or 1) * 7919)
-    for i = #_pool, 2, -1 do
-        local j = rng.int(1, i)
-        _pool[i], _pool[j] = _pool[j], _pool[i]
-    end
-end
-
-function JOBS.getOffers(cs)
-    local mt = JOBS.maxTier()
-    local out, seen = {}, {}
-    -- Director-pushed deliveries first (no tier cap)
-    for _, m in ipairs(MISSION._dynamic_queue) do
-        if m.origin == cs and not _done[m.id] then
-            out[#out + 1] = m
-            if m.dest then seen[m.dest] = true end
-        end
-    end
-    -- Static pool (one delivery + one scout per station, up to 3 total)
-    for _, m in ipairs(_pool) do
-        if #out >= 3 then break end
-        if m.origin == cs and (m.tier or 0) <= mt and not _done[m.id] then
-            local key = m.dest or (m.wx .. "," .. m.wy)
-            if not seen[key] then out[#out+1] = m; seen[key] = true end
-        end
-    end
-    return out
 end
 
 function JOBS.accept(m)
@@ -236,7 +199,6 @@ end
 function JOBS.stationHook(source, target)
     if not source:isDocked(target) then return end
     local cs = target:getCallSign()
-    local tier_label = {"safe run", "risky run", "dangerous run"}
 
     -- Complete deliveries due here
     for _, entry in ipairs(_active) do
@@ -252,24 +214,66 @@ function JOBS.stationHook(source, target)
         end
     end
 
-    -- Job board
-    local offers = JOBS.getOffers(cs)
-    if #offers == 0 then return end
-    addCommsReply("Check the job board", function(s, t)
-        local lines = {"Job board — " .. cs .. ":\n"}
+    -- On-demand job board: generate fresh deliveries each time.
+    addCommsReply("Any work available?", function(s, t)
+        local offers = {}
+        local mt = JOBS.maxTier()
+        local tier_label = {"safe run", "risky run", "dangerous run"}
+
+        -- Director-pushed deliveries take priority (no re-offer if already taken)
+        for _, m in ipairs(MISSION._dynamic_queue) do
+            if m.origin == cs and not _done[m.id] then
+                offers[#offers + 1] = m
+            end
+        end
+
+        -- Generate fresh deliveries to fill up to 2 slots
+        if #offers < 2 then
+            local candidates = {}
+            for _, d in ipairs(VERSE.STATIONS) do
+                if d.cs ~= cs and d.fac ~= "Corsairs" and d.fac ~= "Hollow" then
+                    candidates[#candidates + 1] = d.cs
+                end
+            end
+            for i = #candidates, 2, -1 do
+                local j = math.random(i)
+                candidates[i], candidates[j] = candidates[j], candidates[i]
+            end
+            for _, dest in ipairs(candidates) do
+                if #offers >= 2 then break end
+                local tier = math.min(mt, math.random(0, 1))
+                offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = dest, tier = tier})
+            end
+        end
+
+        -- Scout missions from the pool (up to one per ask)
+        for _, m in ipairs(_pool) do
+            if #offers >= 3 then break end
+            if m.type == "scout" and m.origin == cs and (m.tier or 0) <= mt and not _done[m.id] then
+                offers[#offers + 1] = m
+            end
+        end
+
+        if #offers == 0 then
+            setCommsMessage('"Nothing going out from here right now."')
+            addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+            return
+        end
+
+        local lines = {"Work out of " .. cs .. ":\n"}
         for _, m in ipairs(offers) do
-            lines[#lines+1] = string.format("* %s  [%d cr, %s]",
-                m.short, m.reward, tier_label[m.tier + 1])
+            lines[#lines + 1] = string.format("* %s  [%d cr, %s]",
+                m.short, m.reward, tier_label[(m.tier or 0) + 1])
         end
         setCommsMessage(table.concat(lines, "\n"))
         for _, m in ipairs(offers) do
             local cap = m
-            addCommsReply(string.format("Take: %s (%d cr)", m.short, m.reward), function(s2, t2)
+            addCommsReply(string.format("Take: %s (%d cr)", cap.short, cap.reward), function(s2, t2)
                 if #_active >= 2 then
                     setCommsMessage('"You\'re already carrying two jobs. Finish one first."')
                 else
                     JOBS.accept(cap)
-                    setCommsMessage(cap.brief .. "\n\n\"Come back when it's done.\"")
+                    setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"")
                 end
                 addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
             end)
