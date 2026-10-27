@@ -89,46 +89,6 @@ local _ROUTES = {
 
 
 -- Scout missions: fly to a map location (world units); pay on arrival
-local _SCOUTS = {
-    -- tier 0
-    {tier=0, origin="Port Vesper",     wx=7800,   wy=-13000, pay=70,
-     short="Survey Vesper rocks",  obj="Survey Vesper Drift",
-     brief='"Our nav charts are old. Sweep the Drift asteroids. 70 credits."'},
-    {tier=0, origin="Calder's Reach",  wx=-36400, wy=28600,  pay=65,
-     short="Check belt anomaly",   obj="Check belt signal",
-     brief='"Odd beacon in the belt. Probably loose rock. 65 credits to confirm."'},
-    {tier=0, origin="Tamsin Hollow",   wx=-46800, wy=36400,  pay=60,
-     short="Run Tamsin approach",  obj="Scout Tamsin approach",
-     brief='"Scan the approach lanes for nav hazards. 60 credits."'},
-    {tier=0, origin="Greywater Depot", wx=33800,  wy=13000,  pay=55,
-     short="Fly Greywater lanes",  obj="Survey Greywater",
-     brief='"Run the lane survey between here and Halcyon. 55 credits."'},
-    {tier=0, origin="Halcyon Rest",    wx=57200,  wy=-33800, pay=65,
-     short="Scout Shroud edge",    obj="Scout Shroud edge",
-     brief='"New debris near the Shroud edge. Worth a look. 65 credits."'},
-    -- tier 1
-    {tier=1, origin="Port Vesper",     wx=13000,  wy=67600,  pay=150,
-     short="Chart west Gauntlet",  obj="Chart west Gauntlet",
-     brief='"The Gauntlet belt shifted. We need eyes on it. Risky, 150 credits."'},
-    {tier=1, origin="Halcyon Rest",    wx=93600,  wy=-20800, pay=120,
-     short="Trace Slow Dancer",    obj="Find Slow Dancer",
-     brief='"Slow Dancer missed check-in. Last ping near Dustmote. 120 credits."'},
-    {tier=1, origin="Greywater Depot", wx=78000,  wy=-13000, pay=140,
-     short="Probe the Shroud",     obj="Scout Shroud interior",
-     brief='"Lost a probe in the Shroud. Passive scan run. 140 credits."'},
-    {tier=1, origin="Hob's Landing",   wx=67600,  wy=49400,  pay=130,
-     short="Count Gauntlet patrols",obj="Scout Gauntlet entry",
-     brief='"Count Corsair contacts on the Gauntlet approach. 130 credits."'},
-    -- tier 2
-    {tier=2, origin="Hob's Landing",   wx=20800,  wy=-80600, pay=250,
-     short="Survey Boneyard edge", obj="Survey Boneyard",
-     brief='"Map drone patrol patterns at the Boneyard edge. Dangerous work, 250 credits."'},
-    {tier=2, origin="Dustmote Salvage",wx=130000, wy=70200,  pay=220,
-     short="Verify Lastchance beacon",obj="Check Lastchance beacon",
-     brief='"Lastchance beacon is intermittent. Long run to confirm, 220 credits."'},
-}
-
-local _pool   = {}   -- generated missions, shuffled once at init
 local _active = {}   -- list of {mission=m, phase="active"|"done"}
 local _done   = {}   -- id → true (taken or completed this session)
 
@@ -136,6 +96,7 @@ local _MISSION_WEIGHTS = {
     {type = "delivery", weight = 20},
     {type = "salvage",  weight = 7},
     {type = "boarding", weight = 3},
+    {type = "hacking",  weight = 3},
 }
 local function pickMissionType()
     local total = 0
@@ -151,7 +112,7 @@ end
 JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
 JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
 
-local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", scout="[R]"}
+local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]"}
 local function jobLine(m, now)
     local mins  = m._expires_at and math.max(0, math.ceil((m._expires_at - now) / 60)) or "?"
     local where
@@ -163,8 +124,8 @@ local function jobLine(m, now)
         if m._boarded        then where = "ret → " .. _sd(m.origin)
         elseif m._disabled   then where = "→ board " .. (m.target_cs or "?")
         else                      where = "→ disable" end
-    elseif m.type == "scout" then
-        where = "→ waypoint"
+    elseif m.type == "hacking" then
+        where = m._hacked and ("ret → " .. _sd(m.origin)) or "→ hack relay"
     else
         where = m.obj or "active"
     end
@@ -190,23 +151,6 @@ function JOBS.maxTier()
 end
 
 function JOBS.init()
-    -- Scout missions only; deliveries are generated on demand when players ask.
-    local id = 0
-    for _, sc in ipairs(_SCOUTS) do
-        id = id + 1
-        table.insert(_pool, {
-            id     = "j" .. id,
-            type   = "scout",
-            tier   = sc.tier,
-            origin = sc.origin,
-            wx     = sc.wx,
-            wy     = sc.wy,
-            reward = sc.pay,
-            short  = sc.short,
-            obj    = sc.obj,
-            brief  = sc.brief,
-        })
-    end
 end
 
 function JOBS.accept(m)
@@ -283,6 +227,14 @@ function JOBS.stationHook(source, target)
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
                 end)
+            elseif m.type == "hacking" and m.origin == cs and m._hacked then
+                local ent = entry
+                addCommsReply(string.format("Deliver %s (+%d cr)", m.cargo, m.reward), function(s, t)
+                    JOBS.complete(ent)
+                    local recv = (ent.mission.complete_msg or '"Good extraction."')
+                    setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
+                    addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+                end)
             end
         end
     end
@@ -300,7 +252,7 @@ function JOBS.stationHook(source, target)
             end
         end
 
-        -- Generate fresh missions to fill up to 2 slots (weighted: delivery 20, salvage 7, boarding 3).
+        -- Generate fresh missions to fill up to 2 slots (weighted: delivery 20, salvage 7, boarding 3, hacking 3).
         if #offers < 2 then
             local candidates = {}
             for _, d in ipairs(VERSE.STATIONS) do
@@ -341,19 +293,21 @@ function JOBS.stationHook(source, target)
                         wy = math.floor(ry + math.sin(ang) * dist),
                         tier = tier,
                     })
+                elseif mtype == "hacking" and RT.valid(station_e) then
+                    local rx, ry = station_e:getPosition()
+                    local ang  = math.random() * 2 * math.pi
+                    local dist = (8 + math.random() * 12) * 1000   -- relay buoys sit closer than boarding targets
+                    offers[#offers + 1] = MISSION.newHacking({
+                        origin = cs,
+                        wx = math.floor(rx + math.cos(ang) * dist),
+                        wy = math.floor(ry + math.sin(ang) * dist),
+                        tier = tier,
+                    })
                 elseif dest_idx <= #candidates then
                     -- fallback: delivery
                     offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
                     dest_idx = dest_idx + 1
                 end
-            end
-        end
-
-        -- Scout missions from the pool (up to one per ask)
-        for _, m in ipairs(_pool) do
-            if #offers >= 3 then break end
-            if m.type == "scout" and m.origin == cs and (m.tier or 0) <= mt and not _done[m.id] then
-                offers[#offers + 1] = m
             end
         end
 
@@ -409,21 +363,7 @@ function JOBS.update()
             goto next_entry
         end
 
-        if m.type == "scout" then
-            for _, p in ipairs(RT.players) do
-                if RT.valid(p) then
-                    local px, py = p:getPosition()
-                    local dx, dy = px - m.wx, py - m.wy
-                    if dx*dx + dy*dy < 8000*8000 then
-                        entry.phase = "done"
-                        RT.shipLog("Scout complete — " .. m.short .. string.format(" (+%d cr)", m.reward), "#80FF80")
-                        JOBS.complete(entry)
-                        break
-                    end
-                end
-            end
-
-        elseif m.type == "salvage" and not m._found then
+        if m.type == "salvage" and not m._found then
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) then
                     local px, py = p:getPosition()
@@ -512,6 +452,56 @@ function JOBS.update()
                                 break
                             end
                         end
+                    end
+                end
+            end
+
+        elseif m.type == "hacking" then
+            -- Phase 1: spawn relay buoy on first update after accept
+            if not m._spawned then
+                local s = CpuShip():setTemplate("Escape Pod"):setFaction("Corsairs")
+                s:setPosition(m.wx + random(-1000, 1000), m.wy + random(-1000, 1000))
+                s:orderIdle()
+                s:setImpulseMaxSpeed(0)
+                s:setRotationMaxSpeed(0)
+                s:setWeaponTubeCount(0)
+                s:setCanBeDestroyed(false)
+                s:setCallSign("Data Relay " .. math.random(10, 99))
+                RT.register(s)
+                m.target_cs = s:getCallSign()
+                m._spawned  = true
+                RT.shipLog("[Hack] Relay located: " .. m.target_cs
+                    .. ". Relay station: open hacking panel and target the reactor subsystem.", "#FFCC80")
+
+            -- Phase 2: watch for hack completion
+            elseif not m._hacked then
+                local target = RT.find(m.target_cs)
+                if not RT.valid(target) then
+                    RT.shipLog("[Hack] Relay destroyed before extraction — contract lost.", "#FF8080")
+                    MISSION.untrack(m.id)
+                    table.remove(_active, i)
+                    JOBS.updateObj()
+                else
+                    local hack_lvl = target:getSystemHackedLevel(m.system)
+                    if hack_lvl >= m.hack_threshold then
+                        m._hacked = true
+                        target:setCanBeDestroyed(true)
+                        m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                        RT.shipLog("[Hack] Data extracted from " .. m.target_cs
+                            .. ". Return to " .. m.origin .. ".", "#80FF80")
+                        if m.intercept and not m.intercept.fired then
+                            m.intercept.fired = true
+                            local origin_e = RT.find(m.origin)
+                            if RT.valid(origin_e) then
+                                m._dx, m._dy = origin_e:getPosition()
+                            end
+                            local ref = RT.nearestPlayer(m.wx, m.wy)
+                            if ref then
+                                local px, py = ref:getPosition()
+                                MISSION._spawnIntercept(m, px, py)
+                            end
+                        end
+                        JOBS.updateObj()
                     end
                 end
             end

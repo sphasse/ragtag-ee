@@ -307,6 +307,70 @@ local _BOARDING_TEMPLATES = {
     [2] = {"Phobos M3P", "Phobos T3"},
 }
 
+-- ---------------------------------------------------------------------------
+-- Hacking archetypes  (Relay station cracks a stationary buoy's reactor)
+-- Extra field: system — which ship system to hack (always "reactor" for now)
+-- ---------------------------------------------------------------------------
+
+local _HACKING_ARCHETYPES = {
+    {
+        cargo       = "an encrypted nav log",
+        lore        = "Someone has been running routes they don't want on record. The log lives in a relay buoy.",
+        accept_msg  = '"Get Relay in position and crack it before anyone notices the uplink."',
+        recv_msg    = '"Routes confirmed. This is exactly what we needed."',
+        system      = "reactor", reward_mult = 1.0, tier_min = 0,
+        intercept_types = {}, intercept_chance = 0,
+    },
+    {
+        cargo       = "a comms archive",
+        lore        = "Months of unencrypted traffic between two stations — someone paid to keep this relay dark from Concord.",
+        accept_msg  = '"Pull the archive intact. Partial data is worthless to us."',
+        recv_msg    = '"Everything\'s here. Good clean extraction."',
+        system      = "reactor", reward_mult = 1.0, tier_min = 0,
+        intercept_types = {
+            {type="rival", strength="scout", weight=2,
+             msg="Courier on intercept heading — someone else wants that archive."},
+        },
+        intercept_chance = 0.20,
+    },
+    {
+        cargo       = "a contraband manifest",
+        lore        = "A smuggling outfit uses relay buoys to cache their cargo schedules. Concord wants the manifest.",
+        accept_msg  = '"Crack it quietly. If they notice the uplink they\'ll wipe the buffer."',
+        recv_msg    = '"Manifest intact. Half a dozen ships just had a very bad week."',
+        system      = "reactor", reward_mult = 1.1, tier_min = 0,
+        intercept_types = {
+            {type="pirates", strength="scout", weight=3,
+             msg="Two contacts breaking off a nearby lane. They're watching this relay."},
+        },
+        intercept_chance = 0.30,
+    },
+    {
+        cargo       = "docking access codes",
+        lore        = "Station authority codes rotate weekly but the old set sits in a relay buffer. Someone needs a back door.",
+        accept_msg  = '"In and out before the rotation. You have a narrow window."',
+        recv_msg    = '"Codes are live. We\'ll use them once — don\'t ask what for."',
+        system      = "reactor", reward_mult = 1.3, tier_min = 1,
+        intercept_types = {
+            {type="concord", strength="scout", weight=2,
+             msg="Concord patrol just changed heading. They may have flagged the uplink attempt."},
+        },
+        intercept_chance = 0.35,
+    },
+    {
+        cargo       = "a black ledger fragment",
+        lore        = "Corporate financial records split across relay nodes throughout the Drift. One fragment is enough to bring down a board.",
+        accept_msg  = '"This relay is hardened. It will resist. Don\'t stop until you\'re through."',
+        recv_msg    = '"Fragment verified. You just changed some very powerful people\'s plans."',
+        system      = "reactor", reward_mult = 1.5, tier_min = 2,
+        intercept_types = {
+            {type="rival", strength="medium", weight=3,
+             msg="Corporate security responding. They know what you're pulling."},
+        },
+        intercept_chance = 0.50,
+    },
+}
+
 -- Base reward by tier (rounded to nearest 5 after archetype multiplier)
 local _BASE_REWARD = {[0] = 70, [1] = 140, [2] = 230}
 
@@ -488,6 +552,54 @@ function MISSION.newBoarding(opts)
         _disabled       = false,
         _boarded        = false,
         target_cs       = nil,
+    }
+end
+
+-- Generate a hacking mission record.
+-- opts: {origin, wx, wy, tier}
+--   wx/wy — world-unit coordinates where the relay buoy will be spawned
+function MISSION.newHacking(opts)
+    local tier = opts.tier or 0
+    local pool = {}
+    for _, a in ipairs(_HACKING_ARCHETYPES) do
+        if a.tier_min <= tier then pool[#pool + 1] = a end
+    end
+    if #pool == 0 then pool = _HACKING_ARCHETYPES end
+    local arch   = pool[math.random(#pool)]
+    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    local intercept = nil
+    if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
+        local ic = _weightedPick(arch.intercept_types)
+        intercept = {
+            itype    = ic.type,
+            strength = ic.strength,
+            trigger  = 0,   -- fires on return leg after hack completes
+            msg_log  = ic.msg,
+            fired    = false,
+        }
+    end
+
+    return {
+        id             = _nextId(),
+        type           = "hacking",
+        tier           = tier,
+        origin         = opts.origin,
+        wx             = opts.wx,
+        wy             = opts.wy,
+        cargo          = arch.cargo,
+        system         = arch.system or "reactor",
+        hack_threshold = 0.5,
+        reward         = reward,
+        short          = arch.cargo .. " (hack)",
+        obj            = "Hack relay near " .. opts.origin,
+        brief          = arch.lore .. "\n\n" .. arch.accept_msg
+                         .. "\n\nRelay station: open the hacking panel and target the reactor subsystem to extract the data.",
+        complete_msg   = arch.recv_msg,
+        intercept      = intercept,
+        _spawned       = false,
+        _hacked        = false,
+        target_cs      = nil,
     }
 end
 
