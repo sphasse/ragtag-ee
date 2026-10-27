@@ -345,9 +345,19 @@ You need credits to buy upgrades. Here's how to earn:
 - Safe zones: slow and steady income
 - Dangerous zones: big payouts, high risk
 
-### 2. Missions (Campaign-Specific)
-- Story campaigns: missions pay 200-600 credits
-- Sandbox campaigns: GM may offer delivery/escort jobs
+### 2. Missions (Job Board)
+When docked at any station, ask **"Any work available?"** via the Comms menu. The station will offer up to two contracts drawn from four types:
+
+| Type | What You Do | Pay (tier 0 → 2) |
+|------|-------------|------------------|
+| **Delivery** `[D]` | Fly cargo to another station and dock to hand it off | ~70 → 230 cr |
+| **Salvage** `[S]` | Fly to a site in space, recover the item by flying close, return to origin | ~55 → 185 cr |
+| **Boarding** `[B]` | Disable a ship with beam weapons (target impulse), dock with it to retrieve cargo, return | ~85 → 370 cr |
+| **Hacking** `[H]` | Fly to a relay buoy, Relay station hacks the reactor subsystem to extract data, return | ~70 → 345 cr |
+
+**Active jobs appear on the Relay screen** (two persistent info panels) showing type, current status, reward, and time remaining. You can carry up to two jobs at once. Each job has a **20-minute time limit** — if you don't complete it in time, the contract is lost.
+
+Higher-tier jobs (riskier, better pay) unlock as your ship earns upgrades. Some runs may be intercepted by pirates or rivals en route.
 
 ### 3. Trade Rumors (If GM/AI Director Offers)
 - Stations may hint: "Station X needs cargo Y, will pay well"
@@ -530,7 +540,7 @@ Each region has a **danger level** displayed on Helm, Relay, and Operations scre
 ## Common Questions
 
 ### Q: How do I know where to go?
-**A:** Relay can hail stations for rumours, or your campaign/GM gives you objectives. In sandbox mode, you decide—explore, salvage, or follow hints.
+**A:** Relay can hail stations for rumours or ask "Any work available?" for a contract. Story campaigns give scripted objectives. In sandbox mode you decide—explore, run jobs, salvage, or follow hints from the AI director.
 
 ### Q: What happens if we die?
 **A:** Session ends (usually). Campaign saves your credits/upgrades up to that point, so you don't lose everything. Some campaigns have retry options.

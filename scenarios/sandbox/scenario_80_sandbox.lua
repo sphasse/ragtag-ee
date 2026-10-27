@@ -58,37 +58,6 @@ local _SHORT = {
 }
 local function _sd(cs) return _SHORT[cs] or cs end   -- short dest name (≤14 chars)
 
--- Route pairs by danger tier (both directions generated at init)
-local _ROUTES = {
-    [0] = {   -- safe lanes; ≤40u, no hostile zones
-        {"Port Vesper",            "Calder's Reach"},
-        {"Port Vesper",            "Tamsin Hollow"},
-        {"Port Vesper",            "Greywater Depot"},
-        {"Port Vesper",            "Halcyon Rest"},
-        {"Calder's Reach",         "Tamsin Hollow"},
-        {"Tamsin Hollow",          "Greywater Depot"},
-        {"Greywater Depot",        "Halcyon Rest"},
-        {"Halcyon Rest",           "Saint Brennan's Mission"},
-        {"Concord Station Arbiter","Port Vesper"},
-    },
-    [1] = {   -- risky: Gauntlet fringes, Shroud edge, longer runs
-        {"Port Vesper",            "Hob's Landing"},
-        {"Port Vesper",            "Dustmote Salvage"},
-        {"Halcyon Rest",           "Hob's Landing"},
-        {"Greywater Depot",        "Hob's Landing"},
-        {"Saint Brennan's Mission","Dustmote Salvage"},
-        {"Concord Station Arbiter","Concord Waypoint Galen"},
-    },
-    [2] = {   -- dangerous: deep Rim, Boneyard fringe, Core long-haul
-        {"Hob's Landing",    "Lastchance Outpost"},
-        {"Dustmote Salvage", "Lastchance Outpost"},
-        {"Halcyon Rest",     "Lastchance Outpost"},
-        {"Port Vesper",      "Concord Waypoint Galen"},
-    },
-}
-
-
--- Scout missions: fly to a map location (world units); pay on arrival
 local _active = {}   -- list of {mission=m, phase="active"|"done"}
 local _done   = {}   -- id → true (taken or completed this session)
 
@@ -150,8 +119,7 @@ function JOBS.maxTier()
     if n >= 5 then return 2 elseif n >= 2 then return 1 else return 0 end
 end
 
-function JOBS.init()
-end
+function JOBS.init() end
 
 function JOBS.accept(m)
     if #_active >= 2 then return false end
