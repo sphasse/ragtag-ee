@@ -234,6 +234,79 @@ local _SALVAGE_ARCHETYPES = {
     },
 }
 
+-- ---------------------------------------------------------------------------
+-- Boarding archetypes
+-- Player must disable a target ship (beam weapons, impulse system targeted)
+-- then dock with it to recover cargo or a person.
+-- Interception fires after the disable (player is heading back with the asset).
+-- ---------------------------------------------------------------------------
+
+local _BOARDING_ARCHETYPES = {
+    {
+        cargo  = "a stolen data core",
+        lore   = "A Corsair runner lifted survey data from a prospecting team. The owner wants it back quietly.",
+        accept_msg = '"Disable the ship and take back the core. Don\'t destroy it — the data might not survive the hull breach."',
+        recv_msg   = '"Data core intact. You\'ve got a friend in this business."',
+        reward_mult = 1.2, tier_min = 0,
+        intercept_types = {}, intercept_chance = 0,
+    },
+    {
+        cargo  = "a hijacked courier",
+        lore   = "An independent courier was pulled off their route — ship taken, crew stuck aboard. Someone wants them back.",
+        accept_msg = '"They\'re still alive. Disable the ship and get them out before the Corsairs move them again."',
+        recv_msg   = '"I thought that was it for me. Thank you."',
+        reward_mult = 1.4, tier_min = 0,
+        intercept_types = {
+            {type="pirates", strength="scout", weight=2,
+             msg="Corsair support ship is responding. They don't want to lose their prize."},
+        },
+        intercept_chance = 0.25,
+    },
+    {
+        cargo  = "a locked evidence container",
+        lore   = "Smuggler running contraband for a connected outfit. Concord wants the evidence container — not the ship, not the crew.",
+        accept_msg = '"Disable them cleanly. Destroy the ship and the evidence chain breaks."',
+        recv_msg   = '"Chain of custody intact. Well done."',
+        reward_mult = 1.1, tier_min = 1,
+        intercept_types = {
+            {type="pirates", strength="scout", weight=2,
+             msg="Second ship just altered course toward you. Someone tipped off the outfit."},
+        },
+        intercept_chance = 0.30,
+    },
+    {
+        cargo  = "a Corsair lieutenant",
+        lore   = "Mid-level Corsair officer moving between cells. Intelligence wants them alive for questioning.",
+        accept_msg = '"Disable the escort — they\'ll be running a light ship, fast. Board carefully."',
+        recv_msg   = '"We\'ll take custody from here. What they know is worth more than you\'d guess."',
+        reward_mult = 1.5, tier_min = 1,
+        intercept_types = {
+            {type="pirates", strength="light", weight=3,
+             msg="Two Corsair ships just lit up on sensors. Responding to the escort's distress call."},
+        },
+        intercept_chance = 0.45,
+    },
+    {
+        cargo  = "a corporate defector",
+        lore   = "A corporate operative who knows too much tried to disappear. The parent company wants them back with the financial records intact.",
+        accept_msg = '"Disable the ship before they can vent the data. Board fast."',
+        recv_msg   = '"Asset secured and records intact. Discretion noted."',
+        reward_mult = 1.6, tier_min = 2,
+        intercept_types = {
+            {type="rival", strength="medium", weight=3,
+             msg="Corporate security ship on an intercept heading. They have the same contract."},
+        },
+        intercept_chance = 0.50,
+    },
+}
+
+-- Target ship templates by tier (light → heavy)
+local _BOARDING_TEMPLATES = {
+    [0] = {"Adder MK5", "MT52 Hornet"},
+    [1] = {"Phobos T3", "Adder MK5"},
+    [2] = {"Phobos M3P", "Phobos T3"},
+}
+
 -- Base reward by tier (rounded to nearest 5 after archetype multiplier)
 local _BASE_REWARD = {[0] = 70, [1] = 140, [2] = 230}
 
@@ -363,6 +436,58 @@ function MISSION.newSalvage(opts)
         complete_msg = arch.recv_msg,
         intercept    = intercept,
         _found       = false,
+    }
+end
+
+-- Generate a boarding mission record.
+-- opts: {origin, wx, wy, tier}
+--   wx/wy — world-unit coordinates where the target ship patrols
+-- The scenario spawns the target on accept and tracks disable/board phases.
+function MISSION.newBoarding(opts)
+    local tier = opts.tier or 0
+    local pool = {}
+    for _, a in ipairs(_BOARDING_ARCHETYPES) do
+        if a.tier_min <= tier then pool[#pool + 1] = a end
+    end
+    if #pool == 0 then pool = _BOARDING_ARCHETYPES end
+    local arch = pool[math.random(#pool)]
+    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    local templates = _BOARDING_TEMPLATES[tier] or _BOARDING_TEMPLATES[0]
+    local target_template = templates[math.random(#templates)]
+
+    local intercept = nil
+    if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
+        local ic = _weightedPick(arch.intercept_types)
+        intercept = {
+            itype    = ic.type,
+            strength = ic.strength,
+            trigger  = 0,   -- fires after boarding (on return leg)
+            msg_log  = ic.msg,
+            fired    = false,
+        }
+    end
+
+    return {
+        id              = _nextId(),
+        type            = "boarding",
+        tier            = tier,
+        origin          = opts.origin,
+        wx              = opts.wx,
+        wy              = opts.wy,
+        cargo           = arch.cargo,
+        reward          = reward,
+        short           = arch.cargo .. " (boarding)",
+        obj             = "Locate and disable target",
+        brief           = arch.lore .. "\n\n" .. arch.accept_msg
+                          .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
+        complete_msg    = arch.recv_msg,
+        target_template = target_template,
+        intercept       = intercept,
+        _spawned        = false,
+        _disabled       = false,
+        _boarded        = false,
+        target_cs       = nil,
     }
 end
 

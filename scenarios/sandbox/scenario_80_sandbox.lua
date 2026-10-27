@@ -132,6 +132,22 @@ local _pool   = {}   -- generated missions, shuffled once at init
 local _active = {}   -- list of {mission=m, phase="active"|"done"}
 local _done   = {}   -- id → true (taken or completed this session)
 
+local _MISSION_WEIGHTS = {
+    {type = "delivery", weight = 20},
+    {type = "salvage",  weight = 7},
+    {type = "boarding", weight = 3},
+}
+local function pickMissionType()
+    local total = 0
+    for _, t in ipairs(_MISSION_WEIGHTS) do total = total + t.weight end
+    local r = math.random() * total
+    for _, t in ipairs(_MISSION_WEIGHTS) do
+        r = r - t.weight
+        if r <= 0 then return t.type end
+    end
+    return "delivery"
+end
+
 function JOBS.maxTier()
     local n = RT.campaign and #(RT.campaign.upgrades or {}) or 0
     if n >= 5 then return 2 elseif n >= 2 then return 1 else return 0 end
@@ -220,6 +236,14 @@ function JOBS.stationHook(source, target)
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
                 end)
+            elseif m.type == "boarding" and m.origin == cs and m._boarded then
+                local ent = entry
+                addCommsReply(string.format("Hand off %s (+%d cr)", m.cargo, m.reward), function(s, t)
+                    JOBS.complete(ent)
+                    local recv = (ent.mission.complete_msg or '"Good work."')
+                    setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
+                    addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+                end)
             end
         end
     end
@@ -237,7 +261,7 @@ function JOBS.stationHook(source, target)
             end
         end
 
-        -- Generate fresh missions to fill up to 2 slots (75% delivery, 25% salvage).
+        -- Generate fresh missions to fill up to 2 slots (weighted: delivery 20, salvage 7, boarding 3).
         if #offers < 2 then
             local candidates = {}
             for _, d in ipairs(VERSE.STATIONS) do
@@ -250,23 +274,38 @@ function JOBS.stationHook(source, target)
                 candidates[i], candidates[j] = candidates[j], candidates[i]
             end
             local station_e = RT.find(cs)
-            for _, dest in ipairs(candidates) do
+            local dest_idx  = 1
+            for slot = 1, 2 do
                 if #offers >= 2 then break end
-                local tier = math.min(mt, math.random(0, 1))
-                if math.random() < 0.75 then
-                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = dest, tier = tier})
-                elseif RT.valid(station_e) then
+                local tier  = math.min(mt, math.random(0, 1))
+                local mtype = pickMissionType()
+                if mtype == "delivery" and dest_idx <= #candidates then
+                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
+                    dest_idx = dest_idx + 1
+                elseif mtype == "salvage" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
-                    local angle  = math.random() * 2 * math.pi
-                    local dist   = (15 + math.random() * 25) * 1000
+                    local ang  = math.random() * 2 * math.pi
+                    local dist = (15 + math.random() * 25) * 1000
                     offers[#offers + 1] = MISSION.newSalvage({
                         origin = cs,
-                        wx     = math.floor(rx + math.cos(angle) * dist),
-                        wy     = math.floor(ry + math.sin(angle) * dist),
-                        tier   = tier,
+                        wx = math.floor(rx + math.cos(ang) * dist),
+                        wy = math.floor(ry + math.sin(ang) * dist),
+                        tier = tier,
                     })
-                else
-                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = dest, tier = tier})
+                elseif mtype == "boarding" and RT.valid(station_e) then
+                    local rx, ry = station_e:getPosition()
+                    local ang  = math.random() * 2 * math.pi
+                    local dist = (20 + math.random() * 30) * 1000
+                    offers[#offers + 1] = MISSION.newBoarding({
+                        origin = cs,
+                        wx = math.floor(rx + math.cos(ang) * dist),
+                        wy = math.floor(ry + math.sin(ang) * dist),
+                        tier = tier,
+                    })
+                elseif dest_idx <= #candidates then
+                    -- fallback: delivery
+                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
+                    dest_idx = dest_idx + 1
                 end
             end
         end
@@ -309,43 +348,120 @@ end
 
 function JOBS.update()
     if not RT.anyPlayerAlive() then return end
-    for _, entry in ipairs(_active) do
+    for i = #_active, 1, -1 do   -- iterate backwards; boarding failure may remove entry
+        local entry = _active[i]
         local m = entry.mission
-        if entry.phase == "active" then
-            if m.type == "scout" then
-                for _, p in ipairs(RT.players) do
-                    if RT.valid(p) then
-                        local px, py = p:getPosition()
-                        local dx, dy = px - m.wx, py - m.wy
-                        if dx*dx + dy*dy < 8000*8000 then
-                            entry.phase = "done"
-                            RT.shipLog("Scout complete — " .. m.short .. string.format(" (+%d cr)", m.reward), "#80FF80")
-                            JOBS.complete(entry)
-                            break
-                        end
+        if entry.phase ~= "active" then goto next_entry end
+
+        if m.type == "scout" then
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) then
+                    local px, py = p:getPosition()
+                    local dx, dy = px - m.wx, py - m.wy
+                    if dx*dx + dy*dy < 8000*8000 then
+                        entry.phase = "done"
+                        RT.shipLog("Scout complete — " .. m.short .. string.format(" (+%d cr)", m.reward), "#80FF80")
+                        JOBS.complete(entry)
+                        break
                     end
                 end
-            elseif m.type == "salvage" and not m._found then
-                for _, p in ipairs(RT.players) do
-                    if RT.valid(p) then
-                        local px, py = p:getPosition()
-                        local dx, dy = px - m.wx, py - m.wy
-                        if dx*dx + dy*dy < 5000*5000 then
-                            m._found = true
-                            m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                            RT.shipLog("[Salvage] " .. m.cargo .. " recovered. Return to " .. m.origin .. ".", "#80FF80")
-                            JOBS.updateObj()
-                            -- Fire interception on site reach
-                            if m.intercept and not m.intercept.fired then
-                                m.intercept.fired = true
-                                MISSION._spawnIntercept(m, px, py)
+            end
+
+        elseif m.type == "salvage" and not m._found then
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) then
+                    local px, py = p:getPosition()
+                    local dx, dy = px - m.wx, py - m.wy
+                    if dx*dx + dy*dy < 5000*5000 then
+                        m._found = true
+                        m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                        RT.shipLog("[Salvage] " .. m.cargo .. " recovered. Return to " .. m.origin .. ".", "#80FF80")
+                        JOBS.updateObj()
+                        if m.intercept and not m.intercept.fired then
+                            m.intercept.fired = true
+                            MISSION._spawnIntercept(m, px, py)
+                        end
+                        break
+                    end
+                end
+            end
+
+        elseif m.type == "boarding" then
+            -- Phase 1: spawn target ship on first update after accept
+            if not m._spawned then
+                local s = CpuShip():setTemplate(m.target_template):setFaction("Corsairs")
+                s:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
+                s:orderRoaming():setDockingPortCount(0)
+                RT.register(s)
+                DIR.registerKill(s)
+                DIR.allowControl(s)
+                s:setCommsFunction(function(src, tgt)
+                    setCommsMessage('"Get away from us."')
+                end)
+                m.target_cs = s:getCallSign()
+                m._spawned  = true
+                RT.shipLog("[Boarding] Target located: " .. m.target_cs
+                    .. ". Disable its engines — Weapons: set beam system target to impulse.", "#FFCC80")
+
+            -- Phase 2: watch for disable (impulse health < 0.3 or hull < 25%)
+            elseif not m._disabled then
+                local target = RT.find(m.target_cs)
+                if not RT.valid(target) then
+                    -- Destroyed before boarding — mission lost
+                    RT.shipLog("[Boarding] Target destroyed before boarding — contract lost.", "#FF8080")
+                    MISSION.untrack(m.id)
+                    table.remove(_active, i)
+                    JOBS.updateObj()
+                else
+                    local impulse_h = target:getSystemHealth("impulse") or 1
+                    local hull_pct  = target:getHull() / target:getHullMax()
+                    if impulse_h < 0.3 or hull_pct < 0.25 then
+                        m._disabled = true
+                        target:setCanBeDestroyed(false)
+                        target:orderIdle()
+                        target:setImpulseMaxSpeed(5)
+                        target:setDockingPortCount(1)
+                        target:setCommsFunction(function(src, tgt)
+                            setCommsMessage('"We\'re done. Come aboard and take what you came for."')
+                        end)
+                        m.obj = "Board " .. m.target_cs
+                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Move in and dock to board.", "#FFCC80")
+                        JOBS.updateObj()
+                    end
+                end
+
+            -- Phase 3: wait for any player to dock with the disabled target
+            elseif not m._boarded then
+                local target = RT.find(m.target_cs)
+                if RT.valid(target) then
+                    for _, p in ipairs(RT.players) do
+                        if RT.valid(p) then
+                            local docked = p:getDockedWith()
+                            if docked and docked == target then
+                                m._boarded = true
+                                m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                                target:setDockingPortCount(0)
+                                RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
+                                -- Fire intercept on the return leg
+                                if m.intercept and not m.intercept.fired then
+                                    m.intercept.fired = true
+                                    local origin_e = RT.find(m.origin)
+                                    if RT.valid(origin_e) then
+                                        m._dx, m._dy = origin_e:getPosition()
+                                    end
+                                    local px, py = p:getPosition()
+                                    MISSION._spawnIntercept(m, px, py)
+                                end
+                                JOBS.updateObj()
+                                break
                             end
-                            break
                         end
                     end
                 end
             end
         end
+
+        ::next_entry::
     end
 end
 
