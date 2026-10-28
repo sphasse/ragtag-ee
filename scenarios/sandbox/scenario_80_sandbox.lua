@@ -1,5 +1,5 @@
 -- Name: Sandbox: Open Play
--- Description: Explore the Drift, earn credits, upgrade your ship. No fixed story—make your own. Perfect for learning the universe and trying out ship systems. The AI director creates dynamic encounters based on your choices.
+-- Description: Explore the Drift, earn credits, upgrade your ship. No fixed story--make your own. Perfect for learning the universe and trying out ship systems. The AI director creates dynamic encounters based on your choices.
 ---
 --- Sandbox campaign. Credits and upgrades persist across sessions. No fixed objectives.
 --- Optional: run the AI director (director/main.py) for dynamic encounters and opportunities.
@@ -44,12 +44,12 @@ local S = {
 }
 
 --------------------------------------------------------------------------------
--- Mission board (JOBS) — procedurally-generated contracts offered at stations
+-- Mission board (JOBS) -- procedurally-generated contracts offered at stations
 --------------------------------------------------------------------------------
 
 local JOBS = {}
 
--- Display-safe short names (objectives must be ≤25 chars; "Deliver to " is 11)
+-- Display-safe short names (objectives must be <=25 chars; "Deliver to " is 11)
 local _SHORT = {
     ["Concord Station Arbiter"] = "C.S. Arbiter",
     ["Concord Waypoint Galen"]  = "Waypoint Galen",
@@ -58,7 +58,7 @@ local _SHORT = {
     ["Dustmote Salvage"]        = "Dustmote",
     ["Greywater Depot"]         = "Greywater",
 }
-local function _sd(cs) return _SHORT[cs] or cs end   -- short dest name (≤14 chars)
+local function _sd(cs) return _SHORT[cs] or cs end   -- short dest name (<=14 chars)
 
 local _active = {}   -- list of {mission=m, phase="active"|"done"}
 local _done   = {}   -- id → true (taken or completed this session)
@@ -481,7 +481,7 @@ function JOBS.update()
 
         -- Expiry check (before any type logic so we never act on a dead mission)
         if m._expires_at and now > m._expires_at then
-            RT.shipLog("[Contract] " .. m.short .. " — time expired. Contract lost.", "#FF8080")
+            RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
             MISSION.untrack(m.id)
             table.remove(_active, i)
             JOBS.updateObj()
@@ -491,7 +491,7 @@ function JOBS.update()
         if m.type == "salvage" and not m._found then
             -- Check if cargo pod still exists (if destroyed before pickup)
             if m.cargo_obj and not RT.valid(m.cargo_obj) then
-                RT.shipLog("[Salvage] Cargo destroyed — contract lost.", "#FF8080")
+                RT.shipLog("[Salvage] Cargo destroyed -- contract lost.", "#FF8080")
                 MISSION.untrack(m.id)
                 table.remove(_active, i)
                 JOBS.updateObj()
@@ -505,8 +505,8 @@ function JOBS.update()
             if not m._disabled then
                 local target = RT.find(m.target_cs)
                 if not RT.valid(target) then
-                    -- Destroyed before boarding — mission lost
-                    RT.shipLog("[Boarding] Target destroyed before boarding — contract lost.", "#FF8080")
+                    -- Destroyed before boarding -- mission lost
+                    RT.shipLog("[Boarding] Target destroyed before boarding -- contract lost.", "#FF8080")
                     MISSION.untrack(m.id)
                     table.remove(_active, i)
                     JOBS.updateObj()
@@ -581,7 +581,7 @@ function JOBS.update()
             if not m._hacked then
                 local target = RT.find(m.target_cs)
                 if not RT.valid(target) then
-                    RT.shipLog("[Hack] Relay destroyed before extraction — contract lost.", "#FF8080")
+                    RT.shipLog("[Hack] Relay destroyed before extraction -- contract lost.", "#FF8080")
                     MISSION.untrack(m.id)
                     table.remove(_active, i)
                     JOBS.updateObj()
@@ -649,27 +649,27 @@ local RUMORS = {}
 
 -- Wreck story fragments, keyed by callsign.
 local _WRECK_LOGS = {
-    -- Boneyard — Settlement War hulks
+    -- Boneyard -- Settlement War hulks
     ["CWS Bulwark"]        = '"Day 47 of the siege. Captain Orin to any Concord command: we are holding Ashgrave approach. We are still holding. Please respond."',
-    ["Free Ship Defiance"] = '"They told us the vote would be bloodless. Somebody forgot to tell the gunships."  — last entry, Free Ship Defiance.',
-    ["CWS Morningside"]    = 'Distress beacon, CWS Morningside, crew of eleven. Hull breach compartments three through seven. "If anyone receives this — we were here."',
+    ["Free Ship Defiance"] = '"They told us the vote would be bloodless. Somebody forgot to tell the gunships."  -- last entry, Free Ship Defiance.',
+    ["CWS Morningside"]    = 'Distress beacon, CWS Morningside, crew of eleven. Hull breach compartments three through seven. "If anyone receives this -- we were here."',
     ["Free Ship Hollis"]   = 'Hollis crew manifest recovered from emergency memory. Forty-one names. The war ended six weeks after they launched.',
-    ["CWS Anvil"]          = '"We\'re not retreating. We\'re advancing in a new direction." — Commander Vayne, CWS Anvil. Last words before the bridge lost pressure.',
-    ["Free Ship Tallow"]   = '"If you\'re reading this, the settlement worked. Tell my kids I held the line."  — Tallow final transmission.',
-    ["CWS Equity"]         = '"We surrendered at 0400. The Concord officer was kind about it. I don\'t know what to make of that."  — Captain\'s log, CWS Equity.',
+    ["CWS Anvil"]          = '"We\'re not retreating. We\'re advancing in a new direction." -- Commander Vayne, CWS Anvil. Last words before the bridge lost pressure.',
+    ["Free Ship Tallow"]   = '"If you\'re reading this, the settlement worked. Tell my kids I held the line."  -- Tallow final transmission.',
+    ["CWS Equity"]         = '"We surrendered at 0400. The Concord officer was kind about it. I don\'t know what to make of that."  -- Captain\'s log, CWS Equity.',
     ["Free Ship Long Odds"] = 'Encrypted fragment, twenty-year-old code. "Rally at Ashgrave. One last push."  Free Ship Long Odds never arrived.',
     ["CWS Clarion"]        = 'Automated beacon, CWS Clarion, looping since the war ended. Hull integrity: 12%. Crew status: unknown. Unknown. Unknown.',
     ["Free Ship Harrow"]   = '"You\'re fighting for a rock." "We\'re fighting so the rock is ours."  End of argument. End of recording.',
-    ["CWS Mercy"]          = '"We have more injured than bay capacity. I am going to run out of things to write."  — Medical log, CWS Mercy.',
+    ["CWS Mercy"]          = '"We have more injured than bay capacity. I am going to run out of things to write."  -- Medical log, CWS Mercy.',
     ["Free Ship Whistler"] = 'Navigation log, Free Ship Whistler. Last entry automated. Destination: Tamsin. Arrival: never.',
-    -- Dustmote — recent hulks
+    -- Dustmote -- recent hulks
     ["Hulk 7"]  = 'Salvage tag attached: "Strip to frame, sell the rest." Someone didn\'t finish the job.',
     ["Hulk 12"] = 'Registry plate still readable: Persistent Hope. Someone scraped off the name but left the plate.',
     ["Hulk 19"] = 'A coffee mug magnetically clamped to the helm. Still has coffee in it. Relatively recent.',
     ["Hulk 23"] = 'Personal log found wedged in a console. First entry: "New ship, new start." Last entry: "Engine won\'t start." Three months between.',
-    -- Shroud — missing freighters
-    ["Penny Dreadful"]   = '"The Shroud doesn\'t mess with sensors. The Shroud messes with you. We\'re turning back."  — Penny Dreadful voice log. They didn\'t turn back.',
-    ["Calloway's Luck"]  = '"We found something. I don\'t know what it is. I don\'t think it\'s— [static] —beautiful."  — Final comms, Calloway\'s Luck.',
+    -- Shroud -- missing freighters
+    ["Penny Dreadful"]   = '"The Shroud doesn\'t mess with sensors. The Shroud messes with you. We\'re turning back."  -- Penny Dreadful voice log. They didn\'t turn back.',
+    ["Calloway's Luck"]  = '"We found something. I don\'t know what it is. I don\'t think it\'s-- [static] --beautiful."  -- Final comms, Calloway\'s Luck.',
     ["Seventh Son"]      = 'Automated log, Seventh Son. Navigation: position unknown. Course: unknown. Drift duration: 47 days. Hull: intact. Crew: [null].',
 }
 
@@ -696,7 +696,7 @@ function RUMORS.checkWrecks()
 end
 
 --------------------------------------------------------------------------------
--- THE WITNESS — optional story arc (GM-triggered)
+-- THE WITNESS -- optional story arc (GM-triggered)
 -- Phases: inactive → offer → transit → checkpoint → revealed →
 --         shroud_run → halcyon → broadcast → done
 -- S.witness_active blocks the job board for the duration.
@@ -772,7 +772,7 @@ local function W_podTick(delta)
             if thr == 60 then
                 RT.shipLog("[Stasis] Pod stability dropping. Engineering: watch your energy draw.", "#FFAA00")
             elseif thr == 30 then
-                RT.shipLog("[Stasis] CRITICAL — pod failing. Engineering: emergency power now.", "#FF4040")
+                RT.shipLog("[Stasis] CRITICAL -- pod failing. Engineering: emergency power now.", "#FF4040")
             elseif thr == 10 then
                 RT.shipLog("[Science] Cardiac arrest imminent. We need everything Engineering can give.", "#FF4040")
             end
@@ -782,10 +782,10 @@ local function W_podTick(delta)
     if W.pod_stability <= 0 and W.kael_alive then
         W.kael_alive   = false
         W.pod_drain_on = false
-        RT.shipLog("[Stasis] Kael Voss — flatlined.", "#FF4040")
+        RT.shipLog("[Stasis] Kael Voss -- flatlined.", "#FF4040")
         RT.forEachPlayer(function(p)
             if RT.valid(p) then
-                p:addCustomInfo("engineering", "w_pod_status", "Stasis pod: OFFLINE — patient lost", 1)
+                p:addCustomInfo("engineering", "w_pod_status", "Stasis pod: OFFLINE -- patient lost", 1)
                 p:addCustomInfo("science",     "w_pod_vitals", "Patient vitals: flatline",            1)
             end
         end)
@@ -799,7 +799,7 @@ local function W_updatePanels()
     RT.forEachPlayer(function(p)
         if RT.valid(p) then
             p:addCustomInfo("engineering", "w_pod_status",
-                string.format("Stasis pod: %.0f%% — %s", stab, status), 1)
+                string.format("Stasis pod: %.0f%% -- %s", stab, status), 1)
             p:addCustomInfo("science", "w_pod_vitals",
                 string.format("Patient vitals: %s (pod %.0f%%)",
                     stab > 60 and "stable" or (stab > 30 and "irregular" or "critical"),
@@ -814,12 +814,12 @@ local function W_addPodButtons()
         p:addCustomButton("engineering", "w_ep_button", "Emergency Power (pod)", function()
             local now = getScenarioTime()
             if now < W.ep_next then
-                RT.shipLog(string.format("[Engineering] Emergency power on cooldown — %.0fs remaining.", W.ep_next - now), "#FFAA00")
+                RT.shipLog(string.format("[Engineering] Emergency power on cooldown -- %.0fs remaining.", W.ep_next - now), "#FFAA00")
                 return
             end
             W.ep_next       = now + 90
             W.pod_stability = math.min(100, W.pod_stability + 25)
-            RT.shipLog(string.format("[Engineering] Emergency power rerouted — pod stability +25 (now %.0f%%).", W.pod_stability), "#80FF80")
+            RT.shipLog(string.format("[Engineering] Emergency power rerouted -- pod stability +25 (now %.0f%%).", W.pod_stability), "#80FF80")
         end, 10)
     end)
 end
@@ -846,7 +846,7 @@ local function W_finish()
     local reward, msg
     if W.kael_alive and not W.complied then
         reward = 600
-        msg    = "Broadcast sent. Kael Voss survived. His evidence is on every channel in the Drift — they can't unring this bell."
+        msg    = "Broadcast sent. Kael Voss survived. His evidence is on every channel in the Drift -- they can't unring this bell."
     elseif not W.kael_alive then
         reward = 400
         msg    = "Broadcast sent. Kael Voss didn't survive the transit, but his evidence did. The truth got out, carried by a dead man's data."
@@ -865,7 +865,7 @@ local function W_finish()
     local buoy = RT.find(W.buoy_cs or "")
     if RT.valid(buoy) then buoy:setCanBeDestroyed(true) end
 
-    globalMessage("The Witness — arc complete. " .. msg, 15)
+    globalMessage("The Witness -- arc complete. " .. msg, 15)
 end
 
 local function W_startBroadcast()
@@ -893,7 +893,7 @@ local function W_startBroadcast()
             RT.register(s); DIR.registerKill(s); DIR.allowControl(s)
         end
     end
-    RT.shipLog("[Warning] Concord response inbound — three ships. Hold them off while Relay completes the broadcast.", "#FF8080")
+    RT.shipLog("[Warning] Concord response inbound -- three ships. Hold them off while Relay completes the broadcast.", "#FF8080")
 end
 
 local function W_startHalcyon()
@@ -920,13 +920,13 @@ local function W_startHalcyon()
         if W.phase ~= "halcyon" then return end
         addCommsReply("Ask for Sable.", function(s2, t2)
             if W.sable_warned then
-                setCommsMessage('"Sable checked out an hour ago. Left in a hurry — Concord shuttle was asking after her."')
+                setCommsMessage('"Sable checked out an hour ago. Left in a hurry -- Concord shuttle was asking after her."')
                 addCommsReply("We know where to go.", function(s3, t3)
                     RT.stationComms(s3, t3)
                     W_startBroadcast()
                 end)
             else
-                setCommsMessage('"She\'s here. Keeps looking at the docks."\n\nA message arrives from Sable: "Don\'t trust me. They have leverage. The broadcast still matters — go to the relay buoy. Don\'t wait."')
+                setCommsMessage('"She\'s here. Keeps looking at the docks."\n\nA message arrives from Sable: "Don\'t trust me. They have leverage. The broadcast still matters -- go to the relay buoy. Don\'t wait."')
                 W.sable_warned = true
                 addCommsReply("Head to the relay buoy.", function(s3, t3)
                     RT.stationComms(s3, t3)
@@ -952,7 +952,7 @@ local function W_spawnCorsairAmbush()
         RT.register(s); DIR.registerKill(s); DIR.allowControl(s)
         W.corsair_names[i] = s:getCallSign()
     end
-    RT.shipLog("[Ambush] Corsairs — " .. table.concat(W.corsair_names, ", ") .. ". Someone talked.", "#FF8080")
+    RT.shipLog("[Ambush] Corsairs -- " .. table.concat(W.corsair_names, ", ") .. ". Someone talked.", "#FF8080")
 end
 
 local function W_startShroudRun()
@@ -964,9 +964,9 @@ end
 local function W_startRevealed()
     W_enterPhase("revealed")
     if W.complied then
-        RT.shipLog('[Message] A dead-drop transmission: "The data wasn\'t in the pod — it\'s still with you, hidden in the lining. Get to Halcyon Rest. There\'s a public relay buoy. Finish this." — unsigned.', "#A0C0FF")
+        RT.shipLog('[Message] A dead-drop transmission: "The data wasn\'t in the pod -- it\'s still with you, hidden in the lining. Get to Halcyon Rest. There\'s a public relay buoy. Finish this." -- unsigned.', "#A0C0FF")
     else
-        RT.shipLog('[Stasis] Transmission from the pod: "My name is Kael Voss. I was a Concord logistics officer. What I know will end careers. Get me to Halcyon Rest — there\'s a relay buoy there. One broadcast and it\'s over. Whatever she paid you, I\'ll double it."', "#A0C0FF")
+        RT.shipLog('[Stasis] Transmission from the pod: "My name is Kael Voss. I was a Concord logistics officer. What I know will end careers. Get me to Halcyon Rest -- there\'s a relay buoy there. One broadcast and it\'s over. Whatever she paid you, I\'ll double it."', "#A0C0FF")
     end
     RT.setObjective("Reach Halcyon Rest", true)
 end
@@ -991,7 +991,7 @@ local function W_startCheckpoint()
     W.concord_names[2] = s2:getCallSign()
 
     s1:setCommsFunction(function(src, tgt)
-        setCommsMessage('"Independent vessel. Cut engines. You are carrying an unregistered stasis pod. Surrender it — you will be free to go."')
+        setCommsMessage('"Independent vessel. Cut engines. You are carrying an unregistered stasis pod. Surrender it -- you will be free to go."')
         addCommsReply("We're on a licensed delivery. Nothing unusual aboard.", function(s_r, t_r)
             setCommsMessage('"Scan confirms the pod. You have 45 seconds to comply or we board by force."')
             W.checkpoint_choice = "stall"
@@ -1007,7 +1007,7 @@ local function W_startCheckpoint()
                 end
                 W_startRevealed()
             end)
-            addCommsReply("Full burn — break contact!", function(s_r2, t_r2)
+            addCommsReply("Full burn -- break contact!", function(s_r2, t_r2)
                 W.checkpoint_choice = "run"
                 for _, n in ipairs(W.concord_names) do
                     local sc = RT.find(n)
@@ -1017,7 +1017,7 @@ local function W_startCheckpoint()
         end)
         addCommsReply("We're not stopping for anyone.", function(s_r, t_r)
             W.checkpoint_choice = "run"
-            setCommsMessage('"All units — pursue."')
+            setCommsMessage('"All units -- pursue."')
             for _, n in ipairs(W.concord_names) do
                 local sc = RT.find(n)
                 if RT.valid(sc) and RT.valid(src) then sc:orderAttack(src) end
@@ -1036,8 +1036,8 @@ local function W_startCheckpoint()
         end)
     end)
 
-    RT.hail(s1, "Independent vessel. Cut engines. You are carrying an unregistered stasis pod. Concord inspection — comply immediately.", "Concord Patrol")
-    RT.shipLog("[Warning] Concord patrol on intercept — " .. W.concord_names[1] .. ", " .. W.concord_names[2] .. ".", "#FFAA00")
+    RT.hail(s1, "Independent vessel. Cut engines. You are carrying an unregistered stasis pod. Concord inspection -- comply immediately.", "Concord Patrol")
+    RT.shipLog("[Warning] Concord patrol on intercept -- " .. W.concord_names[1] .. ", " .. W.concord_names[2] .. ".", "#FFAA00")
 end
 
 local function W_startOffer()
@@ -1054,9 +1054,9 @@ local function W_startOffer()
     RT.register(mira)
 
     mira:setCommsFunction(function(src, tgt)
-        setCommsMessage('"I need a discreet crew — no questions asked. Passenger in stasis who needs to reach Saint Brennan\'s Mission quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
+        setCommsMessage('"I need a discreet crew -- no questions asked. Passenger in stasis who needs to reach Saint Brennan\'s Mission quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
         addCommsReply("We'll take the job.", function(s2, t2)
-            setCommsMessage('"Good. Transferring the pod now. He draws five energy a second from your reactor — keep him stable. Get to Saint Brennan\'s Mission before Concord gets word."\n\nMira\'s Luck goes dark.')
+            setCommsMessage('"Good. Transferring the pod now. He draws five energy a second from your reactor -- keep him stable. Get to Saint Brennan\'s Mission before Concord gets word."\n\nMira\'s Luck goes dark.')
             addCommsReply("Understood.", function(s3, t3) RT.stationComms(s3, t3) end)
             local m = RT.find("Mira's Luck")
             if RT.valid(m) then m:destroy() end
@@ -1064,7 +1064,7 @@ local function W_startOffer()
             W.pod_drain_on = true
             W_addPodButtons()
             W_updatePanels()
-            RT.shipLog("[Stasis] Pod aboard — Kael Voss in stasis. Destination: Saint Brennan's Mission.", "#A0C0FF")
+            RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. Destination: Saint Brennan's Mission.", "#A0C0FF")
             RT.shipLog("[Engineering] Pod drawing 5 energy/sec. Keep energy above 50% to maintain stability.", "#FFAA00")
             RT.setObjective("Reach Saint Brennan's Mission", true)
         end)
@@ -1074,7 +1074,7 @@ local function W_startOffer()
         end)
     end)
 
-    RT.hail(mira, "Independent vessel — Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
+    RT.hail(mira, "Independent vessel -- Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
 end
 
 -- ── Main update dispatcher ───────────────────────────────────────────────────
@@ -1103,7 +1103,7 @@ local function W_update(delta)
 
     elseif W.phase == "checkpoint" then
         if W.checkpoint_choice == "stall" and W.checkpoint_timer > 0 and now > W.checkpoint_timer then
-            RT.shipLog("[Checkpoint] Time expired — Concord boarded and took the pod.", "#FF8080")
+            RT.shipLog("[Checkpoint] Time expired -- Concord boarded and took the pod.", "#FF8080")
             W.complied        = true
             W.checkpoint_choice = "comply"
             for _, n in ipairs(W.concord_names) do
@@ -1172,7 +1172,7 @@ local function W_update(delta)
     elseif W.phase == "broadcast" then
         local buoy = RT.find(W.buoy_cs or "")
         if not RT.valid(buoy) then
-            RT.shipLog("[Error] Relay buoy destroyed before broadcast — arc failed.", "#FF8080")
+            RT.shipLog("[Error] Relay buoy destroyed before broadcast -- arc failed.", "#FF8080")
             W_enterPhase("done")
             W.pod_drain_on = false
             W_removePodUI()
@@ -1274,7 +1274,7 @@ function init()
         id = SESSION_ID,
         campaign = "sandbox",
         title = "Open Play (Session " .. S.session_num .. ")",
-        premise = "The crew of an independent freighter explores the Drift, a frontier cluster of five suns. No fixed mission—just opportunities, dangers, and whatever the crew decides to pursue. This is session " .. S.session_num .. " of their ongoing story.",
+        premise = "The crew of an independent freighter explores the Drift, a frontier cluster of five suns. No fixed mission--just opportunities, dangers, and whatever the crew decides to pursue. This is session " .. S.session_num .. " of their ongoing story.",
         tone = "Space-western sandbox. Wry humour, real stakes, never grimdark. The crew are independents making their way. Every choice matters, but nothing is scripted. React to what the crew does and where they go.",
         cast = {
             {name = "Port Vesper Dockmaster", where = "Port Vesper", role = "neutral port authority", voice = "professional, knows everyone's business"},
@@ -1302,7 +1302,7 @@ Encounter types:
 - Pirates: Corsairs demanding cargo (flee, fight, or bribe)
 - Mysteries: strange signals, derelicts with logs
 
-The job board at each station offers up to 2 procedural contracts (delivery or scout). As the crew buys upgrades, higher-tier (more dangerous, more lucrative) jobs unlock. Don't spoil the board — let the crew discover it by docking.
+The job board at each station offers up to 2 procedural contracts (delivery or scout). As the crew buys upgrades, higher-tier (more dangerous, more lucrative) jobs unlock. Don't spoil the board -- let the crew discover it by docking.
 
 Match threat to location. Don't spawn deadly enemies in safe zones. Let quiet moments happen. If the crew has an active delivery job, a well-timed ambush by someone who "heard about the cargo" adds drama. If they're flying a scout mission into the Shroud, a strange contact rewards the risk.
 ]],
@@ -1331,7 +1331,7 @@ end
 function defineBeats()
     DIR.defineBeat("welcome", {desc = "Port Vesper dockmaster welcomes the crew", fn = function()
         local session_text = S.session_num == 1 and "Welcome to the Drift, independents." or "Back again, I see."
-        RT.hail(RT.find("Port Vesper"), session_text .. " Port Vesper is neutral ground—you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe.", "Port Vesper Dockmaster")
+        RT.hail(RT.find("Port Vesper"), session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe.", "Port Vesper Dockmaster")
         RT.setObjective("Explore the Drift")
     end})
 
@@ -1421,7 +1421,7 @@ function addSessionGMFunctions()
         W.checkpoint_fired = true
         W_addPodButtons()
         W_updatePanels()
-        RT.shipLog("[Stasis] Pod aboard — Kael Voss in stasis. (GM skip)", "#A0C0FF")
+        RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. (GM skip)", "#A0C0FF")
         W_startCheckpoint()
     end)
 
@@ -1431,7 +1431,7 @@ function addSessionGMFunctions()
         W.checkpoint_fired = true
         W_addPodButtons()
         W_updatePanels()
-        RT.shipLog("[Stasis] Pod aboard — Kael Voss in stasis. (GM skip)", "#A0C0FF")
+        RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. (GM skip)", "#A0C0FF")
         W_startHalcyon()
         W_startBroadcast()
     end)
