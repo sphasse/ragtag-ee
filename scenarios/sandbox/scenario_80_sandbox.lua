@@ -461,7 +461,21 @@ function JOBS.stationHook(source, target)
                             danger_level = danger_level,
                         })
                     else  -- destroy
-                        local nearby = VERSE.nearbyStations(rx, ry, 35000)
+                        -- Find nearby stations for target destination
+                        local nearby = {}
+                        for _, st in ipairs(VERSE.STATIONS) do
+                            if st.cs ~= cs then  -- not origin station
+                                local st_e = RT.find(st.cs)
+                                if RT.valid(st_e) then
+                                    local sx, sy = st_e:getPosition()
+                                    local ddx, ddy = sx - rx, sy - ry
+                                    local st_dist = math.sqrt(ddx * ddx + ddy * ddy)
+                                    if st_dist < 35000 then  -- within 35U
+                                        nearby[#nearby + 1] = st.cs
+                                    end
+                                end
+                            end
+                        end
                         offers[#offers + 1] = MISSION.newDestroy({
                             origin = cs,
                             wx = wx,
