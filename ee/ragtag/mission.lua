@@ -648,7 +648,7 @@ function MISSION.newDestroy(opts)
         obj             = "Locate and destroy target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget must be completely destroyed. No boarding, no salvage.",
-        complete_msg    = arch.rev_msg,
+        complete_msg    = arch.recv_msg,
         target_template = arch.target_template,
         target_dest     = target_dest,
         intercept       = intercept,
