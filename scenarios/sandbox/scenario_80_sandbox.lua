@@ -68,6 +68,7 @@ local _MISSION_WEIGHTS = {
     {type = "salvage",  weight = 7},
     {type = "boarding", weight = 3},
     {type = "hacking",  weight = 3},
+    {type = "destroy",  weight = 3},
 }
 local function pickMissionType()
     local total = 0
