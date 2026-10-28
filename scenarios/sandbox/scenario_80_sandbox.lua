@@ -156,8 +156,9 @@ function JOBS.accept(m, skip_log)
             setCommsMessage('"Get away from us."')
         end)
         m.target_cs = name
-        -- Update short description with actual target name
+        -- Update short description and objective with actual target name
         m.short = "Disable the " .. name
+        m.obj = "Disable " .. name
         m._spawned  = true
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn our custom comms relay beacon with only reactor system
@@ -180,8 +181,9 @@ function JOBS.accept(m, skip_log)
             setCommsMessage("Automated relay. No response.")
         end)
         m.target_cs = name
-        -- Update short description with actual relay name
+        -- Update short description and objective with actual relay name
         m.short = "Hack the " .. name
+        m.obj = "Hack " .. name
         m._spawned  = true
     end
 
