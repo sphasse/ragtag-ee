@@ -1072,16 +1072,15 @@ end
 function init()
     VERSE.setupFactions()
 
-    -- Create custom Comms Relay ship template with only reactor system for hacking
+    -- Create custom Comms Relay ship template - minimal systems
     local relay_template = ShipTemplate():setName("Comms Relay Beacon"):setModel("combatsat")
     relay_template:setClass("Satellite", "Comms Relay")
-    relay_template:setDescription("Automated communications relay beacon. Minimal systems: reactor only.")
+    relay_template:setDescription("Automated communications relay beacon.")
     relay_template:setRadarTrace("combatsat.png")
     relay_template:setHull(50)
-    relay_template:setShields(0)
+    relay_template:setShields(0, 0)  -- no shields
     relay_template:setSpeed(0, 0, 0)  -- stationary
-    -- Only define reactor system (no beams, missiles, shields, warp, jump, impulse, maneuver)
-    relay_template:setReactor(1.0, 1.0)
+    -- Don't define weapons, warp, jump - only reactor, impulse, maneuver will exist by default
 
     RT.useCampaign("sandbox")
     local fresh = getScenarioSetting("Campaign") == "Fresh start"
