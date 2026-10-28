@@ -252,6 +252,13 @@ function JOBS.accept(m, skip_log)
         m.short = "Hack the " .. name
         m.obj = "Hack " .. name
         m._spawned  = true
+
+        -- Disable hacking on player ships until they get within range
+        for _, p in ipairs(RT.players) do
+            if RT.valid(p) then
+                p:setCanHack(false)
+            end
+        end
     end
 
     -- Write contract details to log (unless caller will do it)
@@ -598,9 +605,25 @@ function JOBS.update()
                             local dist = math.sqrt(dx * dx + dy * dy)
                             if dist < 2000 then  -- 2U hacking range
                                 close_enough = true
-                                break
+                                -- Enable hacking on player ship when within range
+                                if not m._hacking_enabled then
+                                    p:setCanHack(true)
+                                    m._hacking_enabled = true
+                                    RT.shipLog("[Hack] Within range of " .. m.target_cs .. ". Hacking enabled.", "#80FF80")
+                                end
                             end
                         end
+                    end
+
+                    -- Disable hacking if too far away
+                    if not close_enough and m._hacking_enabled then
+                        for _, p in ipairs(RT.players) do
+                            if RT.valid(p) then
+                                p:setCanHack(false)
+                            end
+                        end
+                        m._hacking_enabled = false
+                        RT.shipLog("[Hack] Signal lost. Move within 2U of " .. m.target_cs .. " to continue hacking.", "#FF8080")
                     end
 
                     -- Check all hackable systems
@@ -615,22 +638,15 @@ function JOBS.update()
                         end
                     end
 
-                    -- Reset hacking progress if too far away
-                    if max_hack > 0 and not close_enough then
-                        for _, sys in ipairs(systems) do
-                            if target:getSystemHackedLevel(sys) > 0 then
-                                target:setSystemHackedLevel(sys, 0)
-                            end
-                        end
-                        if not m._warned_distance then
-                            RT.shipLog("[Hack] Signal too weak. Move within 2U of " .. m.target_cs .. " to hack.", "#FF8080")
-                            m._warned_distance = true
-                        end
-                    end
-
                     if max_hack >= m.hack_threshold and close_enough then
                         m._hacked = true
                         target:setCanBeDestroyed(true)
+                        -- Re-enable hacking for future missions
+                        for _, p in ipairs(RT.players) do
+                            if RT.valid(p) then
+                                p:setCanHack(true)
+                            end
+                        end
                         m.obj = "Return " .. m.cargo .. " to " .. m.origin
                         RT.shipLog("[Hack] System breach successful! Data extracted from " .. m.target_cs
                             .. ". Return to " .. m.origin .. ".", "#80FF80")
