@@ -170,24 +170,18 @@ function JOBS.accept(m)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
         s:setCanBeDestroyed(false)
 
-        -- Disable combat systems so only relay-appropriate systems show up for hacking
-        s:setSystemHealth("beamweapons", -1.0)
-        s:setSystemHealth("missilesystem", -1.0)
-        s:setSystemHealth("frontshield", -1.0)
-        s:setSystemHealth("rearshield", -1.0)
-        s:setSystemHealth("warp", -1.0)
-        s:setSystemHealth("jumpdrive", -1.0)
+        -- Remove all weapons and shields from the template
+        s:setBeamWeaponRange(0, 0)
+        s:setBeamWeaponRange(1, 0)
 
         -- Keep relay systems functional
         s:setSystemHealth("reactor", 1.0)
         s:setSystemHealth("maneuver", 1.0)
         s:setSystemHealth("impulse", 1.0)
 
-        -- Make it hackable
+        -- Make reactor hackable (the mission objective system)
         if s.setHackedLevel then
             s:setHackedLevel("reactor", 0.0)
-            s:setHackedLevel("maneuver", 0.0)
-            s:setHackedLevel("impulse", 0.0)
         end
         RT.register(s)
         s:setCommsFunction(function(src, tgt)
@@ -484,7 +478,7 @@ function JOBS.update()
             end
 
         elseif m.type == "hacking" then
-            -- Phase 1: watch for hack completion
+            -- Phase 1: watch for hack completion (any system to 50%)
             -- (target already spawned in JOBS.accept)
             if not m._hacked then
                 local target = RT.find(m.target_cs)
@@ -494,8 +488,17 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    local hack_lvl = target:getSystemHackedLevel(m.system)
-                    if hack_lvl >= m.hack_threshold then
+                    -- Check all systems for 50% hack level
+                    local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
+                    local hacked = false
+                    for _, sys in ipairs(systems) do
+                        local hack_lvl = target:getSystemHackedLevel(sys)
+                        if hack_lvl >= m.hack_threshold then
+                            hacked = true
+                            break
+                        end
+                    end
+                    if hacked then
                         m._hacked = true
                         target:setCanBeDestroyed(true)
                         m.obj = "Return " .. m.cargo .. " to " .. m.origin
