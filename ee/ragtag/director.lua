@@ -442,7 +442,8 @@ function DIR.update(delta)
         -- it fail on any table containing two or more non-empty table values.
         local s = _json(out)
         if DIR.seq <= 3 then
-            print("[DIR] write seq=" .. DIR.seq .. " len=" .. #s .. " proto=" .. tostring(out.proto) .. " run=" .. tostring(out.run))
+            -- Debug logging disabled - director communication working
+            -- print("[DIR] write seq=" .. DIR.seq .. " len=" .. #s .. " proto=" .. tostring(out.proto) .. " run=" .. tostring(out.run))
         end
         storage:set(DIR.KEY_OUT, s)
         DIR.dirty = false
