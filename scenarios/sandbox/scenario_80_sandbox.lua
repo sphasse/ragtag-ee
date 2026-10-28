@@ -1507,17 +1507,9 @@ function defineBeats()
     DIR.defineBeat("welcome", {desc = "Port Vesper dockmaster welcomes the crew", fn = function()
         -- Set objective first
         RT.setObjective("Explore the Drift")
-        -- Then send welcome hail (appears in comms window, auto-logs to ship log)
+        -- Log welcome message directly (no hail, to avoid double-logging)
         local session_text = S.session_num == 1 and "Welcome to the Drift, independents." or "Back again, I see."
-        local vesper = RT.find("Port Vesper")
-        if RT.valid(vesper) then
-            -- Use sendCommsMessage directly to show hail without manual log entry
-            for _, p in ipairs(RT.players) do
-                if RT.valid(p) then
-                    vesper:sendCommsMessage(p, session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe.")
-                end
-            end
-        end
+        RT.shipLog("[Port Vesper Dockmaster] " .. session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe.", "#C0E0FF")
     end})
 
     DIR.defineBeat("first_undock", {desc = "Crew undocks for the first time this session", fn = function()
