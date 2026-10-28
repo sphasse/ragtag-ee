@@ -95,14 +95,16 @@ local _CORSAIR_NAMES = {
     "Last Chance", "Cold Comfort", "Rough Justice", "Dark Horse", "Free Radical",
 }
 
-local _RELAY_NAMES = {
-    "Lighthouse", "Beacon", "Waypoint", "Sentinel", "Outpost",
-    "Pharos", "Signal", "Node", "Marker", "Watchtower",
-    "Relay Alpha", "Relay Beta", "Relay Gamma", "Relay Delta", "Relay Epsilon",
-    "Junction", "Crossroads", "Terminus", "Frontier", "Border",
-    "Echo", "Pulse", "Transmission", "Link", "Bridge",
-    "Gateway", "Portal", "Channel", "Conduit", "Nexus",
-}
+-- Generate a random beacon designator like "Beacon AB3C2"
+local function generateBeaconName()
+    local chars = "ABCDEFGHJKLMNPQRSTUVWXYZ123456789"  -- no I, O, 0 to avoid confusion
+    local code = ""
+    for i = 1, 5 do
+        local idx = math.random(#chars)
+        code = code .. chars:sub(idx, idx)
+    end
+    return "Beacon " .. code
+end
 local function jobLine(m, now)
     local mins = m._expires_at and math.max(0, math.ceil((m._expires_at - now) / 60)) or "?"
     return string.format("%s (%sm)", m.short, mins)
@@ -161,8 +163,8 @@ function JOBS.accept(m)
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn a small ship (MT52 Hornet scout) repurposed as a relay buoy
         local s = CpuShip():setTemplate("MT52 Hornet"):setFaction("Concord")
-        -- Give it a creative relay name
-        local name = _RELAY_NAMES[math.random(#_RELAY_NAMES)]
+        -- Give it a random beacon designator
+        local name = generateBeaconName()
         s:setCallSign(name)
         s:setTypeName("Comms Relay")
         s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
