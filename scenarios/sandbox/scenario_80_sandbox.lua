@@ -169,10 +169,25 @@ function JOBS.accept(m)
         s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
         s:setCanBeDestroyed(false)
-        s:setSystemHealth(m.system, 1.0)
+
+        -- Disable combat systems so only relay-appropriate systems show up for hacking
+        s:setSystemHealth("beamweapons", -1.0)
+        s:setSystemHealth("missilesystem", -1.0)
+        s:setSystemHealth("frontshield", -1.0)
+        s:setSystemHealth("rearshield", -1.0)
+        s:setSystemHealth("warp", -1.0)
+        s:setSystemHealth("jumpdrive", -1.0)
+
+        -- Keep relay systems functional
+        s:setSystemHealth("reactor", 1.0)
+        s:setSystemHealth("maneuver", 1.0)
+        s:setSystemHealth("impulse", 1.0)
+
         -- Make it hackable
         if s.setHackedLevel then
-            s:setHackedLevel(m.system, 0.0)
+            s:setHackedLevel("reactor", 0.0)
+            s:setHackedLevel("maneuver", 0.0)
+            s:setHackedLevel("impulse", 0.0)
         end
         RT.register(s)
         s:setCommsFunction(function(src, tgt)
