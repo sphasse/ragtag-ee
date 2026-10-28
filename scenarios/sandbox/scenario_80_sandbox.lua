@@ -146,6 +146,24 @@ function JOBS.accept(m, skip_log)
         local cargo_pod = SupplyDrop():setFaction("Independent"):setPosition(m.wx, m.wy)
         cargo_pod:setDescriptions("Salvage Container", m.cargo)
         cargo_pod:setCallSign("Salvage")
+        -- Set up pickup callback to mark mission complete
+        cargo_pod:onPickUp(function(self, player)
+            -- Find the mission this cargo belongs to
+            for _, entry in ipairs(_active) do
+                local mission = entry.mission
+                if mission.type == "salvage" and mission.cargo_obj == self then
+                    mission._found = true
+                    mission.obj = "Return " .. mission.cargo .. " to " .. mission.origin
+                    RT.shipLog("[Salvage] Cargo pod collected: " .. mission.cargo .. ". Return to " .. mission.origin .. " for payment.", "#80FF80")
+                    JOBS.updateObj()
+                    if mission.intercept and not mission.intercept.fired then
+                        mission.intercept.fired = true
+                        MISSION._spawnIntercept(mission, player:getPosition())
+                    end
+                    break
+                end
+            end
+        end)
         RT.register(cargo_pod)
         m.cargo_obj = cargo_pod  -- store reference
         m._spawned = true
@@ -416,7 +434,7 @@ function JOBS.update()
         end
 
         if m.type == "salvage" and not m._found then
-            -- Check if cargo pod still exists
+            -- Check if cargo pod still exists (if destroyed before pickup)
             if m.cargo_obj and not RT.valid(m.cargo_obj) then
                 RT.shipLog("[Salvage] Cargo destroyed — contract lost.", "#FF8080")
                 MISSION.untrack(m.id)
@@ -424,29 +442,7 @@ function JOBS.update()
                 JOBS.updateObj()
                 goto next_entry
             end
-
-            -- Check if player is near cargo pod (within 1U for pickup)
-            for _, p in ipairs(RT.players) do
-                if RT.valid(p) then
-                    local px, py = p:getPosition()
-                    local dx, dy = px - m.wx, py - m.wy
-                    if dx*dx + dy*dy < 1000*1000 then  -- 1U pickup range
-                        m._found = true
-                        m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                        -- Remove the cargo pod from the map
-                        if m.cargo_obj and RT.valid(m.cargo_obj) then
-                            m.cargo_obj:destroy()
-                        end
-                        RT.shipLog("[Salvage] Cargo pod collected: " .. m.cargo .. ". Return to " .. m.origin .. " for payment.", "#80FF80")
-                        JOBS.updateObj()
-                        if m.intercept and not m.intercept.fired then
-                            m.intercept.fired = true
-                            MISSION._spawnIntercept(m, px, py)
-                        end
-                        break
-                    end
-                end
-            end
+            -- Pickup is handled by onPickUp callback on the SupplyDrop
 
         elseif m.type == "boarding" then
             -- Phase 1: watch for disable (impulse health < 0.3 or hull < 25%)
