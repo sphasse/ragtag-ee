@@ -584,7 +584,7 @@ function MISSION.newBoarding(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer,  -- Updated with actual callsign on spawn
+        short           = arch.short_offer .. " (boarding)",
         obj             = "Locate and disable target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
@@ -644,11 +644,11 @@ function MISSION.newDestroy(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer,  -- Updated with actual callsign on spawn
+        short           = arch.short_offer .. " (destroy)",
         obj             = "Locate and destroy target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget must be completely destroyed. No boarding, no salvage.",
-        complete_msg    = arch.recv_msg,
+        complete_msg    = arch.rev_msg,
         target_template = arch.target_template,
         target_dest     = target_dest,
         intercept       = intercept,
@@ -698,7 +698,7 @@ function MISSION.newHacking(opts)
         system         = arch.system or "reactor",
         hack_threshold = 0.75,
         reward         = reward,
-        short          = arch.short_offer,  -- Updated with actual callsign on spawn
+        short          = arch.short_offer .. " (hacking)",
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
                          .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",

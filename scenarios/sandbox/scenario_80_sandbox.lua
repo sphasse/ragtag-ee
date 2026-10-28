@@ -225,10 +225,10 @@ function JOBS.accept(m, skip_log)
         m.target_cs = name
         -- Update short description and objective with actual target name
         if m.type == "boarding" then
-            m.short = "Disable the " .. name .. " (boarding)"
+            m.short = "Disable " .. name .. " (boarding)"
             m.obj = "Intercept " .. name
         else  -- destroy
-            m.short = "Destroy the " .. name .. " (destroy)"
+            m.short = "Destroy " .. name .. " (destroy)"
             m.obj = "Destroy " .. name
         end
         m._spawned  = true
@@ -253,7 +253,7 @@ function JOBS.accept(m, skip_log)
         end)
         m.target_cs = name
         -- Update short description and objective with actual relay name
-        m.short = "Hack the " .. name .. " (hacking)"
+        m.short = "Hack " .. name .. " (hacking)"
         m.obj = "Hack " .. name
         m._spawned  = true
     end
