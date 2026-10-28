@@ -570,6 +570,62 @@ function MISSION.newBoarding(opts)
     }
 end
 
+-- Generate a destroy mission record.
+-- opts: {origin, wx, wy, tier, nearby_stations}
+--   wx/wy — world-unit coordinates where the target ship patrols
+-- The scenario spawns the target on accept and tracks destroy phase.
+function MISSION.newDestroy(opts)
+    local tier = opts.tier or 0
+    local pool = {}
+    for _, a in ipairs(_DESTROY_ARCHETYPES) do
+        if a.tier_min <= tier then pool[#pool + 1] = a end
+    end
+    if #pool == 0 then pool = _DESTROY_ARCHETYPES end
+    local arch   = pool[math.random(#pool)]
+    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    -- Pick destination station for target
+    local target_dest = nil
+    if opts.nearby_stations and #opts.nearby_stations > 0 then
+        target_dest = opts.nearby_stations[math.random(#opts.nearby_stations)]
+    end
+
+    -- Intercept fires when target is destroyed (handled by scenario)
+    local intercept = nil
+    if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
+        local ic = _weightedPick(arch.intercept_types)
+        intercept = {
+            itype    = ic.type,
+            strength = ic.strength,
+            trigger  = 0,  -- fires on approach, not route progress
+            msg_log  = ic.msg,
+            fired    = false,
+        }
+    end
+
+    return {
+        id              = _nextId(),
+        type            = "destroy",
+        tier            = tier,
+        origin          = opts.origin,
+        wx              = opts.wx,
+        wy              = opts.wy,
+        cargo           = arch.cargo,
+        reward          = reward,
+        short           = arch.short_offer,  -- Updated with actual callsign on spawn
+        obj             = "Locate and destroy target",
+        brief           = arch.lore .. "\n\n" .. arch.accept_msg
+                          .. "\n\nTarget must be completely destroyed. No boarding, no salvage.",
+        complete_msg    = arch.recv_msg,
+        target_template = arch.target_template,
+        target_dest     = target_dest,
+        intercept       = intercept,
+        _spawned        = false,
+        _destroyed      = false,
+        target_cs       = nil,
+    }
+end
+
 -- Generate a hacking mission record.
 -- opts: {origin, wx, wy, tier}
 --   wx/wy — world-unit coordinates where the relay buoy will be spawned

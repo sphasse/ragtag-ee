@@ -83,7 +83,7 @@ end
 JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
 JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
 
-local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]"}
+local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]", destroy="[X]"}
 
 -- Creative names for spawned mission targets
 local _CORSAIR_NAMES = {
@@ -169,8 +169,8 @@ function JOBS.accept(m, skip_log)
         RT.register(cargo_pod)
         m.cargo_obj = cargo_pod  -- store reference
         m._spawned = true
-    -- Spawn boarding/hacking targets immediately so player knows the target name
-    elseif m.type == "boarding" and not m._spawned then
+    -- Spawn boarding/hacking/destroy targets immediately so player knows the target name
+    elseif (m.type == "boarding" or m.type == "destroy") and not m._spawned then
         -- Pick a destination station for the target to fly toward
         local dest_station = nil
         for _, d in ipairs(VERSE.STATIONS) do
@@ -223,8 +223,13 @@ function JOBS.accept(m, skip_log)
         end)
         m.target_cs = name
         -- Update short description and objective with actual target name
-        m.short = "Disable the " .. name .. " (boarding)"
-        m.obj = "Intercept " .. name
+        if m.type == "boarding" then
+            m.short = "Disable the " .. name .. " (boarding)"
+            m.obj = "Intercept " .. name
+        else  -- destroy
+            m.short = "Destroy the " .. name .. " (destroy)"
+            m.obj = "Destroy " .. name
+        end
         m._spawned  = true
         m._attacking = false  -- Track if ship has engaged player
     elseif m.type == "hacking" and not m._spawned then
@@ -255,7 +260,7 @@ function JOBS.accept(m, skip_log)
     -- Write contract details to log (unless caller will do it)
     if not skip_log then
         local dest_hint = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
-        if m.type == "boarding" then
+        if m.type == "boarding" or m.type == "destroy" then
             local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
             RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
                 m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
@@ -335,7 +340,7 @@ function JOBS.stationHook(source, target)
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
                 end)
-            elseif m.type == "hacking" and m.origin == cs and m._hacked then
+            elseif (m.type == "hacking" or m.type == "destroy") and m.origin == cs and (m._hacked or m._destroyed) then
                 local ent = entry
                 addCommsReply(string.format("Deliver %s (+%d cr)", m.cargo, m.reward), function(s, t)
                     JOBS.complete(ent, s)
@@ -403,16 +408,29 @@ function JOBS.stationHook(source, target)
                         wy = math.floor(ry + math.sin(ang) * dist),
                         tier = tier,
                     })
-                elseif mtype == "hacking" and RT.valid(station_e) then
+                elseif (mtype == "hacking" or mtype == "destroy") and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
                     local dist = (15 + math.random() * 15) * 1000  -- 15-30U from origin
-                    offers[#offers + 1] = MISSION.newHacking({
-                        origin = cs,
-                        wx = math.floor(rx + math.cos(ang) * dist),
-                        wy = math.floor(ry + math.sin(ang) * dist),
-                        tier = tier,
-                    })
+                    local wx = math.floor(rx + math.cos(ang) * dist)
+                    local wy = math.floor(ry + math.sin(ang) * dist)
+                    if mtype == "hacking" then
+                        offers[#offers + 1] = MISSION.newHacking({
+                            origin = cs,
+                            wx = wx,
+                            wy = wy,
+                            tier = tier,
+                        })
+                    else  -- destroy
+                        local nearby = VERSE.nearbyStations(rx, ry, 35000)
+                        offers[#offers + 1] = MISSION.newDestroy({
+                            origin = cs,
+                            wx = wx,
+                            wy = wy,
+                            tier = tier,
+                            nearby_stations = nearby,
+                        })
+                    end
                 elseif dest_idx <= #candidates then
                     -- fallback: delivery
                     offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
@@ -446,7 +464,7 @@ function JOBS.stationHook(source, target)
                         local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
                         RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
                             cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
-                    elseif cap.type == "hacking" then
+                    elseif cap.type == "hacking" or cap.type == "destroy" then
                         RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
                             cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
                     else
@@ -588,6 +606,48 @@ function JOBS.update()
                 if now - m._boarded_at > 0.5 then  -- 0.5s delay to force log refresh
                     m._boarding_confirmed = true
                     -- This second message forces EmptyEpsilon's log UI to refresh
+                end
+            end
+
+        elseif m.type == "destroy" then
+            -- Phase 1: watch for target destroyed
+            if not m._destroyed then
+                local target = RT.find(m.target_cs)
+                if not RT.valid(target) then
+                    -- Target destroyed!
+                    m._destroyed = true
+                    m.obj = "Return to " .. m.origin
+                    RT.shipLog("[Target] " .. m.target_cs .. " destroyed. Return to " .. m.origin .. ".", "#80FF80")
+                    -- Fire intercept on the return leg
+                    if m.intercept and not m.intercept.fired then
+                        m.intercept.fired = true
+                        local origin_e = RT.find(m.origin)
+                        if RT.valid(origin_e) then
+                            m._dx, m._dy = origin_e:getPosition()
+                        end
+                        local ref = RT.nearestPlayer(m.wx, m.wy)
+                        if RT.valid(ref) then
+                            local px, py = ref:getPosition()
+                            MISSION._spawnIntercept(m, px, py)
+                        end
+                    end
+                    JOBS.updateObj()
+                else
+                    -- When player gets close, set to Corsairs faction and engage
+                    if not m._attacking then
+                        for _, p in ipairs(RT.players) do
+                            if RT.valid(p) then
+                                local dist = RT.dist(target, p)
+                                if dist < 8000 then  -- 8U engagement range
+                                    target:setFaction("Corsairs")  -- Now hostile to player
+                                    target:orderAttack(p)
+                                    m._attacking = true
+                                    RT.shipLog("[Target] " .. m.target_cs .. " detected our approach and is engaging!", "#FF8080")
+                                    break
+                                end
+                            end
+                        end
+                    end
                 end
             end
 
