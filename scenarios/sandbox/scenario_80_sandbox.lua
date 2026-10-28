@@ -160,8 +160,8 @@ function JOBS.accept(m, skip_log)
         m.short = "Disable the " .. name
         m._spawned  = true
     elseif m.type == "hacking" and not m._spawned then
-        -- Spawn a satellite template which looks like a relay beacon
-        local s = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
+        -- Spawn our custom comms relay beacon with only reactor system
+        local s = CpuShip():setTemplate("Comms Relay Beacon"):setFaction("Concord")
         -- Give it a random beacon designator
         local name = generateBeaconName()
         s:setCallSign(name)
@@ -169,13 +169,9 @@ function JOBS.accept(m, skip_log)
         s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
         s:setCanBeDestroyed(false)
-
-        -- Keep relay systems functional
         s:setSystemHealth("reactor", 1.0)
-        s:setSystemHealth("maneuver", 1.0)
-        s:setSystemHealth("impulse", 1.0)
 
-        -- Make reactor hackable (the mission objective system)
+        -- Make reactor hackable
         if s.setHackedLevel then
             s:setHackedLevel("reactor", 0.0)
         end
@@ -489,7 +485,7 @@ function JOBS.update()
             end
 
         elseif m.type == "hacking" then
-            -- Phase 1: watch for hack completion (any system to 50%)
+            -- Phase 1: watch for hack completion (reactor to 50%)
             -- (target already spawned in JOBS.accept)
             if not m._hacked then
                 local target = RT.find(m.target_cs)
@@ -499,17 +495,8 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    -- Check all systems for 50% hack level
-                    local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
-                    local hacked = false
-                    for _, sys in ipairs(systems) do
-                        local hack_lvl = target:getSystemHackedLevel(sys)
-                        if hack_lvl >= m.hack_threshold then
-                            hacked = true
-                            break
-                        end
-                    end
-                    if hacked then
+                    local hack_lvl = target:getSystemHackedLevel("reactor")
+                    if hack_lvl >= m.hack_threshold then
                         m._hacked = true
                         target:setCanBeDestroyed(true)
                         m.obj = "Return " .. m.cargo .. " to " .. m.origin
@@ -1084,6 +1071,18 @@ end
 
 function init()
     VERSE.setupFactions()
+
+    -- Create custom Comms Relay ship template with only reactor system for hacking
+    local relay_template = ShipTemplate():setName("Comms Relay Beacon"):setModel("combatsat")
+    relay_template:setClass("Satellite", "Comms Relay")
+    relay_template:setDescription("Automated communications relay beacon. Minimal systems: reactor only.")
+    relay_template:setRadarTrace("combatsat.png")
+    relay_template:setHull(50)
+    relay_template:setShields(0)
+    relay_template:setSpeed(0, 0, 0)  -- stationary
+    -- Only define reactor system (no beams, missiles, shields, warp, jump, impulse, maneuver)
+    relay_template:setReactor(1.0, 1.0)
+
     RT.useCampaign("sandbox")
     local fresh = getScenarioSetting("Campaign") == "Fresh start"
     RT.loadCampaign(fresh)

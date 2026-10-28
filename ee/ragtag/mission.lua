@@ -609,7 +609,7 @@ function MISSION.newHacking(opts)
         short          = arch.short_offer,  -- Updated with actual callsign on spawn
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
-                         .. "\n\nHack any of the relay's systems to 50% to extract the data.",
+                         .. "\n\nHack the relay's reactor to 50% to extract the data.",
         complete_msg   = arch.recv_msg,
         intercept      = intercept,
         _spawned       = false,
