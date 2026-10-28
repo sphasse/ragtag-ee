@@ -701,7 +701,7 @@ function VERSE.updateRegion()
     local r = VERSE.regionAt(x, y)
     if r == VERSE.region then return end
     VERSE.region = r
-    local label = "Location: " .. r.name .. " (" .. DANGER_LABEL[r.danger] .. ")"
+    local label = "Location: " .. r.name
     p:addCustomInfo("helms", "rt_region", label, 1)
     p:addCustomInfo("relay", "rt_region_r", label, 1)
     p:addCustomInfo("operations", "rt_region_o", label, 1)
