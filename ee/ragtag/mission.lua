@@ -465,7 +465,7 @@ function MISSION.newDelivery(opts)
         dest         = opts.dest,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " → " .. dest_short,
+        short        = arch.cargo .. " → " .. dest_short .. " (delivery)",
         obj          = "Deliver to " .. dest_short,
         -- brief shown after accepting (lore + contact's words)
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,

@@ -223,7 +223,7 @@ function JOBS.accept(m, skip_log)
         end)
         m.target_cs = name
         -- Update short description and objective with actual target name
-        m.short = "Disable the " .. name
+        m.short = "Disable the " .. name .. " (boarding)"
         m.obj = "Intercept " .. name
         m._spawned  = true
         m._attacking = false  -- Track if ship has engaged player
@@ -247,7 +247,7 @@ function JOBS.accept(m, skip_log)
         end)
         m.target_cs = name
         -- Update short description and objective with actual relay name
-        m.short = "Hack the " .. name
+        m.short = "Hack the " .. name .. " (hacking)"
         m.obj = "Hack " .. name
         m._spawned  = true
     end
