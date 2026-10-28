@@ -181,32 +181,16 @@ function JOBS.accept(m, skip_log)
             end
         end
 
-        -- Create a custom dockable template for boarding targets
-        local dock_template_name = "Boarding Target " .. m.target_template
-        local existing = __ship_templates[dock_template_name]
-        if not existing then
-            local base_template = __ship_templates[m.target_template]
-            if base_template then
-                local new_template = ShipTemplate():setName(dock_template_name)
-                -- Copy basic properties from base template
-                if base_template.model_data then
-                    new_template:setModel(base_template.model_data)
-                end
-                if base_template.docking_port and base_template.docking_port.dock_class then
-                    new_template:setClass(base_template.docking_port.dock_class, "Corsair")
-                else
-                    new_template:setClass("Frigate", "Corsair")
-                end
-                -- Enable external docking for player ships
-                new_template:setExternalDockClasses("Frigate", "Corvette", "Starfighter")
-            end
-        end
-
-        local s = CpuShip():setTemplate(dock_template_name):setFaction("Corsairs")
+        -- Just use the base template - CpuShips can accept docking if we manage it manually
+        local s = CpuShip():setTemplate(m.target_template):setFaction("Corsairs")
         -- Give it a creative Corsair name
         local name = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
         s:setCallSign(name)
         s:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
+
+        -- Temporarily set to neutral faction so other NPCs won't attack it prematurely
+        -- Will be set back to Corsairs when player gets close
+        s:setFaction("Independent")
 
         -- Order ship to fly toward destination station
         if dest_station then
@@ -514,12 +498,13 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    -- When player gets close, target engages
+                    -- When player gets close, set to Corsairs faction and engage
                     if not m._attacking then
                         for _, p in ipairs(RT.players) do
                             if RT.valid(p) then
                                 local dist = RT.dist(target, p)
                                 if dist < 8000 then  -- 8U engagement range
+                                    target:setFaction("Corsairs")  -- Now hostile to player
                                     target:orderAttack(p)
                                     m._attacking = true
                                     RT.shipLog("[Target] " .. m.target_cs .. " detected our approach and is engaging!", "#FF8080")
@@ -538,24 +523,25 @@ function JOBS.update()
                         target:setImpulseMaxSpeed(5)
                         target:setCommsFunction(function(src, tgt)
                             setCommsMessage('"We\'re done. Come aboard and take what you came for."')
-                            addCommsReply("Request docking", function()
-                                setCommsMessage("Docking clearance granted.")
-                            end)
                         end)
                         m.obj = "Board " .. m.target_cs
-                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Dock to board.", "#FFCC80")
+                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Move within 1U to board.", "#FFCC80")
                         JOBS.updateObj()
                     end
                 end
 
-            -- Phase 3: wait for any player to dock with the disabled target
+            -- Phase 3: wait for any player to get close to the disabled target (proximity boarding)
             elseif not m._boarded then
                 local target = RT.find(m.target_cs)
                 if RT.valid(target) then
+                    local tx, ty = target:getPosition()
                     for _, p in ipairs(RT.players) do
                         if RT.valid(p) then
-                            local docked = p:getDockedWith()
-                            if docked and docked == target then
+                            local px, py = p:getPosition()
+                            local dx, dy = px - tx, py - ty
+                            local dist = math.sqrt(dx * dx + dy * dy)
+                            -- Proximity boarding - within 1000 units
+                            if dist < 1000 then
                                 m._boarded = true
                                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
                                 -- Player has boarded successfully
@@ -567,7 +553,6 @@ function JOBS.update()
                                     if RT.valid(origin_e) then
                                         m._dx, m._dy = origin_e:getPosition()
                                     end
-                                    local px, py = p:getPosition()
                                     MISSION._spawnIntercept(m, px, py)
                                 end
                                 JOBS.updateObj()
