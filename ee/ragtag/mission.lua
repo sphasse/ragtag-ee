@@ -547,7 +547,7 @@ function MISSION.newSalvage(opts)
 end
 
 -- Generate a boarding mission record.
--- opts: {origin, wx, wy, tier}
+-- opts: {origin, wx, wy, tier, nearby_stations, distance_u, danger_level}
 --   wx/wy — world-unit coordinates where the target ship patrols
 -- The scenario spawns the target on accept and tracks disable/board phases.
 function MISSION.newBoarding(opts)
@@ -558,10 +558,20 @@ function MISSION.newBoarding(opts)
     end
     if #pool == 0 then pool = _BOARDING_ARCHETYPES end
     local arch = pool[math.random(#pool)]
-    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    -- Calculate distance and danger
+    local distance_u = opts.distance_u or 0
+    local danger_level = opts.danger_level or 0
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.boarding, arch.reward_mult or 1.0, distance_u, danger_level)
 
     local templates = _BOARDING_TEMPLATES[tier] or _BOARDING_TEMPLATES[0]
     local target_template = templates[math.random(#templates)]
+
+    -- Pick destination station for target
+    local target_dest = nil
+    if opts.nearby_stations and #opts.nearby_stations > 0 then
+        target_dest = opts.nearby_stations[math.random(#opts.nearby_stations)]
+    end
 
     local intercept = nil
     if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
@@ -590,6 +600,7 @@ function MISSION.newBoarding(opts)
                           .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
         complete_msg    = arch.recv_msg,
         target_template = target_template,
+        target_dest     = target_dest,
         intercept       = intercept,
         _spawned        = false,
         _disabled       = false,
