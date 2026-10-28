@@ -64,7 +64,7 @@ local _active = {}   -- list of {mission=m, phase="active"|"done"}
 local _done   = {}   -- id → true (taken or completed this session)
 
 local _MISSION_WEIGHTS = {
-    {type = "delivery", weight = 20},
+    {type = "delivery", weight = 15},
     {type = "salvage",  weight = 7},
     {type = "boarding", weight = 3},
     {type = "hacking",  weight = 3},
