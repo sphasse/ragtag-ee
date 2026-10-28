@@ -599,20 +599,48 @@ function VERSE.updateTransports(now)
                     rec.resume_at = nil
                     if RT.valid(rec.dest) then s:orderDock(rec.dest) end
                 end
-                -- Stall watchdog: two AI freighters meeting head-on on a lane can
-                -- deadlock at zero speed. If one barely moves for a minute, nudge it.
+                -- Stall watchdog: ships can get stuck on planets or deadlock with each other.
+                -- Track position and give progressively more aggressive fixes.
                 if rec.stall_t == nil then
                     rec.stall_t, rec.stall_x, rec.stall_y = now, x, y
+                    rec.stall_count = 0
                 elseif now - rec.stall_t >= 60 then
                     local moved = math.sqrt((x - rec.stall_x) ^ 2 + (y - rec.stall_y) ^ 2)
-                    if moved < 800 and rec.resume_at == nil then
-                        local dx, dy = vectorFromAngle(s:getHeading() + 90, 1500, true)
-                        if not RT.valid(RT.player) or RT.dist(s, RT.player) > 12000 then
-                            s:setPosition(x + dx, y + dy)       -- nobody's watching: hop aside
+                    if moved < 1500 and rec.resume_at == nil then
+                        rec.stall_count = (rec.stall_count or 0) + 1
+                        if rec.stall_count >= 3 then
+                            -- Stuck for 3+ minutes: destroy and respawn elsewhere
+                            table.remove(VERSE.transports, i)
+                            table.insert(VERSE.respawn_queue, {route = rec.route, at = now + VERSE.rng_live.float(30, 90)})
+                            s:destroy()
+                        elseif rec.stall_count == 2 then
+                            -- Stuck for 2 minutes: teleport to destination's vicinity if far from player
+                            if rec.dest and RT.valid(rec.dest) and (not RT.valid(RT.player) or RT.dist(s, RT.player) > 15000) then
+                                local tx, ty = rec.dest:getPosition()
+                                local angle = VERSE.rng_live.float(0, 360)
+                                local dx, dy = vectorFromAngle(angle, VERSE.rng_live.float(8000, 12000), true)
+                                s:setPosition(tx + dx, ty + dy)
+                                s:setHeading(angle)
+                                s:orderDock(rec.dest)
+                                rec.last_order = now
+                            else
+                                -- Player watching or no dest: try larger sidestep
+                                local dx, dy = vectorFromAngle(s:getHeading() + 90, 5000, true)
+                                s:setPosition(x + dx, y + dy)
+                            end
                         else
-                            s:orderFlyTowardsBlind(x + dx * 2, y + dy * 2)   -- visible sidestep
-                            rec.resume_at = now + 15
+                            -- First stall (1 minute): small nudge
+                            local dx, dy = vectorFromAngle(s:getHeading() + 90, 1500, true)
+                            if not RT.valid(RT.player) or RT.dist(s, RT.player) > 12000 then
+                                s:setPosition(x + dx, y + dy)
+                            else
+                                s:orderFlyTowardsBlind(x + dx * 2, y + dy * 2)
+                                rec.resume_at = now + 15
+                            end
                         end
+                    else
+                        -- Ship is moving, reset stall counter
+                        rec.stall_count = 0
                     end
                     rec.stall_t, rec.stall_x, rec.stall_y = now, x, y
                 end
