@@ -104,22 +104,8 @@ local _RELAY_NAMES = {
     "Gateway", "Portal", "Channel", "Conduit", "Nexus",
 }
 local function jobLine(m, now)
-    local mins  = m._expires_at and math.max(0, math.ceil((m._expires_at - now) / 60)) or "?"
-    local where
-    if m.type == "delivery" then
-        where = "→ " .. _sd(m.dest or "?")
-    elseif m.type == "salvage" then
-        where = m._found and ("ret → " .. _sd(m.origin)) or "→ site"
-    elseif m.type == "boarding" then
-        if m._boarded        then where = "ret → " .. _sd(m.origin)
-        elseif m._disabled   then where = "→ board " .. (m.target_cs or "?")
-        else                      where = "→ disable" end
-    elseif m.type == "hacking" then
-        where = m._hacked and ("ret → " .. _sd(m.origin)) or "→ hack relay"
-    else
-        where = m.obj or "active"
-    end
-    return string.format("%s %s  %dcr  %sm", _TYPE_PFX[m.type] or "[?]", where, m.reward, mins)
+    local mins = m._expires_at and math.max(0, math.ceil((m._expires_at - now) / 60)) or "?"
+    return string.format("%s (%sm)", m.short, mins)
 end
 
 function JOBS.refreshPanel()
@@ -128,7 +114,7 @@ function JOBS.refreshPanel()
         for slot = 1, 2 do
             local entry = _active[slot]
             local txt = (entry and entry.phase == "active")
-                        and ("Job " .. slot .. ": " .. jobLine(entry.mission, now))
+                        and ("Job: " .. jobLine(entry.mission, now))
                         or  ("Job " .. slot .. ": (none)")
             p:addCustomInfo("relay", "rt_job_" .. slot, txt, slot)
         end
