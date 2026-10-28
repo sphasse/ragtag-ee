@@ -561,6 +561,7 @@ function JOBS.update()
                             if dist < 1000 then  -- 1U proximity boarding
                                 print("[Boarding] Within 1U - boarding now!")
                                 m._boarded = true
+                                m._boarded_at = now
                                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
                                 -- Player has boarded successfully
                                 RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
@@ -580,6 +581,13 @@ function JOBS.update()
                     end
                 else
                     print("[Boarding] ERROR: Target " .. (m.target_cs or "nil") .. " is not valid!")
+                end
+
+            -- Phase 4: Send follow-up message after boarding to force UI refresh
+            elseif m._boarded and not m._boarding_confirmed then
+                if now - m._boarded_at > 0.5 then  -- 0.5s delay to force log refresh
+                    m._boarding_confirmed = true
+                    -- This second message forces EmptyEpsilon's log UI to refresh
                 end
             end
 
