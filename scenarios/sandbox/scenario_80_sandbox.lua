@@ -363,10 +363,11 @@ function JOBS.stationHook(source, target)
 
     -- On-demand job board: generate fresh deliveries each time.
     addCommsReply("Any work available?", function(s, t)
-        local offers = {}
-        local mt = JOBS.maxTier()
+        local ok, err = pcall(function()
+            local offers = {}
+            local mt = JOBS.maxTier()
 
-        -- Director-pushed deliveries take priority (no re-offer if already taken)
+            -- Director-pushed deliveries take priority (no re-offer if already taken)
         for _, m in ipairs(MISSION._dynamic_queue) do
             if m.origin == cs and not _done[m.id] then
                 offers[#offers + 1] = m
@@ -534,6 +535,15 @@ function JOBS.stationHook(source, target)
             end)
         end
         addCommsReply("Nothing for me", function(s2, t2) RT.stationComms(s2, t2) end)
+        end)  -- end pcall function
+
+        if not ok then
+            -- Error occurred - log with stack trace
+            print("[ERROR] Mission generation failed: " .. tostring(err))
+            print(debug.traceback())
+            setCommsMessage('"System error generating contracts. Please report to the dockmaster."')
+            addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+        end
     end)
 end
 
