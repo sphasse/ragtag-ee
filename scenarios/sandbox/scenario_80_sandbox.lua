@@ -568,9 +568,9 @@ function JOBS.stationHook(source, target)
         end)  -- end pcall function
 
         if not ok then
-            -- Error occurred - log with stack trace
+            -- Error occurred - log detailed error
             print("[ERROR] Mission generation failed: " .. tostring(err))
-            print(debug.traceback())
+            -- debug library not available in EE Lua, but err should contain the traceback
             setCommsMessage('"System error generating contracts. Please report to the dockmaster."')
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
         end
