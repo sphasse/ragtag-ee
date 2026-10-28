@@ -204,7 +204,7 @@ function JOBS.accept(m, skip_log)
                     new_template:setHull(base_template.hull)
                 end
                 if base_template.shields then
-                    new_template:setShields(unpack(base_template.shields))
+                    new_template:setShields(table.unpack(base_template.shields))
                 end
                 if base_template.speed then
                     new_template:setSpeed(base_template.speed.impulse, base_template.speed.turn, base_template.speed.acceleration)
