@@ -145,7 +145,9 @@ function JOBS.accept(m, skip_log)
     if m.type == "salvage" and not m._spawned then
         local cargo_pod = SupplyDrop():setFaction("Independent"):setPosition(m.wx, m.wy)
         cargo_pod:setDescriptions("Salvage Container", m.cargo)
-        cargo_pod:setCallSign("Salvage")
+        -- Use the cargo name as the callsign (capitalize first letter)
+        local cargo_name = m.cargo:gsub("^%l", string.upper)
+        cargo_pod:setCallSign(cargo_name)
         -- Set up pickup callback to mark mission complete
         cargo_pod:onPickUp(function(self, player)
             -- Find the mission this cargo belongs to
