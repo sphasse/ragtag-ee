@@ -599,7 +599,7 @@ function MISSION.newHacking(opts)
         short          = arch.cargo .. " (hack)",
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
-                         .. "\n\nRelay station: open the hacking panel and target the reactor subsystem to extract the data.",
+                         .. "\n\nHack the relay's reactor system to 50% to extract the data.",
         complete_msg   = arch.recv_msg,
         intercept      = intercept,
         _spawned       = false,

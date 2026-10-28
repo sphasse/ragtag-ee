@@ -157,7 +157,7 @@ function JOBS.accept(m)
         s:setSystemHealth(m.system, 1.0)
         RT.register(s)
         s:setCommsFunction(function(src, tgt)
-            setCommsMessage("Automated relay. No comms response.\n\nTo extract data: get within 5U and use the Relay console's 'Start Hacking' button to hack the reactor system to 50%.")
+            setCommsMessage("Automated relay. No response.")
         end)
         m.target_cs = s:getCallSign()
         m._spawned  = true
