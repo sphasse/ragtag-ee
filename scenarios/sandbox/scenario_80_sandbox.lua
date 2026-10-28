@@ -471,24 +471,26 @@ function JOBS.update()
                         target:setCanBeDestroyed(false)
                         target:orderIdle()
                         target:setImpulseMaxSpeed(5)
-                        -- Docking with disabled ships is allowed by default in EE
                         target:setCommsFunction(function(src, tgt)
                             setCommsMessage('"We\'re done. Come aboard and take what you came for."')
                         end)
                         m.obj = "Board " .. m.target_cs
-                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Move in and dock to board.", "#FFCC80")
+                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Move within 500 units to board.", "#FFCC80")
                         JOBS.updateObj()
                     end
                 end
 
-            -- Phase 3: wait for any player to dock with the disabled target
+            -- Phase 3: wait for any player to get close to the disabled target (proximity boarding)
             elseif not m._boarded then
                 local target = RT.find(m.target_cs)
                 if RT.valid(target) then
+                    local tx, ty = target:getPosition()
                     for _, p in ipairs(RT.players) do
                         if RT.valid(p) then
-                            local docked = p:getDockedWith()
-                            if docked and docked == target then
+                            local px, py = p:getPosition()
+                            local dx, dy = px - tx, py - ty
+                            local dist = math.sqrt(dx * dx + dy * dy)
+                            if dist < 500 then  -- Within 500 units = boarding range
                                 m._boarded = true
                                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
                                 -- Player has boarded successfully
@@ -500,7 +502,6 @@ function JOBS.update()
                                     if RT.valid(origin_e) then
                                         m._dx, m._dy = origin_e:getPosition()
                                     end
-                                    local px, py = p:getPosition()
                                     MISSION._spawnIntercept(m, px, py)
                                 end
                                 JOBS.updateObj()
