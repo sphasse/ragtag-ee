@@ -606,6 +606,21 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
+                    -- Check if any player is close enough to hack (5U range)
+                    local tx, ty = target:getPosition()
+                    local close_enough = false
+                    for _, p in ipairs(RT.players) do
+                        if RT.valid(p) then
+                            local px, py = p:getPosition()
+                            local dx, dy = px - tx, py - ty
+                            local dist = math.sqrt(dx * dx + dy * dy)
+                            if dist < 5000 then  -- 5U hacking range
+                                close_enough = true
+                                break
+                            end
+                        end
+                    end
+
                     -- Check all hackable systems
                     local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
                     local max_hack = 0
@@ -618,7 +633,20 @@ function JOBS.update()
                         end
                     end
 
-                    if max_hack >= m.hack_threshold then
+                    -- Reset hacking progress if too far away
+                    if max_hack > 0 and not close_enough then
+                        for _, sys in ipairs(systems) do
+                            if target:getSystemHackedLevel(sys) > 0 then
+                                target:setSystemHackedLevel(sys, 0)
+                            end
+                        end
+                        if not m._warned_distance then
+                            RT.shipLog("[Hack] Signal too weak. Move within 5U of " .. m.target_cs .. " to hack.", "#FF8080")
+                            m._warned_distance = true
+                        end
+                    end
+
+                    if max_hack >= m.hack_threshold and close_enough then
                         m._hacked = true
                         target:setCanBeDestroyed(true)
                         m.obj = "Return " .. m.cargo .. " to " .. m.origin
