@@ -106,8 +106,7 @@ local function generateBeaconName()
     return "Beacon " .. code
 end
 local function jobLine(m, now)
-    local mins = m._expires_at and math.max(0, math.ceil((m._expires_at - now) / 60)) or "?"
-    return string.format("%s (%sm)", m.short, mins)
+    return m.short
 end
 
 function JOBS.refreshPanel()
