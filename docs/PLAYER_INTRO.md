@@ -230,29 +230,13 @@ The richest port in the Drift. Top-tier upgrades, professional service, tight se
 
 ---
 
-## How to Play
+## Survival Tips
 
-### Your First Session
-1. **Dock at Port Vesper** (you start here)
-2. **Hail for work** — Accept a contract
-3. **Fly there, do the job, come back**
-4. **Get paid, buy upgrades, repeat**
-
-That's it. Learn the rest as you go.
-
-### As You Progress
-- **Upgrade gradually**: Better shields, then weapons, then engines. Jump drive when you can afford it (500cr at Dustmote).
-- **Explore carefully**: Safe regions first. Risky regions when upgraded. Dangerous regions when you're confident.
-- **Build reputation**: Help people. Complete contracts. Don't shoot without reason.
-- **Learn the routes**: Traffic lanes, salvage locations, which stations stock what upgrades.
-
-### When You're Ready
-- Take harder contracts in dangerous space (they pay much more)
-- Explore the Boneyard for high-value salvage
-- Challenge yourself
-
-### Never
-Go to the Maw unless you have a fully upgraded warship, a skilled crew, and a very good reason. Even then, you're rolling dice.
+- **Start safe**: Core and Border regions first. Upgrade before venturing to the Rim.
+- **Build reputation**: Complete contracts, help friendlies, don't shoot without cause.
+- **Upgrade gradually**: Shields first, then weapons and engines. Save for the jump drive (expensive but essential for distant regions).
+- **Read the room**: If a region says "dangerous," believe it.
+- **Never go to the Maw unprepared**: Even fully upgraded, it's lethal. Turn back at the warnings.
 
 ---
 
@@ -296,6 +280,4 @@ Fly safe. 🚀
 
 ---
 
-**For Full Details**: See [PLAYER_GUIDE.md](PLAYER_GUIDE.md)  
-**For Setting Lore**: See [THE_DRIFT_SETTING.md](THE_DRIFT_SETTING.md)  
-**For Station Controls**: See EmptyEpsilon documentation (we don't duplicate it here)
+**EmptyEpsilon Controls**: See [official EmptyEpsilon documentation](https://daid.github.io/EmptyEpsilon/) for bridge station controls and game mechanics. This guide covers the universe only.

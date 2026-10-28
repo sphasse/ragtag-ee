@@ -1,5 +1,7 @@
 # ragtag-ee — EmptyEpsilon sandbox campaign
 
+> **For players**: This document is for developers and server operators. If you're playing the campaign, see **[The Drift: Player Guide](docs/PLAYER_INTRO.md)** for universe lore, factions, and regions.
+
 **Space-western at the edge of settled space.** Command a ragtag freighter making your way in a frontier cluster of five suns—trade, fight, explore, and survive in a living universe of trade lanes, frontier stations, and pirate havens.
 
 Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine), with an optional AI director that voices characters and times encounters using a local language model.
@@ -199,15 +201,6 @@ Universe extensions, new scenarios, and mission types are welcome.
 
 **Key principle**: Universe changes must not break existing scenarios (`check.py` enforces this).
 
----
-
-## For Players
-
-📖 **[Player Guide](docs/PLAYER_GUIDE.md)** — Complete gameplay manual  
-🌌 **[The Drift Setting](docs/THE_DRIFT_SETTING.md)** — Universe lore and factions  
-🚀 **[Station Reference](docs/STATION_REFERENCE.md)** — Quick reference card (2-page printable)
-
-**New players**: Read your station's section in the Station Reference (5 minutes), then learn by playing!
 
 ---
 
