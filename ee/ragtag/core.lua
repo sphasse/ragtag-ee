@@ -198,14 +198,12 @@ function RT.hail(from, text, speaker)
     for _, p in ipairs(RT.players) do
         if RT.valid(p) then
             if RT.valid(from) then
-                -- sendCommsMessage both opens hail AND logs - we only want the hail
-                -- Use openCommsTo to open without logging, then manual log with speaker tag
-                if from:openCommsTo(p) then
-                    p:addToShipLog("[" .. tag .. "] " .. text, "#C0E0FF")
+                -- sendCommsMessage opens hail with message and auto-logs to ship log
+                if from:sendCommsMessage(p, text) then
                     sent = true
                 end
             else
-                -- No sender entity, log directly
+                -- No sender entity, log directly with speaker tag
                 p:addToShipLog("[" .. tag .. "] " .. text, "#C0E0FF")
             end
         end
