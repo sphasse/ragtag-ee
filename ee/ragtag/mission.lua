@@ -313,6 +313,82 @@ local _BOARDING_TEMPLATES = {
 }
 
 -- ---------------------------------------------------------------------------
+-- Destroy archetypes (eliminate target completely, no boarding)
+-- Extra field: target_template — which ship template to spawn
+-- ---------------------------------------------------------------------------
+
+local _DESTROY_ARCHETYPES = {
+    {
+        cargo  = "a bounty claim",
+        short_offer = "Eliminate a wanted fugitive",
+        lore   = "A wanted corsair with a dead-or-alive bounty. Last seen operating a fast raider.",
+        accept_msg = '"Destroy the target completely. No boarding, no survivors. We want proof."',
+        recv_msg   = '"Target eliminated. Bounty posted to your account."',
+        target_template = "MT52 Hornet",
+        reward_mult = 1.0, tier_min = 0,
+        intercept_types = {}, intercept_chance = 0,
+    },
+    {
+        cargo  = "proof of destruction",
+        short_offer = "Destroy a rogue AI ship",
+        lore   = "An automated patrol ship malfunctioned and is broadcasting corrupted IFF codes. It's firing on friendlies.",
+        accept_msg = '"Eliminate the target. Do not attempt boarding — the AI is hostile to all organics."',
+        recv_msg   = '"Threat neutralized. Wreckage retrieved for analysis."',
+        target_template = "Adder MK5",
+        reward_mult = 1.1, tier_min = 0,
+        intercept_types = {
+            {type="rival", strength="scout", weight=2,
+             msg="Another ship on intercept. Someone else wants that bounty."},
+        },
+        intercept_chance = 0.25,
+    },
+    {
+        cargo  = "a quarantine certificate",
+        short_offer = "Destroy a plague ship",
+        lore   = "A freighter carrying an unstable bioweapon sample lost containment. The crew is dead or worse.",
+        accept_msg = '"Burn it out of space. Do not approach within 1U. Do not board. Complete destruction only."',
+        recv_msg   = '"Contaminated hulk destroyed. Medical authority confirms clean burn."',
+        target_template = "Flavia P.Falcon",
+        reward_mult = 1.2, tier_min = 1,
+        intercept_types = {
+            {type="rival", strength="scout", weight=2,
+             msg="Courier inbound — corporate wants to recover the sample before you burn it."},
+        },
+        intercept_chance = 0.30,
+    },
+    {
+        cargo  = "combat telemetry",
+        short_offer = "Eliminate a pirate captain",
+        lore   = "A corsair captain with fifteen raids to their name. Known for heavy armor and refusing surrender.",
+        accept_msg = '"No quarter. This one doesn\'t run and doesn\'t dock quietly."',
+        recv_msg   = '"Captain confirmed KIA. The lanes just got safer."',
+        target_template = "Phobos T3",
+        reward_mult = 1.3, tier_min = 1,
+        intercept_types = {
+            {type="pirates", strength="medium", weight=3,
+             msg="Corsair reinforcements breaking off nearby patrol. They're coming for you."},
+        },
+        intercept_chance = 0.40,
+    },
+    {
+        cargo  = "a black-ops confirmation",
+        short_offer = "Destroy a defector's ship",
+        lore   = "A former Concord officer stole classified files and is running for Hollow space. Eliminate before they cross the line.",
+        accept_msg = '"Target is armed, experienced, and knows you\'re coming. Total destruction. No witnesses."',
+        recv_msg   = '"Target eliminated. Files unrecoverable. This conversation never happened."',
+        target_template = "Phobos M3P",
+        reward_mult = 1.5, tier_min = 2,
+        intercept_types = {
+            {type="concord", strength="medium", weight=2,
+             msg="Concord patrol responding. Official story is they're here to help. Don't believe it."},
+            {type="rival", strength="heavy", weight=1,
+             msg="Heavy contact inbound — Hollow interceptor. They want the defector alive."},
+        },
+        intercept_chance = 0.50,
+    },
+}
+
+-- ---------------------------------------------------------------------------
 -- Hacking archetypes  (Relay station cracks a stationary buoy's reactor)
 -- Extra field: system — which ship system to hack (always "reactor" for now)
 -- ---------------------------------------------------------------------------
