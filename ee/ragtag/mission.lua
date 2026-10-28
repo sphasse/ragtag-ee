@@ -546,7 +546,7 @@ function MISSION.newBoarding(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.cargo .. " (boarding)",
+        short           = "Disable target (pending)",  -- Updated with actual callsign on spawn
         obj             = "Locate and disable target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
@@ -596,7 +596,7 @@ function MISSION.newHacking(opts)
         system         = arch.system or "reactor",
         hack_threshold = 0.5,
         reward         = reward,
-        short          = arch.cargo .. " (hack)",
+        short          = "Hack relay (pending)",  -- Updated with actual callsign on spawn
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
                          .. "\n\nHack the relay's reactor system to 50% to extract the data.",

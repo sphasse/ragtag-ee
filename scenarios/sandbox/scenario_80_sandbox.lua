@@ -147,19 +147,28 @@ function JOBS.accept(m)
             setCommsMessage('"Get away from us."')
         end)
         m.target_cs = s:getCallSign()
+        -- Update short description with actual target callsign
+        m.short = "Disable " .. m.target_cs
         m._spawned  = true
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn a small ship (MT52 Hornet scout) repurposed as a relay buoy
-        local s = CpuShip():setTemplate("MT52 Hornet"):setFaction("Independent")
+        local s = CpuShip():setTemplate("MT52 Hornet"):setFaction("Concord")
+        s:setTypeName("Comms Relay")
         s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
         s:setCanBeDestroyed(false)
         s:setSystemHealth(m.system, 1.0)
+        -- Make it hackable
+        if s.setHackedLevel then
+            s:setHackedLevel(m.system, 0.0)
+        end
         RT.register(s)
         s:setCommsFunction(function(src, tgt)
             setCommsMessage("Automated relay. No response.")
         end)
         m.target_cs = s:getCallSign()
+        -- Update short description with actual relay callsign
+        m.short = "Hack relay " .. m.target_cs
         m._spawned  = true
     end
 
@@ -327,8 +336,8 @@ function JOBS.stationHook(source, target)
 
         local lines = {"Work out of " .. cs .. ":\n"}
         for _, m in ipairs(offers) do
-            lines[#lines + 1] = string.format("* %s  [%d cr, %s]",
-                m.short, m.reward, tier_label[(m.tier or 0) + 1])
+            lines[#lines + 1] = string.format("* %s  [%s]",
+                m.short, tier_label[(m.tier or 0) + 1])
         end
         setCommsMessage(table.concat(lines, "\n"))
         for _, m in ipairs(offers) do
