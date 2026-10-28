@@ -606,7 +606,7 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    -- Check if any player is close enough to hack (5U range)
+                    -- Check if any player is close enough to hack (2U range)
                     local tx, ty = target:getPosition()
                     local close_enough = false
                     for _, p in ipairs(RT.players) do
@@ -614,7 +614,7 @@ function JOBS.update()
                             local px, py = p:getPosition()
                             local dx, dy = px - tx, py - ty
                             local dist = math.sqrt(dx * dx + dy * dy)
-                            if dist < 5000 then  -- 5U hacking range
+                            if dist < 2000 then  -- 2U hacking range
                                 close_enough = true
                                 break
                             end
@@ -641,7 +641,7 @@ function JOBS.update()
                             end
                         end
                         if not m._warned_distance then
-                            RT.shipLog("[Hack] Signal too weak. Move within 5U of " .. m.target_cs .. " to hack.", "#FF8080")
+                            RT.shipLog("[Hack] Signal too weak. Move within 2U of " .. m.target_cs .. " to hack.", "#FF8080")
                             m._warned_distance = true
                         end
                     end
