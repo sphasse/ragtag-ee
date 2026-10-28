@@ -374,6 +374,16 @@ local _HACKING_ARCHETYPES = {
 -- Base reward by tier (rounded to nearest 5 after archetype multiplier)
 local _BASE_REWARD = {[0] = 70, [1] = 140, [2] = 230}
 
+-- Sector grid: 20u cells, origin at (-200u, -200u).  Port Vesper (0,0) = K11.
+local _GRID_X0   = -200000
+local _GRID_Y0   = -200000
+local _GRID_CELL =  20000
+function MISSION.gridRef(wx, wy)
+    local col = math.max(0, math.min(25, math.floor((wx - _GRID_X0) / _GRID_CELL)))
+    local row = math.max(1, math.min(99, math.floor((wy - _GRID_Y0) / _GRID_CELL) + 1))
+    return string.char(65 + col) .. tostring(row)
+end
+
 local _SHORT_NAMES = {
     ["Concord Station Arbiter"] = "C.S. Arbiter",
     ["Concord Waypoint Galen"]  = "Waypoint Galen",
@@ -686,8 +696,8 @@ function MISSION._spawnIntercept(m, px, py)
         table.insert(names, s:getCallSign())
     end
 
-    RT.shipLog("[Route] " .. ic.msg_log .. " — " .. table.concat(names, ", ") .. ". Waypoint set.", "#FF8080")
-    RT.forEachPlayer(function(p) p:commandAddWaypoint(sx, sy) end)
+    RT.shipLog("[Route] " .. ic.msg_log .. " — " .. table.concat(names, ", ")
+        .. " at grid " .. MISSION.gridRef(sx, sy) .. ".", "#FF8080")
 
     -- Concord patrols (don't immediately attack); pirates and rivals attack on sight
     DIR.orderGroup(names, ic.itype == "concord" and "patrol" or "attack")
