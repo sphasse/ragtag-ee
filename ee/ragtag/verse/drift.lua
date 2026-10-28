@@ -70,7 +70,7 @@ VERSE.extend({
         -- The Border (Independent)
         {cs = "Port Vesper", tmpl = "Medium Station", fac = "Independent", x = 0, y = 0,
          shop = {"hull_plating", "missile_racks", "repair_crew", "engine_tune", "forward_beams"},
-         flavor = "Port Vesper traffic control.",
+         flavor = "Port Vesper traffic control. Mind the dock clamps, they bite.",
          desc = "A crowded independent trading post built around an old ore refinery."},
         {cs = "Calder's Reach", tmpl = "Medium Station", fac = "Independent", x = -29, y = 18,
          shop = {"hull_plating", "hull_plating_2", "reactor_overhaul", "forward_beams"},
