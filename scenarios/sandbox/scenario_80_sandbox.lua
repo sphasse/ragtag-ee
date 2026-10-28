@@ -437,7 +437,7 @@ function JOBS.update()
                         if m.cargo_obj and RT.valid(m.cargo_obj) then
                             m.cargo_obj:destroy()
                         end
-                        RT.shipLog("[Salvage] " .. m.cargo .. " recovered. Return to " .. m.origin .. ".", "#80FF80")
+                        RT.shipLog("[Salvage] Cargo pod collected: " .. m.cargo .. ". Return to " .. m.origin .. " for payment.", "#80FF80")
                         JOBS.updateObj()
                         if m.intercept and not m.intercept.fired then
                             m.intercept.fired = true
