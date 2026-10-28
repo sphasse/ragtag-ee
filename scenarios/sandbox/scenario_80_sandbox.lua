@@ -160,8 +160,8 @@ function JOBS.accept(m)
         m.short = "Disable the " .. name
         m._spawned  = true
     elseif m.type == "hacking" and not m._spawned then
-        -- Spawn a small ship (MT52 Hornet scout) repurposed as a relay buoy
-        local s = CpuShip():setTemplate("MT52 Hornet"):setFaction("Concord")
+        -- Spawn a satellite template which looks like a relay beacon
+        local s = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
         -- Give it a random beacon designator
         local name = generateBeaconName()
         s:setCallSign(name)
