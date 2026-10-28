@@ -293,6 +293,11 @@ function JOBS.complete(entry, completing_ship)
         RT.addReputation(faction, 10, "mission: " .. entry.mission.short)
     end
 
+    -- For destroy missions, penalize Corsairs since we killed one of theirs
+    if entry.mission.type == "destroy" then
+        RT.addReputation("Corsairs", -10, "destroyed Corsair target")
+    end
+
     JOBS.updateObj()
     DIR.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward}, "low")
 end
