@@ -1417,6 +1417,54 @@ function init()
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
     RT.spawnPlayer(px, py, 0)
 
+    -- Custom Port Vesper comms: welcome message on first hail, standard message after
+    local vesper = RT.find("Port Vesper")
+    if RT.valid(vesper) then
+        vesper:setCommsFunction(function(source, target)
+            if source:isEnemy(target) then
+                setCommsMessage("Static. Then a click. They've cut the channel.")
+                return
+            end
+
+            local msg
+            if not S.vesper_first_hail then
+                -- First hail: welcome message
+                S.vesper_first_hail = true
+                local session_text = S.session_num == 1 and "Welcome to the Drift, independents." or "Back again, I see."
+                msg = session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe."
+            else
+                -- Subsequent hails: standard docking message
+                msg = "Port Vesper traffic control. Mind the dock clamps, they bite."
+            end
+
+            if source:isDocked(target) then
+                msg = msg .. "\n\nYou're docked. Balance: " .. RT.credits(source) .. " credits."
+            end
+            setCommsMessage(msg)
+
+            -- Run standard station hooks (mission board, upgrades, etc.)
+            local info = RT.stations["Port Vesper"]
+            if info then
+                for _, hook in ipairs(info.hooks) do
+                    local ok, err = pcall(hook, source, target, info)
+                    if not ok then print("[RT] station hook failed: " .. tostring(err)) end
+                end
+
+                if source:isDocked(target) then
+                    if info.shop then
+                        addCommsReply("Request services", function(s, t)
+                            setCommsMessage("What do you need?")
+                            RT.addShopMenu(s, t, info)
+                            addCommsReply("Back", function(s2, t2) target:getCommsFunction()(s2, t2) end)
+                        end)
+                    end
+                end
+            end
+
+            addCommsReply("Back", function() end)
+        end)
+    end
+
     -- Wire mission board into every friendly station
     JOBS.init()
     for _, d in ipairs(VERSE.STATIONS) do
@@ -1504,13 +1552,7 @@ end
 --------------------------------------------------------------------------------
 
 function defineBeats()
-    DIR.defineBeat("welcome", {desc = "Port Vesper dockmaster welcomes the crew", fn = function()
-        -- Set objective first
-        RT.setObjective("Explore the Drift")
-        -- Log welcome message directly (no hail, to avoid double-logging)
-        local session_text = S.session_num == 1 and "Welcome to the Drift, independents." or "Back again, I see."
-        RT.shipLog("[Port Vesper Dockmaster] " .. session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe.", "#C0E0FF")
-    end})
+    -- No automatic welcome beat - player gets welcome message on first hail to Port Vesper
 
     DIR.defineBeat("first_undock", {desc = "Crew undocks for the first time this session", fn = function()
         RT.shipLog("Session " .. S.session_num .. " begins. Current funds: " .. RT.credits() .. " credits.", "#A0E0A0")
@@ -1698,7 +1740,8 @@ function update(delta)
     -- Phase management
     if S.phase == "start" then
         if now > 5 then
-            DIR.fireBeat("welcome", "script")
+            -- Set initial objective
+            RT.setObjective("Explore the Drift")
             S.phase = "docked"
             S.docked_at = "Port Vesper"
         end
