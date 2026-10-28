@@ -260,7 +260,22 @@ function JOBS.accept(m, skip_log)
 
     -- Write contract details to log (unless caller will do it)
     if not skip_log then
-        local dest_hint = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
+        local dest_hint
+        if m.type == "delivery" and m.dest then
+            -- For delivery missions, include station name and grid
+            local dest_e = RT.find(m.dest)
+            if RT.valid(dest_e) then
+                local dx, dy = dest_e:getPosition()
+                local grid = MISSION.gridRef(dx, dy)
+                dest_hint = m.dest .. " (" .. grid .. ")"
+            else
+                dest_hint = m.dest
+            end
+        else
+            -- For other mission types, use grid coordinates
+            dest_hint = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
+        end
+
         if m.type == "boarding" or m.type == "destroy" then
             local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
             RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
@@ -515,7 +530,22 @@ function JOBS.stationHook(source, target)
                     JOBS.accept(cap, true)  -- skip_log=true, we'll write it after the message
                     setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"\n\nTransmitting details to your log.")
                     -- Now write to log after showing the message
-                    local dest_hint = cap.dest or (cap.wx and ("grid " .. MISSION.gridRef(cap.wx, cap.wy)) or "??")
+                    local dest_hint
+                    if cap.type == "delivery" and cap.dest then
+                        -- For delivery missions, include station name and grid
+                        local dest_e = RT.find(cap.dest)
+                        if RT.valid(dest_e) then
+                            local dx, dy = dest_e:getPosition()
+                            local grid = MISSION.gridRef(dx, dy)
+                            dest_hint = cap.dest .. " (" .. grid .. ")"
+                        else
+                            dest_hint = cap.dest
+                        end
+                    else
+                        -- For other mission types, use grid coordinates
+                        dest_hint = cap.dest or (cap.wx and ("grid " .. MISSION.gridRef(cap.wx, cap.wy)) or "??")
+                    end
+
                     if cap.type == "boarding" then
                         local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
                         RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
