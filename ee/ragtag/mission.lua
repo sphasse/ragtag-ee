@@ -381,8 +381,17 @@ local _HACKING_ARCHETYPES = {
     },
 }
 
--- Base reward by tier (rounded to nearest 5 after archetype multiplier)
+-- Base reward by tier (rounded to nearest 5 after all multipliers)
 local _BASE_REWARD = {[0] = 70, [1] = 140, [2] = 230}
+
+-- Mission type difficulty multipliers (delivery is baseline 1.0)
+local _TYPE_MULT = {
+    delivery = 1.0,
+    salvage  = 1.2,
+    hacking  = 1.4,
+    destroy  = 1.6,
+    boarding = 1.8,
+}
 
 -- Returns the in-game sector label (e.g. "F5") matching the Relay map grid.
 function MISSION.gridRef(wx, wy)
@@ -486,7 +495,11 @@ function MISSION.newSalvage(opts)
     end
     if #pool == 0 then pool = _SALVAGE_ARCHETYPES end
     local arch   = pool[math.random(#pool)]
-    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    -- Calculate distance and danger
+    local distance_u = opts.distance_u or 0
+    local danger_level = opts.danger_level or 0
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.salvage, arch.reward_mult or 1.0, distance_u, danger_level)
 
     local intercept = nil
     if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
@@ -582,7 +595,11 @@ function MISSION.newDestroy(opts)
     end
     if #pool == 0 then pool = _DESTROY_ARCHETYPES end
     local arch   = pool[math.random(#pool)]
-    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    -- Calculate distance and danger
+    local distance_u = opts.distance_u or 0
+    local danger_level = opts.danger_level or 0
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.destroy, arch.reward_mult or 1.0, distance_u, danger_level)
 
     -- Pick destination station for target
     local target_dest = nil
@@ -637,7 +654,11 @@ function MISSION.newHacking(opts)
     end
     if #pool == 0 then pool = _HACKING_ARCHETYPES end
     local arch   = pool[math.random(#pool)]
-    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+
+    -- Calculate distance and danger
+    local distance_u = opts.distance_u or 0
+    local danger_level = opts.danger_level or 0
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.hacking, arch.reward_mult or 1.0, distance_u, danger_level)
 
     local intercept = nil
     if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then

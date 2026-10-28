@@ -391,27 +391,56 @@ function JOBS.stationHook(source, target)
                 local tier  = math.min(mt, math.random(0, 1))
                 local mtype = pickMissionType()
                 if mtype == "delivery" and dest_idx <= #candidates then
-                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
+                    local dest_e = RT.find(candidates[dest_idx])
+                    local distance_u = 0
+                    local dest_danger = 0
+                    if RT.valid(station_e) and RT.valid(dest_e) then
+                        local ox, oy = station_e:getPosition()
+                        local dx, dy = dest_e:getPosition()
+                        local ddx, ddy = dx - ox, dy - oy
+                        distance_u = math.sqrt(ddx * ddx + ddy * ddy)
+                        local dest_region = VERSE.regionAt(dx, dy)
+                        dest_danger = dest_region and dest_region.danger or 0
+                    end
+                    offers[#offers + 1] = MISSION.newDelivery({
+                        origin = cs,
+                        dest = candidates[dest_idx],
+                        tier = tier,
+                        distance_u = distance_u,
+                        danger_level = dest_danger,
+                    })
                     dest_idx = dest_idx + 1
                 elseif mtype == "salvage" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
                     local dist = (15 + math.random() * 15) * 1000  -- 15-30U from origin
+                    local wx = math.floor(rx + math.cos(ang) * dist)
+                    local wy = math.floor(ry + math.sin(ang) * dist)
+                    local region = VERSE.regionAt(wx, wy)
+                    local danger_level = region and region.danger or 0
                     offers[#offers + 1] = MISSION.newSalvage({
                         origin = cs,
-                        wx = math.floor(rx + math.cos(ang) * dist),
-                        wy = math.floor(ry + math.sin(ang) * dist),
+                        wx = wx,
+                        wy = wy,
                         tier = tier,
+                        distance_u = dist,
+                        danger_level = danger_level,
                     })
                 elseif mtype == "boarding" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
                     local dist = (20 + math.random() * 30) * 1000
+                    local wx = math.floor(rx + math.cos(ang) * dist)
+                    local wy = math.floor(ry + math.sin(ang) * dist)
+                    local region = VERSE.regionAt(wx, wy)
+                    local danger_level = region and region.danger or 0
                     offers[#offers + 1] = MISSION.newBoarding({
                         origin = cs,
-                        wx = math.floor(rx + math.cos(ang) * dist),
-                        wy = math.floor(ry + math.sin(ang) * dist),
+                        wx = wx,
+                        wy = wy,
                         tier = tier,
+                        distance_u = dist,
+                        danger_level = danger_level,
                     })
                 elseif (mtype == "hacking" or mtype == "destroy") and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
@@ -419,12 +448,16 @@ function JOBS.stationHook(source, target)
                     local dist = (15 + math.random() * 15) * 1000  -- 15-30U from origin
                     local wx = math.floor(rx + math.cos(ang) * dist)
                     local wy = math.floor(ry + math.sin(ang) * dist)
+                    local region = VERSE.regionAt(wx, wy)
+                    local danger_level = region and region.danger or 0
                     if mtype == "hacking" then
                         offers[#offers + 1] = MISSION.newHacking({
                             origin = cs,
                             wx = wx,
                             wy = wy,
                             tier = tier,
+                            distance_u = dist,
+                            danger_level = danger_level,
                         })
                     else  -- destroy
                         local nearby = VERSE.nearbyStations(rx, ry, 35000)
@@ -434,6 +467,8 @@ function JOBS.stationHook(source, target)
                             wy = wy,
                             tier = tier,
                             nearby_stations = nearby,
+                            distance_u = dist,
+                            danger_level = danger_level,
                         })
                     end
                 elseif dest_idx <= #candidates then
