@@ -553,7 +553,13 @@ function JOBS.update()
                             local px, py = p:getPosition()
                             local dx, dy = px - tx, py - ty
                             local dist = math.sqrt(dx * dx + dy * dy)
+                            -- DEBUG: Log distance every 3 seconds
+                            if not m._last_dist_log or (now - m._last_dist_log) > 3 then
+                                print(string.format("[Boarding] Distance to %s: %.0fU (need < 1U)", m.target_cs, dist / 1000))
+                                m._last_dist_log = now
+                            end
                             if dist < 1000 then  -- 1U proximity boarding
+                                print("[Boarding] Within 1U - boarding now!")
                                 m._boarded = true
                                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
                                 -- Player has boarded successfully
@@ -572,6 +578,8 @@ function JOBS.update()
                             end
                         end
                     end
+                else
+                    print("[Boarding] ERROR: Target " .. (m.target_cs or "nil") .. " is not valid!")
                 end
             end
 
