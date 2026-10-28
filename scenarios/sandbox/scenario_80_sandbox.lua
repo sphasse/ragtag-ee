@@ -218,10 +218,9 @@ end
 function JOBS.updateObj()
     if #_active == 0 then
         RT.setObjective("Explore the Drift", true)
-    elseif #_active == 1 then
-        RT.setObjective(_active[1].mission.obj, true)
     else
-        RT.setObjective("2 jobs active", true)
+        -- Job panel already shows mission details, keep objective generic
+        RT.setObjective("Explore the Drift", true)
     end
     JOBS.refreshPanel()
 end
