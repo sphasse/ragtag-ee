@@ -197,9 +197,14 @@ function RT.hail(from, text, speaker)
     local tag = speaker or (RT.valid(from) and from:getCallSign()) or "Unknown"
     for _, p in ipairs(RT.players) do
         if RT.valid(p) then
-            if RT.valid(from) and from:sendCommsMessage(p, text) then
-                sent = true
+            if RT.valid(from) then
+                -- Try to send comms message (EE automatically logs it)
+                if from:sendCommsMessage(p, text) then
+                    sent = true
+                end
+                -- Don't fallback to manual log - comms will retry or queue
             else
+                -- No sender entity, log directly
                 p:addToShipLog("[" .. tag .. "] " .. text, "#C0E0FF")
             end
         end
