@@ -141,8 +141,16 @@ function JOBS.accept(m, skip_log)
     MISSION.track(m)   -- register for route interception
     JOBS.updateObj()
 
+    -- Spawn salvage cargo pod immediately so player can see it on scanners
+    if m.type == "salvage" and not m._spawned then
+        local cargo_pod = SupplyDrop():setFaction("Independent"):setPosition(m.wx, m.wy)
+        cargo_pod:setDescriptions("Salvage Container", m.cargo)
+        cargo_pod:setCallSign("Salvage")
+        RT.register(cargo_pod)
+        m.cargo_obj = cargo_pod  -- store reference
+        m._spawned = true
     -- Spawn boarding/hacking targets immediately so player knows the target name
-    if m.type == "boarding" and not m._spawned then
+    elseif m.type == "boarding" and not m._spawned then
         local s = CpuShip():setTemplate(m.target_template):setFaction("Corsairs")
         -- Give it a creative Corsair name
         local name = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
@@ -408,13 +416,27 @@ function JOBS.update()
         end
 
         if m.type == "salvage" and not m._found then
+            -- Check if cargo pod still exists
+            if m.cargo_obj and not RT.valid(m.cargo_obj) then
+                RT.shipLog("[Salvage] Cargo destroyed — contract lost.", "#FF8080")
+                MISSION.untrack(m.id)
+                table.remove(_active, i)
+                JOBS.updateObj()
+                goto next_entry
+            end
+
+            -- Check if player is near cargo pod (within 1U for pickup)
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) then
                     local px, py = p:getPosition()
                     local dx, dy = px - m.wx, py - m.wy
-                    if dx*dx + dy*dy < 5000*5000 then
+                    if dx*dx + dy*dy < 1000*1000 then  -- 1U pickup range
                         m._found = true
                         m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                        -- Remove the cargo pod from the map
+                        if m.cargo_obj and RT.valid(m.cargo_obj) then
+                            m.cargo_obj:destroy()
+                        end
                         RT.shipLog("[Salvage] " .. m.cargo .. " recovered. Return to " .. m.origin .. ".", "#80FF80")
                         JOBS.updateObj()
                         if m.intercept and not m.intercept.fired then
