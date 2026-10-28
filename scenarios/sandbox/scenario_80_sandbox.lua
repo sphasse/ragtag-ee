@@ -173,16 +173,10 @@ function JOBS.accept(m, skip_log)
         m._spawned = true
     -- Spawn boarding/hacking/destroy targets immediately so player knows the target name
     elseif (m.type == "boarding" or m.type == "destroy") and not m._spawned then
-        -- Pick a destination station for the target to fly toward
+        -- Use the pre-calculated target_dest from mission generation
         local dest_station = nil
-        for _, d in ipairs(VERSE.STATIONS) do
-            if d.cs ~= m.origin and d.fac ~= "Hollow" and d.fac ~= "Corsairs" then
-                dest_station = RT.find(d.cs)
-                if RT.valid(dest_station) then
-                    m.target_dest = d.cs
-                    break
-                end
-            end
+        if m.target_dest then
+            dest_station = RT.find(m.target_dest)
         end
 
         -- Use base template directly - custom templates causing spawn issues
@@ -460,7 +454,7 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
-                    -- Find nearby stations for target destination
+                    -- Find nearby stations for target destination (50U encourages exploration)
                     local nearby = {}
                     for _, st in ipairs(VERSE.STATIONS) do
                         if st.cs ~= cs then  -- not origin station
@@ -469,7 +463,7 @@ function JOBS.stationHook(source, target)
                                 local sx, sy = st_e:getPosition()
                                 local ddx, ddy = sx - rx, sy - ry
                                 local st_dist = math.sqrt(ddx * ddx + ddy * ddy)
-                                if st_dist < 35000 then  -- within 35U
+                                if st_dist < 50000 then  -- within 50U
                                     nearby[#nearby + 1] = st.cs
                                 end
                             end
@@ -518,7 +512,7 @@ function JOBS.stationHook(source, target)
                             error("Hacking: " .. tostring(mission_err))
                         end
                     else  -- destroy
-                        -- Find nearby stations for target destination
+                        -- Find nearby stations for target destination (50U encourages exploration)
                         local nearby = {}
                         for _, st in ipairs(VERSE.STATIONS) do
                             if st.cs ~= cs then  -- not origin station
@@ -527,7 +521,7 @@ function JOBS.stationHook(source, target)
                                     local sx, sy = st_e:getPosition()
                                     local ddx, ddy = sx - rx, sy - ry
                                     local st_dist = math.sqrt(ddx * ddx + ddy * ddy)
-                                    if st_dist < 35000 then  -- within 35U
+                                    if st_dist < 50000 then  -- within 50U
                                         nearby[#nearby + 1] = st.cs
                                     end
                                 end
