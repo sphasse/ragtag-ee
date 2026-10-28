@@ -84,6 +84,25 @@ JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
 JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
 
 local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]"}
+
+-- Creative names for spawned mission targets
+local _CORSAIR_NAMES = {
+    "Blackjack", "Cutthroat", "Rogue Star", "Night Runner", "Silent Edge",
+    "Red Drift", "Ghost Hound", "Dark Current", "Bone Cutter", "Scarlet Wake",
+    "Shadow Play", "Viper's Run", "Iron Thorn", "Void Walker", "Cruel Fortune",
+    "Wild Card", "Blood Money", "Fast Poison", "Dead Reckoning", "Sharp Practice",
+    "Quick Silver", "Bad Penny", "Loose Cannon", "Dirty Business", "Hard Bargain",
+    "Last Chance", "Cold Comfort", "Rough Justice", "Dark Horse", "Free Radical",
+}
+
+local _RELAY_NAMES = {
+    "Lighthouse", "Beacon", "Waypoint", "Sentinel", "Outpost",
+    "Pharos", "Signal", "Node", "Marker", "Watchtower",
+    "Relay Alpha", "Relay Beta", "Relay Gamma", "Relay Delta", "Relay Epsilon",
+    "Junction", "Crossroads", "Terminus", "Frontier", "Border",
+    "Echo", "Pulse", "Transmission", "Link", "Bridge",
+    "Gateway", "Portal", "Channel", "Conduit", "Nexus",
+}
 local function jobLine(m, now)
     local mins  = m._expires_at and math.max(0, math.ceil((m._expires_at - now) / 60)) or "?"
     local where
@@ -138,6 +157,9 @@ function JOBS.accept(m)
     -- Spawn boarding/hacking targets immediately so player knows the target name
     if m.type == "boarding" and not m._spawned then
         local s = CpuShip():setTemplate(m.target_template):setFaction("Corsairs")
+        -- Give it a creative Corsair name
+        local name = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
+        s:setCallSign(name)
         s:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
         s:orderRoaming()
         RT.register(s)
@@ -146,13 +168,16 @@ function JOBS.accept(m)
         s:setCommsFunction(function(src, tgt)
             setCommsMessage('"Get away from us."')
         end)
-        m.target_cs = s:getCallSign()
-        -- Update short description with actual target callsign
-        m.short = "Disable " .. m.target_cs
+        m.target_cs = name
+        -- Update short description with actual target name
+        m.short = "Disable the " .. name
         m._spawned  = true
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn a small ship (MT52 Hornet scout) repurposed as a relay buoy
         local s = CpuShip():setTemplate("MT52 Hornet"):setFaction("Concord")
+        -- Give it a creative relay name
+        local name = _RELAY_NAMES[math.random(#_RELAY_NAMES)]
+        s:setCallSign(name)
         s:setTypeName("Comms Relay")
         s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
@@ -166,9 +191,9 @@ function JOBS.accept(m)
         s:setCommsFunction(function(src, tgt)
             setCommsMessage("Automated relay. No response.")
         end)
-        m.target_cs = s:getCallSign()
-        -- Update short description with actual relay callsign
-        m.short = "Hack relay " .. m.target_cs
+        m.target_cs = name
+        -- Update short description with actual relay name
+        m.short = "Hack the " .. name
         m._spawned  = true
     end
 

@@ -244,6 +244,7 @@ local _SALVAGE_ARCHETYPES = {
 local _BOARDING_ARCHETYPES = {
     {
         cargo  = "a stolen data core",
+        short_offer = "Disable a Corsair runner",
         lore   = "A Corsair runner lifted survey data from a prospecting team. The owner wants it back quietly.",
         accept_msg = '"Disable the ship and take back the core. Don\'t destroy it — the data might not survive the hull breach."',
         recv_msg   = '"Data core intact. You\'ve got a friend in this business."',
@@ -252,6 +253,7 @@ local _BOARDING_ARCHETYPES = {
     },
     {
         cargo  = "a hijacked courier",
+        short_offer = "Board a captured courier",
         lore   = "An independent courier was pulled off their route — ship taken, crew stuck aboard. Someone wants them back.",
         accept_msg = '"They\'re still alive. Disable the ship and get them out before the Corsairs move them again."',
         recv_msg   = '"I thought that was it for me. Thank you."',
@@ -264,6 +266,7 @@ local _BOARDING_ARCHETYPES = {
     },
     {
         cargo  = "a locked evidence container",
+        short_offer = "Intercept a smuggling run",
         lore   = "Smuggler running contraband for a connected outfit. Concord wants the evidence container — not the ship, not the crew.",
         accept_msg = '"Disable them cleanly. Destroy the ship and the evidence chain breaks."',
         recv_msg   = '"Chain of custody intact. Well done."',
@@ -276,6 +279,7 @@ local _BOARDING_ARCHETYPES = {
     },
     {
         cargo  = "a Corsair lieutenant",
+        short_offer = "Capture a Corsair officer",
         lore   = "Mid-level Corsair officer moving between cells. Intelligence wants them alive for questioning.",
         accept_msg = '"Disable the escort — they\'ll be running a light ship, fast. Board carefully."',
         recv_msg   = '"We\'ll take custody from here. What they know is worth more than you\'d guess."',
@@ -288,6 +292,7 @@ local _BOARDING_ARCHETYPES = {
     },
     {
         cargo  = "a corporate defector",
+        short_offer = "Stop a fleeing operative",
         lore   = "A corporate operative who knows too much tried to disappear. The parent company wants them back with the financial records intact.",
         accept_msg = '"Disable the ship before they can vent the data. Board fast."',
         recv_msg   = '"Asset secured and records intact. Discretion noted."',
@@ -315,6 +320,7 @@ local _BOARDING_TEMPLATES = {
 local _HACKING_ARCHETYPES = {
     {
         cargo       = "an encrypted nav log",
+        short_offer = "Hack a relay for nav logs",
         lore        = "Someone has been running routes they don't want on record. The log lives in a relay buoy.",
         accept_msg  = '"Get Relay in position and crack it before anyone notices the uplink."',
         recv_msg    = '"Routes confirmed. This is exactly what we needed."',
@@ -323,6 +329,7 @@ local _HACKING_ARCHETYPES = {
     },
     {
         cargo       = "a comms archive",
+        short_offer = "Extract comms from a dark relay",
         lore        = "Months of unencrypted traffic between two stations — someone paid to keep this relay dark from Concord.",
         accept_msg  = '"Pull the archive intact. Partial data is worthless to us."',
         recv_msg    = '"Everything\'s here. Good clean extraction."',
@@ -335,6 +342,7 @@ local _HACKING_ARCHETYPES = {
     },
     {
         cargo       = "a contraband manifest",
+        short_offer = "Crack a smuggler's relay cache",
         lore        = "A smuggling outfit uses relay buoys to cache their cargo schedules. Concord wants the manifest.",
         accept_msg  = '"Crack it quietly. If they notice the uplink they\'ll wipe the buffer."',
         recv_msg    = '"Manifest intact. Half a dozen ships just had a very bad week."',
@@ -347,6 +355,7 @@ local _HACKING_ARCHETYPES = {
     },
     {
         cargo       = "docking access codes",
+        short_offer = "Pull codes from a relay buffer",
         lore        = "Station authority codes rotate weekly but the old set sits in a relay buffer. Someone needs a back door.",
         accept_msg  = '"In and out before the rotation. You have a narrow window."',
         recv_msg    = '"Codes are live. We\'ll use them once — don\'t ask what for."',
@@ -359,6 +368,7 @@ local _HACKING_ARCHETYPES = {
     },
     {
         cargo       = "a black ledger fragment",
+        short_offer = "Break into a hardened relay",
         lore        = "Corporate financial records split across relay nodes throughout the Drift. One fragment is enough to bring down a board.",
         accept_msg  = '"This relay is hardened. It will resist. Don\'t stop until you\'re through."',
         recv_msg    = '"Fragment verified. You just changed some very powerful people\'s plans."',
@@ -546,7 +556,7 @@ function MISSION.newBoarding(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = "Disable target (pending)",  -- Updated with actual callsign on spawn
+        short           = arch.short_offer,  -- Updated with actual callsign on spawn
         obj             = "Locate and disable target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
@@ -596,7 +606,7 @@ function MISSION.newHacking(opts)
         system         = arch.system or "reactor",
         hack_threshold = 0.5,
         reward         = reward,
-        short          = "Hack relay (pending)",  -- Updated with actual callsign on spawn
+        short          = arch.short_offer,  -- Updated with actual callsign on spawn
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
                          .. "\n\nHack the relay's reactor system to 50% to extract the data.",
