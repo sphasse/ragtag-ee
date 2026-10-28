@@ -260,7 +260,6 @@ function JOBS.stationHook(source, target)
     addCommsReply("Any work available?", function(s, t)
         local offers = {}
         local mt = JOBS.maxTier()
-        local tier_label = {"safe run", "risky run", "dangerous run"}
 
         -- Director-pushed deliveries take priority (no re-offer if already taken)
         for _, m in ipairs(MISSION._dynamic_queue) do
@@ -336,8 +335,7 @@ function JOBS.stationHook(source, target)
 
         local lines = {"Work out of " .. cs .. ":\n"}
         for _, m in ipairs(offers) do
-            lines[#lines + 1] = string.format("* %s  [%s]",
-                m.short, tier_label[(m.tier or 0) + 1])
+            lines[#lines + 1] = string.format("* %s", m.short)
         end
         setCommsMessage(table.concat(lines, "\n"))
         for _, m in ipairs(offers) do
