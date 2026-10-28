@@ -43,7 +43,132 @@ Contributors add **universe extensions** and **scenarios** independently.
 - Freighter impulse is ~0.05u/s; AI traffic on this map needs warp, a spawn on the destination side of stations, 4u clearance, and the stall watchdog.
 - `setWeaponTubeCount` resets all tubes; `sendCommsMessage` fails when comms are busy (use `RT.hail`).
 - Headless EE: start detached (`setsid nohup ...`) and poll; one server per port.
+- **`debug` library not available**: EmptyEpsilon Lua doesn't have `debug.traceback()`. Use `pcall` and `tostring(err)` for error handling.
+- **`sendCommsMessage` logs twice**: Once when sent, again when accepted in Relay. Use direct `RT.shipLog()` if you need single-log behavior.
 
 ## Definition of done
 `python tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error` and the smoke test passes.
 Say plainly in PR descriptions what was and wasn't tested.
+
+---
+
+## Mission System Architecture (Sandbox Campaign)
+
+### Five Mission Types with Progressive Compensation
+
+**Base multipliers** (delivery = 1.0x baseline):
+1. **Delivery** (1.0x): Ferry cargo between stations. Safest, baseline income.
+2. **Salvage** (1.2x): Recover cargo pods from coordinates. Moderate risk.
+3. **Hacking** (1.4x): Breach comms relay systems (75% hack threshold). Technical challenge.
+4. **Destroy** (1.6x): Eliminate hostile targets completely. Combat-focused.
+5. **Boarding** (1.8x): Disable and board target ships. Highest difficulty.
+
+**Dynamic scaling**:
+- Distance bonus: +1% per U beyond 10U
+- Danger bonus: +15% per danger level (0-4: safe/risky/dangerous/deadly)
+- Final reward rounded to nearest 5 credits
+
+**Example**: A boarding mission (1.8x) 30U away in danger level 2 space pays:
+`base * 1.8 * (1 + 20% distance) * (1 + 30% danger) ≈ 2.8x base reward`
+
+### Mission Generation Flow
+
+1. **Station offers 2 missions** when player docks and hails "Any work available?"
+2. **Type selection** via weighted random:
+   - delivery: 15, salvage: 7, boarding: 3, hacking: 3, destroy: 3
+3. **Archetype selection** from mission.lua `_*_ARCHETYPES` tables (tier-gated)
+4. **Intercept roll** per archetype's `intercept_chance` (0–60%)
+5. **Nearby stations** calculated for boarding/destroy (50U radius) → stored as `target_dest`
+6. **Mission record created** with all fields, added to offers list
+
+### Intercept System
+
+**When intercepts spawn**:
+- **Delivery**: 40-65% progress along route (monitored by `MISSION.update()`)
+- **Salvage**: When cargo pod picked up (immediate)
+- **Boarding**: When ship successfully boarded (immediate)
+- **Destroy**: When target destroyed (immediate)
+- **Hacking**: When hack reaches 75% (immediate)
+
+**What spawns**:
+- 2-3 ships, 12U ahead of player toward destination
+- Strength: scout (1 ship) / light / medium / heavy (4 ships)
+- Types: `pirates` (attack), `rival` (attack), `concord` (patrol, no immediate attack)
+- Player gets warning at mission accept: *"Intelligence suggests this run may not be quiet."*
+
+**Key insight**: Return-leg intercepts (salvage/boarding/destroy/hacking) spawn immediately upon objective completion, not gradually along the route back.
+
+### Target Ships (Boarding/Destroy)
+
+**Creation flow**:
+1. Mission generation picks `nearby_stations` (50U radius, excludes origin/Hollow/Corsairs)
+2. Random station selected → stored as `target_dest`
+3. **On mission accept**, target spawned at `(wx, wy)` with AI order: `orderFlyTowards(target_dest)`
+4. Mission log shows: *"Target is at [grid] heading toward [target_dest]"*
+
+**Critical bug fixed 2026-10-28**: Spawning code was ignoring pre-calculated `target_dest` and picking a random station instead. Now uses `m.target_dest` directly.
+
+**Target behavior**:
+- Starts Independent faction, flying toward destination
+- **Boarding**: When player within 8U, switches to Corsairs and attacks
+- **Destroy**: When player within 8U, switches to Corsairs and attacks
+- Ships have full health/shields and can dock at stations (for future gameplay)
+
+### Hacking Missions
+
+- Spawn custom "Comms Relay Beacon" template (only reactor system)
+- Relay is stationary, Concord faction, cannot be destroyed
+- Player must hack **any system to 75%** (not just reactor, despite archetype field)
+- Mission completes when threshold reached
+- Intercept spawns on successful hack (return leg)
+
+### Common Mission Bugs and Fixes
+
+**"attempt to index a nil value" in mission generation**:
+- Usually missing archetype table (e.g., `_DESTROY_ARCHETYPES` undefined)
+- Or missing field in opts (e.g., `nearby_stations` not passed)
+- **Diagnostic pattern**: Wrap each `MISSION.new*` in `pcall`, log mission type on error
+  ```lua
+  local ok, err = pcall(function() return MISSION.newBoarding({...}) end)
+  if not ok then
+      print("[ERROR] Boarding mission generation failed: " .. tostring(err))
+      error("Boarding: " .. tostring(err))
+  end
+  ```
+
+**Target not flying toward logged destination**:
+- Check spawning code uses `m.target_dest`, not re-calculating stations
+- Verify `nearby_stations` passed to `MISSION.new*` functions
+
+**Intercept not spawning**:
+- Check `intercept` field exists and `fired == false`
+- Delivery: Route must be >5U and `MISSION.track()` called
+- Others: Check objective completion detection logic
+
+### Port Vesper Welcome System
+
+**First hail only** (per session):
+- Tracked via `S.vesper_first_hail` boolean
+- Custom `setCommsFunction` on Port Vesper station
+- First hail shows full welcome: *"Back again, I see. Port Vesper is neutral ground..."*
+- Subsequent hails show standard: *"Port Vesper traffic control. Mind the dock clamps, they bite."*
+- **No automatic hail** at game start (avoids double-logging from `sendCommsMessage`)
+
+### Error Diagnostics Best Practices
+
+**EmptyEpsilon Lua limitations**:
+- No `debug` library → no `debug.traceback()`
+- `pcall` returns `(ok, result_or_error)` where error string includes file:line
+
+**Diagnostic pattern**:
+```lua
+print("[JOBS] Generating " .. mtype .. " mission at tier " .. tier)
+local ok, err = pcall(function() return MISSION.newX({...}) end)
+if not ok then
+    print("[ERROR] X mission generation failed: " .. tostring(err))
+    error(mtype .. ": " .. tostring(err))
+end
+offers[#offers + 1] = err  -- result when ok == true
+```
+
+This gives: `[ERROR] Boarding mission generation failed: mission.lua:587: attempt to index a nil value (field 'target_dest')`
