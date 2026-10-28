@@ -436,14 +436,22 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
-                    offers[#offers + 1] = MISSION.newSalvage({
-                        origin = cs,
-                        wx = wx,
-                        wy = wy,
-                        tier = tier,
-                        distance_u = dist,
-                        danger_level = danger_level,
-                    })
+                    local mission_ok, mission_err = pcall(function()
+                        return MISSION.newSalvage({
+                            origin = cs,
+                            wx = wx,
+                            wy = wy,
+                            tier = tier,
+                            distance_u = dist,
+                            danger_level = danger_level,
+                        })
+                    end)
+                    if mission_ok then
+                        offers[#offers + 1] = mission_err
+                    else
+                        print("[ERROR] Salvage mission generation failed: " .. tostring(mission_err))
+                        error("Salvage: " .. tostring(mission_err))
+                    end
                 elseif mtype == "boarding" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
@@ -467,15 +475,23 @@ function JOBS.stationHook(source, target)
                             end
                         end
                     end
-                    offers[#offers + 1] = MISSION.newBoarding({
-                        origin = cs,
-                        wx = wx,
-                        wy = wy,
-                        tier = tier,
-                        distance_u = dist,
-                        danger_level = danger_level,
-                        nearby_stations = nearby,
-                    })
+                    local mission_ok, mission_err = pcall(function()
+                        return MISSION.newBoarding({
+                            origin = cs,
+                            wx = wx,
+                            wy = wy,
+                            tier = tier,
+                            distance_u = dist,
+                            danger_level = danger_level,
+                            nearby_stations = nearby,
+                        })
+                    end)
+                    if mission_ok then
+                        offers[#offers + 1] = mission_err
+                    else
+                        print("[ERROR] Boarding mission generation failed: " .. tostring(mission_err))
+                        error("Boarding: " .. tostring(mission_err))
+                    end
                 elseif (mtype == "hacking" or mtype == "destroy") and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
@@ -485,14 +501,22 @@ function JOBS.stationHook(source, target)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
                     if mtype == "hacking" then
-                        offers[#offers + 1] = MISSION.newHacking({
-                            origin = cs,
-                            wx = wx,
-                            wy = wy,
-                            tier = tier,
-                            distance_u = dist,
-                            danger_level = danger_level,
-                        })
+                        local mission_ok, mission_err = pcall(function()
+                            return MISSION.newHacking({
+                                origin = cs,
+                                wx = wx,
+                                wy = wy,
+                                tier = tier,
+                                distance_u = dist,
+                                danger_level = danger_level,
+                            })
+                        end)
+                        if mission_ok then
+                            offers[#offers + 1] = mission_err
+                        else
+                            print("[ERROR] Hacking mission generation failed: " .. tostring(mission_err))
+                            error("Hacking: " .. tostring(mission_err))
+                        end
                     else  -- destroy
                         -- Find nearby stations for target destination
                         local nearby = {}
@@ -509,15 +533,23 @@ function JOBS.stationHook(source, target)
                                 end
                             end
                         end
-                        offers[#offers + 1] = MISSION.newDestroy({
-                            origin = cs,
-                            wx = wx,
-                            wy = wy,
-                            tier = tier,
-                            nearby_stations = nearby,
-                            distance_u = dist,
-                            danger_level = danger_level,
-                        })
+                        local mission_ok, mission_err = pcall(function()
+                            return MISSION.newDestroy({
+                                origin = cs,
+                                wx = wx,
+                                wy = wy,
+                                tier = tier,
+                                nearby_stations = nearby,
+                                distance_u = dist,
+                                danger_level = danger_level,
+                            })
+                        end)
+                        if mission_ok then
+                            offers[#offers + 1] = mission_err
+                        else
+                            print("[ERROR] Destroy mission generation failed: " .. tostring(mission_err))
+                            error("Destroy: " .. tostring(mission_err))
+                        end
                     end
                 elseif dest_idx <= #candidates then
                     -- fallback: delivery
