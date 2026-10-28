@@ -393,6 +393,21 @@ local _TYPE_MULT = {
     boarding = 1.8,
 }
 
+-- Calculate final reward with distance and danger modifiers
+local function _calcReward(base, type_mult, arch_mult, distance_u, danger_level)
+    local reward = base * type_mult * arch_mult
+    -- Distance bonus: +1% per U beyond 10U
+    if distance_u and distance_u > 10000 then
+        local extra_dist_u = (distance_u - 10000) / 1000
+        reward = reward * (1.0 + extra_dist_u * 0.01)
+    end
+    -- Danger bonus: +15% per danger level
+    if danger_level and danger_level > 0 then
+        reward = reward * (1.0 + danger_level * 0.15)
+    end
+    return math.floor(reward / 5 + 0.5) * 5  -- round to nearest 5
+end
+
 -- Returns the in-game sector label (e.g. "F5") matching the Relay map grid.
 function MISSION.gridRef(wx, wy)
     return getSectorName(wx, wy)
