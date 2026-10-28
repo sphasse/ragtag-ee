@@ -155,3 +155,86 @@ end
 function RUMORS.random()
     return RUMORS.pool[math.random(#RUMORS.pool)]
 end
+
+-- Cooldown tracking (per ship callsign)
+RUMORS._cooldowns = {}
+RUMORS.COOLDOWN_SECONDS = 300  -- 5 minutes
+
+-- "No news" responses when cooldown is active
+RUMORS.no_news = {
+    "Nothing new since you asked last time.",
+    "Same stories making the rounds. Check back later.",
+    "Haven't heard anything fresh. Give it a few minutes.",
+    "You already got the latest. News doesn't travel that fast out here.",
+    "Asked around. Nobody's talking right now.",
+    "Rumor mill's gone quiet for the moment.",
+    "Give the gossip a chance to catch up, friend.",
+    "You've heard everything I've heard. For now.",
+    "Word travels slow in the Drift. Try again in a bit.",
+    "Nothing worth repeating at the moment.",
+    "Same old stories. Come back after you've flown a leg or two.",
+    "Fresh out of news. Check the net if you're bored.",
+    "Crew's been quiet on the comms. Give it time.",
+    "Haven't picked up anything new on the long-range.",
+    "I don't get paid enough to make stuff up.",
+    "All the good rumours are in other people's inboxes right now.",
+    "Ask me again after the next freighter docks.",
+    "Nothing I haven't already told you.",
+    "News is slow today. Must be a quiet sector.",
+    "The rumour you just heard is still the rumour.",
+    "Folks are keeping their mouths shut at the moment.",
+    "Give the scuttlebutt time to percolate.",
+    "That's all the gossip budget for now.",
+    "Same chatter as five minutes ago.",
+    "Nobody's hailing with anything interesting yet.",
+    "I'm not a news service. Check back later.",
+    "If I hear something, you'll be the first to know. Eventually.",
+    "Silence on the feeds. Unusual, but there it is.",
+    "My sources are taking a coffee break.",
+    "You're pushy. No new news.",
+    "Asked the dock crew. They shrugged.",
+    "Everyone's talking about what you already heard.",
+    "Nothing's changed since last you asked.",
+    "This isn't a subscription service, friend.",
+    "Try the bar. Maybe someone there knows something I don't.",
+    "When something interesting happens, I'll let you know.",
+    "The galaxy didn't get more interesting in the last few minutes.",
+    "Rumour velocity is low right now. Physics.",
+    "Check back after the shift change.",
+    "I can't manufacture gossip on demand.",
+    "Whatever you heard last time is still current.",
+    "Give the transponder chatter time to catch up.",
+    "Not much moves faster than light. News included.",
+    "Heard nothing new. Space is big and news is slow.",
+    "Still chewing on the last batch of rumours.",
+    "Same story, different minute.",
+    "I'd tell you if I knew something. I don't.",
+    "The well's dry for now. Check back later.",
+    "Nobody's said anything worth repeating since you last asked.",
+    "Patience. Good intel takes time.",
+}
+
+-- Check if ship can get a rumor (returns true if cooldown expired)
+function RUMORS.canGetRumor(ship_callsign)
+    if not RUMORS._cooldowns[ship_callsign] then
+        return true
+    end
+    local now = getScenarioTime and getScenarioTime() or 0
+    return (now - RUMORS._cooldowns[ship_callsign]) >= RUMORS.COOLDOWN_SECONDS
+end
+
+-- Mark that ship just received a rumor
+function RUMORS.markRumorReceived(ship_callsign)
+    local now = getScenarioTime and getScenarioTime() or 0
+    RUMORS._cooldowns[ship_callsign] = now
+end
+
+-- Get rumor or "no news" response based on cooldown
+function RUMORS.get(ship_callsign)
+    if RUMORS.canGetRumor(ship_callsign) then
+        RUMORS.markRumorReceived(ship_callsign)
+        return RUMORS.next()
+    else
+        return RUMORS.no_news[math.random(#RUMORS.no_news)]
+    end
+end

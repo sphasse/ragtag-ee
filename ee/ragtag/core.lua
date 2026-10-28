@@ -603,10 +603,10 @@ function RT.stationComms(source, target)
     end
 
     addCommsReply("Any news worth hearing?", function(s, t)
-        -- Deliver a rumor immediately, plus ping the director for dynamic content
+        -- Deliver a rumor with cooldown, plus ping the director for dynamic content
         local rumor_text = "\"Let me think...\""
-        if RUMORS and RUMORS.next then
-            rumor_text = "\"" .. RUMORS.next() .. "\""
+        if RUMORS and RUMORS.get then
+            rumor_text = "\"" .. RUMORS.get(s:getCallSign()) .. "\""
         end
         setCommsMessage(rumor_text)
         if DIR then

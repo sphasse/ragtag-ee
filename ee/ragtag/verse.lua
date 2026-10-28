@@ -527,10 +527,10 @@ function VERSE.transportComms(source, target, rec)
         addCommsReply("Back", function(s2, t2) VERSE.transportComms(s2, t2, rec) end)
     end)
     addCommsReply("Heard any news?", function(s, t)
-        -- Deliver a rumor from the pool, or ping the director for dynamic content
+        -- Deliver a rumor with cooldown, or ping the director for dynamic content
         local rumor_text = nil
-        if RUMORS and RUMORS.next then
-            rumor_text = RUMORS.next()
+        if RUMORS and RUMORS.get then
+            rumor_text = RUMORS.get(s:getCallSign())
         elseif VERSE.RUMORS and #VERSE.RUMORS > 0 then
             rumor_text = VERSE.RUMORS[math.floor(random(1, #VERSE.RUMORS + 0.999))]
         else
