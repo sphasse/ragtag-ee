@@ -343,7 +343,7 @@ function JOBS.stationHook(source, target)
                 elseif mtype == "salvage" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (15 + math.random() * 25) * 1000
+                    local dist = (15 + math.random() * 15) * 1000  -- 15-30U from origin
                     offers[#offers + 1] = MISSION.newSalvage({
                         origin = cs,
                         wx = math.floor(rx + math.cos(ang) * dist),
@@ -363,7 +363,7 @@ function JOBS.stationHook(source, target)
                 elseif mtype == "hacking" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (8 + math.random() * 12) * 1000   -- relay buoys sit closer than boarding targets
+                    local dist = (15 + math.random() * 15) * 1000  -- 15-30U from origin
                     offers[#offers + 1] = MISSION.newHacking({
                         origin = cs,
                         wx = math.floor(rx + math.cos(ang) * dist),
