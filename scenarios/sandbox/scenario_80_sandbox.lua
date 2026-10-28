@@ -220,9 +220,22 @@ function JOBS.accept(m, skip_log)
         s:setCallSign(name)
         s:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
 
-        -- Temporarily set to neutral faction so other NPCs won't attack it prematurely
-        -- Will be set back to Corsairs when player gets close
-        s:setFaction("Independent")
+        -- Ensure ship spawns with full health (sometimes templates have damaged systems)
+        s:setHull(s:getHullMax())
+        s:setSystemHealth("impulse", 1.0)
+        s:setSystemHealth("reactor", 1.0)
+        s:setSystemHealth("beamweapons", 1.0)
+        s:setSystemHealth("missilesystem", 1.0)
+        s:setSystemHealth("maneuver", 1.0)
+        s:setSystemHealth("warp", 1.0)
+        s:setSystemHealth("jumpdrive", 1.0)
+        s:setSystemHealth("frontshield", 1.0)
+        s:setSystemHealth("rearshield", 1.0)
+
+        -- Set shields to max
+        local max_front = s:getShieldMax(0)
+        local max_rear = s:getShieldMax(1)
+        if max_front > 0 then s:setShields(max_front, max_rear) end
 
         -- Order ship to fly toward destination station
         if dest_station then
