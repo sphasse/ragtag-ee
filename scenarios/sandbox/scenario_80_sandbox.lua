@@ -485,7 +485,7 @@ function JOBS.update()
             end
 
         elseif m.type == "hacking" then
-            -- Phase 1: watch for hack completion (reactor to 50%)
+            -- Phase 1: watch for hack completion (any system to 50%)
             -- (target already spawned in JOBS.accept)
             if not m._hacked then
                 local target = RT.find(m.target_cs)
@@ -495,12 +495,23 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    local hack_lvl = target:getSystemHackedLevel("reactor")
-                    if hack_lvl >= m.hack_threshold then
+                    -- Check all hackable systems
+                    local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
+                    local max_hack = 0
+                    local hacked_system = nil
+                    for _, sys in ipairs(systems) do
+                        local hack_lvl = target:getSystemHackedLevel(sys)
+                        if hack_lvl > max_hack then
+                            max_hack = hack_lvl
+                            hacked_system = sys
+                        end
+                    end
+
+                    if max_hack >= m.hack_threshold then
                         m._hacked = true
                         target:setCanBeDestroyed(true)
                         m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                        RT.shipLog("[Hack] Data extracted from " .. m.target_cs
+                        RT.shipLog("[Hack] System breach successful! Data extracted from " .. m.target_cs
                             .. ". Return to " .. m.origin .. ".", "#80FF80")
                         if m.intercept and not m.intercept.fired then
                             m.intercept.fired = true
