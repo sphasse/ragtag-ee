@@ -188,12 +188,16 @@ function JOBS.accept(m, skip_log)
             local base_template = __ship_templates[m.target_template]
             if base_template then
                 local new_template = ShipTemplate():setName(dock_template_name)
-                -- Copy stats from base template
-                new_template:setModel(base_template.model_data)
-                if base_template.typename then
-                    new_template:setClass(base_template.typename.type_name or "Ship", "Corsair")
+                -- Copy basic properties from base template
+                if base_template.model_data then
+                    new_template:setModel(base_template.model_data)
                 end
-                -- Enable external docking for player ships (Frigates)
+                if base_template.docking_port and base_template.docking_port.dock_class then
+                    new_template:setClass(base_template.docking_port.dock_class, "Corsair")
+                else
+                    new_template:setClass("Frigate", "Corsair")
+                end
+                -- Enable external docking for player ships
                 new_template:setExternalDockClasses("Frigate", "Corvette", "Starfighter")
             end
         end
