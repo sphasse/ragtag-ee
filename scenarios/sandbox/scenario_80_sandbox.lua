@@ -129,7 +129,7 @@ end
 
 function JOBS.init() end
 
-function JOBS.accept(m)
+function JOBS.accept(m, skip_log)
     if #_active >= 2 then return false end
     _done[m.id] = true
     -- Drain from dynamic queue if this was director-pushed
@@ -193,16 +193,19 @@ function JOBS.accept(m)
         m._spawned  = true
     end
 
-    local dest_hint = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
-    if m.type == "boarding" or m.type == "hacking" then
-        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
-            m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
-    else
-        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
-            m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
-    end
-    if m.intercept then
-        RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
+    -- Write contract details to log (unless caller will do it)
+    if not skip_log then
+        local dest_hint = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
+        if m.type == "boarding" or m.type == "hacking" then
+            RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
+                m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
+        else
+            RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
+                m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+        end
+        if m.intercept then
+            RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
+        end
     end
     return true
 end
@@ -365,8 +368,20 @@ function JOBS.stationHook(source, target)
                 if #_active >= 2 then
                     setCommsMessage('"You\'re already carrying two jobs. Finish one first."')
                 else
-                    JOBS.accept(cap)
+                    JOBS.accept(cap, true)  -- skip_log=true, we'll write it after the message
                     setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"\n\nTransmitting details to your log.")
+                    -- Now write to log after showing the message
+                    local dest_hint = cap.dest or (cap.wx and ("grid " .. MISSION.gridRef(cap.wx, cap.wy)) or "??")
+                    if cap.type == "boarding" or cap.type == "hacking" then
+                        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
+                            cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
+                    else
+                        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
+                            cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+                    end
+                    if cap.intercept then
+                        RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
+                    end
                 end
                 addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
             end)
