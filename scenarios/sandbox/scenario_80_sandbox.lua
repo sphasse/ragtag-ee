@@ -372,7 +372,7 @@ function JOBS.stationHook(source, target)
                     setCommsMessage('"You\'re already carrying two jobs. Finish one first."')
                 else
                     JOBS.accept(cap)
-                    setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"")
+                    setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"\n\nTransmitting details to your log.")
                 end
                 addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
             end)
