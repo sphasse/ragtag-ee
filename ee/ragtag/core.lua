@@ -72,9 +72,13 @@ function RT.register(entity, callsign)
     if callsign then entity:setCallSign(callsign) end
     RT.named[entity:getCallSign()] = entity
 
-    -- Automatically track ships for reputation on kill
-    if entity.getTypeName and entity:getTypeName() == "CpuShip" then
-        RT.trackShipForReputation(entity)
+    -- Automatically track CpuShips for reputation on kill
+    -- Check if getTypeName exists and is actually a function before calling
+    if entity.getTypeName and type(entity.getTypeName) == "function" then
+        local ok, typename = pcall(function() return entity:getTypeName() end)
+        if ok and typename == "CpuShip" then
+            RT.trackShipForReputation(entity)
+        end
     end
 
     return entity
