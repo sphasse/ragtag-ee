@@ -41,6 +41,7 @@ local S = {
     docked_at = nil,
     ending = false,
     witness_active = false,    -- locks job board once The Witness arc begins
+    vesper_first_hail = false, -- track first hail to Port Vesper for welcome message
 }
 
 --------------------------------------------------------------------------------
