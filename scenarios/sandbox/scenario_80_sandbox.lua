@@ -584,7 +584,7 @@ function JOBS.update()
             end
 
         elseif m.type == "hacking" then
-            -- Phase 1: watch for hack completion (reactor >= 75%)
+            -- Phase 1: watch for hack completion (any system >= 75%)
             if not m._hacked then
                 local target = RT.find(m.target_cs)
                 if not RT.valid(target) then
@@ -593,15 +593,27 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    -- Check reactor hack level
-                    local hack_lvl = target:getSystemHackedLevel("reactor")
+                    -- Check all hackable systems
+                    local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
+                    local max_hack = 0
+                    local hacked_system = nil
+                    for _, sys in ipairs(systems) do
+                        if target:hasSystem(sys) then
+                            local hack_lvl = target:getSystemHackedLevel(sys)
+                            if hack_lvl > max_hack then
+                                max_hack = hack_lvl
+                                hacked_system = sys
+                            end
+                        end
+                    end
 
-                    -- Complete when threshold reached
-                    if hack_lvl >= m.hack_threshold then
+                    -- Complete when threshold reached on any system
+                    if max_hack >= m.hack_threshold then
                         m._hacked = true
                         target:setCanBeDestroyed(true)
                         m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                        RT.shipLog("[Hack] System breach successful! Data extracted from " .. m.target_cs
+                        local sys_name = hacked_system or "system"
+                        RT.shipLog("[Hack] " .. sys_name .. " breach successful! Data extracted from " .. m.target_cs
                             .. ". Return to " .. m.origin .. ".", "#80FF80")
                         if m.intercept and not m.intercept.fired then
                             m.intercept.fired = true
