@@ -25,6 +25,7 @@ require("ragtag/verse.lua")
 require("ragtag/director.lua")
 require("ragtag/patrol.lua")
 require("ragtag/mission.lua")
+require("sandbox/rumors")
 
 local SESSION_ID = "sandbox"
 
@@ -133,22 +134,55 @@ function JOBS.accept(m)
     _active[#_active+1] = {mission = m, phase = "active"}
     MISSION.track(m)   -- register for route interception
     JOBS.updateObj()
+
+    -- Spawn boarding/hacking targets immediately so player knows the target name
+    if m.type == "boarding" and not m._spawned then
+        local s = CpuShip():setTemplate(m.target_template):setFaction("Corsairs")
+        s:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
+        s:orderRoaming()
+        RT.register(s)
+        DIR.registerKill(s)
+        DIR.allowControl(s)
+        s:setCommsFunction(function(src, tgt)
+            setCommsMessage('"Get away from us."')
+        end)
+        m.target_cs = s:getCallSign()
+        m._spawned  = true
+    elseif m.type == "hacking" and not m._spawned then
+        local s = CpuShip():setTemplate("Defense platform"):setFaction("Independent")
+        s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
+        s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
+        s:setCanBeDestroyed(false)
+        s:setSystemHealth(m.system, 1.0)
+        RT.register(s)
+        s:setCommsFunction(function(src, tgt)
+            setCommsMessage("Automated relay. No response.")
+        end)
+        m.target_cs = s:getCallSign()
+        m._spawned  = true
+    end
+
     local dest_hint = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
-    RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
-        m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+    if m.type == "boarding" or m.type == "hacking" then
+        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
+            m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
+    else
+        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
+            m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+    end
     if m.intercept then
         RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
     end
     return true
 end
 
-function JOBS.complete(entry)
+function JOBS.complete(entry, completing_ship)
     entry.phase = "done"
     for i, a in ipairs(_active) do
         if a == entry then table.remove(_active, i); break end
     end
     MISSION.untrack(entry.mission.id)
-    RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short)
+    RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short, completing_ship)
     JOBS.updateObj()
     DIR.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward}, "low")
 end
@@ -176,7 +210,7 @@ function JOBS.stationHook(source, target)
             if m.type == "delivery" and m.dest == cs then
                 local ent = entry
                 addCommsReply(string.format("Hand off %s (+%d cr)", m.cargo, m.reward), function(s, t)
-                    JOBS.complete(ent)
+                    JOBS.complete(ent, s)
                     local recv = (ent.mission.complete_msg or '"Received. Good flying."')
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
@@ -184,7 +218,7 @@ function JOBS.stationHook(source, target)
             elseif m.type == "salvage" and m.origin == cs and m._found then
                 local ent = entry
                 addCommsReply(string.format("Deliver %s (+%d cr)", m.cargo, m.reward), function(s, t)
-                    JOBS.complete(ent)
+                    JOBS.complete(ent, s)
                     local recv = (ent.mission.complete_msg or '"Received. Good work."')
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
@@ -192,7 +226,7 @@ function JOBS.stationHook(source, target)
             elseif m.type == "boarding" and m.origin == cs and m._boarded then
                 local ent = entry
                 addCommsReply(string.format("Hand off %s (+%d cr)", m.cargo, m.reward), function(s, t)
-                    JOBS.complete(ent)
+                    JOBS.complete(ent, s)
                     local recv = (ent.mission.complete_msg or '"Good work."')
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
@@ -200,7 +234,7 @@ function JOBS.stationHook(source, target)
             elseif m.type == "hacking" and m.origin == cs and m._hacked then
                 local ent = entry
                 addCommsReply(string.format("Deliver %s (+%d cr)", m.cargo, m.reward), function(s, t)
-                    JOBS.complete(ent)
+                    JOBS.complete(ent, s)
                     local recv = (ent.mission.complete_msg or '"Good extraction."')
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
@@ -356,24 +390,9 @@ function JOBS.update()
             end
 
         elseif m.type == "boarding" then
-            -- Phase 1: spawn target ship on first update after accept
-            if not m._spawned then
-                local s = CpuShip():setTemplate(m.target_template):setFaction("Corsairs")
-                s:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
-                s:orderRoaming():setDockingPortCount(0)
-                RT.register(s)
-                DIR.registerKill(s)
-                DIR.allowControl(s)
-                s:setCommsFunction(function(src, tgt)
-                    setCommsMessage('"Get away from us."')
-                end)
-                m.target_cs = s:getCallSign()
-                m._spawned  = true
-                RT.shipLog("[Boarding] Target located: " .. m.target_cs
-                    .. ". Disable its engines — Weapons: set beam system target to impulse.", "#FFCC80")
-
-            -- Phase 2: watch for disable (impulse health < 0.3 or hull < 25%)
-            elseif not m._disabled then
+            -- Phase 1: watch for disable (impulse health < 0.3 or hull < 25%)
+            -- (target already spawned in JOBS.accept)
+            if not m._disabled then
                 local target = RT.find(m.target_cs)
                 if not RT.valid(target) then
                     -- Destroyed before boarding — mission lost
@@ -389,7 +408,7 @@ function JOBS.update()
                         target:setCanBeDestroyed(false)
                         target:orderIdle()
                         target:setImpulseMaxSpeed(5)
-                        target:setDockingPortCount(1)
+                        -- Docking with disabled ships is allowed by default in EE
                         target:setCommsFunction(function(src, tgt)
                             setCommsMessage('"We\'re done. Come aboard and take what you came for."')
                         end)
@@ -409,7 +428,7 @@ function JOBS.update()
                             if docked and docked == target then
                                 m._boarded = true
                                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                                target:setDockingPortCount(0)
+                                -- Player has boarded successfully
                                 RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
                                 -- Fire intercept on the return leg
                                 if m.intercept and not m.intercept.fired then
@@ -430,24 +449,9 @@ function JOBS.update()
             end
 
         elseif m.type == "hacking" then
-            -- Phase 1: spawn relay buoy on first update after accept
-            if not m._spawned then
-                local s = CpuShip():setTemplate("Escape Pod"):setFaction("Corsairs")
-                s:setPosition(m.wx + random(-1000, 1000), m.wy + random(-1000, 1000))
-                s:orderIdle()
-                s:setImpulseMaxSpeed(0)
-                s:setRotationMaxSpeed(0)
-                s:setWeaponTubeCount(0)
-                s:setCanBeDestroyed(false)
-                s:setCallSign("Data Relay " .. math.random(10, 99))
-                RT.register(s)
-                m.target_cs = s:getCallSign()
-                m._spawned  = true
-                RT.shipLog("[Hack] Relay located: " .. m.target_cs
-                    .. ". Relay station: open hacking panel and target the reactor subsystem.", "#FFCC80")
-
-            -- Phase 2: watch for hack completion
-            elseif not m._hacked then
+            -- Phase 1: watch for hack completion
+            -- (target already spawned in JOBS.accept)
+            if not m._hacked then
                 local target = RT.find(m.target_cs)
                 if not RT.valid(target) then
                     RT.shipLog("[Hack] Relay destroyed before extraction — contract lost.", "#FF8080")

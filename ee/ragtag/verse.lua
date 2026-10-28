@@ -406,7 +406,7 @@ function VERSE.spawnPod(x, y, value, kind_rec, tier)
     art:setScanningParameters(1, 1)
     art:onPickUp(function(obj, player)
         if kind_rec.kind == "credits" then
-            RT.addCredits(value, "salvage")
+            RT.addCredits(value, "salvage", player)
         elseif kind_rec.kind == "missiles" then
             for _, w in ipairs({"Homing", "HVLI"}) do
                 player:setWeaponStorage(w, math.min(player:getWeaponStorageMax(w), player:getWeaponStorage(w) + (w == "Homing" and 2 or 3)))
@@ -416,7 +416,7 @@ function VERSE.spawnPod(x, y, value, kind_rec, tier)
             player:setHull(math.min(player:getHullMax(), player:getHull() + 25))
             player:addToShipLog("Salvage: hull patch kit applied (+25 hull).", "#E0C060")
         else
-            RT.addCredits(value * 2, "data chip")
+            RT.addCredits(value * 2, "data chip", player)
         end
         if DIR then
             DIR.emit("pickup", {label = label, kind = kind_rec.kind, value = value, tier = tier,
@@ -527,37 +527,44 @@ function VERSE.transportComms(source, target, rec)
         addCommsReply("Back", function(s2, t2) VERSE.transportComms(s2, t2, rec) end)
     end)
     addCommsReply("Heard any news?", function(s, t)
-        if DIR and DIR.online then
-            setCommsMessage("\"Hm. Let me think on that a second...\"")
-            DIR.emit("npc_hailed", {callsign = t:getCallSign(), faction = t:getFaction(), topic = "news",
-                role = "freighter crew", cargo = rec.kind, heading_to = dest}, "high")
+        -- Deliver a rumor from the pool, or ping the director for dynamic content
+        local rumor_text = nil
+        if RUMORS and RUMORS.next then
+            rumor_text = RUMORS.next()
+        elseif VERSE.RUMORS and #VERSE.RUMORS > 0 then
+            rumor_text = VERSE.RUMORS[math.floor(random(1, #VERSE.RUMORS + 0.999))]
         else
-            setCommsMessage("\"" .. VERSE.RUMORS[math.floor(random(1, #VERSE.RUMORS + 0.999))] .. "\"")
+            rumor_text = "Not much worth repeating, friend."
+        end
+        setCommsMessage("\"" .. rumor_text .. "\"")
+        if DIR and DIR.online then
+            DIR.emit("npc_hailed", {callsign = t:getCallSign(), faction = t:getFaction(), topic = "news",
+                role = "freighter crew", cargo = rec.kind, heading_to = dest}, "normal")
         end
         addCommsReply("Back", function(s2, t2) VERSE.transportComms(s2, t2, rec) end)
     end)
     if rec.route.fac ~= "Concord" and rec.kind == "Fuel" then
         addCommsReply("Sell us some fuel? (recharge energy, 30 cr)", function(s, t)
-            if RT.credits() < 30 then
+            if RT.credits(s) < 30 then
                 setCommsMessage("\"Cash first, friend.\"")
             elseif RT.dist(s, t) > 5000 then
                 setCommsMessage("\"Come alongside first. Within five units.\"")
             else
-                RT.addCredits(-30, "fuel from " .. t:getCallSign())
+                RT.addCredits(-30, "fuel from " .. t:getCallSign(), s)
                 s:setEnergy(s:getMaxEnergy())
                 setCommsMessage("\"Pleasure doing business.\"")
             end
         end)
     elseif rec.route.fac ~= "Concord" and rec.kind == "Equipment" then
         addCommsReply("Got any ordnance to spare? (2 homing, 40 cr)", function(s, t)
-            if RT.credits() < 40 then
+            if RT.credits(s) < 40 then
                 setCommsMessage("\"Cash first, friend.\"")
             elseif RT.dist(s, t) > 5000 then
                 setCommsMessage("\"Come alongside first. Within five units.\"")
             elseif s:getWeaponStorage("Homing") >= s:getWeaponStorageMax("Homing") then
                 setCommsMessage("\"Your racks are full already.\"")
             else
-                RT.addCredits(-40, "ordnance from " .. t:getCallSign())
+                RT.addCredits(-40, "ordnance from " .. t:getCallSign(), s)
                 s:setWeaponStorage("Homing", math.min(s:getWeaponStorageMax("Homing"), s:getWeaponStorage("Homing") + 2))
                 setCommsMessage("\"Two birds, loaded. Don't tell anyone where you got them.\"")
             end
@@ -679,7 +686,7 @@ function VERSE.updateRegion()
         if type(RT.campaign.discovered) ~= "table" then RT.campaign.discovered = {} end
         table.insert(RT.campaign.discovered, r.name)
         p:addToShipLog("Charted: " .. r.desc, "#A0E0FF")
-        RT.addCredits(10 + 15 * r.danger, "survey data for " .. r.name)
+        RT.addCredits(10 + 15 * r.danger, "survey data for " .. r.name, p)
     elseif first_session then
         p:addToShipLog("Entering " .. r.name .. ".", "#A0E0FF")
     end

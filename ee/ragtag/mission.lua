@@ -679,8 +679,11 @@ function MISSION._spawnIntercept(m, px, py)
         comms_msg = '"Independent vessel, this is a Concord inspection. Heave to."'
     end
 
+    -- Spawn 2-3 ships instead of full group (early-game balance)
+    local spawn_count = math.min(#templates, math.random(2, 3))
     local names = {}
-    for _, tmpl in ipairs(templates) do
+    for i = 1, spawn_count do
+        local tmpl = templates[math.min(i, #templates)]
         local s = CpuShip():setTemplate(tmpl):setFaction(faction)
         s:setPosition(sx + random(-800, 800), sy + random(-800, 800))
         RT.register(s)

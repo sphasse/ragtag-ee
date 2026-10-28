@@ -354,29 +354,34 @@ end
 -- Credits (reputation points on the player ship)
 --------------------------------------------------------------------------------
 
-function RT.credits()
-    if not RT.valid(RT.player) then return 0 end
-    return math.floor(RT.player:getReputationPoints())
+-- Returns the current credit balance (reputation points) of a specific ship.
+-- If no ship provided, returns the first player ship's balance (backward compat).
+function RT.credits(ship)
+    ship = ship or RT.player
+    if not RT.valid(ship) then return 0 end
+    return math.floor(ship:getReputationPoints())
 end
 
-function RT.addCredits(amount, reason)
-    if not RT.valid(RT.player) then return end
+-- Add credits to a specific ship. If no ship provided, affects only the first player ship.
+-- Ships maintain independent credit pools - no automatic syncing.
+function RT.addCredits(amount, reason, ship)
+    ship = ship or RT.player
+    if not RT.valid(ship) then return end
     amount = math.floor(amount)
     local new_total
     if amount >= 0 then
-        RT.player:addReputationPoints(amount)
-        new_total = math.floor(RT.player:getReputationPoints())
+        ship:addReputationPoints(amount)
+        new_total = math.floor(ship:getReputationPoints())
     else
-        new_total = math.max(0, RT.credits() + amount)
-        RT.player:setReputationPoints(new_total)
-    end
-    -- Mirror balance on every other player ship so all Relay screens agree.
-    for i = 2, #RT.players do
-        if RT.valid(RT.players[i]) then RT.players[i]:setReputationPoints(new_total) end
+        new_total = math.max(0, RT.credits(ship) + amount)
+        ship:setReputationPoints(new_total)
     end
     local sign = amount >= 0 and "+" or ""
-    RT.shipLog(string.format("Credits %s%d (%s). Balance: %d", sign, amount, reason or "misc", new_total), "#E0C060")
-    RT.saveCampaign()
+    ship:addToShipLog(string.format("Credits %s%d (%s). Balance: %d", sign, amount, reason or "misc", new_total), "#E0C060")
+    -- Only save campaign for the primary ship
+    if ship == RT.player then
+        RT.saveCampaign()
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -574,7 +579,7 @@ function RT.stationComms(source, target)
     end
     local msg = info.flavor ~= "" and info.flavor or ("This is " .. target:getCallSign() .. ". State your business.")
     if source:isDocked(target) then
-        msg = msg .. "\n\nYou're docked. Balance: " .. RT.credits() .. " credits."
+        msg = msg .. "\n\nYou're docked. Balance: " .. RT.credits(source) .. " credits."
     end
     setCommsMessage(msg)
 
@@ -598,9 +603,14 @@ function RT.stationComms(source, target)
     end
 
     addCommsReply("Any news worth hearing?", function(s, t)
-        setCommsMessage("\"Let me ask around. I'll ping you if anything turns up.\"")
+        -- Deliver a rumor immediately, plus ping the director for dynamic content
+        local rumor_text = "\"Let me think...\""
+        if RUMORS and RUMORS.next then
+            rumor_text = "\"" .. RUMORS.next() .. "\""
+        end
+        setCommsMessage(rumor_text)
         if DIR then
-            DIR.emit("comms_ask", {station = t:getCallSign(), faction = t:getFaction(), topic = "rumours"}, "high")
+            DIR.emit("comms_ask", {station = t:getCallSign(), faction = t:getFaction(), topic = "rumours"}, "normal")
         end
         addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
     end)
@@ -618,17 +628,17 @@ end
 
 function RT.shipwrightMenu(source, target)
     local info = RT.stations[target:getCallSign()] or {shop = true}
-    local lines = {"Shipwright. Balance: " .. RT.credits() .. " credits.\n"}
+    local lines = {"Shipwright. Balance: " .. RT.credits(source) .. " credits.\n"}
     local any = false
     for _, u in ipairs(RT.UPGRADES) do
         if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id) and (u.requires == nil or RT.hasUpgrade(u.requires)) then
             any = true
             table.insert(lines, string.format("%s (%d cr): %s", u.name, u.cost, u.desc))
             addCommsReply(string.format("Buy %s (%d)", u.name, u.cost), function(s, t)
-                if RT.credits() < u.cost then
+                if RT.credits(s) < u.cost then
                     setCommsMessage("\"Come back when you can pay for it.\"")
                 else
-                    RT.addCredits(-u.cost, "bought " .. u.name)
+                    RT.addCredits(-u.cost, "bought " .. u.name, s)
                     table.insert(RT.campaign.upgrades, u.id)
                     RT.applyUpgrade(s, u.id)
                     RT.saveCampaign()
@@ -662,17 +672,17 @@ function RT.shipwrightMenu(source, target)
 end
 
 function RT.restockMenu(source, target)
-    setCommsMessage("Missiles are 15 credits apiece. Balance: " .. RT.credits())
+    setCommsMessage("Missiles are 15 credits apiece. Balance: " .. RT.credits(source))
     for _, w in ipairs({"Homing", "HVLI"}) do
         local missing = source:getWeaponStorageMax(w) - source:getWeaponStorage(w)
         if missing > 0 then
             addCommsReply(string.format("Fill %s (%d for %d cr)", w, missing, missing * 15), function(s, t)
                 local m = s:getWeaponStorageMax(w) - s:getWeaponStorage(w)
                 local cost = m * 15
-                if RT.credits() < cost then
+                if RT.credits(s) < cost then
                     setCommsMessage("\"You're short.\"")
                 else
-                    RT.addCredits(-cost, "restocked " .. w)
+                    RT.addCredits(-cost, "restocked " .. w, s)
                     s:setWeaponStorage(w, s:getWeaponStorageMax(w))
                     setCommsMessage("Loaded.")
                 end
@@ -863,6 +873,32 @@ RT._hull_marks = {}   -- callsign -> {75=bool, 50=bool, 25=bool}
 
 function RT.update(delta)
     RT.updateTimers()
+
+    -- Sync RT.players with EmptyEpsilon's active player ships.
+    -- Catches ships spawned through GM console or other means outside RT.spawnPlayer().
+    local active = getActivePlayerShips()
+    for _, ship in ipairs(active) do
+        local found = false
+        for _, p in ipairs(RT.players) do
+            if p == ship then found = true; break end
+        end
+        if not found then
+            -- Set to campaign faction (default: Independent)
+            ship:setFaction(RT.PLAYER_FACTION)
+            table.insert(RT.players, ship)
+            RT.player = RT.players[1]  -- Update backward-compat alias
+            -- Apply campaign upgrades but NOT credits (ships are financially independent)
+            if RT.campaign then
+                for _, id in ipairs(RT.campaign.upgrades) do
+                    RT.applyUpgrade(ship, id)
+                end
+                -- New ships start with 0 credits - they earn their own way
+                ship:setReputationPoints(0)
+            end
+            print("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ", 0 credits)")
+        end
+    end
+
     local now = getScenarioTime()
     if RT.anyPlayerAlive() then
         -- Autosave credits every 60s so a crash doesn't eat the crew's money.
