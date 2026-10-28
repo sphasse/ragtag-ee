@@ -169,12 +169,32 @@ function JOBS.accept(m, skip_log)
         m._spawned = true
     -- Spawn boarding/hacking targets immediately so player knows the target name
     elseif m.type == "boarding" and not m._spawned then
+        -- Pick a destination station for the target to fly toward
+        local dest_station = nil
+        for _, d in ipairs(VERSE.STATIONS) do
+            if d.cs ~= m.origin and d.fac ~= "Hollow" and d.fac ~= "Corsairs" then
+                dest_station = RT.find(d.cs)
+                if RT.valid(dest_station) then
+                    m.target_dest = d.cs
+                    break
+                end
+            end
+        end
+
         local s = CpuShip():setTemplate(m.target_template):setFaction("Corsairs")
         -- Give it a creative Corsair name
         local name = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
         s:setCallSign(name)
         s:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
-        s:orderRoaming()
+
+        -- Order ship to fly toward destination station
+        if dest_station then
+            local dx, dy = dest_station:getPosition()
+            s:orderFlyTowards(dx, dy)
+        else
+            s:orderRoaming()
+        end
+
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
@@ -184,8 +204,9 @@ function JOBS.accept(m, skip_log)
         m.target_cs = name
         -- Update short description and objective with actual target name
         m.short = "Disable the " .. name
-        m.obj = "Disable " .. name
+        m.obj = "Intercept " .. name
         m._spawned  = true
+        m._attacking = false  -- Track if ship has engaged player
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn our custom comms relay beacon with only reactor system
         local s = CpuShip():setTemplate("Comms Relay Beacon"):setFaction("Concord")
@@ -216,7 +237,11 @@ function JOBS.accept(m, skip_log)
     -- Write contract details to log (unless caller will do it)
     if not skip_log then
         local dest_hint = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
-        if m.type == "boarding" or m.type == "hacking" then
+        if m.type == "boarding" then
+            local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
+            RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
+                m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
+        elseif m.type == "hacking" then
             RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
                 m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
         else
@@ -399,7 +424,11 @@ function JOBS.stationHook(source, target)
                     setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"\n\nTransmitting details to your log.")
                     -- Now write to log after showing the message
                     local dest_hint = cap.dest or (cap.wx and ("grid " .. MISSION.gridRef(cap.wx, cap.wy)) or "??")
-                    if cap.type == "boarding" or cap.type == "hacking" then
+                    if cap.type == "boarding" then
+                        local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
+                        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
+                            cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
+                    elseif cap.type == "hacking" then
                         RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
                             cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
                     else
@@ -464,6 +493,21 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
+                    -- When player gets close, target engages
+                    if not m._attacking then
+                        for _, p in ipairs(RT.players) do
+                            if RT.valid(p) then
+                                local dist = RT.dist(target, p)
+                                if dist < 8000 then  -- 8U engagement range
+                                    target:orderAttack(p)
+                                    m._attacking = true
+                                    RT.shipLog("[Target] " .. m.target_cs .. " detected our approach and is engaging!", "#FF8080")
+                                    break
+                                end
+                            end
+                        end
+                    end
+
                     local impulse_h = target:getSystemHealth("impulse") or 1
                     local hull_pct  = target:getHull() / target:getHullMax()
                     if impulse_h < 0.3 or hull_pct < 0.25 then
