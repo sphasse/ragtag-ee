@@ -633,8 +633,8 @@ end
 function RT.setObjective(text, silent)
     RT.objective = RT.cleanText(text, 160)
     RT.forEachPlayer(function(p)
-        p:addCustomInfo("relay", "rt_objective", "Job: " .. RT.objective, 0)
-        p:addCustomInfo("operations", "rt_objective_ops", "Job: " .. RT.objective, 0)
+        p:addCustomInfo("relay", "rt_objective", "Objective: " .. RT.objective, 0)
+        p:addCustomInfo("operations", "rt_objective_ops", "Objective: " .. RT.objective, 0)
         if not silent then p:addToShipLog("New objective: " .. RT.objective, "#80C0FF") end
     end)
     if DIR then DIR.emit("objective", {text = RT.objective}) end
