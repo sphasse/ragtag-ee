@@ -1,4 +1,4 @@
--- scenarios/sandbox/rumors.lua
+-- ee/ragtag/rumors.lua
 -- 100 rumors for the Drift universe, delivered by stations and freighters.
 -- ~10% hint at the Concord accounting scandal (Kael Voss arc).
 

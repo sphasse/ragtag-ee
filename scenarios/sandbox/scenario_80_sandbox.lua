@@ -25,7 +25,7 @@ require("ragtag/verse.lua")
 require("ragtag/director.lua")
 require("ragtag/patrol.lua")
 require("ragtag/mission.lua")
-require("sandbox/rumors")
+require("ragtag/rumors")
 
 local SESSION_ID = "sandbox"
 
