@@ -71,6 +71,12 @@ end
 function RT.register(entity, callsign)
     if callsign then entity:setCallSign(callsign) end
     RT.named[entity:getCallSign()] = entity
+
+    -- Automatically track ships for reputation on kill
+    if entity.getTypeName and entity:getTypeName() == "CpuShip" then
+        RT.trackShipForReputation(entity)
+    end
+
     return entity
 end
 
@@ -220,6 +226,14 @@ local function defaultCampaign()
         flags = {},      -- story flags: string -> bool/number/string
         notes = {},      -- short human-readable campaign log lines
         discovered = {}, -- names of charted regions (see ragtag_verse.lua)
+        reputation = {   -- standing with each faction (-100 to +100)
+            Concord = 0,
+            Corsairs = 0,
+            Hollow = 0,
+            Relic = 0,
+            Unknown = 0,
+            Independent = 0,
+        },
     }
 end
 
@@ -270,6 +284,76 @@ function RT.saveCampaign()
         RT.campaign.credits = math.floor(RT.player:getReputationPoints())
     end
     getScriptStorage():set(RT.CAMPAIGN_KEY, toJSON(RT.campaign))
+end
+
+--------------------------------------------------------------------------------
+-- Reputation system
+--------------------------------------------------------------------------------
+
+-- Modify reputation with a faction. Clamps to -100..+100.
+function RT.addReputation(faction, amount, reason)
+    if not RT.campaign or not RT.campaign.reputation then return end
+    if not RT.campaign.reputation[faction] then
+        RT.campaign.reputation[faction] = 0
+    end
+
+    local old_rep = RT.campaign.reputation[faction]
+    local new_rep = math.max(-100, math.min(100, old_rep + amount))
+    RT.campaign.reputation[faction] = new_rep
+
+    if amount ~= 0 and reason then
+        local sign = amount > 0 and "+" or ""
+        RT.shipLog(string.format("[Reputation] %s %s%d (%s). Standing: %d",
+            faction, sign, amount, reason, new_rep), amount > 0 and "#80C0FF" or "#FF8080")
+    end
+
+    RT.saveCampaign()
+end
+
+-- Get current reputation with a faction
+function RT.getReputation(faction)
+    if not RT.campaign or not RT.campaign.reputation then return 0 end
+    return RT.campaign.reputation[faction] or 0
+end
+
+-- Track ship kills for reputation penalties
+RT._kill_handlers = {}
+function RT.onKill(ship, callback)
+    if not ship or not RT.valid(ship) then return end
+    local cs = ship:getCallSign()
+    if not RT._kill_handlers[cs] then
+        RT._kill_handlers[cs] = {}
+    end
+    table.insert(RT._kill_handlers[cs], callback)
+end
+
+-- Call this in update() to check for destroyed ships
+function RT.updateKillTracking()
+    for cs, handlers in pairs(RT._kill_handlers) do
+        local ship = RT.find(cs)
+        if not RT.valid(ship) then
+            -- Ship was destroyed, fire callbacks
+            for _, cb in ipairs(handlers) do
+                local ok, err = pcall(cb)
+                if not ok then
+                    print("[RT] kill handler error for " .. cs .. ": " .. tostring(err))
+                end
+            end
+            RT._kill_handlers[cs] = nil
+        end
+    end
+end
+
+-- Register a ship for automatic reputation tracking on kill
+function RT.trackShipForReputation(ship)
+    if not ship or not RT.valid(ship) then return end
+    local faction = ship:getFaction()
+    -- Only track ships from factions we care about (not player ships, not derelict)
+    if faction == RT.PLAYER_FACTION or faction == "Derelict" then return end
+
+    RT.onKill(ship, function()
+        RT.addReputation(faction, -10, "destroyed " .. ship:getCallSign())
+    end)
 end
 
 --------------------------------------------------------------------------------

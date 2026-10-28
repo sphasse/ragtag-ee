@@ -237,6 +237,14 @@ function JOBS.complete(entry, completing_ship)
     end
     MISSION.untrack(entry.mission.id)
     RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short, completing_ship)
+
+    -- Award reputation based on mission origin station's faction
+    local origin_station = RT.find(entry.mission.origin)
+    if RT.valid(origin_station) then
+        local faction = origin_station:getFaction()
+        RT.addReputation(faction, 10, "mission: " .. entry.mission.short)
+    end
+
     JOBS.updateObj()
     DIR.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward}, "low")
 end
@@ -1271,6 +1279,28 @@ function defineBeats()
 end
 
 function addSessionGMFunctions()
+    addGMFunction("Campaign Status", function()
+        local lines = {"=== CAMPAIGN STATUS ===\n"}
+        if RT.campaign then
+            table.insert(lines, string.format("Session: %d", S.session_num))
+            table.insert(lines, string.format("Credits: %d\n", RT.campaign.credits))
+
+            table.insert(lines, "REPUTATION:")
+            local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic", "Unknown"}
+            for _, faction in ipairs(factions) do
+                local rep = RT.getReputation(faction)
+                local standing = ""
+                if rep >= 50 then standing = " (Friendly)"
+                elseif rep >= 20 then standing = " (Liked)"
+                elseif rep >= -20 then standing = " (Neutral)"
+                elseif rep >= -50 then standing = " (Disliked)"
+                else standing = " (Hostile)" end
+                table.insert(lines, string.format("  %s: %+d%s", faction, rep, standing))
+            end
+        end
+        addGMMessage(table.concat(lines, "\n"))
+    end)
+
     addGMFunction("End session", function()
         if RT.valid(RT.player) then
             local docked = RT.player:getDockedWith()
@@ -1383,6 +1413,7 @@ end
 
 function update(delta)
     RT.update(delta)
+    RT.updateKillTracking()  -- Track ship kills for reputation
     VERSE.update(delta)
     DIR.update(delta)
     PATROL.update(delta)
