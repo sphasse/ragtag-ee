@@ -193,24 +193,17 @@ end
 -- Hail all player ships from an entity; if comms are busy on a ship, fall back to its log.
 -- Returns true if at least one comms message landed.
 function RT.hail(from, text, speaker)
-    -- DEBUG: Log player count
-    print("[RT.hail] Sending to " .. #RT.players .. " player(s). Message: " .. text:sub(1, 50))
-    for i, p in ipairs(RT.players) do
-        if RT.valid(p) then
-            print("[RT.hail]   Player " .. i .. ": " .. p:getCallSign())
-        end
-    end
-
     local sent = false
     local tag = speaker or (RT.valid(from) and from:getCallSign()) or "Unknown"
     for _, p in ipairs(RT.players) do
         if RT.valid(p) then
             if RT.valid(from) then
-                -- Try to send comms message (EE automatically logs it)
-                if from:sendCommsMessage(p, text) then
+                -- sendCommsMessage both opens hail AND logs - we only want the hail
+                -- Use openCommsTo to open without logging, then manual log with speaker tag
+                if from:openCommsTo(p) then
+                    p:addToShipLog("[" .. tag .. "] " .. text, "#C0E0FF")
                     sent = true
                 end
-                -- Don't fallback to manual log - comms will retry or queue
             else
                 -- No sender entity, log directly
                 p:addToShipLog("[" .. tag .. "] " .. text, "#C0E0FF")
