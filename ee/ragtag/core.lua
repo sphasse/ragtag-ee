@@ -192,7 +192,21 @@ end
 
 -- Hail all player ships from an entity; if comms are busy on a ship, fall back to its log.
 -- Returns true if at least one comms message landed.
+-- Deduplication: track recent hails to prevent duplicates
+RT._recent_hails = RT._recent_hails or {}
+
 function RT.hail(from, text, speaker)
+    -- Create a dedup key from sender + text
+    local from_key = RT.valid(from) and from:getCallSign() or "nil"
+    local dedup_key = from_key .. "|" .. text
+    local now = getScenarioTime()
+
+    -- Check if we sent this exact message recently (within 2 seconds)
+    if RT._recent_hails[dedup_key] and (now - RT._recent_hails[dedup_key]) < 2 then
+        return false  -- Skip duplicate
+    end
+    RT._recent_hails[dedup_key] = now
+
     local sent = false
     local tag = speaker or (RT.valid(from) and from:getCallSign()) or "Unknown"
     for _, p in ipairs(RT.players) do
