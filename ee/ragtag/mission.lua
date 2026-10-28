@@ -604,12 +604,12 @@ function MISSION.newHacking(opts)
         wy             = opts.wy,
         cargo          = arch.cargo,
         system         = arch.system or "reactor",
-        hack_threshold = 0.5,
+        hack_threshold = 0.75,
         reward         = reward,
         short          = arch.short_offer,  -- Updated with actual callsign on spawn
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
-                         .. "\n\nHack any of the relay's systems to 50% to breach its datastore.",
+                         .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
         complete_msg   = arch.recv_msg,
         intercept      = intercept,
         _spawned       = false,

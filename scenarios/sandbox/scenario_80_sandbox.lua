@@ -576,8 +576,7 @@ function JOBS.update()
             end
 
         elseif m.type == "hacking" then
-            -- Phase 1: watch for hack completion (reactor >= 50%)
-            -- Must be within 2U to complete the hack
+            -- Phase 1: watch for hack completion (reactor >= 75%)
             if not m._hacked then
                 local target = RT.find(m.target_cs)
                 if not RT.valid(target) then
@@ -586,52 +585,29 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    -- Check distance to closest player
-                    local tx, ty = target:getPosition()
-                    local min_dist = math.huge
-                    for _, p in ipairs(RT.players) do
-                        if RT.valid(p) then
-                            local px, py = p:getPosition()
-                            local dx, dy = px - tx, py - ty
-                            local dist = math.sqrt(dx * dx + dy * dy)
-                            if dist < min_dist then
-                                min_dist = dist
-                            end
-                        end
-                    end
-                    local close_enough = min_dist < 2000  -- 2U range
-
                     -- Check reactor hack level
                     local hack_lvl = target:getSystemHackedLevel("reactor")
 
-                    -- Only complete if within range
+                    -- Complete when threshold reached
                     if hack_lvl >= m.hack_threshold then
-                        if close_enough then
-                            m._hacked = true
-                            target:setCanBeDestroyed(true)
-                            m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                            RT.shipLog("[Hack] System breach successful! Data extracted from " .. m.target_cs
-                                .. ". Return to " .. m.origin .. ".", "#80FF80")
-                            if m.intercept and not m.intercept.fired then
-                                m.intercept.fired = true
-                                local origin_e = RT.find(m.origin)
-                                if RT.valid(origin_e) then
-                                    m._dx, m._dy = origin_e:getPosition()
-                                end
-                                local ref = RT.nearestPlayer(m.wx, m.wy)
-                                if ref then
-                                    local px, py = ref:getPosition()
-                                    MISSION._spawnIntercept(m, px, py)
-                                end
+                        m._hacked = true
+                        target:setCanBeDestroyed(true)
+                        m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                        RT.shipLog("[Hack] System breach successful! Data extracted from " .. m.target_cs
+                            .. ". Return to " .. m.origin .. ".", "#80FF80")
+                        if m.intercept and not m.intercept.fired then
+                            m.intercept.fired = true
+                            local origin_e = RT.find(m.origin)
+                            if RT.valid(origin_e) then
+                                m._dx, m._dy = origin_e:getPosition()
                             end
-                            JOBS.updateObj()
-                        else
-                            -- Hacked but too far - warn once
-                            if not m._warned_distance then
-                                RT.shipLog("[Hack] Breach at " .. math.floor(hack_lvl * 100) .. "% but signal too weak. Move within 2U to extract data.", "#FF8080")
-                                m._warned_distance = true
+                            local ref = RT.nearestPlayer(m.wx, m.wy)
+                            if ref then
+                                local px, py = ref:getPosition()
+                                MISSION._spawnIntercept(m, px, py)
                             end
                         end
+                        JOBS.updateObj()
                     end
                 end
             end
