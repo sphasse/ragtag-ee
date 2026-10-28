@@ -170,10 +170,6 @@ function JOBS.accept(m, skip_log)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
         s:setCanBeDestroyed(false)
 
-        -- Remove all weapons and shields from the template
-        s:setBeamWeaponRange(0, 0)
-        s:setBeamWeaponRange(1, 0)
-
         -- Keep relay systems functional
         s:setSystemHealth("reactor", 1.0)
         s:setSystemHealth("maneuver", 1.0)
