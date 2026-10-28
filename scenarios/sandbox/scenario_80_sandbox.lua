@@ -149,14 +149,15 @@ function JOBS.accept(m)
         m.target_cs = s:getCallSign()
         m._spawned  = true
     elseif m.type == "hacking" and not m._spawned then
-        local s = CpuShip():setTemplate("Defense platform"):setFaction("Independent")
+        -- Spawn a small ship (MT52 Hornet scout) repurposed as a relay buoy
+        local s = CpuShip():setTemplate("MT52 Hornet"):setFaction("Independent")
         s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
         s:setCanBeDestroyed(false)
         s:setSystemHealth(m.system, 1.0)
         RT.register(s)
         s:setCommsFunction(function(src, tgt)
-            setCommsMessage("Automated relay. No comms response.\n\nTo extract data: use the Operations console to hack the reactor system to 50%.")
+            setCommsMessage("Automated relay. No comms response.\n\nTo extract data: get within 5U and use the Relay console's 'Start Hacking' button to hack the reactor system to 50%.")
         end)
         m.target_cs = s:getCallSign()
         m._spawned  = true
