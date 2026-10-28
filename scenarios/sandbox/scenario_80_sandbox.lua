@@ -1469,40 +1469,87 @@ function update(delta)
     RUMORS.checkWrecks()
     W_update(delta)
 
-    -- Scripted random encounters when director is off
-    if not DIR.enabled and S.phase == "exploring" then
-        -- Simple fallback: occasional random encounters in dangerous areas
-        if now - S.last_encounter_time > 300 then  -- 5 minutes
-            local ref = RT.nearestPlayer(0, 0)
-            local region_data = ref and VERSE.regionAt(ref:getPosition())
-            if region_data and region_data.danger >= 1 and math.random() < 0.3 then
-                spawnScriptedEncounter(region_data)
-                S.last_encounter_time = now
-                S.encounters_spawned = S.encounters_spawned + 1
+    -- Scripted hostile spawns in dangerous regions (works whether Director is on or off)
+    if S.phase == "exploring" and not S.witness_active then
+        local ref = RT.nearestPlayer(0, 0)
+        if ref then
+            local region_data = VERSE.regionAt(ref:getPosition())
+            if region_data and region_data.danger >= 1 then
+                local spawn_interval = 180  -- 3 minutes base
+                -- Adjust spawn rate based on danger level and setting
+                if region_data.danger >= 3 then
+                    spawn_interval = 120  -- 2 minutes in deadly areas (Maw, Boneyard)
+                elseif region_data.danger >= 2 then
+                    spawn_interval = 150  -- 2.5 minutes in dangerous areas
+                end
+
+                -- Adjust for difficulty setting
+                local danger_setting = getScenarioSetting("Danger Level")
+                if danger_setting == "Relaxed" then
+                    spawn_interval = spawn_interval * 1.5
+                elseif danger_setting == "Dangerous" then
+                    spawn_interval = spawn_interval * 0.75
+                end
+
+                if now - S.last_encounter_time > spawn_interval then
+                    spawnScriptedEncounter(region_data)
+                    S.last_encounter_time = now
+                    S.encounters_spawned = S.encounters_spawned + 1
+                end
             end
         end
     end
 end
 
--- Fallback encounters when director is off
+-- Hostile encounters scaled by region danger level
 function spawnScriptedEncounter(region_data)
     local ref = RT.nearestPlayer(0, 0)
     if not ref then return end
 
     local px, py = ref:getPosition()
     local angle = random(0, 360)
-    local distance = random(8000, 15000)
+    local distance = random(10000, 18000)
     local sx = px + math.cos(math.rad(angle)) * distance
     local sy = py + math.sin(math.rad(angle)) * distance
 
-    local templates = {"MT52 Hornet"}
-    if region_data.danger >= 2 then
-        templates = {"Adder MK5", "MT52 Hornet"}
+    -- Scale encounters by danger level
+    local faction = "Corsairs"
+    local templates = {}
+    local count = 1
+
+    if region_data.danger >= 3 then
+        -- Deadly areas: Hollow or heavy Corsairs
+        if region_data.name:find("Maw") then
+            faction = "Hollow"
+            templates = {"Phobos T3", "Phobos M3"}
+            count = math.random(2, 3)
+        else
+            faction = "Corsairs"
+            templates = {"Phobos T3", "Adder MK5"}
+            count = math.random(2, 4)
+        end
+    elseif region_data.danger >= 2 then
+        -- Dangerous areas: medium threats
+        templates = {"Adder MK5", "MT52 Hornet", "Phobos T3"}
+        count = math.random(1, 3)
+    else
+        -- Mild danger: light threats
+        templates = {"MT52 Hornet", "Adder MK5"}
+        count = math.random(1, 2)
     end
 
-    local template = templates[math.random(#templates)]
-    local ship = CpuShip():setTemplate(template):setFaction("Corsairs")
-    ship:setPosition(sx, sy):orderRoaming()
+    -- Spawn the encounter
+    for i = 1, count do
+        local template = templates[math.random(#templates)]
+        local offset_x = random(-1500, 1500)
+        local offset_y = random(-1500, 1500)
+        local ship = CpuShip():setTemplate(template):setFaction(faction)
+        ship:setPosition(sx + offset_x, sy + offset_y)
+        ship:orderRoaming()
+        RT.register(ship)
+    end
 
-    RT.shipLog("Contact: " .. template .. " detected in " .. region_data.name .. ".", "#FF8080")
+    local faction_desc = faction == "Hollow" and "Hollow" or "hostile"
+    RT.shipLog(string.format("[Warning] %d %s contact%s detected in %s.",
+        count, faction_desc, count > 1 and "s" or "", region_data.name), "#FF8080")
 end
