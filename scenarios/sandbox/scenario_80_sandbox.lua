@@ -1067,7 +1067,7 @@ local function W_podTick(delta)
 
     RT.forEachPlayer(function(p)
         if RT.valid(p) then
-            p:setEnergyLevel(math.max(0, p:getEnergy() - 5 * delta))
+            p:setEnergyLevel(math.max(0, p:getEnergy() - 3 * delta))
         end
     end)
 
@@ -1384,7 +1384,7 @@ local function W_startOffer()
     mira:setCommsFunction(function(src, tgt)
         setCommsMessage('"I need a discreet crew -- no questions asked. Passenger in stasis who needs to reach Saint Brennan\'s Mission quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
         addCommsReply("We'll take the job.", function(s2, t2)
-            setCommsMessage('"Good. Transferring the pod now. He draws five energy a second from your reactor -- keep him stable. Get to Saint Brennan\'s Mission before Concord gets word."\n\nMira\'s Luck goes dark.')
+            setCommsMessage('"Good. Transferring the pod now. He draws three energy a second from your reactor -- keep him stable. Get to Saint Brennan\'s Mission before Concord gets word."\n\nMira\'s Luck goes dark.')
             addCommsReply("Understood.", function(s3, t3) RT.stationComms(s3, t3) end)
             local m = RT.find("Mira's Luck")
             if RT.valid(m) then m:destroy() end
@@ -1393,7 +1393,7 @@ local function W_startOffer()
             W_addPodButtons()
             W_updatePanels()
             RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. Destination: Saint Brennan's Mission.", "#A0C0FF")
-            RT.shipLog("[Engineering] Pod drawing 5 energy/sec. Keep energy above 50% to maintain stability.", "#FFAA00")
+            RT.shipLog("[Engineering] Pod drawing 3 energy/sec. Keep energy above 50% to maintain stability.", "#FFAA00")
             RT.setObjective("Reach Saint Brennan's Mission", true)
         end)
         addCommsReply("Not our problem.", function(s2, t2)
