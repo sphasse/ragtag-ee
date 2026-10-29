@@ -963,13 +963,31 @@ function JOBS.update()
                         for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
                             -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
-                                -- Scan probes are Independent faction with getOwner() but no getShieldsMax()
+                                -- Debug: Check metatable for type information
+                                local mt = getmetatable(obj)
+                                if mt then
+                                    print("[RELAY JAM] Metatable found:")
+                                    print("  __name: " .. tostring(mt.__name))
+                                    print("  __type: " .. tostring(mt.__type))
+                                    print("  type(obj): " .. type(obj))
+                                    -- Try to iterate metatable keys
+                                    for k, v in pairs(mt) do
+                                        if type(k) == "string" and not k:match("^__") then
+                                            print("  mt." .. k .. ": " .. tostring(v))
+                                        end
+                                    end
+                                else
+                                    print("[RELAY JAM] No metatable")
+                                end
+
+                                -- Current detection method
                                 local faction_ok, faction = pcall(function() return obj:getFaction() end)
                                 local has_owner = pcall(function() return obj:getOwner() end)
                                 local has_shields = pcall(function() return obj:getShieldsMax() end)
 
                                 -- Probes: faction=Independent, has_owner=true, has_shields=false
                                 if faction_ok and faction == "Independent" and has_owner and not has_shields then
+                                    print("[RELAY JAM] DESTROYING (faction=Independent, has_owner, no_shields)")
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
                                 end
