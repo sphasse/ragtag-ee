@@ -251,32 +251,24 @@ function JOBS.accept(m, skip_log)
         m._spawned  = true
         m._attacking = false  -- Track if ship has engaged player
     elseif m.type == "hacking" and not m._spawned then
-        -- Spawn our custom comms relay beacon with only reactor system
+        -- Spawn relay as SpaceStation (not CpuShip) to avoid cleanup issues
         print(string.format("[DEBUG] Spawning hacking relay for mission %s at (%.0f, %.0f)", m.id or "unknown", m.wx or 0, m.wy or 0))
-        local s = CpuShip():setTemplate("Comms Relay Beacon"):setFaction("Concord")
+        local s = SpaceStation():setTemplate("Small Station"):setFaction("Concord")
         -- Give it a random beacon designator
         local name = generateBeaconName()
         s:setCallSign(name)
-        s:setTypeName("Comms Relay")
-        s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
-        s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
-        s:setCanBeDestroyed(false)
-        s:setSystemHealth("reactor", 1.0)
-
-        -- Make reactor hackable
-        s:setSystemHackedLevel("reactor", 0.0)
-        -- Don't use RT.register - it triggers CpuShip reputation tracking that might destroy it
-        -- Just add to named lookup directly
+        s:setPosition(m.wx, m.wy)
+        -- Stations can't be hacked by default - we'll track hack progress manually
         RT.named[name] = s
-        print(string.format("[DEBUG] Relay spawned: %s at (%.0f, %.0f), valid=%s, in RT.named=%s", name, m.wx, m.wy, tostring(RT.valid(s)), tostring(RT.named[name] ~= nil)))
+        print(string.format("[DEBUG] Relay spawned as station: %s at (%.0f, %.0f), valid=%s, in RT.named=%s", name, m.wx, m.wy, tostring(RT.valid(s)), tostring(RT.named[name] ~= nil)))
         s:setCommsFunction(function(src, tgt)
             setCommsMessage("Automated relay. No response.")
         end)
 
         m.target_cs = name
         -- Update short description and objective with actual relay name
-        m.short = "Hack " .. name .. " (hacking)"
-        m.obj = "Hack " .. name
+        m.short = "Extract data from " .. name .. " (hacking)"
+        m.obj = "Extract data from " .. name
         m._spawned  = true
         print(string.format("[DEBUG] Hacking mission setup complete: target_cs=%s, _spawned=%s", m.target_cs or "nil", tostring(m._spawned)))
     end
@@ -902,7 +894,7 @@ function JOBS.update()
             end
 
         elseif m.type == "hacking" then
-            -- Phase 1: watch for hack completion (any system >= 75%)
+            -- Phase 1: watch for proximity extraction (get within 2U of relay for 15s)
             if not m._hacked then
                 print(string.format("[DEBUG] Hacking update: mission=%s, target_cs=%s, _spawned=%s", m.id or "unknown", m.target_cs or "nil", tostring(m._spawned)))
                 local target = RT.find(m.target_cs)
@@ -930,31 +922,41 @@ function JOBS.update()
                         end
                     end
 
-                    -- Check all hackable systems (wrap in pcall since custom templates may not support hasSystem)
-                    local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
-                    local max_hack = 0
-                    local hacked_system = nil
-                    for _, sys in ipairs(systems) do
-                        local has_system = false
-                        local ok = pcall(function() has_system = target:hasSystem(sys) end)
-                        if ok and has_system then
-                            local hack_ok, hack_lvl = pcall(function() return target:getSystemHackedLevel(sys) end)
-                            if hack_ok and hack_lvl and hack_lvl > max_hack then
-                                max_hack = hack_lvl
-                                hacked_system = sys
+                    -- Check proximity: player within 2U for 15 seconds = extraction complete
+                    local rx, ry = target:getPosition()
+                    local within_range = false
+                    for _, p in ipairs(RT.players) do
+                        if RT.valid(p) then
+                            local px, py = p:getPosition()
+                            local dx, dy = rx - px, ry - py
+                            local dist = math.sqrt(dx * dx + dy * dy)
+                            if dist < 2000 then  -- 2U extraction range
+                                within_range = true
+                                break
                             end
                         end
                     end
 
-                    -- Complete when threshold reached on any system
-                    if max_hack >= m.hack_threshold then
-                        m._hacked = true
-                        target:setCanBeDestroyed(true)
-                        m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                        local sys_name = hacked_system or "system"
-                        RT.shipLog("[Hack] " .. sys_name .. " breach successful! Data extracted from " .. m.target_cs
-                            .. ". Return to " .. m.origin .. ".", "#80FF80")
-                        JOBS.updateObj()
+                    if within_range then
+                        m._extract_start = m._extract_start or now
+                        local elapsed = now - m._extract_start
+                        if not m._extract_logged then
+                            RT.shipLog(string.format("[Hack] Breaching %s systems... stay in range (%.0fs remaining).", m.target_cs, 15 - elapsed), "#FFAA00")
+                            m._extract_logged = true
+                        end
+                        if elapsed >= 15 then  -- 15 second extraction time
+                            m._hacked = true
+                            m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                            RT.shipLog("[Hack] Data extracted from " .. m.target_cs .. ". Return to " .. m.origin .. ".", "#80FF80")
+                            JOBS.updateObj()
+                        end
+                    else
+                        if m._extract_start then
+                            -- Player left range - reset timer
+                            RT.shipLog("[Hack] Lost signal from " .. m.target_cs .. ". Return to extraction range.", "#FF8080")
+                            m._extract_start = nil
+                            m._extract_logged = false
+                        end
                     end
                 end
             end
