@@ -1,14 +1,15 @@
-"""Smoke test for the Long Haul bridge against a running EmptyEpsilon server.
+"""Smoke test for ragtag scenarios against a running EmptyEpsilon server.
 
     python tools/smoke_test.py --ee http://127.0.0.1:8080
     python tools/smoke_test.py --ee http://127.0.0.1:8080 --playthrough
 
-Start a Long Haul scenario on the server first (httpserver=8080 in options.ini).
+Start a ragtag scenario on the server first (httpserver=8080 in options.ini).
 Stop the director before running this: both write the same mailbox key.
 
 The default test sends every director action once and checks the game's
-replies. --playthrough additionally teleports the Magpie through Session 1 to
-trigger each beat. It cheats, so only use it on a test server.
+replies. --playthrough additionally teleports the ship through scripted beats
+(currently only works for deleted Long Haul Session 1). It cheats, so only
+use it on a test server.
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ class Bridge:
     def sync(self) -> dict:
         msg = self.ee.read_scenario()
         if not msg:
-            raise SystemExit("No scenario mailbox. Is a Long Haul scenario running?")
+            raise SystemExit("No scenario mailbox. Is a ragtag scenario running?")
         if self.msg and msg.get("run") != self.msg.get("run"):
             raise SystemExit("Scenario restarted during the test.")
         self.msg = msg
@@ -180,7 +181,7 @@ def playthrough(b: Bridge) -> None:
     b.lua(P + obj("Sealed data core") + "local x, y = o:getPosition() p:setPosition(x, y) return 'ok'")
     ev = b.wait_event(lambda e: e["type"] == "pickup", 15)
     check("data core picked up", ev is not None)
-    camp = json.loads(b.ee.get_key("ragtag.campaign.longhaul") or "{}")
+    camp = json.loads(b.ee.get_key("ragtag.campaign.sandbox") or "{}")
     check("campaign flags saved", camp.get("flags", {}).get("lantern_core") is True and camp["flags"].get("ran_from_concord") is True,
           json.dumps(camp.get("flags")))
 

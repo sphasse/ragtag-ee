@@ -4,15 +4,15 @@
 #
 #   tools/ci_headless.sh                         # build EE into .ee-build/ (about 20 min the first time)
 #   EE_DIR=~/src/EmptyEpsilon tools/ci_headless.sh   # use an existing build (needs _build/EmptyEpsilon)
-#   SCENARIO=scenario_90_longhaul_1.lua PLAYTHROUGH=1 tools/ci_headless.sh
+#   SCENARIO=scenario_80_sandbox.lua tools/ci_headless.sh
 #
 # Linux only. Needs: git cmake ninja-build g++ libsdl2-dev python3.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EE_COMMIT="${EE_COMMIT:-b492ea94326c229ec8c0047872451129c4338871}"
 SP_COMMIT="${SP_COMMIT:-bbe714aac5a855108ccedb43a99d8334b18ce792}"
-SCENARIO="${SCENARIO:-scenario_90_longhaul_1.lua}"
-PLAYTHROUGH="${PLAYTHROUGH:-1}"
+SCENARIO="${SCENARIO:-scenario_80_sandbox.lua}"
+PLAYTHROUGH="${PLAYTHROUGH:-0}"
 PORT="${PORT:-8080}"
 
 if [ -z "${EE_DIR:-}" ]; then
@@ -45,7 +45,7 @@ done
 sleep 3
 
 ARGS=(--ee "http://127.0.0.1:$PORT")
-[ "$PLAYTHROUGH" = "1" ] && [ "$SCENARIO" = "scenario_90_longhaul_1.lua" ] && ARGS+=(--playthrough)
+[ "$PLAYTHROUGH" = "1" ] && ARGS+=(--playthrough)
 status=0
 python3 "$ROOT/tools/smoke_test.py" "${ARGS[@]}" || status=$?
 
