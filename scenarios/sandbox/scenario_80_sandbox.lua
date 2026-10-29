@@ -146,14 +146,6 @@ function JOBS.accept(m, skip_log)
     m._expires_at = getScenarioTime() + JOBS.MISSION_DURATION
     _active[#_active+1] = {mission = m, phase = "active"}
 
-    -- If cooldown enabled, mark this mission as taken at its origin station
-    if S.work_cooldown_enabled and m.origin then
-        local station_state = _station_work[m.origin]
-        if station_state and station_state.available_ids[m.id] then
-            station_state.available_ids[m.id] = nil
-        end
-    end
-
     -- Mark which station slot this mission came from (for per-slot cooldown)
     if m.origin and S.work_cooldown_enabled then
         local station_state = _station_work[m.origin]
