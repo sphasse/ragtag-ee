@@ -968,25 +968,32 @@ function JOBS.update()
                                 if mt_ok and mt then
                                     print("[RELAY JAM] Metatable found:")
                                     print("  type(obj): " .. type(obj))
+                                    print("  type(mt): " .. type(mt))
 
-                                    -- Safely check __name
-                                    local name_ok, name_val = pcall(function() return mt.__name end)
-                                    print("  __name: ok=" .. tostring(name_ok) .. " val=" .. tostring(name_val))
+                                    if type(mt) == "string" then
+                                        print("  mt (string value): " .. tostring(mt))
+                                    elseif type(mt) == "table" then
+                                        -- Safely check __name
+                                        local name_ok, name_val = pcall(function() return mt.__name end)
+                                        print("  __name: ok=" .. tostring(name_ok) .. " val=" .. tostring(name_val))
 
-                                    -- Safely check __type
-                                    local type_ok, type_val = pcall(function() return mt.__type end)
-                                    print("  __type: ok=" .. tostring(type_ok) .. " val=" .. tostring(type_val))
+                                        -- Safely check __type
+                                        local type_ok, type_val = pcall(function() return mt.__type end)
+                                        print("  __type: ok=" .. tostring(type_ok) .. " val=" .. tostring(type_val))
 
-                                    -- Try to iterate metatable keys
-                                    local pairs_ok, pairs_err = pcall(function()
-                                        for k, v in pairs(mt) do
-                                            if type(k) == "string" and not k:match("^__") then
-                                                print("  mt." .. k .. ": " .. tostring(v))
+                                        -- Try to iterate metatable keys
+                                        local pairs_ok, pairs_err = pcall(function()
+                                            for k, v in pairs(mt) do
+                                                if type(k) == "string" and not k:match("^__") then
+                                                    print("  mt." .. k .. ": " .. tostring(v))
+                                                end
                                             end
+                                        end)
+                                        if not pairs_ok then
+                                            print("  pairs(mt) failed: " .. tostring(pairs_err))
                                         end
-                                    end)
-                                    if not pairs_ok then
-                                        print("  pairs(mt) failed: " .. tostring(pairs_err))
+                                    else
+                                        print("  mt (unexpected type): " .. tostring(mt))
                                     end
                                 else
                                     print("[RELAY JAM] No metatable or getmetatable failed: " .. tostring(mt))
