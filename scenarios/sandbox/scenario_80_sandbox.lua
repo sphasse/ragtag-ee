@@ -84,9 +84,10 @@ end
 
 JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
 JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
-JOBS.WORK_COOLDOWN    = 10 * 60   -- seconds before station offers new work after missions taken
+JOBS.WORK_COOLDOWN    = 10 * 60   -- seconds before slot offers new work after mission taken/expired
 
--- Per-station work tracking: {callsign → {last_offer_time, offered_ids = {id→mission}, available_ids = {id→true}}}
+-- Per-station work tracking: {callsign → {slots = {[1] = {mission, offered_at, taken_at}, [2] = {...}}}}
+-- Each slot tracks a mission independently with its own cooldown timer
 local _station_work = {}
 
 local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]", destroy="[X]"}
@@ -150,6 +151,21 @@ function JOBS.accept(m, skip_log)
         local station_state = _station_work[m.origin]
         if station_state and station_state.available_ids[m.id] then
             station_state.available_ids[m.id] = nil
+        end
+    end
+
+    -- Mark which station slot this mission came from (for per-slot cooldown)
+    if m.origin and S.work_cooldown_enabled then
+        local station_state = _station_work[m.origin]
+        if station_state and station_state.slots then
+            for slot_num, slot in pairs(station_state.slots) do
+                if slot.mission and slot.mission.id == m.id then
+                    m._slot_num = slot_num
+                    slot.taken_at = getScenarioTime()
+                    slot.mission = nil  -- Clear mission from slot
+                    break
+                end
+            end
         end
     end
 
@@ -391,48 +407,48 @@ function JOBS.stationHook(source, target)
             local mt = JOBS.maxTier()
             local now = getScenarioTime()
 
-            -- Initialize station work tracking
+            -- Initialize station work tracking (per-slot system)
             if not _station_work[cs] then
                 _station_work[cs] = {
-                    last_offer_time = 0,
-                    offered_ids = {},
-                    available_ids = {},
+                    slots = {
+                        [1] = {mission = nil, offered_at = 0, taken_at = nil},
+                        [2] = {mission = nil, offered_at = 0, taken_at = nil},
+                    }
                 }
             end
             local station_state = _station_work[cs]
 
-            -- Cooldown mode: check if we should offer new work
-            local skip_generation = false
+            -- Per-slot cooldown system: each slot tracks independently
+            local slots_to_generate = {}
             if S.work_cooldown_enabled then
-                -- If we have previously offered missions that haven't been taken, show those
-                local previously_offered = {}
-                for mid, mission in pairs(station_state.offered_ids) do
-                    if station_state.available_ids[mid] then
-                        previously_offered[#previously_offered + 1] = mission
-                    end
-                end
+                for slot_num = 1, 2 do
+                    local slot = station_state.slots[slot_num]
 
-                -- If missions are available from previous offer, show those
-                if #previously_offered > 0 then
-                    for _, m in ipairs(previously_offered) do
-                        offers[#offers + 1] = m
+                    if slot.mission and not slot.taken_at then
+                        -- Slot has mission that hasn't been taken
+                        if now - slot.offered_at < JOBS.WORK_COOLDOWN then
+                            -- Still within offer window: show existing mission
+                            offers[#offers + 1] = slot.mission
+                        else
+                            -- Offer expired: generate new mission for this slot
+                            slots_to_generate[#slots_to_generate + 1] = slot_num
+                        end
+                    elseif slot.taken_at then
+                        -- Slot's mission was taken
+                        if now - slot.taken_at >= JOBS.WORK_COOLDOWN then
+                            -- Cooldown expired: generate new mission for this slot
+                            slot.taken_at = nil  -- Clear cooldown
+                            slots_to_generate[#slots_to_generate + 1] = slot_num
+                        end
+                        -- else: still on cooldown, slot stays empty
+                    else
+                        -- Slot is empty (first visit or cooldown cleared): generate mission
+                        slots_to_generate[#slots_to_generate + 1] = slot_num
                     end
-                    skip_generation = true  -- Don't generate new, just show what's available
-                elseif station_state.last_offer_time == 0 or now - station_state.last_offer_time >= JOBS.WORK_COOLDOWN then
-                    -- First visit (last_offer_time == 0) or cooldown expired: generate new work
-                    station_state.last_offer_time = now
-                    station_state.offered_ids = {}
-                    station_state.available_ids = {}
-                    -- Will generate new missions below
-                else
-                    -- Still on cooldown, nothing available
-                    local remaining = math.ceil(JOBS.WORK_COOLDOWN - (now - station_state.last_offer_time))
-                    local minutes = math.floor(remaining / 60)
-                    local seconds = remaining % 60
-                    setCommsMessage(string.format('"No new contracts right now. Check back in %dm %ds."', minutes, seconds))
-                    addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
-                    return
                 end
+            else
+                -- Cooldown disabled: always generate for both slots
+                slots_to_generate = {1, 2}
             end
 
             -- Director-pushed deliveries take priority (no re-offer if already taken)
@@ -442,8 +458,8 @@ function JOBS.stationHook(source, target)
             end
         end
 
-        -- Generate fresh missions to fill up to 2 slots (weighted: delivery 20, salvage 7, boarding 3, hacking 3).
-        if not skip_generation and #offers < 2 then
+        -- Generate missions for slots that need them
+        if #slots_to_generate > 0 then
             local candidates = {}
             for _, d in ipairs(VERSE.STATIONS) do
                 if d.cs ~= cs and d.fac ~= "Corsairs" and d.fac ~= "Hollow" then
@@ -456,10 +472,10 @@ function JOBS.stationHook(source, target)
             end
             local station_e = RT.find(cs)
             local dest_idx  = 1
-            for slot = 1, 2 do
-                if #offers >= 2 then break end
+            for _, slot_num in ipairs(slots_to_generate) do
                 local tier  = math.min(mt, math.random(0, 1))
                 local mtype = pickMissionType()
+                local generated_mission = nil
                 if mtype == "delivery" and dest_idx <= #candidates then
                     local dest_e = RT.find(candidates[dest_idx])
                     local distance_u = 0
@@ -471,9 +487,9 @@ function JOBS.stationHook(source, target)
                         distance_u = math.sqrt(ddx * ddx + ddy * ddy)
                         local dest_region = VERSE.regionAt(dx, dy)
                         dest_danger = dest_region and dest_region.danger or 0
-                        print(string.format("[DELIVERY] %s → %s | Dist: %.1fU", cs, candidates[dest_idx], distance_u/1000))
+                        print(string.format("[DELIVERY] %s → %s | Dist: %.1fU | Slot %d", cs, candidates[dest_idx], distance_u/1000, slot_num))
                     end
-                    offers[#offers + 1] = MISSION.newDelivery({
+                    generated_mission = MISSION.newDelivery({
                         origin = cs,
                         dest = candidates[dest_idx],
                         tier = tier,
@@ -489,8 +505,8 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
-                    print(string.format("[SALVAGE] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Angle: %.1f°",
-                        cs, rx, ry, wx, wy, dist/1000, dist, math.deg(ang)))
+                    print(string.format("[SALVAGE] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
+                        cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                     local mission_ok, mission_err = pcall(function()
                         return MISSION.newSalvage({
                             origin = cs,
@@ -502,7 +518,7 @@ function JOBS.stationHook(source, target)
                         })
                     end)
                     if mission_ok then
-                        offers[#offers + 1] = mission_err
+                        generated_mission = mission_err
                     else
                         print("[ERROR] Salvage mission generation failed: " .. tostring(mission_err))
                         error("Salvage: " .. tostring(mission_err))
@@ -515,8 +531,8 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
-                    print(string.format("[BOARDING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f)",
-                        cs, rx, ry, wx, wy, dist/1000, dist))
+                    print(string.format("[BOARDING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
+                        cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                     -- Find nearby stations for target destination (50U encourages exploration)
                     local nearby = {}
                     for _, st in ipairs(VERSE.STATIONS) do
@@ -557,8 +573,8 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
-                    print(string.format("[%s] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f)",
-                        mtype:upper(), cs, rx, ry, wx, wy, dist/1000, dist))
+                    print(string.format("[%s] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
+                        mtype:upper(), cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                     if mtype == "hacking" then
                         local mission_ok, mission_err = pcall(function()
                             return MISSION.newHacking({
@@ -571,7 +587,7 @@ function JOBS.stationHook(source, target)
                             })
                         end)
                         if mission_ok then
-                            offers[#offers + 1] = mission_err
+                            generated_mission = mission_err
                         else
                             print("[ERROR] Hacking mission generation failed: " .. tostring(mission_err))
                             error("Hacking: " .. tostring(mission_err))
@@ -604,7 +620,7 @@ function JOBS.stationHook(source, target)
                             })
                         end)
                         if mission_ok then
-                            offers[#offers + 1] = mission_err
+                            generated_mission = mission_err
                         else
                             print("[ERROR] Destroy mission generation failed: " .. tostring(mission_err))
                             error("Destroy: " .. tostring(mission_err))
@@ -612,37 +628,46 @@ function JOBS.stationHook(source, target)
                     end
                 elseif dest_idx <= #candidates then
                     -- fallback: delivery
-                    offers[#offers + 1] = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
+                    generated_mission = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
                     dest_idx = dest_idx + 1
+                end
+
+                -- Store mission in slot and add to offers
+                if generated_mission then
+                    if S.work_cooldown_enabled then
+                        station_state.slots[slot_num].mission = generated_mission
+                        station_state.slots[slot_num].offered_at = now
+                        station_state.slots[slot_num].taken_at = nil
+                    end
+                    offers[#offers + 1] = generated_mission
                 end
             end
         end
 
         if #offers == 0 then
-            setCommsMessage('"Nothing going out from here right now."')
+            -- All slots on cooldown
+            if S.work_cooldown_enabled then
+                local min_remaining = math.huge
+                for _, slot in pairs(station_state.slots) do
+                    if slot.taken_at then
+                        local remaining = JOBS.WORK_COOLDOWN - (now - slot.taken_at)
+                        if remaining > 0 and remaining < min_remaining then
+                            min_remaining = remaining
+                        end
+                    end
+                end
+                if min_remaining < math.huge then
+                    local minutes = math.floor(min_remaining / 60)
+                    local seconds = math.ceil(min_remaining % 60)
+                    setCommsMessage(string.format('"No new contracts right now. Check back in %dm %ds."', minutes, seconds))
+                else
+                    setCommsMessage('"Nothing going out from here right now."')
+                end
+            else
+                setCommsMessage('"Nothing going out from here right now."')
+            end
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
             return
-        end
-
-        -- Track newly generated missions (if cooldown enabled and this is a fresh generation)
-        if S.work_cooldown_enabled and #offers > 0 and not skip_generation then
-            -- Only update if this is truly new generation (not previously offered missions)
-            local is_fresh_generation = true
-            for _, m in ipairs(offers) do
-                if station_state.offered_ids[m.id] then
-                    is_fresh_generation = false
-                    break
-                end
-            end
-
-            if is_fresh_generation then
-                station_state.offered_ids = {}
-                station_state.available_ids = {}
-                for _, m in ipairs(offers) do
-                    station_state.offered_ids[m.id] = m
-                    station_state.available_ids[m.id] = true
-                end
-            end
         end
 
         local lines = {"Work out of " .. cs .. ":\n"}
