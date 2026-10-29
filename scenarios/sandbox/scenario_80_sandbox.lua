@@ -761,6 +761,22 @@ function JOBS.update()
             goto next_entry
         end
 
+        -- Detection mechanic: reveal ships on radar when player gets close (30U)
+        if (m.type == "boarding" or m.type == "destroy" or m.type == "hacking") and not m._detected and m._radar_ship then
+            if RT.valid(RT.player) and RT.valid(m._radar_ship) then
+                local px, py = RT.player:getPosition()
+                local tx, ty = m._radar_ship:getPosition()
+                local dx, dy = tx - px, ty - py
+                local dist = math.sqrt(dx * dx + dy * dy)
+                if dist < 30000 then  -- 30U detection range
+                    m._radar_ship:setRadarTraceScale(1)  -- Reveal on radar
+                    m._detected = true
+                    local grid = MISSION.gridRef(tx, ty)
+                    RT.shipLog(string.format("[Sensors] Contact detected: %s at %s.", m.target_cs or "unknown", grid), "#FFAA00")
+                end
+            end
+        end
+
         if m.type == "salvage" and not m._found then
             -- Check if cargo pod still exists (if destroyed before pickup)
             if m.cargo_obj and not RT.valid(m.cargo_obj) then
