@@ -417,8 +417,8 @@ function JOBS.stationHook(source, target)
                         offers[#offers + 1] = m
                     end
                     skip_generation = true  -- Don't generate new, just show what's available
-                elseif now - station_state.last_offer_time >= JOBS.WORK_COOLDOWN then
-                    -- Cooldown expired, generate new work
+                elseif station_state.last_offer_time == 0 or now - station_state.last_offer_time >= JOBS.WORK_COOLDOWN then
+                    -- First visit (last_offer_time == 0) or cooldown expired: generate new work
                     station_state.last_offer_time = now
                     station_state.offered_ids = {}
                     station_state.available_ids = {}
