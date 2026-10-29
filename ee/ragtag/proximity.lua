@@ -546,9 +546,11 @@ function PROX.update(delta)
             -- but the wanted flag means the normal patrol system handles pursuit there).
             if zone.faction == "Concord" and wanted then goto skip end
 
-            -- Region cooldown.
+            -- Region cooldown (frequency-adjusted).
+            local freq_mult = PROX.config.spawn_frequency or 1.0
+            local adj_region_cd = PROX.config.region_cooldown / freq_mult
             local last = PROX._region_cd[name] or -99999
-            if now - last < PROX.config.region_cooldown then goto skip end
+            if now - last < adj_region_cd then goto skip end
 
             -- No active group already in the same cell.
             local cell = _cellKey(px, py)
