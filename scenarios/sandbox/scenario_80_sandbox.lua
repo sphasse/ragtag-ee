@@ -616,6 +616,27 @@ function JOBS.stationHook(source, target)
             return
         end
 
+        -- Track newly generated missions (if cooldown enabled and this is a fresh generation)
+        if S.work_cooldown_enabled and #offers > 0 and not skip_generation then
+            -- Only update if this is truly new generation (not previously offered missions)
+            local is_fresh_generation = true
+            for _, m in ipairs(offers) do
+                if station_state.offered_ids[m.id] then
+                    is_fresh_generation = false
+                    break
+                end
+            end
+
+            if is_fresh_generation then
+                station_state.offered_ids = {}
+                station_state.available_ids = {}
+                for _, m in ipairs(offers) do
+                    station_state.offered_ids[m.id] = m
+                    station_state.available_ids[m.id] = true
+                end
+            end
+        end
+
         local lines = {"Work out of " .. cs .. ":\n"}
         for _, m in ipairs(offers) do
             lines[#lines + 1] = string.format("* %s", m.short)
@@ -673,28 +694,6 @@ function JOBS.stationHook(source, target)
             -- debug library not available in EE Lua, but err should contain the traceback
             setCommsMessage('"System error generating contracts. Please report to the dockmaster."')
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
-        else
-            -- Success - if cooldown enabled and we generated new missions, track them
-            if S.work_cooldown_enabled and #offers > 0 then
-                local station_state = _station_work[cs]
-                -- Only update if this is a fresh generation (not previously offered missions)
-                local is_fresh_generation = true
-                for _, m in ipairs(offers) do
-                    if station_state.offered_ids[m.id] then
-                        is_fresh_generation = false
-                        break
-                    end
-                end
-
-                if is_fresh_generation then
-                    station_state.offered_ids = {}
-                    station_state.available_ids = {}
-                    for _, m in ipairs(offers) do
-                        station_state.offered_ids[m.id] = m
-                        station_state.available_ids[m.id] = true
-                    end
-                end
-            end
         end
     end)
 end
