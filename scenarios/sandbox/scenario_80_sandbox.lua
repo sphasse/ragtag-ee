@@ -745,11 +745,11 @@ function JOBS.stationHook(source, target)
                         dest_hint = cap.dest or (cap.wx and ("grid " .. MISSION.gridRef(cap.wx, cap.wy)) or "??")
                     end
 
-                    if cap.type == "boarding" then
+                    if cap.type == "boarding" or cap.type == "destroy" then
                         local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
                         RT.shipLog(string.format("Contract: %s. %dm to complete. %s is at %s%s.",
                             cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
-                    elseif cap.type == "hacking" or cap.type == "destroy" then
+                    elseif cap.type == "hacking" then
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
                             cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
                     else
