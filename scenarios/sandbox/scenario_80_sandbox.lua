@@ -55,7 +55,7 @@ local JOBS = {}
 local _SHORT = {
     ["Concord Station Arbiter"] = "C.S. Arbiter",
     ["Concord Waypoint Galen"]  = "Waypoint Galen",
-    ["Saint Brennan's Mission"] = "St. Brennan's",
+    ["Dustmote Salvage"] = "Dustmote",
     ["Lastchance Outpost"]      = "Lastchance",
     ["Dustmote Salvage"]        = "Dustmote",
     ["Greywater Depot"]         = "Greywater",
@@ -1303,20 +1303,36 @@ local function W_startCheckpoint()
     W_enterPhase("checkpoint")
 
     local ref = RT.nearestPlayer(0, 0)
-    local px, py = 50000, -40000
-    if ref and RT.valid(ref) then px, py = ref:getPosition() end
-    local sx = px + 10000 + random(-2000, 2000)
-    local sy = py -  8000 + random(-2000, 2000)
+    if not ref or not RT.valid(ref) then return end
 
-    local s1 = CpuShip():setTemplate("MT52 Hornet"):setFaction("Concord")
-    s1:setPosition(sx, sy):orderIdle():setCanBeDestroyed(true)
-    RT.register(s1); DIR.registerKill(s1); DIR.allowControl(s1)
-    W.concord_names[1] = s1:getCallSign()
+    local px, py = ref:getPosition()
+    local heading = ref:getHeading()
 
-    local s2 = CpuShip():setTemplate("MT52 Hornet"):setFaction("Concord")
-    s2:setPosition(sx + 3000, sy + random(-800, 800)):orderIdle():setCanBeDestroyed(true)
-    RT.register(s2); DIR.registerKill(s2); DIR.allowControl(s2)
-    W.concord_names[2] = s2:getCallSign()
+    -- Spawn 10U ahead of player along their heading
+    local angle_rad = math.rad(heading - 90)  -- EE heading conversion
+    local lead_dist = 10000  -- 10U ahead
+    local cx = px + math.cos(angle_rad) * lead_dist
+    local cy = py + math.sin(angle_rad) * lead_dist
+
+    -- Create perpendicular line formation (5 ships across their path)
+    local perp_rad = angle_rad + math.pi/2  -- 90 degrees to heading
+    local spacing = 2500  -- 2.5U between ships
+
+    local templates = {"MT52 Hornet", "MT52 Hornet", "MU52 Hornet", "MT52 Hornet", "MT52 Hornet"}
+    for i = 1, 5 do
+        local offset = (i - 3) * spacing  -- -2, -1, 0, 1, 2 positions
+        local sx = cx + math.cos(perp_rad) * offset
+        local sy = cy + math.sin(perp_rad) * offset
+
+        local ship = CpuShip():setTemplate(templates[i]):setFaction("Concord")
+        ship:setPosition(sx, sy):orderIdle():setCanBeDestroyed(true)
+        RT.register(ship); DIR.registerKill(ship); DIR.allowControl(ship)
+        W.concord_names[i] = ship:getCallSign()
+    end
+
+    -- Lead ship gets comms function
+    local s1 = RT.find(W.concord_names[1])
+    if not RT.valid(s1) then return end
 
     s1:setCommsFunction(function(src, tgt)
         setCommsMessage('"Independent vessel. Cut engines. You are carrying an unregistered stasis pod. Surrender it -- you will be free to go."')
@@ -1365,7 +1381,7 @@ local function W_startCheckpoint()
     end)
 
     RT.hail(s1, "Independent vessel. Cut engines. You are carrying an unregistered stasis pod. Concord inspection -- comply immediately.", "Concord Patrol")
-    RT.shipLog("[Warning] Concord patrol on intercept -- " .. W.concord_names[1] .. ", " .. W.concord_names[2] .. ".", "#FFAA00")
+    RT.shipLog("[Warning] Concord blockade on intercept -- five ships blocking our path.", "#FFAA00")
 end
 
 local function W_startOffer()
@@ -1382,9 +1398,9 @@ local function W_startOffer()
     RT.register(mira)
 
     mira:setCommsFunction(function(src, tgt)
-        setCommsMessage('"I need a discreet crew -- no questions asked. Passenger in stasis who needs to reach Saint Brennan\'s Mission quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
+        setCommsMessage('"I need a discreet crew -- no questions asked. Passenger in stasis who needs to reach Dustmote Salvage quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
         addCommsReply("We'll take the job.", function(s2, t2)
-            setCommsMessage('"Good. Transferring the pod now. He draws five energy a second from your reactor -- keep him stable. Get to Saint Brennan\'s Mission before Concord gets word."\n\nMira\'s Luck goes dark.')
+            setCommsMessage('"Good. Transferring the pod now. He draws five energy a second from your reactor -- keep him stable. Get to Dustmote Salvage before Concord gets word."\n\nMira\'s Luck goes dark.')
             addCommsReply("Understood.", function(s3, t3) RT.stationComms(s3, t3) end)
             local m = RT.find("Mira's Luck")
             if RT.valid(m) then m:destroy() end
@@ -1392,9 +1408,9 @@ local function W_startOffer()
             W.pod_drain_on = true
             W_addPodButtons()
             W_updatePanels()
-            RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. Destination: Saint Brennan's Mission.", "#A0C0FF")
+            RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. Destination: Dustmote Salvage.", "#A0C0FF")
             RT.shipLog("[Engineering] Pod drawing 5 energy/sec. Keep energy above 50% to maintain stability.", "#FFAA00")
-            RT.setObjective("Reach Saint Brennan's Mission", true)
+            RT.setObjective("Reach Dustmote Salvage", true)
         end)
         addCommsReply("Not our problem.", function(s2, t2)
             setCommsMessage('"Your call. He won\'t last long without power."')
@@ -1434,7 +1450,10 @@ local function W_update(delta)
         local ref = RT.nearestPlayer(0, 0)
         if ref and RT.valid(ref) then
             local px, py = ref:getPosition()
-            if not W.checkpoint_fired and px * px + py * py > 45000 * 45000 then
+            -- Trigger checkpoint when 40U from Dustmote Salvage (104, -36)
+            local dx, dy = px - 104000, py + 36000
+            local dist_sq = dx * dx + dy * dy
+            if not W.checkpoint_fired and dist_sq < 40000 * 40000 then
                 W.checkpoint_fired = true
                 W_startCheckpoint()
             end
@@ -1574,7 +1593,7 @@ function init()
 
     VERSE.build({session = S.session_num})
     -- Sandbox uses the whole universe; only explicitly require the starting location
-    VERSE.requirePlaces({"Port Vesper", "Saint Brennan's Mission", "Halcyon Rest"})
+    VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest"})
     PROX.init()
 
     -- Spawn player at Port Vesper (safe starting location)

@@ -35,6 +35,9 @@
 <circle cx="368.0" cy="544.0" r="52.0" fill="#6a4c93" opacity="0.28"/>
 <circle cx="680.0" cy="504.0" r="40.0" fill="#6a4c93" opacity="0.28"/>
 <circle cx="208.0" cy="360.0" r="52.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="860.0" cy="320.0" r="32.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="920.0" cy="260.0" r="40.0" fill="#6a4c93" opacity="0.28"/>
+<circle cx="800.0" cy="300.0" r="24.0" fill="#6a4c93" opacity="0.28"/>
 <circle cx="476.0" cy="532.0" r="48.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
 <line x1="548.0" y1="680.0" x2="848.0" y2="740.0" stroke="#8a7f6a" stroke-width="32.0" stroke-dasharray="3 5" opacity="0.6"/>
 <circle cx="1016.0" cy="296.0" r="36.0" fill="none" stroke="#8a7f6a" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
