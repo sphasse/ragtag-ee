@@ -965,10 +965,21 @@ function JOBS.update()
                         for _, obj in ipairs(objects) do
                             -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
-                                -- Probes have getOwner() but NOT ship methods like getShieldsMax()
+                                -- Comprehensive probe detection diagnostics
+                                local callsign_ok, callsign = pcall(function() return obj:getCallSign() end)
+                                local typename_ok, typename = pcall(function() return obj:getTypeName() end)
+                                local template_ok, template = pcall(function() return obj:getTypeName() end)
                                 local has_owner = pcall(function() return obj:getOwner() end)
                                 local has_shields = pcall(function() return obj:getShieldsMax() end)
-                                print(string.format("[RELAY JAM] Object: valid=%s, has_owner=%s, has_shields=%s", tostring(RT.valid(obj)), tostring(has_owner), tostring(has_shields)))
+                                local faction_ok, faction = pcall(function() return obj:getFaction() end)
+
+                                print(string.format("[RELAY JAM] Object found:"))
+                                print(string.format("  callsign: ok=%s val=%s", tostring(callsign_ok), tostring(callsign)))
+                                print(string.format("  typename: ok=%s val=%s", tostring(typename_ok), tostring(typename)))
+                                print(string.format("  faction: ok=%s val=%s", tostring(faction_ok), tostring(faction)))
+                                print(string.format("  has_owner=%s, has_shields=%s", tostring(has_owner), tostring(has_shields)))
+
+                                -- Current detection method: has owner but no shields
                                 if has_owner and not has_shields then
                                     print("[RELAY JAM] DESTROYING PROBE (has owner, no shields)")
                                     obj:destroy()
