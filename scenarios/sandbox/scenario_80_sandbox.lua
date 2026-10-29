@@ -1700,7 +1700,7 @@ function addSessionGMFunctions()
     end)
 
     -- Reputation adjustment submenu
-    addGMFunction("Adjust Reputation...", function()
+    local function showReputationFactionList()
         clearGMFunctions()
         addGMFunction("< Back to Main", function()
             clearGMFunctions()
@@ -1711,15 +1711,8 @@ function addSessionGMFunctions()
         for _, faction in ipairs(factions) do
             addGMFunction(faction .. "...", function()
                 clearGMFunctions()
-                addGMFunction("< Back", function()
-                    clearGMFunctions()
-                    addGMFunction("< Back to Main", function()
-                        clearGMFunctions()
-                        addSessionGMFunctions()
-                    end)
-                    for _, f in ipairs(factions) do
-                        addGMFunction(f .. "...", function() end)  -- Placeholder, would need full submenu logic
-                    end
+                addGMFunction("< Back to Factions", function()
+                    showReputationFactionList()
                 end)
 
                 local current = RT.getReputation(faction) or 0
@@ -1764,6 +1757,10 @@ function addSessionGMFunctions()
                 end)
             end)
         end
+    end
+
+    addGMFunction("Adjust Reputation...", function()
+        showReputationFactionList()
     end)
 
     addGMFunction("End session", function()
