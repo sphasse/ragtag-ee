@@ -963,18 +963,12 @@ function JOBS.update()
                         for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
                             -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
-                                -- Test typeName() method (SeriousProton direct method)
-                                local typename_ok, typename_val = pcall(function() return obj:typeName() end)
-                                print("[RELAY JAM] typeName() test:")
-                                print("  ok=" .. tostring(typename_ok) .. " val=" .. tostring(typename_val))
-
-                                -- Current detection method
+                                -- Scan probes: Independent faction with getOwner() but no getShieldsMax()
                                 local faction_ok, faction = pcall(function() return obj:getFaction() end)
                                 local has_owner = pcall(function() return obj:getOwner() end)
                                 local has_shields = pcall(function() return obj:getShieldsMax() end)
 
                                 if faction_ok and faction == "Independent" and has_owner and not has_shields then
-                                    print("[RELAY JAM] DESTROYING via current method")
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
                                 end
