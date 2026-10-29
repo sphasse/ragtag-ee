@@ -83,43 +83,45 @@ The arc runs through seven phases automatically. Your main job is setting tone a
 
 ### Phase 2 — Transit
 
-**Trigger:** Crew accepts the job. Mira's ship begins following them.
+**Trigger:** Crew accepts the job. Mira's ship joins and the pod attaches. Objective: Dustmote Salvage.
 
-**What happens:** Travel toward the Shroud. Quiet phase — good for atmosphere.
+**What happens:** Travel toward Dustmote Salvage. The pod draws 5 energy/sec from the reactor — Engineering will notice. The checkpoint fires automatically when the ship comes within 40U of Dustmote.
 
-**Your role:** This is dead air if you let it be. Have the Director send a check-in from Mira — nervous, watching scanners. A rumour from a passing freighter about Concord movements works well here.
+**Your role:** This is dead air if you let it be. A nervous check-in from Mira works well here. A rumour about Concord activity near Dustmote sets up the intercept nicely.
 
 ---
 
 ### Phase 3 — Checkpoint
 
-**Trigger:** Crew reaches the waypoint in Greywater.
+**Trigger:** Ship enters 40U of Dustmote Salvage.
 
-**What happens:** The crew receives a comms choice — a message from an unknown party offering them money to hand over Mira's cargo. This is the arc's main moral decision.
+**What happens:** A Concord patrol intercepts and hails. The relay officer gets three choices:
 
-**Your role:** Don't rush them. Let the table talk. The choice they make affects the ending. If they ask for more information, have the Director voice the unknown contact as cold and specific — they clearly know exactly what's in the pod.
+- **Submit to scan** — 30s scan; if Concord finds the pod, they take it (comply path)
+- **Stall** — buys 45 seconds; if the timer expires, Concord boards anyway (comply path)
+- **Run** — Concord ships go hostile; advance to Revealed when they're destroyed or evaded
 
-**Options:** Comply (300 cr, bad ending) · Refuse (continue arc).
+**Your role:** Let Relay handle it — this is their moment. Don't telegraph the right answer. All three routes reach the Revealed phase (comply gives the 300 cr ending instead).
 
 ---
 
 ### Phase 4 — Revealed
 
-**Trigger:** Crew refuses the offer at the checkpoint.
+**Trigger:** Checkpoint resolves (run or comply path).
 
-**What happens:** A transmission from inside the pod — *Kael*, an AI consciousness Mira has been sheltering. They explain what they are and why they matter.
+**What happens:** A transmission from inside the pod — *Kael Voss*, an AI consciousness Mira has been sheltering. They explain what they are and why they matter. The scene auto-advances to Shroud Run after 60 seconds.
 
-**Your role:** Key moment. Let the crew react before moving on. The Director can voice Kael — calm, precise, unexpectedly warm. Prompt: *"Voice Kael as someone who has thought carefully about their own existence, not afraid, and grateful."*
+**Your role:** Key moment. Let the crew react before moving on. The Director observes and logs it; if you want Kael's voice to feel distinct, describe the character to your table directly — calm, precise, unexpectedly warm. Don't rush the 60 seconds.
 
 ---
 
 ### Phase 5 — Shroud Run
 
-**Trigger:** Arc continues after the revelation.
+**Trigger:** Revealed phase times out.
 
-**What happens:** The ship must reach Halcyon Rest with Kael's pod intact. Time pressure. Pod has a stability meter tied to ship energy — Engineering needs to stay above 45% to keep it healthy.
+**What happens:** The ship must reach Halcyon Rest. A Corsair ambush spawns in the Shroud. The phase advances when the Corsairs are cleared, the ship reaches within 15U of Halcyon, or 5 minutes elapse.
 
-**Watch for:** Engineering under pressure, Helm navigating. This is the tension sequence. Don't over-fill it with dialogue — let the crew focus.
+**Watch for:** Weapons and Helm under simultaneous pressure while Engineering manages the pod drain. This is the mechanical peak of the arc. Don't over-fill it with dialogue.
 
 ---
 
