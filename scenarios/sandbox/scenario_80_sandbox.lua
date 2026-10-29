@@ -1377,13 +1377,39 @@ local function W_startOffer()
 
     local vx, vy = VERSE.at("Port Vesper", -2, -1)
     print("[WITNESS] Spawn position: " .. vx .. ", " .. vy)
-    local mira = CpuShip():setTemplate("Escape Pod"):setFaction("Independent")
-    mira:setPosition(vx, vy)
-    mira:orderIdle()
-    mira:setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
-    mira:setWeaponTubeCount(0):setCanBeDestroyed(false)
-    mira:setCallSign("Mira's Luck")
-    RT.register(mira)
+
+    local ok, result = pcall(function()
+        print("[WITNESS] Creating CpuShip...")
+        local mira = CpuShip()
+        print("[WITNESS] Setting template to Escape Pod...")
+        mira:setTemplate("Escape Pod")
+        print("[WITNESS] Setting faction to Independent...")
+        mira:setFaction("Independent")
+        print("[WITNESS] Setting position...")
+        mira:setPosition(vx, vy)
+        print("[WITNESS] Setting orders...")
+        mira:orderIdle()
+        print("[WITNESS] Setting speed limits...")
+        mira:setImpulseMaxSpeed(0)
+        mira:setRotationMaxSpeed(0)
+        print("[WITNESS] Setting weapon tubes...")
+        mira:setWeaponTubeCount(0)
+        print("[WITNESS] Setting indestructible...")
+        mira:setCanBeDestroyed(false)
+        print("[WITNESS] Setting callsign...")
+        mira:setCallSign("Mira's Luck")
+        print("[WITNESS] Registering...")
+        RT.register(mira)
+        return mira
+    end)
+
+    if not ok then
+        print("[WITNESS] ERROR spawning Mira's Luck: " .. tostring(result))
+        addGMMessage("ERROR: Witness arc spawn failed: " .. tostring(result))
+        return
+    end
+
+    local mira = result
     print("[WITNESS] Mira's Luck spawned and registered")
 
     mira:setCommsFunction(function(src, tgt)
