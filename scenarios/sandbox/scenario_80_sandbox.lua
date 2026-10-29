@@ -1369,10 +1369,14 @@ local function W_startCheckpoint()
 end
 
 local function W_startOffer()
+    print("[WITNESS] W_startOffer() entered")
     S.witness_active = true
+    print("[WITNESS] Set S.witness_active = true")
     W_enterPhase("offer")
+    print("[WITNESS] Entered phase: offer")
 
     local vx, vy = VERSE.at("Port Vesper", -2, -1)
+    print("[WITNESS] Spawn position: " .. vx .. ", " .. vy)
     local mira = CpuShip():setTemplate("Escape Pod"):setFaction("Independent")
     mira:setPosition(vx, vy)
     mira:orderIdle()
@@ -1380,6 +1384,7 @@ local function W_startOffer()
     mira:setWeaponTubeCount(0):setCanBeDestroyed(false)
     mira:setCallSign("Mira's Luck")
     RT.register(mira)
+    print("[WITNESS] Mira's Luck spawned and registered")
 
     mira:setCommsFunction(function(src, tgt)
         setCommsMessage('"I need a discreet crew -- no questions asked. Passenger in stasis who needs to reach Saint Brennan\'s Mission quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
@@ -1404,7 +1409,9 @@ local function W_startOffer()
 
     -- Delay hail by 3 seconds to avoid comms collision if player is in station dialog
     W.offer_hail_at = getScenarioTime() + 3
+    print("[WITNESS] Set hail timer for: " .. W.offer_hail_at)
     globalMessage("Witness arc starting -- incoming hail in 3 seconds...", 3)
+    print("[WITNESS] Global message sent")
 end
 
 -- ── Main update dispatcher ───────────────────────────────────────────────────
@@ -1414,10 +1421,15 @@ local function W_update(delta)
 
     -- Handle delayed hail in offer phase
     if W.phase == "offer" and W.offer_hail_at and now >= W.offer_hail_at then
+        print("[WITNESS] Hail timer expired, sending hail now=" .. now .. " hail_at=" .. W.offer_hail_at)
         W.offer_hail_at = nil
         local mira = RT.find("Mira's Luck")
+        print("[WITNESS] Looking for Mira's Luck, found: " .. tostring(RT.valid(mira)))
         if RT.valid(mira) then
-            RT.hail(mira, "Independent vessel -- Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
+            local success = RT.hail(mira, "Independent vessel -- Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
+            print("[WITNESS] Hail sent, success: " .. tostring(success))
+        else
+            print("[WITNESS] ERROR: Mira's Luck not found or invalid!")
         end
     end
 
@@ -1869,11 +1881,17 @@ function addSessionGMFunctions()
     end)
 
     addGMFunction("Witness: Start", function()
+        print("[WITNESS] Start button clicked, current phase: " .. W.phase)
         if W.phase ~= "inactive" then
-            globalMessage("Witness arc already at phase: " .. W.phase, 5)
+            local msg = "Witness arc already at phase: " .. W.phase
+            print("[WITNESS] " .. msg)
+            globalMessage(msg, 5)
+            addGMMessage(msg)
             return
         end
+        print("[WITNESS] Calling W_startOffer()")
         W_startOffer()
+        print("[WITNESS] W_startOffer() completed")
     end)
 
     addGMFunction("Witness: >Chkpt", function()
@@ -1905,17 +1923,24 @@ function addSessionGMFunctions()
     end)
 
     addGMFunction("Witness: Cancel", function()
-        if W.phase == "inactive" then return end
+        print("[WITNESS] Cancel clicked, current phase: " .. W.phase)
+        if W.phase == "inactive" then
+            print("[WITNESS] Already inactive, nothing to cancel")
+            return
+        end
         local m = RT.find("Mira's Luck")
         if RT.valid(m) then m:destroy() end
         W.phase            = "inactive"
+        W.offer_hail_at    = nil
         W.pod_drain_on     = false
         W.checkpoint_fired = false
         W.corsair_names    = {}
         W.concord_names    = {}
         S.witness_active   = false
         W_removePodUI()
+        print("[WITNESS] Arc cancelled and reset to inactive")
         globalMessage("Witness arc cancelled and reset.", 5)
+        addGMMessage("Witness arc cancelled. Phase reset to inactive.")
     end)
 end
 
