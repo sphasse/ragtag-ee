@@ -1033,6 +1033,7 @@ local W = {
     phase            = "inactive",
     phase_entered    = 0,
     panel_next       = 0,
+    offer_hail_at    = nil,      -- delayed hail timer for offer phase
     -- pod
     pod_stability    = 100.0,
     pod_drain_on     = false,
@@ -1401,15 +1402,26 @@ local function W_startOffer()
         end)
     end)
 
-    RT.hail(mira, "Independent vessel -- Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
+    -- Delay hail by 3 seconds to avoid comms collision if player is in station dialog
+    W.offer_hail_at = getScenarioTime() + 3
+    globalMessage("Witness arc starting -- incoming hail in 3 seconds...", 3)
 end
 
 -- ── Main update dispatcher ───────────────────────────────────────────────────
 
 local function W_update(delta)
-    if W.phase == "inactive" or W.phase == "offer" or W.phase == "done" then return end
-
     local now = getScenarioTime()
+
+    -- Handle delayed hail in offer phase
+    if W.phase == "offer" and W.offer_hail_at and now >= W.offer_hail_at then
+        W.offer_hail_at = nil
+        local mira = RT.find("Mira's Luck")
+        if RT.valid(mira) then
+            RT.hail(mira, "Independent vessel -- Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
+        end
+    end
+
+    if W.phase == "inactive" or W.phase == "offer" or W.phase == "done" then return end
 
     -- Pod drain + panel refresh every 5 s in all active phases
     W_podTick(delta)
