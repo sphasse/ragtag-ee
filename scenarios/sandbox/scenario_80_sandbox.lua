@@ -1610,10 +1610,8 @@ function init()
 
                 if source:isDocked(target) then
                     if info.shop then
-                        addCommsReply("Request services", function(s, t)
-                            setCommsMessage("What do you need?")
-                            RT.addShopMenu(s, t, info)
-                            addCommsReply("Back", function(s2, t2) target:getCommsFunction()(s2, t2) end)
+                        addCommsReply("Shipwright: browse upgrades", function(s, t)
+                            RT.shipwrightMenu(s, t)
                         end)
                     end
                 end
