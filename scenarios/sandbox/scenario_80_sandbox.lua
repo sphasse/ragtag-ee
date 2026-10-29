@@ -238,6 +238,12 @@ function JOBS.accept(m, skip_log)
         s:setCommsFunction(function(src, tgt)
             setCommsMessage('"Get away from us."')
         end)
+
+        -- Hide on radar until detected (stealth mechanic)
+        s:setRadarTraceScale(0)
+        m._radar_ship = s  -- Store reference for detection checking
+        m._detected = false
+
         m.target_cs = name
         -- Update short description and objective with actual target name
         if m.type == "boarding" then
@@ -267,6 +273,12 @@ function JOBS.accept(m, skip_log)
         s:setCommsFunction(function(src, tgt)
             setCommsMessage("Automated relay. No response.")
         end)
+
+        -- Hide on radar until detected (stealth mechanic)
+        s:setRadarTraceScale(0)
+        m._radar_ship = s  -- Store reference for detection checking
+        m._detected = false
+
         m.target_cs = name
         -- Update short description and objective with actual relay name
         m.short = "Hack " .. name .. " (hacking)"
