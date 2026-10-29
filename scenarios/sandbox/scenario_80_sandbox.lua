@@ -960,16 +960,11 @@ function JOBS.update()
                     if now - m._last_jam_check > 2 then
                         m._last_jam_check = now
                         local rx, ry = target:getPosition()
-                        local player = getPlayerShip(-1)
                         for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
-                            -- Don't destroy the relay itself or the player ship!
-                            if RT.valid(obj) and obj ~= target and obj ~= player then
-                                -- Scan probes: Independent faction with getOwner() but no getShieldsMax()
-                                local faction_ok, faction = pcall(function() return obj:getFaction() end)
-                                local has_owner = pcall(function() return obj:getOwner() end)
-                                local has_shields = pcall(function() return obj:getShieldsMax() end)
-
-                                if faction_ok and faction == "Independent" and has_owner and not has_shields then
+                            -- Don't destroy the relay itself!
+                            if RT.valid(obj) and obj ~= target then
+                                -- Test isObjectType from utils.lua
+                                if isObjectType(obj, "ScanProbe") then
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
                                 end
