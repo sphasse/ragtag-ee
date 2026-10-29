@@ -1,6 +1,8 @@
 # ragtag-ee — EmptyEpsilon sandbox campaign
 
 > **For players**: This document is for developers and server operators. If you're playing the campaign, see **[The Drift: Player Guide](docs/PLAYER_INTRO.md)** for universe lore, factions, and regions.
+>
+> **For GMs**: See **[GM Operations Guide](docs/GM_GUIDE.md)** for session pacing, The Witness arc, and Director tips.
 
 **Space-western at the edge of settled space.** Command a ragtag freighter making your way in a frontier cluster of five suns—trade, fight, explore, and survive in a living universe of trade lanes, frontier stations, and pirate havens.
 
