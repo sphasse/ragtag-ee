@@ -1777,18 +1777,6 @@ function addSessionGMFunctions()
         end
     end)
 
-    addGMFunction("Credits +500", function()
-        if RT.valid(RT.player) then
-            RT.addCredits(500, "GM reward")
-        end
-    end)
-
-    addGMFunction("Credits +100", function()
-        if RT.valid(RT.player) then
-            RT.addCredits(100, "GM reward")
-        end
-    end)
-
     addGMFunction("Credits +10", function()
         if RT.valid(RT.player) then
             RT.addCredits(10, "GM reward")
@@ -1798,12 +1786,6 @@ function addSessionGMFunctions()
     addGMFunction("Credits -10", function()
         if RT.valid(RT.player) then
             RT.addCredits(-10, "GM penalty")
-        end
-    end)
-
-    addGMFunction("Credits -100", function()
-        if RT.valid(RT.player) then
-            RT.addCredits(-100, "GM penalty")
         end
     end)
 
