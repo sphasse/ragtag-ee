@@ -22,7 +22,7 @@ PROX.config = {
     max_active           = 4,     -- max simultaneous proximity-spawn ships (all zones)
     density_limit        = 3,     -- skip spawn if this many hostiles already within density_radius
     density_radius_u     = 10,    -- radius (u) for the density check
-    spawn_lead_u         = 10,    -- u ahead of player toward region centre for spawn aim
+    spawn_lead_u         = 10,    -- u ahead of player along their current heading for spawn aim
     spawn_spread_u       = 4,     -- random spread (u) around spawn aim point
     station_exclusion_u  = 20,    -- no spawns within this radius of any station
     station_despawn_u    = 15,    -- despawn any patrol ship within this radius of a friendly station
@@ -185,17 +185,24 @@ local function _spawnGroup(region_name, px, py)
     local templates = grp_tbl[strength]
     if not templates or #templates == 0 then return end
 
-    -- Aim spawn lead_u ahead of the player toward region centre.
-    local cx, cy = region.x * U, region.y * U
-    local ddx, ddy = cx - px, cy - py
-    local len = math.sqrt(ddx * ddx + ddy * ddy)
-    if len > 0 then ddx, ddy = ddx / len, ddy / len else ddx, ddy = 1, 0 end
+    -- Aim spawn lead_u ahead of the player based on their current heading.
+    local player = _firstPlayer()
+    if not player then return end
+
+    local heading = player:getHeading()
+    -- Convert EE heading to direction vector
+    -- EE heading: 0 = north (-Y), 90 = east (+X), 180 = south (+Y), 270 = west (-X)
+    local angle_rad = math.rad(heading - 90)
+    local ddx = math.cos(angle_rad)
+    local ddy = math.sin(angle_rad)
+
     local lead   = PROX.config.spawn_lead_u * U
     local spread = PROX.config.spawn_spread_u * U
     local sx = px + ddx * lead + (math.random() * 2 - 1) * spread * 0.5
     local sy = py + ddy * lead + (math.random() * 2 - 1) * spread * 0.5
 
     -- Clamp inside region boundary.
+    local cx, cy = region.x * U, region.y * U
     local sdx, sdy = sx - cx, sy - cy
     local sdist = math.sqrt(sdx * sdx + sdy * sdy)
     local max_r = region.r * U * 0.95
@@ -213,7 +220,6 @@ local function _spawnGroup(region_name, px, py)
     local now    = getScenarioTime()
     local wanted = RT.campaign.flags and RT.campaign.flags.wanted
     local is_shakedown = (zone.comms == "shakedown") and not wanted
-    local player = _firstPlayer()
 
     -- Spawn ships.
     local ship_names = {}
