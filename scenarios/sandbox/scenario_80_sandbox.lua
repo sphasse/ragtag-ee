@@ -963,8 +963,9 @@ function JOBS.update()
                         for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
                             -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
-                                local ok = pcall(function() return obj:getOwner() end)
-                                if ok then
+                                -- Only destroy scan probes, not ships
+                                local ok, typename = pcall(function() return obj:getTypeName() end)
+                                if ok and typename == "ScanProbe" then
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
                                 end
