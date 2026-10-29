@@ -10,7 +10,7 @@ There are three ways to contribute, and they're deliberately independent:
 
 Using Claude Code? The repo's `CLAUDE.md` and the project skill in `.claude/skills/` give it the
 context; ask it things like "add a universe extension with a smugglers' moon near Cinder" or
-"write Long Haul session 2 from scenarios/longhaul/plan.md".
+"add a new mission type to the sandbox campaign".
 
 ## Setup
 - EmptyEpsilon 2024 or newer (the ECS engine).
