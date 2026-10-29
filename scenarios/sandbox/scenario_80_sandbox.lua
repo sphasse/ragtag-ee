@@ -960,33 +960,19 @@ function JOBS.update()
                     if now - m._last_jam_check > 2 then
                         m._last_jam_check = now
                         local rx, ry = target:getPosition()
-                        local objects = getObjectsInRadius(rx, ry, 5000)
-                        print(string.format("[RELAY JAM] Checking %d objects within 5U of relay at (%.0f, %.0f)", #objects, rx, ry))
-                        for _, obj in ipairs(objects) do
+                        for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
                             -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
-                                -- Comprehensive probe detection diagnostics
-                                local callsign_ok, callsign = pcall(function() return obj:getCallSign() end)
-                                local typename_ok, typename = pcall(function() return obj:getTypeName() end)
-                                local template_ok, template = pcall(function() return obj:getTypeName() end)
+                                -- Scan probes are Independent faction with getOwner() but no getShieldsMax()
+                                local faction_ok, faction = pcall(function() return obj:getFaction() end)
                                 local has_owner = pcall(function() return obj:getOwner() end)
                                 local has_shields = pcall(function() return obj:getShieldsMax() end)
-                                local faction_ok, faction = pcall(function() return obj:getFaction() end)
 
-                                print(string.format("[RELAY JAM] Object found:"))
-                                print(string.format("  callsign: ok=%s val=%s", tostring(callsign_ok), tostring(callsign)))
-                                print(string.format("  typename: ok=%s val=%s", tostring(typename_ok), tostring(typename)))
-                                print(string.format("  faction: ok=%s val=%s", tostring(faction_ok), tostring(faction)))
-                                print(string.format("  has_owner=%s, has_shields=%s", tostring(has_owner), tostring(has_shields)))
-
-                                -- Current detection method: has owner but no shields
-                                if has_owner and not has_shields then
-                                    print("[RELAY JAM] DESTROYING PROBE (has owner, no shields)")
+                                -- Probes: faction=Independent, has_owner=true, has_shields=false
+                                if faction_ok and faction == "Independent" and has_owner and not has_shields then
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
                                 end
-                            elseif obj == target then
-                                print("[RELAY JAM] Skipping relay itself")
                             end
                         end
                     end
