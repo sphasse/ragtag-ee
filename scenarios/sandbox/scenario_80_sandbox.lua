@@ -525,16 +525,17 @@ function JOBS.stationHook(source, target)
                     local danger_level = region and region.danger or 0
                     print(string.format("[BOARDING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
                         cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
-                    -- Find nearby stations for target destination (50U encourages exploration)
+                    -- Find nearby stations for target destination (search from TARGET position, not origin)
                     local nearby = {}
                     for _, st in ipairs(VERSE.STATIONS) do
-                        if st.cs ~= cs then  -- not origin station
+                        if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then  -- not origin, not hostile
                             local st_e = RT.find(st.cs)
                             if RT.valid(st_e) then
                                 local sx, sy = st_e:getPosition()
-                                local ddx, ddy = sx - rx, sy - ry
+                                -- Distance from target spawn point to station
+                                local ddx, ddy = sx - wx, sy - wy
                                 local st_dist = math.sqrt(ddx * ddx + ddy * ddy)
-                                if st_dist < 50000 then  -- within 50U
+                                if st_dist < 150000 then  -- within 150U of target spawn
                                     nearby[#nearby + 1] = st.cs
                                 end
                             end
@@ -585,16 +586,17 @@ function JOBS.stationHook(source, target)
                             error("Hacking: " .. tostring(mission_err))
                         end
                     else  -- destroy
-                        -- Find nearby stations for target destination (50U encourages exploration)
+                        -- Find nearby stations for target destination (search from TARGET position, not origin)
                         local nearby = {}
                         for _, st in ipairs(VERSE.STATIONS) do
-                            if st.cs ~= cs then  -- not origin station
+                            if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then  -- not origin, not hostile
                                 local st_e = RT.find(st.cs)
                                 if RT.valid(st_e) then
                                     local sx, sy = st_e:getPosition()
-                                    local ddx, ddy = sx - rx, sy - ry
+                                    -- Distance from target spawn point to station
+                                    local ddx, ddy = sx - wx, sy - wy
                                     local st_dist = math.sqrt(ddx * ddx + ddy * ddy)
-                                    if st_dist < 50000 then  -- within 50U
+                                    if st_dist < 150000 then  -- within 150U of target spawn
                                         nearby[#nearby + 1] = st.cs
                                     end
                                 end
