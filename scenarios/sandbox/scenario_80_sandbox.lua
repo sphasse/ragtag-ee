@@ -797,14 +797,18 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    -- Relay jamming: instantly neutralise any scan probe within 5u.
-                    local rx, ry = target:getPosition()
-                    for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
-                        if RT.valid(obj) then
-                            local ok = pcall(function() return obj:getOwner() end)
-                            if ok then
-                                obj:destroy()
-                                RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
+                    -- Relay jamming: check for probes every 2 seconds (performance throttle)
+                    m._last_jam_check = m._last_jam_check or 0
+                    if now - m._last_jam_check > 2 then
+                        m._last_jam_check = now
+                        local rx, ry = target:getPosition()
+                        for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
+                            if RT.valid(obj) then
+                                local ok = pcall(function() return obj:getOwner() end)
+                                if ok then
+                                    obj:destroy()
+                                    RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
+                                end
                             end
                         end
                     end

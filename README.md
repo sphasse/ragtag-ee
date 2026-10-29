@@ -79,6 +79,14 @@ With the wanted flag set, Concord skips the shake-down and attacks immediately i
 - Concord rep > +20: shake-down dismissed without fine
 - Concord rep < −20: shake-down skipped, immediate hostile
 
+**When spawns are suppressed:**
+- The Witness arc is active (`S.witness_active = true`)
+- Player is within 20U of any station (station exclusion zones)
+- Maximum active patrol ships reached (4 simultaneous)
+- Density limit exceeded (3+ hostiles within 10U)
+
+**GM controls:** `PROX.config.spawn_frequency` multiplier adjusts encounter rate (0.5 = relaxed, 1.0 = default, 2.0 = intense).
+
 **Director integration:** Each spawn emits a `prox_spawned` event; kills emit `prox_cleared`. The Witness story arc sets `S.witness_active` which suspends all proximity spawns.
 
 ---

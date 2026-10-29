@@ -77,26 +77,39 @@ Say plainly in PR descriptions what was and wasn't tested.
 2. **Type selection** via weighted random:
    - delivery: 15, salvage: 7, boarding: 3, hacking: 3, destroy: 3
 3. **Archetype selection** from mission.lua `_*_ARCHETYPES` tables (tier-gated)
-4. **Intercept roll** per archetype's `intercept_chance` (0–60%)
+4. **Legacy intercept fields** in archetypes (`intercept_types`, `intercept_chance`) are no longer used as of 2026-10-29 (proximity spawn system replaced mission-specific intercepts)
 5. **Nearby stations** calculated for boarding/destroy (50U radius) → stored as `target_dest`
 6. **Mission record created** with all fields, added to offers list
 
-### Intercept System
+### Proximity Spawn System (Replaced Intercepts)
 
-**When intercepts spawn**:
-- **Delivery**: 40-65% progress along route (monitored by `MISSION.update()`)
-- **Salvage**: When cargo pod picked up (immediate)
-- **Boarding**: When ship successfully boarded (immediate)
-- **Destroy**: When target destroyed (immediate)
-- **Hacking**: When hack reaches 75% (immediate)
+**Ambient faction patrols** spawn based on player location, not mission progress. System in `ee/ragtag/proximity.lua`.
 
-**What spawns**:
-- 2-3 ships, 12U ahead of player toward destination
-- Strength: scout (1 ship) / light / medium / heavy (4 ships)
-- Types: `pirates` (attack), `rival` (attack), `concord` (patrol, no immediate attack)
-- Player gets warning at mission accept: *"Intelligence suggests this run may not be quiet."*
+**Zone-based spawns**:
+- **Concord Core / Arbiter Line**: Concord shake-downs (comms-first, not immediate attack)
+- **Shroud / Gauntlet / Blackwater**: Corsairs (attack on sight)
+- **Boneyard**: Relic war drones (no comms, attack)
+- **Maw**: Hollow (no comms, attack)
 
-**Key insight**: Return-leg intercepts (salvage/boarding/destroy/hacking) spawn immediately upon objective completion, not gradually along the route back.
+**Spawn conditions**:
+- Player in dangerous zone for 8+ seconds (check interval)
+- Region cooldown expired (90s base, scaled by reputation)
+- Global cooldown expired (60s)
+- <4 active patrol ships total
+- <3 hostiles within 10U (density check)
+- Outside 20U station exclusion zones
+
+**Leash system**: Ships recall to spawn point when player exits region, despawn after 120s if player doesn't return.
+
+**Reputation effects**:
+- Corsairs >+20 rep: 50% longer cooldowns (less frequent spawns)
+- Corsairs <-20 rep: 30% shorter cooldowns (hunt you)
+- Concord >+20 rep: shake-downs dismissed without fine
+- Concord <-20 rep: skip shake-down, immediate attack
+
+**GM control**: `PROX.config.spawn_frequency` multiplier (0.5 = half as often, 2.0 = twice as often).
+
+**Key insight**: Danger is now location-based (enter the Gauntlet → Corsairs spawn) rather than mission-based (intercept at 40% route progress). Creates predictable risk zones players learn to navigate.
 
 ### Target Ships (Boarding/Destroy)
 
@@ -119,8 +132,9 @@ Say plainly in PR descriptions what was and wasn't tested.
 - Spawn custom "Comms Relay Beacon" template (only reactor system)
 - Relay is stationary, Concord faction, cannot be destroyed
 - Player must hack **any system to 75%** (not just reactor, despite archetype field)
+- **Relay jamming**: Active relays neutralise scan probes within 5U (checked every 2s)
 - Mission completes when threshold reached
-- Intercept spawns on successful hack (return leg)
+- Ambient patrols may spawn based on zone (proximity system), not mission-specific
 
 ### Common Mission Bugs and Fixes
 
@@ -140,10 +154,11 @@ Say plainly in PR descriptions what was and wasn't tested.
 - Check spawning code uses `m.target_dest`, not re-calculating stations
 - Verify `nearby_stations` passed to `MISSION.new*` functions
 
-**Intercept not spawning**:
-- Check `intercept` field exists and `fired == false`
-- Delivery: Route must be >5U and `MISSION.track()` called
-- Others: Check objective completion detection logic
+**Proximity spawns not appearing**:
+- Check player is in a zone with patrol config (`PROX.zones` table)
+- Verify cooldowns not active (90s region, 60s global)
+- Check max_active limit not reached (4 ships default)
+- Witness arc sets `S.witness_active = true` which suspends all spawns
 
 ### Port Vesper Welcome System
 

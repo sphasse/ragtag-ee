@@ -29,6 +29,7 @@ PROX.config = {
     recall_timeout       = 120,   -- seconds before a recalled group despawns
     shakedown_timeout    = 45,    -- seconds before an unresponded Concord shake-down auto-resolves
     shakedown_scan_secs  = 30,    -- delay after player submits to inspection
+    spawn_frequency      = 1.0,   -- spawn rate multiplier (0.5 = half as often, 2.0 = twice as often, exposed to GM)
 }
 
 -- Boneyard-specific relic war drone groups.
@@ -250,7 +251,7 @@ local function _spawnGroup(region_name, px, py)
                 if RT.valid(s) then s:orderFlyTowards(ppx, ppy) end
             end
         end
-        RT.shipLog("[Concord] Freighter -- transponder check requested.", "#8888FF")
+        RT.shipLog("[Concord] Patrol requesting transponder check. Open comms to respond.", "#8888FF")
     else
         if player then
             for _, cs in ipairs(ship_names) do
