@@ -334,14 +334,14 @@ function JOBS.accept(m, skip_log)
 
         if m.type == "boarding" or m.type == "destroy" then
             local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
-            RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
-                m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
+            RT.shipLog(string.format("Contract: %s. %dm to complete. %s is at %s%s.",
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
         elseif m.type == "hacking" then
-            RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
-                m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
+            RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
         else
-            RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
-                m.short, m.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+            RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
         end
         if m.intercept then
             RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
@@ -747,14 +747,14 @@ function JOBS.stationHook(source, target)
 
                     if cap.type == "boarding" then
                         local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
-                        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. %s is at %s%s.",
-                            cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
+                        RT.shipLog(string.format("Contract: %s. %dm to complete. %s is at %s%s.",
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
                     elseif cap.type == "hacking" or cap.type == "destroy" then
-                        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Target: %s at %s.",
-                            cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
+                        RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
                     else
-                        RT.shipLog(string.format("Contract: %s (%d cr). %dm to complete. Head to %s.",
-                            cap.short, cap.reward, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+                        RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
                     end
                     if cap.intercept then
                         RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
