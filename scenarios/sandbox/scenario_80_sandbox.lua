@@ -1840,7 +1840,7 @@ function addSessionGMFunctions()
         W_startOffer()
     end)
 
-    addGMFunction("Witness: →Chkpt", function()
+    addGMFunction("Witness: >Chkpt", function()
         S.witness_active   = true
         W.pod_drain_on     = true
         W.checkpoint_fired = true
@@ -1850,7 +1850,7 @@ function addSessionGMFunctions()
         W_startCheckpoint()
     end)
 
-    addGMFunction("Witness: →Bcast", function()
+    addGMFunction("Witness: >Bcast", function()
         S.witness_active   = true
         W.pod_drain_on     = true
         W.checkpoint_fired = true
@@ -1861,7 +1861,7 @@ function addSessionGMFunctions()
         W_startBroadcast()
     end)
 
-    addGMFunction("Witness: Pod→Crit", function()
+    addGMFunction("Witness: Pod>Crit", function()
         if W.pod_drain_on then
             W.pod_stability = 15
             RT.shipLog("[GM] Stasis pod forced to critical stability.", "#FF4040")
