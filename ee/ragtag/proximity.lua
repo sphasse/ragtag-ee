@@ -381,9 +381,7 @@ local function _processGroup(group, now, player)
             local ssx, ssy = s:getPosition()
             for _, stn in ipairs(PROX._safe_stns) do
                 local edx, edy = ssx - stn.x, ssy - stn.y
-                local dist = math.sqrt(edx * edx + edy * edy)
-                if dist < stn.r then
-                    print(string.format("[PROX DESPAWN] Layer 3: %s at (%.0f, %.0f) within %.1fU of station at (%.0f, %.0f) - destroying", cs, ssx, ssy, dist/1000, stn.x, stn.y))
+                if math.sqrt(edx * edx + edy * edy) < stn.r then
                     s:destroy()
                     break
                 end
@@ -434,7 +432,6 @@ local function _processGroup(group, now, player)
         -- Recall timeout: despawn if player hasn't returned.
         if group.recalled and group.recalled_at and
            now - group.recalled_at > PROX.config.recall_timeout then
-            print(string.format("[PROX DESPAWN] Recall timeout: group in %s recalled %.0fs ago - destroying %d ships", group.region_name, now - group.recalled_at, #group.ships))
             for _, cs in ipairs(group.ships) do
                 local s = RT.named[cs]
                 if RT.valid(s) then s:destroy() end
