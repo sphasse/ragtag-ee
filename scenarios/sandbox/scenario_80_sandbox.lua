@@ -1913,16 +1913,6 @@ function addSessionGMFunctions()
             "New missions will spawn at " .. ranges[S.mission_distance_mode] .. " from origin station.")
     end)
 
-    addGMFunction("Spawn salvage", function()
-        if RT.valid(RT.player) then
-            local px, py = RT.player:getPosition()
-            local value = math.random(20, 80)
-            local pod = SupplyDrop():setFaction("Independent"):setPosition(px + random(-3000, 3000), py + random(-3000, 3000))
-            pod:setEnergy(value):setDescriptions("Supply pod", "Credits: " .. value)
-            RT.shipLog("Salvage detected nearby.", "#A0E0E0")
-        end
-    end)
-
     addGMFunction("Witness: Start", function()
         if W.phase ~= "inactive" then
             globalMessage("Witness arc already at phase: " .. W.phase, 5)
