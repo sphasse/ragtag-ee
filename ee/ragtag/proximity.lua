@@ -523,8 +523,10 @@ function PROX.update(delta)
     end
     if active_ship_count >= PROX.config.max_active then return end
 
-    -- Global cooldown.
-    if now - PROX._last_spawn < PROX.config.global_cooldown then return end
+    -- Global cooldown (adjusted by spawn frequency).
+    local freq_mult = PROX.config.spawn_frequency or 1.0
+    local adj_global = PROX.config.global_cooldown / freq_mult
+    if now - PROX._last_spawn < adj_global then return end
 
     if not player then return end
     local px, py = player:getPosition()
