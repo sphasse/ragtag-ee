@@ -257,6 +257,7 @@ function JOBS.accept(m, skip_log)
         m._attacking = false  -- Track if ship has engaged player
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn our custom comms relay beacon with only reactor system
+        print(string.format("[DEBUG] Spawning hacking relay for mission %s at (%.0f, %.0f)", m.id or "unknown", m.wx or 0, m.wy or 0))
         local s = CpuShip():setTemplate("Comms Relay Beacon"):setFaction("Concord")
         -- Give it a random beacon designator
         local name = generateBeaconName()
@@ -270,6 +271,7 @@ function JOBS.accept(m, skip_log)
         -- Make reactor hackable
         s:setSystemHackedLevel("reactor", 0.0)
         RT.register(s)
+        print(string.format("[DEBUG] Relay spawned: %s at (%.0f, %.0f), valid=%s", name, m.wx, m.wy, tostring(RT.valid(s))))
         s:setCommsFunction(function(src, tgt)
             setCommsMessage("Automated relay. No response.")
         end)
@@ -284,6 +286,7 @@ function JOBS.accept(m, skip_log)
         m.short = "Hack " .. name .. " (hacking)"
         m.obj = "Hack " .. name
         m._spawned  = true
+        print(string.format("[DEBUG] Hacking mission setup complete: target_cs=%s, _spawned=%s", m.target_cs or "nil", tostring(m._spawned)))
     end
 
     -- Write contract details to log (unless caller will do it)
@@ -925,9 +928,12 @@ function JOBS.update()
         elseif m.type == "hacking" then
             -- Phase 1: watch for hack completion (any system >= 75%)
             if not m._hacked then
+                print(string.format("[DEBUG] Hacking update: mission=%s, target_cs=%s, _spawned=%s", m.id or "unknown", m.target_cs or "nil", tostring(m._spawned)))
                 local target = RT.find(m.target_cs)
+                print(string.format("[DEBUG] RT.find result: target=%s, valid=%s", tostring(target), tostring(RT.valid(target))))
                 if not RT.valid(target) then
                     RT.shipLog("[Hack] Relay destroyed before extraction -- contract lost.", "#FF8080")
+                    print(string.format("[ERROR] Hacking mission %s: relay not found! target_cs=%s", m.id or "unknown", m.target_cs or "nil"))
                     MISSION.untrack(m.id)
                     table.remove(_active, i)
                     JOBS.updateObj()
