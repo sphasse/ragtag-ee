@@ -1829,7 +1829,7 @@ function addSessionGMFunctions()
         addSessionGMFunctions()
         local mode = S.work_cooldown_enabled and "ENABLED" or "DISABLED"
         addGMMessage("Work cooldown " .. mode .. ".\n\n" ..
-            (S.work_cooldown_enabled and "Stations offer 2 missions. Taking both triggers 10min cooldown." or
+            (S.work_cooldown_enabled and "Taking a mission triggers a 10 minute new job cooldown." or
             "Stations offer unlimited missions (testing mode)."))
     end)
 
