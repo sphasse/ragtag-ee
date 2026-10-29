@@ -41,6 +41,7 @@ local S = {
     ending = false,
     witness_active = false,    -- locks job board once The Witness arc begins
     vesper_first_hail = false, -- track first hail to Port Vesper for welcome message
+    work_cooldown_enabled = true,  -- false = infinite mission spam (testing), true = 10min cooldown (gameplay)
 }
 
 --------------------------------------------------------------------------------
@@ -83,6 +84,10 @@ end
 
 JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
 JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
+JOBS.WORK_COOLDOWN    = 10 * 60   -- seconds before station offers new work after missions taken
+
+-- Per-station work tracking: {callsign → {last_offer_time, offered_ids = {id→mission}, available_ids = {id→true}}}
+local _station_work = {}
 
 local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]", destroy="[X]"}
 
@@ -139,6 +144,15 @@ function JOBS.accept(m, skip_log)
     end
     m._expires_at = getScenarioTime() + JOBS.MISSION_DURATION
     _active[#_active+1] = {mission = m, phase = "active"}
+
+    -- If cooldown enabled, mark this mission as taken at its origin station
+    if S.work_cooldown_enabled and m.origin then
+        local station_state = _station_work[m.origin]
+        if station_state and station_state.available_ids[m.id] then
+            station_state.available_ids[m.id] = nil
+        end
+    end
+
     JOBS.updateObj()
 
     -- Spawn salvage cargo pod immediately so player can see it on scanners
@@ -614,6 +628,28 @@ function JOBS.stationHook(source, target)
             -- debug library not available in EE Lua, but err should contain the traceback
             setCommsMessage('"System error generating contracts. Please report to the dockmaster."')
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+        else
+            -- Success - if cooldown enabled and we generated new missions, track them
+            if S.work_cooldown_enabled and #offers > 0 then
+                local station_state = _station_work[cs]
+                -- Only update if this is a fresh generation (not previously offered missions)
+                local is_fresh_generation = true
+                for _, m in ipairs(offers) do
+                    if station_state.offered_ids[m.id] then
+                        is_fresh_generation = false
+                        break
+                    end
+                end
+
+                if is_fresh_generation then
+                    station_state.offered_ids = {}
+                    station_state.available_ids = {}
+                    for _, m in ipairs(offers) do
+                        station_state.offered_ids[m.id] = m
+                        station_state.available_ids[m.id] = true
+                    end
+                end
+            end
         end
     end)
 end
@@ -1725,6 +1761,17 @@ function addSessionGMFunctions()
         if RT.valid(RT.player) then
             RT.addCredits(-100, "GM penalty")
         end
+    end)
+
+    addGMFunction("Work Cooldown: " .. (S.work_cooldown_enabled and "ON" or "OFF"), function()
+        S.work_cooldown_enabled = not S.work_cooldown_enabled
+        -- Clear the function and re-add with new label
+        clearGMFunctions()
+        addSessionGMFunctions()
+        local mode = S.work_cooldown_enabled and "ENABLED" or "DISABLED"
+        addGMMessage("Work cooldown " .. mode .. ".\n\n" ..
+            (S.work_cooldown_enabled and "Stations offer 2 missions. Taking both triggers 10min cooldown." or
+            "Stations offer unlimited missions (testing mode)."))
     end)
 
     addGMFunction("Spawn salvage", function()
