@@ -19,7 +19,7 @@ Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine
 - **Dynamic trade traffic**: 15 AI freighters following realistic routes, docking and departing
 - **Salvage economy**: 25+ salvage clusters (credits, missiles, hull patches) respawn each session
 - **Progressive upgrades**: 16 total upgrades across different shipyards (shields, weapons, engines, jump drive)
-- **Procedurally spawned hazards**: hostile encounters scaled by region danger level
+- **Proximity spawn system**: faction patrols that scale with player strength, region danger, and reputation (see below)
 
 ### Five Factions
 - **Concord**: Government military. Patrol the trade lanes, enforce the law, winners of the Settlement War
@@ -38,6 +38,48 @@ Progressive difficulty and compensation:
 5. **Boarding** (1.8x pay): Disable and board target ships. Highest difficulty and reward.
 
 **Dynamic Compensation**: All missions scale rewards by distance and region danger level. A boarding mission 30U away in deadly space (The Maw) pays 3-4x more than a delivery in safe space.
+
+### Proximity Spawn System
+
+Ambient faction patrols are driven by `ee/ragtag/proximity.lua`, not hard-coded encounter tables. Every 8 seconds the system checks which zone the player is in and whether conditions allow a new spawn.
+
+**Spawn strength** is the sum of two numbers:
+- **Player tier**: 0 (0–1 upgrades) · 1 (2–4 upgrades) · 2 (5+ upgrades)
+- **Zone modifier**: +0 (danger 0) · +1 (danger 1) · +2 (danger 2–3)
+
+Combined tier maps to a ship group: scout → light → medium → heavy (capped at heavy).
+
+**Zone table:**
+
+| Region | Faction | Behavior |
+|---|---|---|
+| Concord Core, Arbiter Line | Concord | Comms-first shake-down (see below) |
+| the Shroud, Halcyon Rest | Corsairs | Attack |
+| the Gauntlet | Corsairs | Attack |
+| Blackwater Reach | Corsairs | Attack |
+| the Boneyard (Ashgrave) | Relic | Attack on sight, no comms, WX-Lindworm/Stalker templates |
+| the Maw | Hollow | Attack on sight, no comms |
+
+**Throttles**: global 60s cooldown · per-region 90s cooldown · max 4 active ships across all zones · skip spawn if 3+ hostiles already within 10u.
+
+**Leash system (station safety):** Spawned ships are leashed to their region. When the player exits a region, all ships in that group are ordered back to their original spawn point. After 120s without the player returning they despawn. Three layers prevent ships from attacking stations: (1) no spawns within 20u of any station, (2) ships target the player directly rather than roaming, (3) any patrol ship that reaches within 15u of a friendly station is despawned immediately.
+
+**Concord shake-down:** Concord ships approach but don't attack. They hail the player via the ship log and wait for the relay officer to open comms. Three choices:
+- *Submit to inspection*: 30-second scan; fine if rep < 0 (50% of credits on hand, min 25cr)
+- *Declare clean cargo*: dismissed if rep ≥ +10; fine otherwise
+- *Refuse*: warrant issued (`campaign.flags.wanted = true`), Concord goes hostile
+
+With the wanted flag set, Concord skips the shake-down and attacks immediately in their own zones. The wanted flag persists across sessions.
+
+**Reputation effects on cooldowns:**
+- Corsairs rep > +20: 50% longer spawn cooldown
+- Corsairs rep < −20: 30% shorter cooldown
+- Concord rep > +20: shake-down dismissed without fine
+- Concord rep < −20: shake-down skipped, immediate hostile
+
+**Director integration:** Each spawn emits a `prox_spawned` event; kills emit `prox_cleared`. The Witness story arc sets `S.witness_active` which suspends all proximity spawns.
+
+---
 
 ### Reputation System
 Track standing with all factions:
@@ -148,6 +190,7 @@ An AI director on a separate PC voices characters, answers hails, and times enco
 | Path | What | Who edits |
 |---|---|---|
 | `ee/ragtag/` | Lua framework (installed to `scripts/ragtag/`) | Framework contributors |
+| `ee/ragtag/proximity.lua` | Proximity spawn system (zone patrols, Concord shake-down) | Framework contributors |
 | `ee/ragtag/verse/drift.lua` | Base universe data | Rarely (see CONTRIBUTING.md) |
 | `ee/ragtag/verse/extensions/` | Community universe additions | Anyone |
 | `scenarios/sandbox/` | Sandbox campaign scenario | Contributors |
