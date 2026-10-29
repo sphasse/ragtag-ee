@@ -388,6 +388,51 @@ function JOBS.stationHook(source, target)
         local ok, err = pcall(function()
             local offers = {}
             local mt = JOBS.maxTier()
+            local now = getScenarioTime()
+
+            -- Initialize station work tracking
+            if not _station_work[cs] then
+                _station_work[cs] = {
+                    last_offer_time = 0,
+                    offered_ids = {},
+                    available_ids = {},
+                }
+            end
+            local station_state = _station_work[cs]
+
+            -- Cooldown mode: check if we should offer new work
+            local skip_generation = false
+            if S.work_cooldown_enabled then
+                -- If we have previously offered missions that haven't been taken, show those
+                local previously_offered = {}
+                for mid, mission in pairs(station_state.offered_ids) do
+                    if station_state.available_ids[mid] then
+                        previously_offered[#previously_offered + 1] = mission
+                    end
+                end
+
+                -- If missions are available from previous offer, show those
+                if #previously_offered > 0 then
+                    for _, m in ipairs(previously_offered) do
+                        offers[#offers + 1] = m
+                    end
+                    skip_generation = true  -- Don't generate new, just show what's available
+                elseif now - station_state.last_offer_time >= JOBS.WORK_COOLDOWN then
+                    -- Cooldown expired, generate new work
+                    station_state.last_offer_time = now
+                    station_state.offered_ids = {}
+                    station_state.available_ids = {}
+                    -- Will generate new missions below
+                else
+                    -- Still on cooldown, nothing available
+                    local remaining = math.ceil(JOBS.WORK_COOLDOWN - (now - station_state.last_offer_time))
+                    local minutes = math.floor(remaining / 60)
+                    local seconds = remaining % 60
+                    setCommsMessage(string.format('"No new contracts right now. Check back in %dm %ds."', minutes, seconds))
+                    addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+                    return
+                end
+            end
 
             -- Director-pushed deliveries take priority (no re-offer if already taken)
         for _, m in ipairs(MISSION._dynamic_queue) do
@@ -397,7 +442,7 @@ function JOBS.stationHook(source, target)
         end
 
         -- Generate fresh missions to fill up to 2 slots (weighted: delivery 20, salvage 7, boarding 3, hacking 3).
-        if #offers < 2 then
+        if not skip_generation and #offers < 2 then
             local candidates = {}
             for _, d in ipairs(VERSE.STATIONS) do
                 if d.cs ~= cs and d.fac ~= "Corsairs" and d.fac ~= "Hollow" then
