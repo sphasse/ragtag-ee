@@ -252,6 +252,8 @@ function JOBS.accept(m, skip_log)
         m._attacking = false  -- Track if ship has engaged player
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn our custom comms relay beacon with only reactor system
+        local grid = MISSION.gridRef(m.wx, m.wy)
+        print(string.format("[HACKING SPAWN] Spawning relay at (%.0f, %.0f) grid %s", m.wx, m.wy, grid))
         local s = CpuShip():setTemplate("Comms Relay Beacon"):setFaction("Concord")
         -- Give it a random beacon designator
         local name = generateBeaconName()
