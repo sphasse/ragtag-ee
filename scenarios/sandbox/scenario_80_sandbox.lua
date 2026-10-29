@@ -722,7 +722,7 @@ function JOBS.stationHook(source, target)
         setCommsMessage(table.concat(lines, "\n"))
         for _, m in ipairs(offers) do
             local cap = m
-            addCommsReply(string.format("Take: %s (%d cr)", cap.short, cap.reward), function(s2, t2)
+            addCommsReply(string.format("Take: %s", cap.short), function(s2, t2)
                 if #_active >= 2 then
                     setCommsMessage('"You\'re already carrying two jobs. Finish one first."')
                 else
@@ -960,15 +960,21 @@ function JOBS.update()
                     if now - m._last_jam_check > 2 then
                         m._last_jam_check = now
                         local rx, ry = target:getPosition()
-                        for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
+                        local objects = getObjectsInRadius(rx, ry, 5000)
+                        print(string.format("[RELAY JAM] Checking %d objects within 5U of relay at (%.0f, %.0f)", #objects, rx, ry))
+                        for _, obj in ipairs(objects) do
                             -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
                                 -- Only destroy scan probes, not ships
                                 local ok, typename = pcall(function() return obj:getTypeName() end)
+                                print(string.format("[RELAY JAM] Object: valid=%s, typename_ok=%s, typename=%s", tostring(RT.valid(obj)), tostring(ok), tostring(typename)))
                                 if ok and typename == "ScanProbe" then
+                                    print(string.format("[RELAY JAM] DESTROYING PROBE: %s", tostring(typename)))
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
                                 end
+                            elseif obj == target then
+                                print("[RELAY JAM] Skipping relay itself")
                             end
                         end
                     end
