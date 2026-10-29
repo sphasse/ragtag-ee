@@ -918,14 +918,16 @@ function JOBS.update()
                         end
                     end
 
-                    -- Check all hackable systems
+                    -- Check all hackable systems (wrap in pcall since custom templates may not support hasSystem)
                     local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
                     local max_hack = 0
                     local hacked_system = nil
                     for _, sys in ipairs(systems) do
-                        if target:hasSystem(sys) then
-                            local hack_lvl = target:getSystemHackedLevel(sys)
-                            if hack_lvl > max_hack then
+                        local has_system = false
+                        local ok = pcall(function() has_system = target:hasSystem(sys) end)
+                        if ok and has_system then
+                            local hack_ok, hack_lvl = pcall(function() return target:getSystemHackedLevel(sys) end)
+                            if hack_ok and hack_lvl and hack_lvl > max_hack then
                                 max_hack = hack_lvl
                                 hacked_system = sys
                             end
