@@ -265,8 +265,10 @@ function JOBS.accept(m, skip_log)
 
         -- Make reactor hackable
         s:setSystemHackedLevel("reactor", 0.0)
-        RT.register(s)
-        print(string.format("[DEBUG] Relay spawned: %s at (%.0f, %.0f), valid=%s", name, m.wx, m.wy, tostring(RT.valid(s))))
+        -- Don't use RT.register - it triggers CpuShip reputation tracking that might destroy it
+        -- Just add to named lookup directly
+        RT.named[name] = s
+        print(string.format("[DEBUG] Relay spawned: %s at (%.0f, %.0f), valid=%s, in RT.named=%s", name, m.wx, m.wy, tostring(RT.valid(s)), tostring(RT.named[name] ~= nil)))
         s:setCommsFunction(function(src, tgt)
             setCommsMessage("Automated relay. No response.")
         end)
