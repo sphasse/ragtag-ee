@@ -965,11 +965,12 @@ function JOBS.update()
                         for _, obj in ipairs(objects) do
                             -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
-                                -- Only destroy scan probes, not ships
-                                local ok, typename = pcall(function() return obj:getTypeName() end)
-                                print(string.format("[RELAY JAM] Object: valid=%s, typename_ok=%s, typename=%s", tostring(RT.valid(obj)), tostring(ok), tostring(typename)))
-                                if ok and typename == "ScanProbe" then
-                                    print(string.format("[RELAY JAM] DESTROYING PROBE: %s", tostring(typename)))
+                                -- Probes have getOwner() but NOT ship methods like getShieldsMax()
+                                local has_owner = pcall(function() return obj:getOwner() end)
+                                local has_shields = pcall(function() return obj:getShieldsMax() end)
+                                print(string.format("[RELAY JAM] Object: valid=%s, has_owner=%s, has_shields=%s", tostring(RT.valid(obj)), tostring(has_owner), tostring(has_shields)))
+                                if has_owner and not has_shields then
+                                    print("[RELAY JAM] DESTROYING PROBE (has owner, no shields)")
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
                                 end
