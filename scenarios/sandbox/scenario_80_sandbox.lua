@@ -1619,6 +1619,73 @@ function addSessionGMFunctions()
         addGMMessage(table.concat(lines, "\n"))
     end)
 
+    -- Reputation adjustment submenu
+    addGMFunction("Adjust Reputation...", function()
+        clearGMFunctions()
+        addGMFunction("< Back to Main", function()
+            clearGMFunctions()
+            addSessionGMFunctions()
+        end)
+
+        local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic"}
+        for _, faction in ipairs(factions) do
+            addGMFunction(faction .. "...", function()
+                clearGMFunctions()
+                addGMFunction("< Back", function()
+                    clearGMFunctions()
+                    addGMFunction("< Back to Main", function()
+                        clearGMFunctions()
+                        addSessionGMFunctions()
+                    end)
+                    for _, f in ipairs(factions) do
+                        addGMFunction(f .. "...", function() end)  -- Placeholder, would need full submenu logic
+                    end
+                end)
+
+                local current = RT.getReputation(faction) or 0
+                addGMFunction(string.format("Current: %+d", current), function()
+                    addGMMessage(string.format("%s reputation: %+d", faction, RT.getReputation(faction) or 0))
+                end)
+
+                addGMFunction(faction .. " +50", function()
+                    RT.adjustReputation(faction, 50)
+                    RT.saveCampaign()
+                    addGMMessage(string.format("%s +50 (now %+d)", faction, RT.getReputation(faction)))
+                end)
+
+                addGMFunction(faction .. " +10", function()
+                    RT.adjustReputation(faction, 10)
+                    RT.saveCampaign()
+                    addGMMessage(string.format("%s +10 (now %+d)", faction, RT.getReputation(faction)))
+                end)
+
+                addGMFunction(faction .. " +1", function()
+                    RT.adjustReputation(faction, 1)
+                    RT.saveCampaign()
+                    addGMMessage(string.format("%s +1 (now %+d)", faction, RT.getReputation(faction)))
+                end)
+
+                addGMFunction(faction .. " -1", function()
+                    RT.adjustReputation(faction, -1)
+                    RT.saveCampaign()
+                    addGMMessage(string.format("%s -1 (now %+d)", faction, RT.getReputation(faction)))
+                end)
+
+                addGMFunction(faction .. " -10", function()
+                    RT.adjustReputation(faction, -10)
+                    RT.saveCampaign()
+                    addGMMessage(string.format("%s -10 (now %+d)", faction, RT.getReputation(faction)))
+                end)
+
+                addGMFunction(faction .. " -50", function()
+                    RT.adjustReputation(faction, -50)
+                    RT.saveCampaign()
+                    addGMMessage(string.format("%s -50 (now %+d)", faction, RT.getReputation(faction)))
+                end)
+            end)
+        end
+    end)
+
     addGMFunction("End session", function()
         if RT.valid(RT.player) then
             local docked = RT.player:getDockedWith()
@@ -1630,9 +1697,33 @@ function addSessionGMFunctions()
         end
     end)
 
-    addGMFunction("+500 credits", function()
+    addGMFunction("Credits +500", function()
         if RT.valid(RT.player) then
             RT.addCredits(500, "GM reward")
+        end
+    end)
+
+    addGMFunction("Credits +100", function()
+        if RT.valid(RT.player) then
+            RT.addCredits(100, "GM reward")
+        end
+    end)
+
+    addGMFunction("Credits +10", function()
+        if RT.valid(RT.player) then
+            RT.addCredits(10, "GM reward")
+        end
+    end)
+
+    addGMFunction("Credits -10", function()
+        if RT.valid(RT.player) then
+            RT.addCredits(-10, "GM penalty")
+        end
+    end)
+
+    addGMFunction("Credits -100", function()
+        if RT.valid(RT.player) then
+            RT.addCredits(-100, "GM penalty")
         end
     end)
 
