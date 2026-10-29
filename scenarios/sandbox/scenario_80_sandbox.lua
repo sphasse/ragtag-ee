@@ -1807,7 +1807,7 @@ function addSessionGMFunctions()
         end
     end)
 
-    addGMFunction("Witness: Start arc", function()
+    addGMFunction("Witness: Start", function()
         if W.phase ~= "inactive" then
             globalMessage("Witness arc already at phase: " .. W.phase, 5)
             return
@@ -1815,7 +1815,7 @@ function addSessionGMFunctions()
         W_startOffer()
     end)
 
-    addGMFunction("Witness: Skip → checkpoint", function()
+    addGMFunction("Witness: →Chkpt", function()
         S.witness_active   = true
         W.pod_drain_on     = true
         W.checkpoint_fired = true
@@ -1825,7 +1825,7 @@ function addSessionGMFunctions()
         W_startCheckpoint()
     end)
 
-    addGMFunction("Witness: Skip → broadcast", function()
+    addGMFunction("Witness: →Bcast", function()
         S.witness_active   = true
         W.pod_drain_on     = true
         W.checkpoint_fired = true
@@ -1836,14 +1836,14 @@ function addSessionGMFunctions()
         W_startBroadcast()
     end)
 
-    addGMFunction("Witness: Pod → critical", function()
+    addGMFunction("Witness: Pod→Crit", function()
         if W.pod_drain_on then
             W.pod_stability = 15
             RT.shipLog("[GM] Stasis pod forced to critical stability.", "#FF4040")
         end
     end)
 
-    addGMFunction("Witness: Cancel arc", function()
+    addGMFunction("Witness: Cancel", function()
         if W.phase == "inactive" then return end
         local m = RT.find("Mira's Luck")
         if RT.valid(m) then m:destroy() end
