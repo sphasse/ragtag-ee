@@ -504,7 +504,7 @@ RT.UPGRADES = {
      end},
     {id = "engine_tune", name = "Black-market engine tune", cost = 200,
      desc = "Impulse 60 -> 75.",
-     apply = function(p) p:setImpulseMaxSpeed(75, 15) end},
+     apply = function(p) p:setImpulseMaxSpeed(75, 37) end},
     {id = "missile_racks", name = "Extra missile racks", cost = 150,
      desc = "+4 homing, +6 HVLI capacity.",
      apply = function(p)
