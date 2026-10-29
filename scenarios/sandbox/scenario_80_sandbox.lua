@@ -492,7 +492,7 @@ function JOBS.stationHook(source, target)
                 elseif mtype == "salvage" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (15 + math.random() * 25) * 1000  -- 15-40U from origin
+                    local dist = (60 + math.random() * 140) * 1000  -- 60-200U from origin (3-10 grid squares)
                     local wx = math.floor(rx + math.cos(ang) * dist)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
@@ -518,7 +518,7 @@ function JOBS.stationHook(source, target)
                 elseif mtype == "boarding" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (15 + math.random() * 25) * 1000  -- 15-40U from origin
+                    local dist = (60 + math.random() * 140) * 1000  -- 60-200U from origin (3-10 grid squares)
                     local wx = math.floor(rx + math.cos(ang) * dist)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
@@ -560,7 +560,7 @@ function JOBS.stationHook(source, target)
                 elseif (mtype == "hacking" or mtype == "destroy") and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (15 + math.random() * 25) * 1000  -- 15-40U from origin (hacking/destroy)
+                    local dist = (60 + math.random() * 140) * 1000  -- 60-200U from origin (3-10 grid squares)
                     local wx = math.floor(rx + math.cos(ang) * dist)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
