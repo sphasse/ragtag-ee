@@ -1,5 +1,5 @@
--- Name: Long Haul N: Title Here
--- Description: Session N of 5. One or two sentences the crew sees on the scenario list.
+-- Name: Scenario Title Here
+-- Description: One-line summary of the scenario.
 ---
 --- Built on the ragtag framework (scripts/ragtag/). Install with tools/install.py.
 -- Type: The Drift Universe

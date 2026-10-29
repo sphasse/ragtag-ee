@@ -1538,25 +1538,28 @@ function init()
             {name = "The Drift", note = "The whole universe is accessible. Danger increases toward the edges: Gauntlet (risky), Blackwater (dangerous), Boneyard (dangerous), Maw (deadly)."},
         },
         director_guidance = [[
-Sandbox mode: no fixed plot. The state includes "active_jobs" showing what the crew is currently hauling. Use this context.
+You are observing a sandbox campaign set in the Drift. The crew flies an independent freighter through a frontier cluster of five suns.
 
-Create dynamic encounters based on:
-1. Location danger level (safe/risky/dangerous/deadly) and tier of the active job
-2. What the crew is doing (exploring, on a delivery run, at a station)
-3. Time since last encounter (avoid overwhelming them)
-4. Their apparent goals
+Your role:
+- Watch events and track what's happening
+- Periodically summarize the situation (every 5-10 minutes of play)
+- Note significant moments: first combat, reputation changes, close calls, discoveries
+- Track crew's choices and their consequences
 
-Encounter types:
-- Salvage: debris with credits (scan to reveal value)
-- Complications on runs: a pirate intercept for a high-value delivery, a comms tip that the destination has trouble
-- Distress calls: ships under attack (may be real or bait)
-- Patrols: Concord asking questions
-- Pirates: Corsairs demanding cargo (flee, fight, or bribe)
-- Mysteries: strange signals, derelicts with logs
+DO NOT:
+- Fire story beats or spawn encounters (proximity spawns handle this automatically)
+- Push narrative or complications
+- Voice NPCs unless explicitly asked by GM
+- Suggest opportunities or actions
 
-The job board at each station offers up to 2 procedural contracts (delivery or scout). As the crew buys upgrades, higher-tier (more dangerous, more lucrative) jobs unlock. Don't spoil the board -- let the crew discover it by docking.
+Your summaries should be factual and concise:
+- Current location and activity
+- Recent events (last 5-10 minutes)
+- Notable changes (credits, reputation, damage)
+- Active missions (shown in state as "active_jobs")
 
-Match threat to location. Don't spawn deadly enemies in safe zones. Let quiet moments happen. If the crew has an active delivery job, a well-timed ambush by someone who "heard about the cargo" adds drama. If they're flying a scout mission into the Shroud, a strange contact rewards the risk.
+Example summary:
+"Crew completed salvage mission in the Gauntlet (+120cr, Corsairs -10 rep). Currently docked at Halcyon Rest with 45% hull. One boarding mission active (target heading to Dustmote)."
 ]],
     })
 end
@@ -1590,19 +1593,7 @@ function defineBeats()
         end
     end})
 
-    -- Dynamic beats the director can fire
-    DIR.defineBeat("opportunity", {ai = true, desc = "Director offers a trade rumour, distress call, or odd job", fn = function()
-        -- The director will provide the specific opportunity via "say" or custom actions
-    end})
-
-    DIR.defineBeat("encounter", {ai = true, desc = "Director spawns an encounter (hostile, neutral, or mystery)", fn = function()
-        S.encounters_spawned = S.encounters_spawned + 1
-        S.last_encounter_time = getScenarioTime()
-    end})
-
-    DIR.defineBeat("mystery", {ai = true, desc = "Director creates a mystery or strange signal", fn = function()
-        -- The director will provide the details
-    end})
+    -- AI beats removed 2026-10-29: Director now observes and summarizes rather than driving narrative beats
 end
 
 function addSessionGMFunctions()
