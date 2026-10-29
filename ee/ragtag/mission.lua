@@ -449,7 +449,7 @@ local _HACKING_ARCHETYPES = {
 }
 
 -- Base reward by tier (rounded to nearest 5 after all multipliers)
-local _BASE_REWARD = {[0] = 70, [1] = 140, [2] = 230}
+local _BASE_REWARD = {[0] = 50, [1] = 75, [2] = 100}
 
 -- Mission type difficulty multipliers (delivery is baseline 1.0)
 local _TYPE_MULT = {
