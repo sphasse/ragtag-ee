@@ -99,6 +99,18 @@ function JOBS.getMissionDistance()
     end
 end
 
+-- Get the distance range (min, max) for the current mode
+function JOBS.getDistanceRange()
+    local mode = S.mission_distance_mode or "medium"
+    if mode == "short" then
+        return 15000, 50000  -- 15-50U
+    elseif mode == "long" then
+        return 120000, 400000  -- 120-400U
+    else
+        return 60000, 200000  -- 60-200U (medium/default)
+    end
+end
+
 -- Extract distance/reward suffix from mission short description
 -- e.g. "Deliver supplies (delivery) (45u) (185cr)" -> " (45u) (185cr)"
 local function _distRewardSuffix(mission)
@@ -492,6 +504,7 @@ function JOBS.stationHook(source, target)
             end
             local station_e = RT.find(cs)
             local dest_idx  = 1
+            local dist_min, dist_max = JOBS.getDistanceRange()
             for _, slot_num in ipairs(slots_to_generate) do
                 local tier  = math.min(mt, math.random(0, 1))
                 local mtype = pickMissionType()
@@ -515,6 +528,8 @@ function JOBS.stationHook(source, target)
                         tier = tier,
                         distance_u = distance_u,
                         danger_level = dest_danger,
+                        distance_min_u = dist_min,
+                        distance_max_u = dist_max,
                     })
                     dest_idx = dest_idx + 1
                 elseif mtype == "salvage" and RT.valid(station_e) then
@@ -535,6 +550,8 @@ function JOBS.stationHook(source, target)
                             tier = tier,
                             distance_u = dist,
                             danger_level = danger_level,
+                            distance_min_u = dist_min,
+                            distance_max_u = dist_max,
                         })
                     end)
                     if mission_ok then
@@ -578,6 +595,8 @@ function JOBS.stationHook(source, target)
                             distance_u = dist,
                             danger_level = danger_level,
                             nearby_stations = nearby,
+                            distance_min_u = dist_min,
+                            distance_max_u = dist_max,
                         })
                     end)
                     if mission_ok then
@@ -605,6 +624,8 @@ function JOBS.stationHook(source, target)
                                 tier = tier,
                                 distance_u = dist,
                                 danger_level = danger_level,
+                                distance_min_u = dist_min,
+                                distance_max_u = dist_max,
                             })
                         end)
                         if mission_ok then
@@ -639,6 +660,8 @@ function JOBS.stationHook(source, target)
                                 nearby_stations = nearby,
                                 distance_u = dist,
                                 danger_level = danger_level,
+                                distance_min_u = dist_min,
+                                distance_max_u = dist_max,
                             })
                         end)
                         if mission_ok then
