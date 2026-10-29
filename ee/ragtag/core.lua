@@ -796,8 +796,7 @@ function RT.addCampaignGMFunctions()
         addGMMessage(msg)
     end)
 
-    addGMFunction("+200 credits", function() RT.addCredits(200, "GM") end)
-    addGMFunction("-200 credits", function() RT.addCredits(-200, "GM") end)
+    -- Credit adjustment buttons removed: scenarios provide their own granular controls
 
     addGMFunction("Save campaign", function()
         RT.saveCampaign()
