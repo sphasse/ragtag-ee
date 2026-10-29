@@ -99,6 +99,13 @@ function JOBS.getMissionDistance()
     end
 end
 
+-- Extract distance/reward suffix from mission short description
+-- e.g. "Deliver supplies (delivery) (45u) (185cr)" -> " (45u) (185cr)"
+local function _distRewardSuffix(mission)
+    local suffix = mission.short:match("(%s%(%d+u%)%s%(%d+cr%))$")
+    return suffix or ""
+end
+
 -- Per-station work tracking: {callsign → {slots = {[1] = {mission, offered_at, taken_at}, [2] = {...}}}}
 -- Each slot tracks a mission independently with its own cooldown timer
 local _station_work = {}
@@ -254,11 +261,12 @@ function JOBS.accept(m, skip_log)
 
         m.target_cs = name
         -- Update short description and objective with actual target name
+        local suffix = _distRewardSuffix(m)
         if m.type == "boarding" then
-            m.short = "Disable " .. name .. " (boarding)"
+            m.short = "Disable " .. name .. " (boarding)" .. suffix
             m.obj = "Intercept " .. name
         else  -- destroy
-            m.short = "Destroy " .. name .. " (destroy)"
+            m.short = "Destroy " .. name .. " (destroy)" .. suffix
             m.obj = "Destroy " .. name
         end
         m._spawned  = true
@@ -288,7 +296,8 @@ function JOBS.accept(m, skip_log)
 
         m.target_cs = name
         -- Update short description and objective with actual relay name
-        m.short = "Hack " .. name .. " (hacking)"
+        local suffix = _distRewardSuffix(m)
+        m.short = "Hack " .. name .. " (hacking)" .. suffix
         m.obj = "Hack " .. name
         m._spawned  = true
     end

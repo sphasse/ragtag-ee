@@ -490,6 +490,13 @@ local _SHORT_NAMES = {
 }
 local function _short(cs) return _SHORT_NAMES[cs] or cs end
 
+-- Format distance/reward suffix for mission short descriptions
+-- e.g. " (45u) (185cr)"
+local function _distReward(distance_u, reward)
+    local dist_rounded = math.floor((distance_u / 1000 + 2.5) / 5) * 5
+    return string.format(" (%du) (%dcr)", dist_rounded, reward)
+end
+
 local _id_seq = 0
 local function _nextId()
     _id_seq = _id_seq + 1
@@ -556,7 +563,7 @@ function MISSION.newDelivery(opts)
         dest         = opts.dest,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " → " .. dest_short .. " (delivery)",
+        short        = arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward),
         obj          = "Deliver to " .. dest_short,
         -- brief shown after accepting (lore + contact's words)
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
@@ -604,7 +611,7 @@ function MISSION.newSalvage(opts)
         wy           = opts.wy,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " (salvage)",
+        short        = arch.cargo .. " (salvage)" .. _distReward(opts.distance_u or 0, reward),
         obj          = "Recover " .. arch.cargo,
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
@@ -661,7 +668,7 @@ function MISSION.newBoarding(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer .. " (boarding)",
+        short           = arch.short_offer .. " (boarding)" .. _distReward(opts.distance_u or 0, reward),
         obj             = "Locate and disable target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
@@ -722,7 +729,7 @@ function MISSION.newDestroy(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer .. " (destroy)",
+        short           = arch.short_offer .. " (destroy)" .. _distReward(opts.distance_u or 0, reward),
         obj             = "Locate and destroy target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget must be completely destroyed. No boarding, no salvage.",
@@ -776,7 +783,7 @@ function MISSION.newHacking(opts)
         system         = arch.system or "reactor",
         hack_threshold = 0.75,
         reward         = reward,
-        short          = arch.short_offer .. " (hacking)",
+        short          = arch.short_offer .. " (hacking)" .. _distReward(opts.distance_u or 0, reward),
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
                          .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
