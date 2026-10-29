@@ -2,6 +2,7 @@
 ### Background
 The Drift: a cluster of five suns at the edge of settled space. Money is tight, law is far away, and everyone owes someone. Twenty years ago the Settlement War ended with the Concord in charge; the Border and the Rim remember losing it.
 The white sun Lumen anchors the rich Concord Core. The Border worlds sit around Port Vesper and the red sun Cinder. The Rim runs east to the Shroud nebula, and beyond Lastchance Outpost the blue Pale Sun marks Hollow space.
+Last Chance Outpost maintains a perimeter of automated defense platforms. They keep the Hollow at bay. Mostly.
 
 ### Regions (danger: safe / risky / dangerous / DEADLY)
 - Calder's Reach [safe]: Calder's Reach: asteroid mining around the dead moon Shale. Watch the rocks. Stations: Calder's Reach (shipwright).
