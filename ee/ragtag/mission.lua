@@ -1,26 +1,17 @@
 -- ee/ragtag/mission.lua
--- Rich delivery mission generation and route interception.
+-- Mission generation for delivery, salvage, boarding, hacking, and destroy contracts.
 --
 -- Usage in a scenario:
 --   require("ragtag/mission.lua")   -- after director.lua
---   -- in init(), after VERSE.build():
 --   -- (no init needed — uses DIR/RT globals directly)
---   -- when player accepts a delivery mission:
---   MISSION.track(m)
---   -- when player delivers or mission fails:
---   MISSION.untrack(m.id)
---   -- in update(delta):
---   MISSION.update(delta)
 --
 -- Director action create_delivery pushes missions into MISSION._dynamic_queue.
 -- The scenario's job board should check and drain that queue.
 
 MISSION = MISSION or {}
 
-MISSION._tracked        = {}   -- id → mission (active route monitoring)
+MISSION._tracked        = {}   -- kept for backward-compat with MISSION.untrack calls
 MISSION._dynamic_queue  = {}   -- missions injected by create_delivery action
-MISSION._next_check     = 0
-MISSION._check_interval = 5    -- seconds between route-progress checks
 
 -- ---------------------------------------------------------------------------
 -- Delivery archetypes
@@ -797,102 +788,7 @@ function MISSION.newHacking(opts)
     }
 end
 
--- Register a delivery mission for route interception monitoring.
--- Call when the player accepts the mission.
-function MISSION.track(m)
-    if not m.intercept then return end
-    local os = RT.find(m.origin)
-    local ds = RT.find(m.dest)
-    if not RT.valid(os) or not RT.valid(ds) then return end
-    local ox, oy = os:getPosition()
-    local dx, dy = ds:getPosition()
-    local ddx, ddy = dx - ox, dy - oy
-    local dist = math.sqrt(ddx * ddx + ddy * ddy)
-    if dist < 5000 then return end   -- route too short to bother
-    m._ox, m._oy = ox, oy
-    m._dx, m._dy = dx, dy
-    m._dist      = dist
-    MISSION._tracked[m.id] = m
-end
-
--- Remove a mission from route monitoring (on delivery or failure).
+-- No-op stub kept for call sites that haven't been updated.
 function MISSION.untrack(mission_id)
     MISSION._tracked[mission_id] = nil
-end
-
--- Call from scenario update(delta).
-function MISSION.update(delta)
-    local now = getScenarioTime()
-    if now < MISSION._next_check then return end
-    MISSION._next_check = now + MISSION._check_interval
-    if not RT.anyPlayerAlive() then return end
-    for _, m in pairs(MISSION._tracked) do
-        local ic = m.intercept
-        if ic and not ic.fired and m._dist then
-            -- Trigger when ANY player has traveled far enough along the route.
-            for _, p in ipairs(RT.players) do
-                if RT.valid(p) then
-                    local px, py = p:getPosition()
-                    local tdx, tdy = m._dx - px, m._dy - py
-                    local dist_to_dest = math.sqrt(tdx * tdx + tdy * tdy)
-                    local progress = 1 - dist_to_dest / m._dist
-                    if progress >= ic.trigger then
-                        ic.fired = true
-                        MISSION._spawnIntercept(m, px, py)
-                        break
-                    end
-                end
-            end
-        end
-    end
-end
-
--- Spawn an interception group.  Called internally when route trigger fires.
-function MISSION._spawnIntercept(m, px, py)
-    local ic = m.intercept
-    local templates = DIR.GROUPS[ic.strength]
-    if not templates then return end
-
-    -- Aim spawn 12u ahead toward destination
-    local dx, dy = m._dx - px, m._dy - py
-    local len = math.sqrt(dx * dx + dy * dy)
-    if len > 0 then dx, dy = dx / len, dy / len else dx, dy = 1, 0 end
-    local sx, sy = px + dx * 12000, py + dy * 12000
-
-    local faction   = "Corsairs"
-    local comms_msg = '"Hand over the cargo and you can go."'
-    if ic.itype == "rival" then
-        comms_msg = '"That contract should\'ve been ours. Hand over the cargo."'
-    elseif ic.itype == "concord" then
-        faction   = "Concord"
-        comms_msg = '"Independent vessel, this is a Concord inspection. Heave to."'
-    end
-
-    -- Spawn 2-3 ships instead of full group (early-game balance)
-    local spawn_count = math.min(#templates, math.random(2, 3))
-    local names = {}
-    for i = 1, spawn_count do
-        local tmpl = templates[math.min(i, #templates)]
-        local s = CpuShip():setTemplate(tmpl):setFaction(faction)
-        s:setPosition(sx + random(-800, 800), sy + random(-800, 800))
-        RT.register(s)
-        DIR.registerKill(s)
-        DIR.allowControl(s)
-        local msg = comms_msg
-        s:setCommsFunction(function(src, tgt) setCommsMessage(msg) end)
-        table.insert(names, s:getCallSign())
-    end
-
-    RT.shipLog("[Route] " .. ic.msg_log .. " — " .. table.concat(names, ", ")
-        .. " at grid " .. MISSION.gridRef(sx, sy) .. ".", "#FF8080")
-
-    -- Concord patrols (don't immediately attack); pirates and rivals attack on sight
-    DIR.orderGroup(names, ic.itype == "concord" and "patrol" or "attack")
-
-    DIR.emit("mission_intercept", {
-        mission_id = m.id,
-        cargo      = m.cargo,
-        itype      = ic.itype,
-        strength   = ic.strength,
-    }, "normal")
 end

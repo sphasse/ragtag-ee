@@ -23,7 +23,7 @@ require("utils.lua")
 require("ragtag/core.lua")
 require("ragtag/verse.lua")
 require("ragtag/director.lua")
-require("ragtag/patrol.lua")
+require("ragtag/proximity.lua")
 require("ragtag/mission.lua")
 require("ragtag/rumors.lua")
 
@@ -35,7 +35,6 @@ local S = {
     session_num = 1,           -- which sandbox session this is
     time_exploring = 0,        -- time spent not docked
     encounters_spawned = 0,
-    last_encounter_time = 0,
     last_opportunity_time = 0,
     visited_regions = {},      -- track where crew has been
     docked_at = nil,
@@ -140,7 +139,6 @@ function JOBS.accept(m, skip_log)
     end
     m._expires_at = getScenarioTime() + JOBS.MISSION_DURATION
     _active[#_active+1] = {mission = m, phase = "active"}
-    MISSION.track(m)   -- register for route interception
     JOBS.updateObj()
 
     -- Spawn salvage cargo pod immediately so player can see it on scanners
@@ -1438,7 +1436,7 @@ function init()
     VERSE.build({session = S.session_num})
     -- Sandbox uses the whole universe; only explicitly require the starting location
     VERSE.requirePlaces({"Port Vesper", "Saint Brennan's Mission", "Halcyon Rest"})
-    PATROL.init()
+    PROX.init()
 
     -- Spawn player at Port Vesper (safe starting location)
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
@@ -1741,8 +1739,7 @@ function update(delta)
     RT.updateKillTracking()  -- Track ship kills for reputation
     VERSE.update(delta)
     DIR.update(delta)
-    PATROL.update(delta)
-    MISSION.update(delta)
+    if not S.witness_active then PROX.update(delta) end
 
     if S.phase == "ending" then return end
 
@@ -1795,87 +1792,4 @@ function update(delta)
     RUMORS.checkWrecks()
     W_update(delta)
 
-    -- Scripted hostile spawns in dangerous regions (works whether Director is on or off)
-    if S.phase == "exploring" and not S.witness_active then
-        local ref = RT.nearestPlayer(0, 0)
-        if ref then
-            local region_data = VERSE.regionAt(ref:getPosition())
-            if region_data and region_data.danger >= 1 then
-                local spawn_interval = 180  -- 3 minutes base
-                -- Adjust spawn rate based on danger level and setting
-                if region_data.danger >= 3 then
-                    spawn_interval = 120  -- 2 minutes in deadly areas (Maw, Boneyard)
-                elseif region_data.danger >= 2 then
-                    spawn_interval = 150  -- 2.5 minutes in dangerous areas
-                end
-
-                -- Adjust for difficulty setting
-                local danger_setting = getScenarioSetting("Danger Level")
-                if danger_setting == "Relaxed" then
-                    spawn_interval = spawn_interval * 1.5
-                elseif danger_setting == "Dangerous" then
-                    spawn_interval = spawn_interval * 0.75
-                end
-
-                if now - S.last_encounter_time > spawn_interval then
-                    spawnScriptedEncounter(region_data)
-                    S.last_encounter_time = now
-                    S.encounters_spawned = S.encounters_spawned + 1
-                end
-            end
-        end
-    end
-end
-
--- Hostile encounters scaled by region danger level
-function spawnScriptedEncounter(region_data)
-    local ref = RT.nearestPlayer(0, 0)
-    if not ref then return end
-
-    local px, py = ref:getPosition()
-    local angle = random(0, 360)
-    local distance = random(10000, 18000)
-    local sx = px + math.cos(math.rad(angle)) * distance
-    local sy = py + math.sin(math.rad(angle)) * distance
-
-    -- Scale encounters by danger level
-    local faction = "Corsairs"
-    local templates = {}
-    local count = 1
-
-    if region_data.danger >= 3 then
-        -- Deadly areas: Hollow or heavy Corsairs
-        if region_data.name:find("Maw") then
-            faction = "Hollow"
-            templates = {"Phobos T3", "Phobos M3"}
-            count = math.random(2, 3)
-        else
-            faction = "Corsairs"
-            templates = {"Phobos T3", "Adder MK5"}
-            count = math.random(2, 4)
-        end
-    elseif region_data.danger >= 2 then
-        -- Dangerous areas: medium threats
-        templates = {"Adder MK5", "MT52 Hornet", "Phobos T3"}
-        count = math.random(1, 3)
-    else
-        -- Mild danger: light threats
-        templates = {"MT52 Hornet", "Adder MK5"}
-        count = math.random(1, 2)
-    end
-
-    -- Spawn the encounter
-    for i = 1, count do
-        local template = templates[math.random(#templates)]
-        local offset_x = random(-1500, 1500)
-        local offset_y = random(-1500, 1500)
-        local ship = CpuShip():setTemplate(template):setFaction(faction)
-        ship:setPosition(sx + offset_x, sy + offset_y)
-        ship:orderRoaming()
-        RT.register(ship)
-    end
-
-    local faction_desc = faction == "Hollow" and "Hollow" or "hostile"
-    RT.shipLog(string.format("[Warning] %d %s contact%s detected in %s.",
-        count, faction_desc, count > 1 and "s" or "", region_data.name), "#FF8080")
 end
