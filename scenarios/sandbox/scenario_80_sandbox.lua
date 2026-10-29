@@ -162,6 +162,7 @@ function JOBS.accept(m, skip_log)
         -- Use the cargo name as the callsign (capitalize first letter)
         local cargo_name = m.cargo:gsub("^%l", string.upper)
         cargo_pod:setCallSign(cargo_name)
+        print(string.format("[SALVAGE SPAWN] Pod spawned at (%d, %d) for mission from %s", m.wx, m.wy, m.origin))
         -- Set up pickup callback to mark mission complete
         cargo_pod:onPickUp(function(self, player)
             -- Find the mission this cargo belongs to
@@ -470,6 +471,7 @@ function JOBS.stationHook(source, target)
                         distance_u = math.sqrt(ddx * ddx + ddy * ddy)
                         local dest_region = VERSE.regionAt(dx, dy)
                         dest_danger = dest_region and dest_region.danger or 0
+                        print(string.format("[DELIVERY] %s → %s | Dist: %.1fU", cs, candidates[dest_idx], distance_u/1000))
                     end
                     offers[#offers + 1] = MISSION.newDelivery({
                         origin = cs,
@@ -487,6 +489,8 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
+                    print(string.format("[SALVAGE] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Angle: %.1f°",
+                        cs, rx, ry, wx, wy, dist/1000, dist, math.deg(ang)))
                     local mission_ok, mission_err = pcall(function()
                         return MISSION.newSalvage({
                             origin = cs,
@@ -511,6 +515,8 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
+                    print(string.format("[BOARDING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f)",
+                        cs, rx, ry, wx, wy, dist/1000, dist))
                     -- Find nearby stations for target destination (50U encourages exploration)
                     local nearby = {}
                     for _, st in ipairs(VERSE.STATIONS) do
@@ -551,6 +557,8 @@ function JOBS.stationHook(source, target)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
                     local danger_level = region and region.danger or 0
+                    print(string.format("[%s] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f)",
+                        mtype:upper(), cs, rx, ry, wx, wy, dist/1000, dist))
                     if mtype == "hacking" then
                         local mission_ok, mission_err = pcall(function()
                             return MISSION.newHacking({
