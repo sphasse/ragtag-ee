@@ -44,7 +44,7 @@ Stock EmptyEpsilon uses 00–62, 74, 79, 81, 88 and 99. Reserved here:
 
 | Numbers | For |
 |---|---|
-| 90–94 | The Long Haul (sessions 1–5) |
+| 90–94 | Reserved for future campaign |
 | 63–69, 71–73 | Community one-shots |
 | 75–78, 80, 82–87 | Community campaigns (claim a block in your PR) |
 | 89, 95–98 | Spare |

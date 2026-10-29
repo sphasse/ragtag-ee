@@ -122,7 +122,7 @@ Director keeps a backup in `director/director_memory.json`
 
 ## Next Steps After Sandbox
 
-1. **Story Campaign**: Try `scenarios/longhaul/` (5-session Firefly-style narrative)
+1. **Story Arc**: Try The Witness arc (GM button in sandbox for scripted 45-60min story)
 2. **Create Your Own**: Use sandbox as a template
 3. **Contribute**: Add universe extensions or new scenarios (see CONTRIBUTING.md)
 

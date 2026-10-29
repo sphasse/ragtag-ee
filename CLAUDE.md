@@ -30,7 +30,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 2. **Extensions only add.** Renaming/removing a place in `drift.lua` is a breaking change; `check.py` lists every scenario it breaks.
 3. **The model never sends Lua.** Director actions are whitelisted in `ee/ragtag/director.lua` (`DIR.ACTIONS`) and mirrored in
    `director/actions.py`; change both together and clamp every argument on the Lua side.
-4. **Every `ai = true` beat has a deterministic fallback**; scenarios must play with Director=Off.
+4. **Director is observation-only** (as of 2026-10-29); scenarios don't define `ai = true` beats. The Witness arc uses scripted beats.
 5. **Each campaign has its own save** via `RT.useCampaign("<folder name>")` and its own `scenarios/<campaign>/bible.md`.
 6. Scenario numbers must not collide with stock EmptyEpsilon or each other (`check.py` enforces; ranges in CONTRIBUTING.md).
 7. Generated files (`extensions/index.lua`, `director/generated/world.md`, `docs/verse_map.svg`) come from `check.py --fix`; never hand-edit.

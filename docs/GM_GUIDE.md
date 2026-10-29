@@ -19,9 +19,9 @@ Running a full session: free exploration, The Witness arc, and wrap-up.
 - **Campaign Status** — credits, reputation per faction, active flags (wanted), upgrades purchased
 - **Active Jobs** — current mission type, tier, and phase
 - **Session Info** — session number, time exploring, encounters, visited regions
-- **GM Buttons** — trigger The Witness arc, fire Director beats, end session
+- **GM Buttons** — trigger The Witness arc, manage campaign, end session
 
-> **Director tip:** Open the GM console at `http://localhost:8765/` on a second screen. You can send plain-English instructions ("have the patrol hail them about the cargo"), fire specific beats, and approve actions before they execute.
+> **Director tip:** Open the GM console at `http://localhost:8765/` on a second screen to see event summaries and track what's happening. The AI observes gameplay and periodically summarizes the situation.
 
 ---
 
