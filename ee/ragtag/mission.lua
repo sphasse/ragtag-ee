@@ -777,9 +777,9 @@ function MISSION.newHacking(opts)
         hack_threshold = 0.75,
         reward         = reward,
         short          = arch.short_offer .. " (hacking)",
-        obj            = "Extract data from relay near " .. opts.origin,
+        obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
-                         .. "\n\nGet within 2U of the relay and maintain position for 15 seconds to extract data.",
+                         .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
         complete_msg   = arch.recv_msg,
         intercept      = intercept,
         _spawned       = false,
