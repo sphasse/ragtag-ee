@@ -233,7 +233,8 @@ function JOBS.accept(m, skip_log)
         end
 
         -- Use base template directly - custom templates causing spawn issues
-        local s = CpuShip():setTemplate(m.target_template):setFaction("Independent")
+        -- Spawn as Unknown faction so they require Science scanning to identify
+        local s = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
         -- Give it a creative Corsair name
         local name = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
         s:setCallSign(name)
@@ -255,6 +256,9 @@ function JOBS.accept(m, skip_log)
         local max_front = s:getShieldMax(0)
         local max_rear = s:getShieldMax(1)
         if max_front > 0 then s:setShields(max_front, max_rear) end
+
+        -- Make easy to scan (low complexity/depth for Unknown faction targets)
+        s:setScanningParameters(1, 1)  -- complexity=1, depth=1 (quick scan)
 
         -- Order ship to fly toward destination station
         if dest_station then
