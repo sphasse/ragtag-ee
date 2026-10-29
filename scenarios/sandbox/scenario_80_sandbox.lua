@@ -479,7 +479,7 @@ function JOBS.stationHook(source, target)
                         distance_u = math.sqrt(ddx * ddx + ddy * ddy)
                         local dest_region = VERSE.regionAt(dx, dy)
                         dest_danger = dest_region and dest_region.danger or 0
-                        print(string.format("[DELIVERY] %s → %s | Dist: %.1fU | Slot %d", cs, candidates[dest_idx], distance_u/1000, slot_num))
+                        print(string.format("[DELIVERY] %s > %s | Dist: %.1fU | Slot %d", cs, candidates[dest_idx], distance_u/1000, slot_num))
                     end
                     generated_mission = MISSION.newDelivery({
                         origin = cs,
