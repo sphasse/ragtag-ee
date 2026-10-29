@@ -338,7 +338,7 @@ end
 -- Call this in update() to check for destroyed ships
 function RT.updateKillTracking()
     for cs, handlers in pairs(RT._kill_handlers) do
-        local ship = RT.find(cs)
+        local ship = RT.named[cs]
         if not RT.valid(ship) then
             -- Ship was destroyed, fire callbacks
             for _, cb in ipairs(handlers) do
@@ -681,17 +681,10 @@ function RT.stationComms(source, target)
     end
 
     if source:isDocked(target) then
-        if info.concord and RT.campaign.flags.wanted then
-            addCommsReply("Request services", function(s, t)
-                setCommsMessage("\"Your transponder is flagged, " .. s:getCallSign() .. ". No services for wanted vessels. " ..
-                    "Undock and consider yourself lucky we're not detaining you.\"")
-            end)
-        else
-            if info.shop then
-                addCommsReply("Shipwright: browse upgrades", function(s, t) RT.shipwrightMenu(s, t) end)
-            end
-            addCommsReply("Restock missiles (15 cr each)", function(s, t) RT.restockMenu(s, t) end)
+        if info.shop then
+            addCommsReply("Shipwright: browse upgrades", function(s, t) RT.shipwrightMenu(s, t) end)
         end
+        addCommsReply("Restock missiles (15 cr each)", function(s, t) RT.restockMenu(s, t) end)
     end
 
     addCommsReply("Any news worth hearing?", function(s, t)

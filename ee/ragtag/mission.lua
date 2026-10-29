@@ -541,7 +541,7 @@ function MISSION.newDelivery(opts)
 
     local arch = pool[math.random(#pool)]
     local dest_short = _short(opts.dest)
-    local reward = math.floor(_BASE_REWARD[tier] * (arch.reward_mult or 1) / 5 + 0.5) * 5
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.delivery, arch.reward_mult or 1.0, opts.distance_u, opts.danger_level)
 
     -- Decide interception for this instance
     local intercept = nil

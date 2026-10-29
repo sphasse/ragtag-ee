@@ -125,8 +125,17 @@ local function spawnGroup(region_name, px, py)
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
+        local zfac = zone.faction
         s:setCommsFunction(function(src, tgt)
-            setCommsMessage("\"Corsair space, freelancer. Move along or stay forever.\"")
+            if zfac == "Corsairs" then
+                setCommsMessage("\"Corsair space, freelancer. Move along or stay forever.\"")
+            elseif zfac == "Concord" then
+                setCommsMessage("\"Concord patrol. State your business or clear the lane.\"")
+            elseif zfac == "Hollow" then
+                setCommsMessage("Static. A sound like breathing. Then nothing.")
+            else
+                setCommsMessage("\"You're in the wrong place. Leave.\"")
+            end
         end)
         table.insert(names, s:getCallSign())
     end
