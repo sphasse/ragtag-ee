@@ -1230,7 +1230,7 @@ local function W_startHalcyon()
 
     -- Spawn the relay buoy near Halcyon Rest
     local hx, hy = VERSE.at("Halcyon Rest", 8, 6)
-    local buoy = CpuShip():setTemplate("Escape Pod"):setFaction("Independent")
+    local buoy = CpuShip():setTemplate("Flavia"):setFaction("Independent")
     buoy:setPosition(hx + random(-1500, 1500), hy + random(-1500, 1500))
     buoy:orderIdle()
     buoy:setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
@@ -1369,48 +1369,17 @@ local function W_startCheckpoint()
 end
 
 local function W_startOffer()
-    print("[WITNESS] W_startOffer() entered")
     S.witness_active = true
-    print("[WITNESS] Set S.witness_active = true")
     W_enterPhase("offer")
-    print("[WITNESS] Entered phase: offer")
 
     local vx, vy = VERSE.at("Port Vesper", -2, -1)
-    print("[WITNESS] Spawn position: " .. vx .. ", " .. vy)
-
-    local ok, result = pcall(function()
-        print("[WITNESS] Creating CpuShip...")
-        local mira = CpuShip()
-        print("[WITNESS] Setting template to Escape Pod...")
-        mira:setTemplate("Escape Pod")
-        print("[WITNESS] Setting faction to Independent...")
-        mira:setFaction("Independent")
-        print("[WITNESS] Setting position...")
-        mira:setPosition(vx, vy)
-        print("[WITNESS] Setting orders...")
-        mira:orderIdle()
-        print("[WITNESS] Setting speed limits...")
-        mira:setImpulseMaxSpeed(0)
-        mira:setRotationMaxSpeed(0)
-        print("[WITNESS] Setting weapon tubes...")
-        mira:setWeaponTubeCount(0)
-        print("[WITNESS] Setting indestructible...")
-        mira:setCanBeDestroyed(false)
-        print("[WITNESS] Setting callsign...")
-        mira:setCallSign("Mira's Luck")
-        print("[WITNESS] Registering...")
-        RT.register(mira)
-        return mira
-    end)
-
-    if not ok then
-        print("[WITNESS] ERROR spawning Mira's Luck: " .. tostring(result))
-        addGMMessage("ERROR: Witness arc spawn failed: " .. tostring(result))
-        return
-    end
-
-    local mira = result
-    print("[WITNESS] Mira's Luck spawned and registered")
+    local mira = CpuShip():setTemplate("Flavia"):setFaction("Independent")
+    mira:setPosition(vx, vy)
+    mira:orderIdle()
+    mira:setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
+    mira:setWeaponTubeCount(0):setCanBeDestroyed(false)
+    mira:setCallSign("Mira's Luck")
+    RT.register(mira)
 
     mira:setCommsFunction(function(src, tgt)
         setCommsMessage('"I need a discreet crew -- no questions asked. Passenger in stasis who needs to reach Saint Brennan\'s Mission quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
@@ -1435,9 +1404,7 @@ local function W_startOffer()
 
     -- Delay hail by 3 seconds to avoid comms collision if player is in station dialog
     W.offer_hail_at = getScenarioTime() + 3
-    print("[WITNESS] Set hail timer for: " .. W.offer_hail_at)
     globalMessage("Witness arc starting -- incoming hail in 3 seconds...", 3)
-    print("[WITNESS] Global message sent")
 end
 
 -- ── Main update dispatcher ───────────────────────────────────────────────────
@@ -1447,15 +1414,10 @@ local function W_update(delta)
 
     -- Handle delayed hail in offer phase
     if W.phase == "offer" and W.offer_hail_at and now >= W.offer_hail_at then
-        print("[WITNESS] Hail timer expired, sending hail now=" .. now .. " hail_at=" .. W.offer_hail_at)
         W.offer_hail_at = nil
         local mira = RT.find("Mira's Luck")
-        print("[WITNESS] Looking for Mira's Luck, found: " .. tostring(RT.valid(mira)))
         if RT.valid(mira) then
-            local success = RT.hail(mira, "Independent vessel -- Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
-            print("[WITNESS] Hail sent, success: " .. tostring(success))
-        else
-            print("[WITNESS] ERROR: Mira's Luck not found or invalid!")
+            RT.hail(mira, "Independent vessel -- Mira Doss, Mira's Luck. I've got a private offer. Open comms when you're clear.", "Mira Doss")
         end
     end
 
@@ -1907,17 +1869,13 @@ function addSessionGMFunctions()
     end)
 
     addGMFunction("Witness: Start", function()
-        print("[WITNESS] Start button clicked, current phase: " .. W.phase)
         if W.phase ~= "inactive" then
             local msg = "Witness arc already at phase: " .. W.phase
-            print("[WITNESS] " .. msg)
             globalMessage(msg, 5)
             addGMMessage(msg)
             return
         end
-        print("[WITNESS] Calling W_startOffer()")
         W_startOffer()
-        print("[WITNESS] W_startOffer() completed")
     end)
 
     addGMFunction("Witness: >Chkpt", function()
@@ -1949,11 +1907,7 @@ function addSessionGMFunctions()
     end)
 
     addGMFunction("Witness: Cancel", function()
-        print("[WITNESS] Cancel clicked, current phase: " .. W.phase)
-        if W.phase == "inactive" then
-            print("[WITNESS] Already inactive, nothing to cancel")
-            return
-        end
+        if W.phase == "inactive" then return end
         local m = RT.find("Mira's Luck")
         if RT.valid(m) then m:destroy() end
         W.phase            = "inactive"
@@ -1964,7 +1918,6 @@ function addSessionGMFunctions()
         W.concord_names    = {}
         S.witness_active   = false
         W_removePodUI()
-        print("[WITNESS] Arc cancelled and reset to inactive")
         globalMessage("Witness arc cancelled and reset.", 5)
         addGMMessage("Witness arc cancelled. Phase reset to inactive.")
     end)
