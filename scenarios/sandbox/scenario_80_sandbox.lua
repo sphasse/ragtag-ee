@@ -797,6 +797,18 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
+                    -- Relay jamming: instantly neutralise any scan probe within 5u.
+                    local rx, ry = target:getPosition()
+                    for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
+                        if RT.valid(obj) then
+                            local ok = pcall(function() return obj:getOwner() end)
+                            if ok then
+                                obj:destroy()
+                                RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
+                            end
+                        end
+                    end
+
                     -- Check all hackable systems
                     local systems = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"}
                     local max_hack = 0
@@ -819,18 +831,6 @@ function JOBS.update()
                         local sys_name = hacked_system or "system"
                         RT.shipLog("[Hack] " .. sys_name .. " breach successful! Data extracted from " .. m.target_cs
                             .. ". Return to " .. m.origin .. ".", "#80FF80")
-                        if m.intercept and not m.intercept.fired then
-                            m.intercept.fired = true
-                            local origin_e = RT.find(m.origin)
-                            if RT.valid(origin_e) then
-                                m._dx, m._dy = origin_e:getPosition()
-                            end
-                            local ref = RT.nearestPlayer(m.wx, m.wy)
-                            if ref then
-                                local px, py = ref:getPosition()
-                                MISSION._spawnIntercept(m, px, py)
-                            end
-                        end
                         JOBS.updateObj()
                     end
                 end
