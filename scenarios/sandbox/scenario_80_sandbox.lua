@@ -239,11 +239,6 @@ function JOBS.accept(m, skip_log)
             setCommsMessage('"Get away from us."')
         end)
 
-        -- Hide on radar until detected (stealth mechanic)
-        s:setRadarTraceScale(0)
-        m._radar_ship = s  -- Store reference for detection checking
-        m._detected = false
-
         m.target_cs = name
         -- Update short description and objective with actual target name
         if m.type == "boarding" then
@@ -275,11 +270,6 @@ function JOBS.accept(m, skip_log)
         s:setCommsFunction(function(src, tgt)
             setCommsMessage("Automated relay. No response.")
         end)
-
-        -- Hide on radar until detected (stealth mechanic)
-        s:setRadarTraceScale(0)
-        m._radar_ship = s  -- Store reference for detection checking
-        m._detected = false
 
         m.target_cs = name
         -- Update short description and objective with actual relay name
@@ -762,22 +752,6 @@ function JOBS.update()
             table.remove(_active, i)
             JOBS.updateObj()
             goto next_entry
-        end
-
-        -- Detection mechanic: reveal ships on radar when player gets close (30U)
-        if (m.type == "boarding" or m.type == "destroy" or m.type == "hacking") and not m._detected and m._radar_ship then
-            if RT.valid(RT.player) and RT.valid(m._radar_ship) then
-                local px, py = RT.player:getPosition()
-                local tx, ty = m._radar_ship:getPosition()
-                local dx, dy = tx - px, ty - py
-                local dist = math.sqrt(dx * dx + dy * dy)
-                if dist < 30000 then  -- 30U detection range
-                    m._radar_ship:setRadarTraceScale(1)  -- Reveal on radar
-                    m._detected = true
-                    local grid = MISSION.gridRef(tx, ty)
-                    RT.shipLog(string.format("[Sensors] Contact detected: %s at %s.", m.target_cs or "unknown", grid), "#FFAA00")
-                end
-            end
         end
 
         if m.type == "salvage" and not m._found then
