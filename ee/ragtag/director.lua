@@ -128,7 +128,7 @@ DIR.SYSTEMS = {
 function DIR.init(session)
     DIR.session = session or {}
     DIR.run = string.format("%s-%d-%d", DIR.session.id or "run", math.floor(random(0, 999999)), math.floor(random(0, 999999)))
-    DIR.addGMFunctions()
+    -- DIR.addGMFunctions()  -- Disabled 2026-10-29: AI director is observation-only, these controls don't work
     -- Build fresh copies of campaign sub-tables so toJSON never sees the same
     -- table object twice (shared refs across events+state trigger a Lua next() error).
     local camp_snap = nil
