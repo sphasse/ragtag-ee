@@ -42,6 +42,7 @@ local S = {
     witness_active = false,    -- locks job board once The Witness arc begins
     vesper_first_hail = false, -- track first hail to Port Vesper for welcome message
     work_cooldown_enabled = true,  -- false = infinite mission spam (testing), true = 10min cooldown (gameplay)
+    mission_distance_mode = "medium",  -- "short" (15-50U), "medium" (60-200U), "long" (120-400U)
 }
 
 --------------------------------------------------------------------------------
@@ -85,6 +86,18 @@ end
 JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
 JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
 JOBS.WORK_COOLDOWN    = 10 * 60   -- seconds before slot offers new work after mission taken/expired
+
+-- Mission distance calculation based on mode
+function JOBS.getMissionDistance()
+    local mode = S.mission_distance_mode or "medium"
+    if mode == "short" then
+        return (15 + math.random() * 35) * 1000  -- 15-50U
+    elseif mode == "long" then
+        return (120 + math.random() * 280) * 1000  -- 120-400U
+    else
+        return (60 + math.random() * 140) * 1000  -- 60-200U (medium/default)
+    end
+end
 
 -- Per-station work tracking: {callsign → {slots = {[1] = {mission, offered_at, taken_at}, [2] = {...}}}}
 -- Each slot tracks a mission independently with its own cooldown timer
@@ -498,7 +511,7 @@ function JOBS.stationHook(source, target)
                 elseif mtype == "salvage" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (60 + math.random() * 140) * 1000  -- 60-200U from origin (3-10 grid squares)
+                    local dist = JOBS.getMissionDistance()
                     local wx = math.floor(rx + math.cos(ang) * dist)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
@@ -524,7 +537,7 @@ function JOBS.stationHook(source, target)
                 elseif mtype == "boarding" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (60 + math.random() * 140) * 1000  -- 60-200U from origin (3-10 grid squares)
+                    local dist = JOBS.getMissionDistance()
                     local wx = math.floor(rx + math.cos(ang) * dist)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
@@ -567,7 +580,7 @@ function JOBS.stationHook(source, target)
                 elseif (mtype == "hacking" or mtype == "destroy") and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
                     local ang  = math.random() * 2 * math.pi
-                    local dist = (60 + math.random() * 140) * 1000  -- 60-200U from origin (3-10 grid squares)
+                    local dist = JOBS.getMissionDistance()
                     local wx = math.floor(rx + math.cos(ang) * dist)
                     local wy = math.floor(ry + math.sin(ang) * dist)
                     local region = VERSE.regionAt(wx, wy)
@@ -1831,6 +1844,24 @@ function addSessionGMFunctions()
         addGMMessage("Work cooldown " .. mode .. ".\n\n" ..
             (S.work_cooldown_enabled and "Taking a mission triggers a 10 minute new job cooldown." or
             "Stations offer unlimited missions (testing mode)."))
+    end)
+
+    local distance_labels = {short = "SHORT", medium = "MEDIUM", long = "LONG"}
+    addGMFunction("Job Distance: " .. (distance_labels[S.mission_distance_mode] or "MEDIUM"), function()
+        -- Cycle: short -> medium -> long -> short
+        if S.mission_distance_mode == "short" then
+            S.mission_distance_mode = "medium"
+        elseif S.mission_distance_mode == "medium" then
+            S.mission_distance_mode = "long"
+        else
+            S.mission_distance_mode = "short"
+        end
+        -- Clear and re-add with new label
+        clearGMFunctions()
+        addSessionGMFunctions()
+        local ranges = {short = "15-50U", medium = "60-200U", long = "120-400U"}
+        addGMMessage("Job distance set to " .. distance_labels[S.mission_distance_mode] .. ".\n\n" ..
+            "New missions will spawn at " .. ranges[S.mission_distance_mode] .. " from origin station.")
     end)
 
     addGMFunction("Spawn salvage", function()
