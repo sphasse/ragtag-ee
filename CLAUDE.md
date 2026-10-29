@@ -136,6 +136,38 @@ Say plainly in PR descriptions what was and wasn't tested.
 - Mission completes when threshold reached
 - Ambient patrols may spawn based on zone (proximity system), not mission-specific
 
+### Object Type Identification
+
+EmptyEpsilon entities don't expose their C++ type directly, but `utils.lua` provides `isObjectType(entity, typeName)` for type checking.
+
+**Identifying specific entity types:**
+```lua
+if isObjectType(obj, "ScanProbe") then
+    -- It's a scan probe
+end
+
+if isObjectType(obj, "CpuShip") then
+    -- It's an AI ship
+end
+
+if isObjectType(obj, "PlayerSpaceship") then
+    -- It's a player ship
+end
+```
+
+**Why this matters:**
+- Scan probes have no `typename` component, so `obj:getTypeName()` fails
+- `obj:typeName()` doesn't exist
+- Heuristics (faction + method presence) are fragile and match unintended objects
+- **Always use `isObjectType()` when you need to identify a specific entity type**
+
+**Common use cases:**
+- Relay jamming destroying only scan probes (not player/NPC ships)
+- Filtering `getObjectsInRadius()` results by type
+- Type-specific behaviors in event callbacks
+
+Reference: [EmptyEpsilon utils.lua:351](https://github.com/daid/EmptyEpsilon/blob/b492ea94326c229ec8c0047872451129c4338871/scripts/utils.lua#L351)
+
 ### Common Mission Bugs and Fixes
 
 **"attempt to index a nil value" in mission generation**:

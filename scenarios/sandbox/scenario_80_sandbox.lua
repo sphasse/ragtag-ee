@@ -756,9 +756,6 @@ function JOBS.stationHook(source, target)
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
                             cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
                     end
-                    if cap.intercept then
-                        RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
-                    end
                 end
                 addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
             end)
@@ -865,41 +862,15 @@ function JOBS.update()
                             local px, py = p:getPosition()
                             local dx, dy = px - tx, py - ty
                             local dist = math.sqrt(dx * dx + dy * dy)
-                            -- DEBUG: Log distance every 3 seconds
-                            if not m._last_dist_log or (now - m._last_dist_log) > 3 then
-                                print(string.format("[Boarding] Distance to %s: %.0fU (need < 1U)", m.target_cs, dist / 1000))
-                                m._last_dist_log = now
-                            end
                             if dist < 1000 then  -- 1U proximity boarding
-                                print("[Boarding] Within 1U - boarding now!")
                                 m._boarded = true
-                                m._boarded_at = now
                                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                                -- Player has boarded successfully
                                 RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
-                                -- Fire intercept on the return leg
-                                if m.intercept and not m.intercept.fired then
-                                    m.intercept.fired = true
-                                    local origin_e = RT.find(m.origin)
-                                    if RT.valid(origin_e) then
-                                        m._dx, m._dy = origin_e:getPosition()
-                                    end
-                                    MISSION._spawnIntercept(m, px, py)
-                                end
                                 JOBS.updateObj()
                                 break
                             end
                         end
                     end
-                else
-                    print("[Boarding] ERROR: Target " .. (m.target_cs or "nil") .. " is not valid!")
-                end
-
-            -- Phase 4: Send follow-up message after boarding to force UI refresh
-            elseif m._boarded and not m._boarding_confirmed then
-                if now - m._boarded_at > 0.5 then  -- 0.5s delay to force log refresh
-                    m._boarding_confirmed = true
-                    -- This second message forces EmptyEpsilon's log UI to refresh
                 end
             end
 
@@ -912,19 +883,6 @@ function JOBS.update()
                     m._destroyed = true
                     m.obj = "Return to " .. m.origin
                     RT.shipLog("[Target] " .. m.target_cs .. " destroyed. Return to " .. m.origin .. ".", "#80FF80")
-                    -- Fire intercept on the return leg
-                    if m.intercept and not m.intercept.fired then
-                        m.intercept.fired = true
-                        local origin_e = RT.find(m.origin)
-                        if RT.valid(origin_e) then
-                            m._dx, m._dy = origin_e:getPosition()
-                        end
-                        local ref = RT.nearestPlayer(m.wx, m.wy)
-                        if RT.valid(ref) then
-                            local px, py = ref:getPosition()
-                            MISSION._spawnIntercept(m, px, py)
-                        end
-                    end
                     JOBS.updateObj()
                 else
                     -- When player gets close, set to Corsairs faction and engage
