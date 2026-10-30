@@ -1994,9 +1994,7 @@ function addSessionGMFunctions()
         for _, faction in ipairs(factions) do
             addGMFunction(faction .. "...", function()
                 clearGMFunctions()
-                addGMFunction("< Back to Factions", function()
-                    showReputationFactionList()
-                end)
+                addGMFunction("< Back to Factions", showReputationFactionList)
 
                 local current = RT.getReputation(faction) or 0
                 addGMFunction(string.format("Current: %+d", current), function()
@@ -2042,9 +2040,7 @@ function addSessionGMFunctions()
         end
     end
 
-    addGMFunction("Adjust Reputation...", function()
-        showReputationFactionList()
-    end)
+    addGMFunction("Adjust Reputation...", showReputationFactionList)
 
     addGMFunction("End session", function()
         if RT.valid(RT.player) then
