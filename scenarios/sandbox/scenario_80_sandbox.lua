@@ -1100,10 +1100,10 @@ function JOBS.update()
                     goto next_entry
                 end
 
-                -- Detection: player within 3u (weapons range)
+                -- Detection: player within 5u
                 for _, p in ipairs(RT.players) do
-                    if RT.valid(p) and RT.dist(p, tgt) < 3000 then
-                        _tailingSpook(m, "Player within weapons range")
+                    if RT.valid(p) and RT.dist(p, tgt) < 5000 then
+                        _tailingSpook(m, "Player within detection range")
                         MISSION.untrack(m.id)
                         table.remove(_active, i)
                         JOBS.updateObj()
@@ -1111,9 +1111,9 @@ function JOBS.update()
                     end
                 end
 
-                -- Detection: scan probe within 8u
+                -- Detection: scan probe within 5u
                 local tx, ty = tgt:getPosition()
-                for _, obj in ipairs(getObjectsInRadius(tx, ty, 8000)) do
+                for _, obj in ipairs(getObjectsInRadius(tx, ty, 5000)) do
                     if RT.valid(obj) and isObjectType(obj, "ScanProbe") then
                         _tailingSpook(m, "Target detected a probe")
                         MISSION.untrack(m.id)
@@ -1131,8 +1131,8 @@ function JOBS.update()
                     rdv:orderIdle()
                     local mx, my = tgt:getPosition()
                     RT.shipLog("[Tailing] Meeting in progress at " .. MISSION.gridRef(mx, my)
-                        .. ". Science: close to 5u and scan " .. m.target_cs .. ". 60 seconds.", "#FFCC80")
-                    m.obj = "Scan " .. m.target_cs .. " during meeting"
+                        .. ". Science: scan both ships. 60 seconds.", "#FFCC80")
+                    m.obj = "Scan both ships at meeting"
                     JOBS.updateObj()
                 end
 
@@ -1145,15 +1145,28 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    if RT.valid(tgt) then
+                    if RT.valid(tgt) and RT.valid(rdv) then
                         for _, p in ipairs(RT.players) do
-                            if RT.valid(p) and RT.dist(p, tgt) < 5000 then
-                                local ok, scanned = pcall(function() return tgt:isFullyScannedBy(p) end)
-                                if ok and scanned then
+                            if RT.valid(p) then
+                                if not m._tgt_scanned then
+                                    local ok, s = pcall(function() return tgt:isScannedBy(p) end)
+                                    if ok and s then
+                                        m._tgt_scanned = true
+                                        RT.shipLog("[Tailing] " .. m.target_cs .. " identified. Scan the contact.", "#FFCC80")
+                                    end
+                                end
+                                if not m._rdv_scanned then
+                                    local ok, s = pcall(function() return rdv:isScannedBy(p) end)
+                                    if ok and s then
+                                        m._rdv_scanned = true
+                                        RT.shipLog("[Tailing] Contact ship identified.", "#FFCC80")
+                                    end
+                                end
+                                if m._tgt_scanned and m._rdv_scanned then
                                     m._scanned = true
                                     m.obj = "Return intel to " .. m.origin
                                     local cx, cy = tgt:getPosition()
-                                    RT.shipLog("[Tailing] Contact identified at " .. MISSION.gridRef(cx, cy)
+                                    RT.shipLog("[Tailing] Both ships identified at " .. MISSION.gridRef(cx, cy)
                                         .. ". Return to " .. m.origin .. ".", "#80FF80")
                                     JOBS.updateObj()
                                     _tailingDisperse(m)
