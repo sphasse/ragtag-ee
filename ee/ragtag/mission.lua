@@ -494,9 +494,12 @@ local _SHORT_NAMES = {
 local function _short(cs) return _SHORT_NAMES[cs] or cs end
 
 -- Format distance/reward suffix for mission short descriptions
--- e.g. " (45u) (185cr)"
-local function _distReward(distance_u, reward)
+-- e.g. " (the Shroud, 45u) (185cr)"
+local function _distReward(distance_u, reward, region_name)
     local dist_rounded = math.floor((distance_u / 1000 + 2.5) / 5) * 5
+    if region_name then
+        return string.format(" (%s, %du) (%dcr)", region_name, dist_rounded, reward)
+    end
     return string.format(" (%du) (%dcr)", dist_rounded, reward)
 end
 
@@ -566,7 +569,7 @@ function MISSION.newDelivery(opts)
         dest         = opts.dest,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward),
+        short        = arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
         obj          = "Deliver to " .. dest_short,
         -- brief shown after accepting (lore + contact's words)
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
@@ -614,7 +617,7 @@ function MISSION.newSalvage(opts)
         wy           = opts.wy,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " (salvage)" .. _distReward(opts.distance_u or 0, reward),
+        short        = arch.cargo .. " (salvage)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
         obj          = "Recover " .. arch.cargo,
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
@@ -671,7 +674,7 @@ function MISSION.newBoarding(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer .. " (boarding)" .. _distReward(opts.distance_u or 0, reward),
+        short           = arch.short_offer .. " (boarding)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
         obj             = "Locate and disable target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
@@ -732,7 +735,7 @@ function MISSION.newDestroy(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer .. " (destroy)" .. _distReward(opts.distance_u or 0, reward),
+        short           = arch.short_offer .. " (destroy)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
         obj             = "Locate and destroy target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget must be completely destroyed. No boarding, no salvage.",
@@ -786,7 +789,7 @@ function MISSION.newHacking(opts)
         system         = arch.system or "reactor",
         hack_threshold = 0.75,
         reward         = reward,
-        short          = arch.short_offer .. " (hacking)" .. _distReward(opts.distance_u or 0, reward),
+        short          = arch.short_offer .. " (hacking)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
                          .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
@@ -885,7 +888,7 @@ function MISSION.newTailing(opts)
         my               = opts.my,
         cargo            = arch.cargo,
         reward           = reward,
-        short            = arch.short_offer .. " (tailing)" .. _distReward(distance_u, reward),
+        short            = arch.short_offer .. " (tailing)" .. _distReward(distance_u, reward, opts.region_name),
         obj              = "Locate target",
         brief            = arch.lore .. "\n\n" .. arch.accept_msg
                            .. "\n\nThey'll detect a probe signature or any ship within weapons range — spook them before the meeting and the contract is lost.",

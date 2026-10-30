@@ -113,9 +113,9 @@ function JOBS.getDistanceRange()
 end
 
 -- Extract distance/reward suffix from mission short description
--- e.g. "Deliver supplies (delivery) (45u) (185cr)" -> " (45u) (185cr)"
+-- e.g. "Disable Blackjack (boarding) (the Shroud, 45u) (185cr)" -> " (the Shroud, 45u) (185cr)"
 local function _distRewardSuffix(mission)
-    local suffix = mission.short:match("(%s%(%d+u%)%s%(%d+cr%))$")
+    local suffix = mission.short:match("( %([^)]+%) %(%d+cr%))$")
     return suffix or ""
 end
 
@@ -586,6 +586,7 @@ function JOBS.stationHook(source, target)
                         tier = tier,
                         distance_u = distance_u,
                         danger_level = dest_danger,
+                        region_name = dest_region and dest_region.name or nil,
                         distance_min_u = dist_min,
                         distance_max_u = dist_max,
                     })
@@ -608,6 +609,7 @@ function JOBS.stationHook(source, target)
                             tier = tier,
                             distance_u = dist,
                             danger_level = danger_level,
+                            region_name = region and region.name or nil,
                             distance_min_u = dist_min,
                             distance_max_u = dist_max,
                         })
@@ -652,6 +654,7 @@ function JOBS.stationHook(source, target)
                             tier = tier,
                             distance_u = dist,
                             danger_level = danger_level,
+                            region_name = region and region.name or nil,
                             nearby_stations = nearby,
                             distance_min_u = dist_min,
                             distance_max_u = dist_max,
@@ -682,6 +685,7 @@ function JOBS.stationHook(source, target)
                                 tier = tier,
                                 distance_u = dist,
                                 danger_level = danger_level,
+                                region_name = region and region.name or nil,
                                 distance_min_u = dist_min,
                                 distance_max_u = dist_max,
                             })
@@ -718,6 +722,7 @@ function JOBS.stationHook(source, target)
                                 nearby_stations = nearby,
                                 distance_u = dist,
                                 danger_level = danger_level,
+                                region_name = region and region.name or nil,
                                 distance_min_u = dist_min,
                                 distance_max_u = dist_max,
                             })
@@ -752,6 +757,7 @@ function JOBS.stationHook(source, target)
                             tier = tier,
                             distance_u = dist,
                             danger_level = danger_level,
+                            region_name = region and region.name or nil,
                             distance_min_u = dist_min,
                             distance_max_u = dist_max,
                         })
