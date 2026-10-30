@@ -378,20 +378,20 @@ function JOBS.accept(m, skip_log)
         if m.type == "boarding" or m.type == "destroy" then
             local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
             RT.shipLog(string.format("Contract: %s. %dm to complete. %s is at %s%s.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
         elseif m.type == "hacking" then
             RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#60CCFF")
         elseif m.type == "tailing" then
             -- Heading from spawn to meeting point (EE: 0=north, 90=east)
             local hdx = m.mx - m.wx
             local hdy = m.my - m.wy
             local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
             RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. Approach with care.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#A0C0FF")
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#60CCFF")
         else
             RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#60CCFF")
         end
         if m.intercept then
             RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
@@ -845,19 +845,19 @@ function JOBS.stationHook(source, target)
                     if cap.type == "boarding" or cap.type == "destroy" then
                         local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
                         RT.shipLog(string.format("Contract: %s. %dm to complete. %s is at %s%s.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#A0C0FF")
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
                     elseif cap.type == "hacking" then
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#60CCFF")
                     elseif cap.type == "tailing" then
                         local hdx = cap.mx - cap.wx
                         local hdy = cap.my - cap.wy
                         local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. Approach with care.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#A0C0FF")
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#60CCFF")
                     else
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#60CCFF")
                     end
                 end
                 addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
