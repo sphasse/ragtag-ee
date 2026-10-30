@@ -456,6 +456,7 @@ local _TYPE_MULT = {
     delivery = 1.0,
     salvage  = 1.2,
     hacking  = 1.4,
+    tailing  = 1.4,
     destroy  = 1.6,
     boarding = 1.8,
 }
@@ -794,6 +795,108 @@ function MISSION.newHacking(opts)
         _spawned       = false,
         _hacked        = false,
         target_cs      = nil,
+    }
+end
+
+-- ---------------------------------------------------------------------------
+-- Tailing archetypes  (Science-led surveillance — observe a covert meeting)
+-- Target spawns as Unknown and flies toward a rendezvous point.
+-- Mission completes when the player is within scan range when ships meet.
+-- ---------------------------------------------------------------------------
+
+local _TAILING_ARCHETYPES = {
+    {
+        cargo       = "traffic analysis",
+        short_offer = "Surveil a suspected courier",
+        lore        = "Someone is moving information through this sector on an irregular route. We need to know who they're meeting.",
+        accept_msg  = '"Locate the ship and shadow it to the meeting. Stay back — they\'re watching for tails."',
+        recv_msg    = '"Contact identified. This is more than we hoped for."',
+        reward_mult = 1.0, tier_min = 0,
+    },
+    {
+        cargo       = "a contact identification",
+        short_offer = "Identify a meeting contact",
+        lore        = "A ship operating without a registered route has been spotted twice. Someone is meeting it out here.",
+        accept_msg  = '"Get close enough when it meets its contact. We\'ll need the scan data. Don\'t spook it early."',
+        recv_msg    = '"Got the ID. You\'ve answered a question we\'ve been asking for months."',
+        reward_mult = 1.0, tier_min = 0,
+    },
+    {
+        cargo       = "rendezvous confirmation",
+        short_offer = "Confirm a covert rendezvous",
+        lore        = "Intelligence points to a handoff happening in deep space. We need confirmation — no intercept, just eyes on.",
+        accept_msg  = '"Stay back until the meeting starts, then close for a scan. Keep your probes stowed."',
+        recv_msg    = '"Confirmed. This closes the loop on a three-month investigation."',
+        reward_mult = 1.1, tier_min = 1,
+    },
+    {
+        cargo       = "a defector sighting",
+        short_offer = "Locate a missing operative",
+        lore        = "A former Concord analyst went dark six weeks ago. Last known heading puts them somewhere in this sector.",
+        accept_msg  = '"Find their ship and scan it during the meeting — we need both names. Don\'t approach early or they\'ll run."',
+        recv_msg    = '"Both names confirmed. This is sensitive — we\'ll handle it from here."',
+        reward_mult = 1.3, tier_min = 1,
+    },
+    {
+        cargo       = "supply chain evidence",
+        short_offer = "Trace a contraband supply run",
+        lore        = "Someone is running contraband through unregistered drops. We\'ve traced the route to this sector.",
+        accept_msg  = '"Shadow the courier to the drop and scan the receiving ship. That\'s all we need. Silent approach."',
+        recv_msg    = '"Supply chain mapped. This reaches further up than we thought."',
+        reward_mult = 1.4, tier_min = 2,
+    },
+}
+
+local _TAILING_TEMPLATES = {
+    [0] = {"Flavia P.Falcon"},
+    [1] = {"Flavia P.Falcon", "Phobos T3"},
+    [2] = {"Phobos T3", "Phobos M3P"},
+}
+
+-- Generate a tailing mission record.
+-- opts: {origin, wx, wy, mx, my, tier, distance_u, danger_level}
+--   wx/wy — target spawn position
+--   mx/my — meeting point (pre-calculated by the scenario)
+function MISSION.newTailing(opts)
+    local tier = opts.tier or 0
+    local pool = {}
+    for _, a in ipairs(_TAILING_ARCHETYPES) do
+        if a.tier_min <= tier then pool[#pool + 1] = a end
+    end
+    if #pool == 0 then pool = _TAILING_ARCHETYPES end
+    local arch = pool[math.random(#pool)]
+
+    local distance_u   = opts.distance_u   or 0
+    local danger_level = opts.danger_level or 0
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.tailing, arch.reward_mult or 1.0,
+        distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
+
+    local templates = _TAILING_TEMPLATES[tier] or _TAILING_TEMPLATES[0]
+    local target_template = templates[math.random(#templates)]
+
+    return {
+        id               = _nextId(),
+        type             = "tailing",
+        tier             = tier,
+        origin           = opts.origin,
+        wx               = opts.wx,
+        wy               = opts.wy,
+        mx               = opts.mx,      -- meeting point
+        my               = opts.my,
+        cargo            = arch.cargo,
+        reward           = reward,
+        short            = arch.short_offer .. " (tailing)" .. _distReward(distance_u, reward),
+        obj              = "Locate target",
+        brief            = arch.lore .. "\n\n" .. arch.accept_msg
+                           .. "\n\nThey'll detect a probe signature or any ship within weapons range — spook them before the meeting and the contract is lost.",
+        complete_msg     = arch.recv_msg,
+        target_template  = target_template,
+        _spawned         = false,
+        _meeting         = false,
+        _meeting_at      = nil,
+        _scanned         = false,
+        target_cs        = nil,
+        rendezvous_cs    = nil,
     }
 end
 

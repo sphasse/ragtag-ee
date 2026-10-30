@@ -70,6 +70,7 @@ local _MISSION_WEIGHTS = {
     {type = "salvage",  weight = 7},
     {type = "boarding", weight = 3},
     {type = "hacking",  weight = 3},
+    {type = "tailing",  weight = 3},
     {type = "destroy",  weight = 3},
 }
 local function pickMissionType()
@@ -122,7 +123,15 @@ end
 -- Each slot tracks a mission independently with its own cooldown timer
 local _station_work = {}
 
-local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]", destroy="[X]"}
+local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]", tailing="[T]", destroy="[X]"}
+
+-- Names for tailing mission rendezvous ships (anonymous freighters)
+local _FREIGHTER_NAMES = {
+    "Quiet Trade", "Long Run", "Far Margin", "Still Water", "Low Profile",
+    "Unmarked", "Grey Cargo", "Clean Manifest", "Third Party", "No Questions",
+    "Standard Rate", "Passing Through", "Brief Stop", "Short Notice", "Slow Moving",
+    "Common Carriage", "Side Channel", "Dark Freight", "Off The Books", "Thin Air",
+}
 
 -- Creative names for spawned mission targets
 local _CORSAIR_NAMES = {
@@ -316,6 +325,36 @@ function JOBS.accept(m, skip_log)
         m.short = "Hack " .. name .. " (hacking)" .. suffix
         m.obj = "Hack " .. name
         m._spawned  = true
+    elseif m.type == "tailing" and not m._spawned then
+        -- Spawn target ship as Unknown faction — requires Science scanning to identify
+        local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
+        local target = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
+        target:setCallSign(tname)
+        target:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
+        target:setHull(target:getHullMax())
+        target:setScanningParameters(1, 1)
+        target:orderFlyTowards(m.mx, m.my)
+        RT.register(target)
+        target:setCommsFunction(function(src, tgt) setCommsMessage('"No response."') end)
+
+        -- Rendezvous ship: spawn 30u from meeting point on far side from target
+        local rname = _FREIGHTER_NAMES[math.random(#_FREIGHTER_NAMES)]
+        local meet_ang = math.atan(m.my - m.wy, m.mx - m.wx)
+        local rx = math.floor(m.mx + math.cos(meet_ang) * 30000)
+        local ry = math.floor(m.my + math.sin(meet_ang) * 30000)
+        local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Independent")
+        rendezvous:setCallSign(rname)
+        rendezvous:setPosition(rx, ry)
+        rendezvous:orderFlyTowards(m.mx, m.my)
+        RT.register(rendezvous)
+        rendezvous:setCommsFunction(function(src, tgt) setCommsMessage('"Move along."') end)
+
+        m.target_cs     = tname
+        m.rendezvous_cs = rname
+        local suffix = _distRewardSuffix(m)
+        m.short = "Surveil " .. tname .. " (tailing)" .. suffix
+        m.obj   = "Locate " .. tname
+        m._spawned = true
     end
 
     -- Write contract details to log (unless caller will do it)
@@ -343,6 +382,13 @@ function JOBS.accept(m, skip_log)
         elseif m.type == "hacking" then
             RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
                 m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#A0C0FF")
+        elseif m.type == "tailing" then
+            -- Heading from spawn to meeting point (EE: 0=north, 90=east)
+            local hdx = m.mx - m.wx
+            local hdy = m.my - m.wy
+            local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
+            RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. Approach with care.",
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#A0C0FF")
         else
             RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
                 m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
@@ -426,6 +472,14 @@ function JOBS.stationHook(source, target)
                 addCommsReply(string.format("Deliver %s (+%d cr)", m.cargo, m.reward), function(s, t)
                     JOBS.complete(ent, s)
                     local recv = (ent.mission.complete_msg or '"Good extraction."')
+                    setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
+                    addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+                end)
+            elseif m.type == "tailing" and m.origin == cs and m._scanned then
+                local ent = entry
+                addCommsReply(string.format("Deliver %s (+%d cr)", m.cargo, m.reward), function(s, t)
+                    JOBS.complete(ent, s)
+                    local recv = (ent.mission.complete_msg or '"Good work."')
                     setCommsMessage(recv .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
                 end)
@@ -675,6 +729,39 @@ function JOBS.stationHook(source, target)
                             error("Destroy: " .. tostring(mission_err))
                         end
                     end
+                elseif mtype == "tailing" and RT.valid(station_e) then
+                    local rx, ry = station_e:getPosition()
+                    local ang  = math.random() * 2 * math.pi
+                    local dist = JOBS.getMissionDistance()
+                    local wx = math.floor(rx + math.cos(ang) * dist)
+                    local wy = math.floor(ry + math.sin(ang) * dist)
+                    -- Meeting point: 20-35u from target spawn in a random direction
+                    local meet_ang  = math.random() * 2 * math.pi
+                    local meet_dist = (20 + math.random() * 15) * 1000
+                    local mx = math.floor(wx + math.cos(meet_ang) * meet_dist)
+                    local my = math.floor(wy + math.sin(meet_ang) * meet_dist)
+                    local region = VERSE.regionAt(wx, wy)
+                    local danger_level = region and region.danger or 0
+                    print(string.format("[TAILING] Station: %s | Target: (%d,%d) | Meet: (%d,%d) | Dist: %.1fU | Slot %d",
+                        cs, wx, wy, mx, my, dist/1000, slot_num))
+                    local mission_ok, mission_err = pcall(function()
+                        return MISSION.newTailing({
+                            origin = cs,
+                            wx = wx, wy = wy,
+                            mx = mx, my = my,
+                            tier = tier,
+                            distance_u = dist,
+                            danger_level = danger_level,
+                            distance_min_u = dist_min,
+                            distance_max_u = dist_max,
+                        })
+                    end)
+                    if mission_ok then
+                        generated_mission = mission_err
+                    else
+                        print("[ERROR] Tailing mission generation failed: " .. tostring(mission_err))
+                        error("Tailing: " .. tostring(mission_err))
+                    end
                 elseif dest_idx <= #candidates then
                     -- fallback: delivery
                     generated_mission = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
@@ -756,6 +843,12 @@ function JOBS.stationHook(source, target)
                     elseif cap.type == "hacking" then
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
                             cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#A0C0FF")
+                    elseif cap.type == "tailing" then
+                        local hdx = cap.mx - cap.wx
+                        local hdy = cap.my - cap.wy
+                        local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
+                        RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. Approach with care.",
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#A0C0FF")
                     else
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
                             cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#A0C0FF")
@@ -775,6 +868,37 @@ function JOBS.stationHook(source, target)
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
         end
     end)
+end
+
+-- Send target and rendezvous to separate stations after the meeting (success or timeout)
+local function _tailingDisperse(m)
+    local available = {}
+    for _, st in ipairs(VERSE.STATIONS) do
+        if st.fac ~= "Corsairs" and st.fac ~= "Hollow" then
+            available[#available + 1] = st.cs
+        end
+    end
+    for i = #available, 2, -1 do
+        local j = math.random(i); available[i], available[j] = available[j], available[i]
+    end
+    local tgt = RT.find(m.target_cs or "")
+    if RT.valid(tgt) and #available >= 1 then
+        local st = RT.find(available[1]); if RT.valid(st) then
+            local sx, sy = st:getPosition(); tgt:setFaction("Independent"); tgt:orderFlyTowards(sx, sy)
+        end
+    end
+    local rdv = RT.find(m.rendezvous_cs or "")
+    if RT.valid(rdv) and #available >= 2 then
+        local st = RT.find(available[2]); if RT.valid(st) then
+            local sx, sy = st:getPosition(); rdv:orderFlyTowards(sx, sy)
+        end
+    end
+end
+
+-- Target detected the player or a probe — abort mission
+local function _tailingSpook(m, reason)
+    RT.shipLog("[Tailing] " .. reason .. " -- target spooked. Contract lost.", "#FF8080")
+    _tailingDisperse(m)
 end
 
 function JOBS.update()
@@ -959,6 +1083,84 @@ function JOBS.update()
                         RT.shipLog("[Hack] " .. sys_name .. " breach successful! Data extracted from " .. m.target_cs
                             .. ". Return to " .. m.origin .. ".", "#80FF80")
                         JOBS.updateObj()
+                    end
+                end
+            end
+        elseif m.type == "tailing" then
+            local tgt = RT.find(m.target_cs or "")
+            local rdv = RT.find(m.rendezvous_cs or "")
+
+            if not m._meeting then
+                -- Target gone before meeting
+                if not RT.valid(tgt) then
+                    RT.shipLog("[Tailing] Target lost -- contract failed.", "#FF8080")
+                    MISSION.untrack(m.id)
+                    table.remove(_active, i)
+                    JOBS.updateObj()
+                    goto next_entry
+                end
+
+                -- Detection: player within 3u (weapons range)
+                for _, p in ipairs(RT.players) do
+                    if RT.valid(p) and RT.dist(p, tgt) < 3000 then
+                        _tailingSpook(m, "Player within weapons range")
+                        MISSION.untrack(m.id)
+                        table.remove(_active, i)
+                        JOBS.updateObj()
+                        goto next_entry
+                    end
+                end
+
+                -- Detection: scan probe within 8u
+                local tx, ty = tgt:getPosition()
+                for _, obj in ipairs(getObjectsInRadius(tx, ty, 8000)) do
+                    if RT.valid(obj) and isObjectType(obj, "ScanProbe") then
+                        _tailingSpook(m, "Target detected a probe")
+                        MISSION.untrack(m.id)
+                        table.remove(_active, i)
+                        JOBS.updateObj()
+                        goto next_entry
+                    end
+                end
+
+                -- Meeting: target and rendezvous within 1.5u
+                if RT.valid(rdv) and RT.dist(tgt, rdv) < 1500 then
+                    m._meeting    = true
+                    m._meeting_at = now
+                    tgt:orderIdle()
+                    rdv:orderIdle()
+                    local mx, my = tgt:getPosition()
+                    RT.shipLog("[Tailing] Meeting in progress at " .. MISSION.gridRef(mx, my)
+                        .. ". Science: close to 5u and scan " .. m.target_cs .. ". 60 seconds.", "#FFCC80")
+                    m.obj = "Scan " .. m.target_cs .. " during meeting"
+                    JOBS.updateObj()
+                end
+
+            elseif not m._scanned then
+                -- 60-second scan window
+                if now - m._meeting_at > 60 then
+                    RT.shipLog("[Tailing] Meeting ended — not scanned in time. Contract lost.", "#FF8080")
+                    _tailingDisperse(m)
+                    MISSION.untrack(m.id)
+                    table.remove(_active, i)
+                    JOBS.updateObj()
+                else
+                    if RT.valid(tgt) then
+                        for _, p in ipairs(RT.players) do
+                            if RT.valid(p) and RT.dist(p, tgt) < 5000 then
+                                local ok, scanned = pcall(function() return tgt:isFullyScannedBy(p) end)
+                                if ok and scanned then
+                                    m._scanned = true
+                                    m.obj = "Return intel to " .. m.origin
+                                    local cx, cy = tgt:getPosition()
+                                    RT.shipLog("[Tailing] Contact identified at " .. MISSION.gridRef(cx, cy)
+                                        .. ". Return to " .. m.origin .. ".", "#80FF80")
+                                    JOBS.updateObj()
+                                    _tailingDisperse(m)
+                                    break
+                                end
+                            end
+                        end
                     end
                 end
             end
