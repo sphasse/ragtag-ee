@@ -300,7 +300,7 @@ function JOBS.accept(m, skip_log)
         -- Spawn our custom comms relay beacon with only reactor system
         local grid = MISSION.gridRef(m.wx, m.wy)
         print(string.format("[HACKING SPAWN] Spawning relay at (%.0f, %.0f) grid %s", m.wx, m.wy, grid))
-        local s = CpuShip():setTemplate("Comms Relay Beacon"):setFaction("Concord")
+        local s = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
         -- Give it a random beacon designator
         local name = generateBeaconName()
         s:setCallSign(name)
@@ -1759,20 +1759,6 @@ local function W_update(delta)
             W_finish()
         end
     end
-end
-
---------------------------------------------------------------------------------
--- Ship templates (must be defined at file load time, not inside init())
---------------------------------------------------------------------------------
-
-do
-    local relay_template = ShipTemplate():setName("Comms Relay Beacon"):setModel("combatsat")
-    relay_template:setClass("Satellite", "Comms Relay")
-    relay_template:setDescription("Automated communications relay beacon.")
-    relay_template:setRadarTrace("combatsat.png")
-    relay_template:setHull(50)
-    relay_template:setShields(0, 0)
-    relay_template:setSpeed(0, 0, 0)
 end
 
 --------------------------------------------------------------------------------
