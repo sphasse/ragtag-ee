@@ -898,7 +898,7 @@ function JOBS.stationHook(source, target)
             local cap = m
             addCommsReply(string.format("Take: %s", cap.short), function(s2, t2)
                 if #_active >= 2 then
-                    setCommsMessage('"You\'re already carrying two jobs. Finish one first."')
+                    setCommsMessage('"You look pretty busy. I think I\'ll save my work for someone that gets stuff done."')
                 else
                     JOBS.accept(cap, true, s2)  -- skip_log=true; pass ship for tailing timing
                     setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"\n\nTransmitting details to your log.")
