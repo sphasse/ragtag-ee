@@ -155,12 +155,8 @@ end
 -- Each slot tracks a mission independently with its own cooldown timer
 local _station_work = {}
 
--- Number of job slots a station offers: Port Vesper=4, other Independent=3, rest=2
+-- Number of job slots a station offers. Tune per-station or per-faction here.
 local function _stationSlots(cs)
-    if cs == "Port Vesper" then return 4 end
-    for _, st in ipairs(VERSE.STATIONS) do
-        if st.cs == cs and st.fac == "Independent" then return 3 end
-    end
     return 2
 end
 
