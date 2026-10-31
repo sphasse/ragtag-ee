@@ -37,6 +37,7 @@ require("ragtag/director.lua")
 require("ragtag/proximity.lua")
 require("ragtag/mission.lua")
 require("ragtag/rumors.lua")
+require("ragtag/ship_templates.lua")  -- custom playership templates; must load before init
 
 local SESSION_ID = "sandbox"
 
@@ -1886,6 +1887,18 @@ function init()
             credits  = credits,
         })
     end
+
+    -- Ships created from the selection screen spawn at 0,0 with no faction.
+    -- Move them to Port Vesper and give starting credits so they can play.
+    onNewPlayerShip(function(ship)
+        local vx, vy = VERSE.at("Port Vesper", 1.5, 1.5)
+        local offset = #RT.players * 4000
+        ship:setPosition(vx + offset, vy)
+        ship:setFaction(RT.PLAYER_FACTION)
+        if RT.campaign then
+            ship:setReputationPoints(RT.campaign.credits or 150)
+        end
+    end)
 
     -- GM buttons to add further ships mid-session (appear in the GM console).
     -- Clicking one spawns the ship near Port Vesper and removes the button.
