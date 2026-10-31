@@ -1,283 +1,65 @@
-# The Drift: Player Introduction
+# The Drift
 
-Welcome to the Drift—five suns at the edge of settled space, where you're an independent crew making your way in a used freighter.
+You're crew on an independent freighter at the edge of settled space. Money is tight. Law is far away. Everyone owes someone.
 
 ![The Drift](verse_map.svg)
 
 ---
 
-## What You Need to Know
+## The Universe
 
-### You're Independents
-You're not military. Not explorers. Not heroes—not yet, anyway.
+Five suns span the Drift. The same map every session — learn it, because navigation is survival.
 
-You're a crew running a freighter called the **Magpie** (or whatever you've named her), trying to keep the ship flying and credits in the account. Money is tight. Law is far away. Everyone owes someone.
+**Lumen (Core)** — Rich Concord worlds. Safe, expensive, and very well policed. Clean record required.
 
-### The Drift Is Your Universe
-Five suns, sixteen stations, and everything between: rich Core worlds where the Concord runs things, messy Border stations where everyone meets, rough Rim outposts where law arrives late, and at the edge—places you're not ready for yet.
+**Cardinal & Cinder (Border)** — The messy middle ground. **Port Vesper** sits here — neutral ground, everyone docks here, no questions asked.
 
-The same map every session. Learn it, because navigation is survival.
+**Kestrel (Rim)** — Frontier worlds. Law arrives late or not at all. Armed crews, rough stations, disputes settled outside.
 
-### Work Keeps You Flying
-Stations offer work. Docking at any station and hailing will get you contract offers—deliveries, recoveries, and other opportunities. The pay varies by difficulty and where you're going.
-
-Safe work near the Core pays steady. Dangerous work in hostile space pays a lot more. Your call.
-
-### Upgrades Matter
-Your starting ship is a freighter—decent shields, basic weapons, no jump drive. You'll need upgrades to handle the dangerous regions.
-
-Different stations stock different upgrades. Ask around.
-
-### Reputation Counts
-Help someone, they remember. Shoot someone's ship, their faction remembers. The Drift is small enough that your choices stick.
-
----
-
-## The Five Suns
-
-### Lumen (The White Sun) — The Core
-Rich Concord worlds. Clean stations, good prices, heavy security. If you've got credits and a clean record, the Core is the safest place in the Drift. If you're broke or wanted, you're not welcome.
-
-**Key Station**: Ostia Highport (top-tier upgrades, expensive)
-
----
-
-### Cardinal & Cinder (The Border Suns) — The Border
-Yellow Cardinal and red Cinder light the messy middle ground between law and chaos. **Port Vesper** sits here—everyone's welcome: traders, fixers, smugglers, people who don't ask questions. Neutral ground.
-
-**Key Station**: Port Vesper (your starting point, basic upgrades, everyone docks here)
-
----
-
-### Kestrel (The Gold Sun) — The Rim
-Frontier worlds. Rough stations, armed crews, disputes settled outside. Law arrives late or not at all. People out here mind their own business and don't ask for help they won't get.
-
-**Key Stations**: Hob's Landing (combat upgrades), Halcyon Rest (gateway to the Shroud)
-
----
-
-### Pale Sun (The Edge) — The Maw
-Blue and distant. Past Lastchance Outpost, past the warnings, lies Hollow space. Nobody comes back.
-
-**Don't go here until you're very, very ready. Maybe not even then.**
+**Pale Sun (The Maw)** — Past Lastchance Outpost, past the warnings. Nobody comes back.
 
 ---
 
 ## Factions
 
-### The Concord
-**The government. The law. The winners.**
+**The Concord** — The government. Won the Settlement War twenty years ago. Gray hulls, transponders always on. Be polite, keep your transponder on, don't run. If you're clean they're neutral. If you're wanted, they're a problem.
 
-Professional military patrol ships. Gray hulls, transponders always on. They won the Settlement War twenty years ago and now patrol the trade lanes.
+**Independents** — Traders, salvagers, drifters. People like you.
 
-**What they want**: Order. Safe lanes. No piracy, no smuggling, no trouble.
+**Corsairs** — Pirates. Fast ships, light armor. They want your cargo. Avoid the Gauntlet if you can. If they close on you: run, fight (if you're upgraded), or drop cargo and hope.
 
-**How to deal with them**: Be polite. Keep your transponder on. Don't run. If you're clean, they're neutral. If you're wanted, they're a problem.
+**Relic Drones** — Automated warships from the Settlement War, still running combat protocols twenty years later. No hails, no negotiation. Stay out of the Boneyard until you're ready.
 
-**Their stations**: Ostia Highport, Lumen Exchange, Concord Station Arbiter, Waypoint Galen
-
----
-
-### Independents
-**Everyone else. People like you.**
-
-Traders, salvagers, drifters, fixers. Some are honest freight haulers. Some bend the law. Most are just trying to survive.
-
-**What they want**: To get by. To not get shot. To keep their ship flying.
-
-**How to deal with them**: Hail them for rumors. Trade. Help when you can. There's not many of us out here.
-
-**Their stations**: Port Vesper, Halcyon Rest, Hob's Landing, Calder's Reach, Dustmote Salvage, Saint Brennan's Mission
+**The Hollow** — Heavy warships under the Pale Sun. Nobody knows what they want. Nobody who'd know has come back.
 
 ---
 
-### The Corsairs
-**Pirates. Raiders. Opportunists.**
+## Work
 
-Fast ships, light armor. They want your cargo, your missiles, your credits. Some have codes (don't shoot escape pods). Some don't. All avoid fair fights.
+Dock at any station and hail them — ask **"Any work available?"** and they'll offer what they have. You can carry two active contracts. Each has a 20-minute clock.
 
-**What they want**: Whatever they can take.
+Jobs range from simple deliveries to salvage recoveries, surveillance runs, hacking relays, and harder contracts that pay accordingly. Pay scales with distance and how dangerous the space you're heading into.
 
-**How to deal with them**: Avoid the Gauntlet if you can. If they hail you, three choices: run (warp/jump away), fight (if upgraded), or pay (drop cargo and hope they leave). Don't expect mercy, but don't expect them to chase a losing fight either.
-
-**Their haven**: Blackwater Reach (fortified, mined, don't go there)
+Reputation matters. Corsairs who've seen you run will back off sooner. Corsairs who've seen you fold will come looking. The Concord remembers if you've been helpful or if you've run from an inspection.
 
 ---
 
-### Relic Drones
-**War machines from the Settlement War. Nobody shut them down.**
+## Upgrades
 
-Automated warships guarding the Boneyard. Hostile to everything. No hails, no negotiation, no hesitation.
-
-**What they want**: Nothing. They're running combat protocols from twenty years ago.
-
-**How to deal with them**: Avoid the Boneyard until you're upgraded for serious combat. They don't retreat.
-
-**Their territory**: The Boneyard (Ashgrave's orbit—a world bombed to glass in the war)
-
----
-
-### The Hollow
-**Unknown faction from the Maw. They don't talk.**
-
-Heavy warships under the Pale Sun. Spacers say their hulls look like they were built from other ships, welded together wrong. Purple IFF markers. Extremely hostile.
-
-**What they want**: Nobody knows.
-
-**How to deal with them**: Don't. Turn back. The Maw is a death sentence for anything short of a fully upgraded warship with a skilled crew.
-
-**The stories**: "Hollow ships answer hails with recordings of your own voice." "The Maw station was built from colony ships." Are the stories true? Nobody who'd know has come back.
-
----
-
-## Regions at a Glance
-
-### Safe Regions
-**The Core, The Border, The Rim**
-
-Concord patrols, busy trade lanes, generally safe flying. Good for starting out, making contacts, learning the ropes.
-
----
-
-### Risky Regions
-**The Gauntlet, The Shroud**
-
-- **The Gauntlet**: Asteroid belt. Corsair ambush territory. Bring shields. Good salvage if you survive.
-- **The Shroud**: Vast nebula. Sensors fail, comms cut out. The outer edge is safe-ish. The Deep Shroud is where ships go missing.
-
-Upgraded shields and weapons recommended.
-
----
-
-### Dangerous Regions
-**Blackwater Reach, The Boneyard**
-
-- **Blackwater Reach**: Corsair haven. Fortified, mined. You don't go here unless you've got a death wish.
-- **The Boneyard**: War drones. Valuable salvage, deadly guardians. Late-game destination.
-
-Military-grade upgrades required.
-
----
-
-### Deadly Region
-**The Maw**
-
-Hollow space. Turn-back warnings appear on every screen. Nobody comes back.
-
-**Don't go here.**
-
----
-
-## Key Stations
-
-### Port Vesper
-**Border, (0,0) — Your starting point**
-
-Built around an old ore refinery. Crowded, neutral, everyone docks here. Traders, fixers, smugglers, people who don't ask questions.
-
-**Services**: Basic upgrades, fuel, repairs, work contracts, rumors
-
-**Why you'll go**: It's home base. Where deals happen and news travels.
-
----
-
-### Halcyon Rest
-**Rim, edge of the Shroud**
-
-Small waystation run by Doc Salo (nervous, honest, talks too fast). Gateway to the Shroud nebula. Explorers launch from here.
-
-**Services**: Mid-tier upgrades, fuel, repairs
-
----
-
-### Hob's Landing
-**Rim, orbiting Hob**
-
-Frontier town. Ranchers, miners, drifters. Sheriff's usually somewhere else. Rough but fair.
-
-**Services**: Combat upgrades (beam coils, combat thrusters, warp overhauls)
-
-**Why you'll go**: Gear up for danger here.
-
----
-
-### Dustmote Salvage
-**Rim, wreckage cloud**
-
-Scrapyard and black market. Half the stock fell off Concord freighters. Don't ask about the other half.
-
-**Services**: Jump drive (500cr), heavy weapons, advanced gear
-
-**Why you'll go**: Jump drive.
-
----
-
-### Saint Brennan's Mission
-**Rim, neutral zone**
-
-Clinic and shelter. Neutral ground—even Corsairs leave it alone. If you're hurt, broke, or running, they'll take you in.
-
-**Services**: Repairs, medical, sanctuary
-
----
-
-### Ostia Highport
-**Core, orbiting Ostia**
-
-The richest port in the Drift. Top-tier upgrades, professional service, tight security. If you've got credits and a clean record, it's the best shopping around. If you're wanted, turn around.
-
-**Services**: Military-grade shields, reactor overhauls, heavy weapons
+Your starting ship is a freighter — decent shields, basic weapons, no jump drive. Stations stock different upgrades; ask around. Upgrade shields before venturing into risky space. Save for the jump drive if you're going far.
 
 ---
 
 ## Survival Tips
 
-- **Start safe**: Core and Border regions first. Upgrade before venturing to the Rim.
-- **Build reputation**: Complete contracts, help friendlies, don't shoot without cause.
-- **Upgrade gradually**: Shields first, then weapons and engines. Save for the jump drive (expensive but essential for distant regions).
-- **Read the room**: If a region says "dangerous," believe it.
-- **Never go to the Maw unprepared**: Even fully upgraded, it's lethal. Turn back at the warnings.
+- **Start near the Core and Border.** Learn the ship before the Rim eats you.
+- **Scan everything.** Science can tell you what's worth chasing and what to run from.
+- **The Gauntlet has Corsairs.** The Boneyard has war drones. The Maw has things worse than both.
+- **If a region says dangerous, believe it.**
+- **Don't go to the Maw.**
 
 ---
-
-## The Settlement War (20 Years Ago)
-
-The Concord and Border colonies fought over who controlled what. The Concord won.
-
-**What happened:**
-- Ashgrave—a Border world—was bombed to glass in the first week. Nothing lives there. The drones guarding the Boneyard wreckage never got the shutdown signal.
-- The treaty gave the Concord the Core and patrol rights. The Border kept independence but not much else.
-- Families on both sides lost people.
-
-The war's over. The resentment isn't.
-
----
-
-## Tone and Expectations
-
-### Space Western
-Firefly, not Star Trek. You're hauling cargo and dodging pirates, not exploring strange new worlds. The Drift is big, money is tight, and you're small.
-
-### Scrappy Underdogs
-Your ship is used. Your crew is ragtag. The Concord has warships; you have duct tape and hope. You win by being clever, not powerful.
-
-### Real Stakes
-Bad things happen (pirates, crashes, war drones), but this isn't misery. Wry humor, clever solutions, and the occasional miracle keep it from getting bleak.
-
-### Every Choice Matters
-Run from customs? They remember. Help an injured freighter? They remember. The Drift is small enough that reputations stick.
-
-### The Frontier
-Law arrives late. Help is scarce. Communities look after their own. Out here, your crew and your word are all you've got.
-
----
-
-## One Last Thing
 
 If you hear the Shroud singing, maybe don't answer.
 
-Fly safe. 🚀
-
----
-
-**EmptyEpsilon Controls**: See [official EmptyEpsilon documentation](https://daid.github.io/EmptyEpsilon/) for bridge station controls and game mechanics. This guide covers the universe only.
+Fly safe.
