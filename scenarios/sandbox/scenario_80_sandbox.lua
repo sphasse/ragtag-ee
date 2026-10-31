@@ -151,9 +151,18 @@ local function _distRewardSuffix(mission)
     return suffix or ""
 end
 
--- Per-station work tracking: {callsign → {slots = {[1] = {mission, offered_at, taken_at}, [2] = {...}}}}
+-- Per-station work tracking: {callsign → {slots = {[1] = {mission, offered_at, taken_at}, ...}}}
 -- Each slot tracks a mission independently with its own cooldown timer
 local _station_work = {}
+
+-- Number of job slots a station offers: Port Vesper=4, other Independent=3, rest=2
+local function _stationSlots(cs)
+    if cs == "Port Vesper" then return 4 end
+    for _, st in ipairs(VERSE.STATIONS) do
+        if st.cs == cs and st.fac == "Independent" then return 3 end
+    end
+    return 2
+end
 
 local _TYPE_PFX = {delivery="[D]", salvage="[S]", boarding="[B]", hacking="[H]", tailing="[T]", destroy="[X]"}
 
@@ -530,20 +539,20 @@ function JOBS.stationHook(source, target)
             local now = getScenarioTime()
 
             -- Initialize station work tracking (per-slot system)
+            local n_slots = _stationSlots(cs)
             if not _station_work[cs] then
-                _station_work[cs] = {
-                    slots = {
-                        [1] = {mission = nil, offered_at = 0, taken_at = nil},
-                        [2] = {mission = nil, offered_at = 0, taken_at = nil},
-                    }
-                }
+                local slots = {}
+                for i = 1, n_slots do
+                    slots[i] = {mission = nil, offered_at = 0, taken_at = nil}
+                end
+                _station_work[cs] = {slots = slots}
             end
             local station_state = _station_work[cs]
 
             -- Per-slot cooldown system: each slot tracks independently
             local slots_to_generate = {}
             if S.work_cooldown_enabled then
-                for slot_num = 1, 2 do
+                for slot_num = 1, n_slots do
                     local slot = station_state.slots[slot_num]
 
                     if slot.mission and not slot.taken_at then
@@ -569,8 +578,8 @@ function JOBS.stationHook(source, target)
                     end
                 end
             else
-                -- Cooldown disabled: always generate for both slots
-                slots_to_generate = {1, 2}
+                -- Cooldown disabled: always generate for all slots
+                for i = 1, n_slots do slots_to_generate[i] = i end
             end
 
             -- Director-pushed deliveries take priority (no re-offer if already taken)
