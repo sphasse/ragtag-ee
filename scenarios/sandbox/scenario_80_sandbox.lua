@@ -1053,7 +1053,6 @@ function JOBS.update()
                                     end
                                 end)
                                 m.cargo_obj = drop
-                                RT.shipLog("[Salvage] Mission cargo identified in the debris field. Move in to collect it.", "#80FF80")
                             else
                                 local label = ce.cargo or "Salvage Debris"
                                 drop:setDescriptions("Standard Salvage", label):setCallSign(label)
@@ -1061,7 +1060,6 @@ function JOBS.update()
                                     player:setReputationPoints(player:getReputationPoints() + math.random(25, 50))
                                     RT.shipLog("[Salvage] Standard debris recovered — small bonus.", "#FFFF80")
                                 end)
-                                RT.shipLog("[Salvage] Debris identified: " .. label .. " — not the mission cargo.", "#FFFF80")
                             end
                         end
                     end
