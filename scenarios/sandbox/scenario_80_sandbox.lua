@@ -1271,27 +1271,6 @@ function JOBS.update()
                 if not m._fly_refresh or now > m._fly_refresh then
                     tgt:orderFlyTowardsBlind(m.mx, m.my)
                     if RT.valid(rdv) then rdv:orderFlyTowardsBlind(m.mx, m.my) end
-                    if m._fly_refresh then  -- skip first-frame noise
-                        local tx2, ty2 = tgt:getPosition()
-                        local d_tgt = math.sqrt((m.mx-tx2)^2+(m.my-ty2)^2)
-                        local ok_ts, spd_tgt = pcall(function()
-                            local vx, vy = tgt:getVelocity(); return math.sqrt(vx*vx+vy*vy) end)
-                        if not ok_ts then spd_tgt = -1 end
-                        local d_rdv, spd_rdv = -1, -1
-                        if RT.valid(rdv) then
-                            local rx2, ry2 = rdv:getPosition()
-                            d_rdv = math.sqrt((m.mx-rx2)^2+(m.my-ry2)^2)
-                            local ok_rs, v = pcall(function()
-                                local vx, vy = rdv:getVelocity(); return math.sqrt(vx*vx+vy*vy) end)
-                            if ok_rs then spd_rdv = v end
-                        end
-                        local msg = string.format("[TAILING] %s %.1fU @%.0fu/s | %s %.1fU @%.0fu/s | T-%ds",
-                            m.target_cs, d_tgt/1000, spd_tgt,
-                            m.rendezvous_cs, d_rdv/1000, spd_rdv,
-                            math.max(0, math.floor(m._meet_at - now)))
-                        print(msg)
-                        RT.shipLog(msg, "#606060")
-                    end
                     m._fly_refresh = now + 20
                 end
 
