@@ -112,7 +112,7 @@ local function _verseBounds()
         if r.y - r.r < yn then yn = r.y - r.r end
         if r.y + r.r > yx then yx = r.y + r.r end
     end
-    _VERSE_BOUNDS = {x_min = xn * U, x_max = xx * U, y_min = yn * U, y_max = yx * U}
+    _VERSE_BOUNDS = {x_min = xn * VERSE.U, x_max = xx * VERSE.U, y_min = yn * VERSE.U, y_max = yx * VERSE.U}
     return _VERSE_BOUNDS
 end
 
