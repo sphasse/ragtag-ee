@@ -1017,6 +1017,7 @@ function JOBS.update()
         -- Expiry check (before any type logic so we never act on a dead mission)
         if m._expires_at and now > m._expires_at then
             _cleanSalvageCluster(m)
+            if m.type == "tailing" then _tailingDisperse(m) end
             RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
             MISSION.untrack(m.id)
             table.remove(_active, i)
