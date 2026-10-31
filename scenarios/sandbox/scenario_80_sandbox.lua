@@ -297,7 +297,6 @@ function JOBS.accept(m, skip_log, ship)
             end
             RT.register(pod)
         end
-        print(string.format("[SALVAGE] Cluster of %d pods at (%.0f, %.0f), target=%d", n, m.wx, m.wy, target_idx))
         m._spawned = true
     -- Spawn boarding/hacking/destroy targets immediately so player knows the target name
     elseif (m.type == "boarding" or m.type == "destroy") and not m._spawned then
@@ -365,7 +364,6 @@ function JOBS.accept(m, skip_log, ship)
     elseif m.type == "hacking" and not m._spawned then
         -- Spawn our custom comms relay beacon with only reactor system
         local grid = MISSION.gridRef(m.wx, m.wy)
-        print(string.format("[HACKING SPAWN] Spawning relay at (%.0f, %.0f) grid %s", m.wx, m.wy, grid))
         local s = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
         -- Give it a random beacon designator
         local name = generateBeaconName()
@@ -672,7 +670,6 @@ function JOBS.stationHook(source, target)
                         distance_u = math.sqrt(ddx * ddx + ddy * ddy)
                         dest_region = VERSE.regionAt(dx, dy)
                         dest_danger = dest_region and dest_region.danger or 0
-                        print(string.format("[DELIVERY] %s > %s | Dist: %.1fU | Slot %d", cs, candidates[dest_idx], distance_u/1000, slot_num))
                     end
                     generated_mission = MISSION.newDelivery({
                         origin = cs,
@@ -691,8 +688,6 @@ function JOBS.stationHook(source, target)
                     if not wx then
                         slots_failed = slots_failed + 1
                     else
-                        print(string.format("[SALVAGE] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
-                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                         local mission_ok, mission_err = pcall(function()
                             return MISSION.newSalvage({
                                 origin = cs,
@@ -719,8 +714,6 @@ function JOBS.stationHook(source, target)
                     if not wx then
                         slots_failed = slots_failed + 1
                     else
-                        print(string.format("[BOARDING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
-                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                         local nearby = {}
                         for _, st in ipairs(VERSE.STATIONS) do
                             if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then
@@ -761,8 +754,6 @@ function JOBS.stationHook(source, target)
                     if not wx then
                         slots_failed = slots_failed + 1
                     elseif mtype == "hacking" then
-                        print(string.format("[HACKING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
-                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                         local mission_ok, mission_err = pcall(function()
                             return MISSION.newHacking({
                                 origin = cs,
@@ -783,8 +774,6 @@ function JOBS.stationHook(source, target)
                             error("Hacking: " .. tostring(mission_err))
                         end
                     else  -- destroy
-                        print(string.format("[DESTROY] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
-                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                         local nearby = {}
                         for _, st in ipairs(VERSE.STATIONS) do
                             if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then
@@ -827,8 +816,6 @@ function JOBS.stationHook(source, target)
                     if not mx then
                         slots_failed = slots_failed + 1
                     else
-                        print(string.format("[TAILING] Station: %s | Rendezvous: (%d,%d) | Dist: %.1fU | Slot %d",
-                            cs, mx, my, dist/1000, slot_num))
                         local mission_ok, mission_err = pcall(function()
                             return MISSION.newTailing({
                                 origin = cs,
