@@ -896,6 +896,7 @@ function MISSION.newTailing(opts)
                            .. "\n\nThey'll detect a probe signature or any ship within weapons range — spook them before the meeting and the contract is lost.",
         complete_msg     = arch.recv_msg,
         target_template  = target_template,
+        distance_u       = distance_u,   -- stored for spawn-time geometry (ship spawn dist = D/4)
         _spawned         = false,
         _meeting         = false,
         _meeting_at      = nil,
