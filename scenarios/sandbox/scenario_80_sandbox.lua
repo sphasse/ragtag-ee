@@ -391,13 +391,18 @@ function JOBS.accept(m, skip_log, ship)
         m._spawned  = true
     elseif m.type == "tailing" and not m._spawned then
         -- Geometric timing: rendezvous point (mx, my) is at distance D from station.
-        -- Ships use pure impulse at SHIP_WARP (no warp drive) for reliable, instant startup.
-        -- Player travels at WARP1 (500 u/s): T = D/500.  Ships travel (D/4)/125 = T. ✓
+        -- Ships use pure impulse (no warp drive) for reliable, instant startup.
+        -- Player travels at WARP1 (500 u/s): T = D/500.
+        -- Target:     125 u/s, spawns D/4 out.  Travel = (D/4)/125 = T. ✓
+        -- Rendezvous: 250 u/s, spawns D/2 out.  Travel = (D/2)/250 = T. ✓
+        -- Different speeds + origins mean dispersal vectors diverge naturally.
         local WARP1     = 500
-        local SHIP_WARP = 125   -- 0.25 warp
+        local SHIP_WARP = 125   -- target speed
+        local RDV_WARP  = 250   -- rendezvous speed (2x, spawns 2x farther)
         local D = math.max(m.distance_u, 15000)
         local T = D / WARP1
-        local spawn_dist = T * SHIP_WARP   -- = D/4
+        local spawn_dist     = T * SHIP_WARP   -- = D/4
+        local rdv_spawn_dist = T * RDV_WARP    -- = D/2
 
         -- Two spawn angles at least 90° apart so ships approach from different directions.
         local t_ang   = math.random() * 2 * math.pi
@@ -419,15 +424,15 @@ function JOBS.accept(m, skip_log, ship)
         RT.register(target)
         target:setCommsFunction(function(src, tgt) setCommsMessage('"No response."') end)
 
-        -- Rendezvous ship: same distance, different angle.
+        -- Rendezvous ship: 2x speed from 2x distance, different angle.
         local rname = _FREIGHTER_NAMES[math.random(#_FREIGHTER_NAMES)]
-        local rwx = math.floor(m.mx + math.cos(rdv_ang) * spawn_dist)
-        local rwy = math.floor(m.my + math.sin(rdv_ang) * spawn_dist)
+        local rwx = math.floor(m.mx + math.cos(rdv_ang) * rdv_spawn_dist)
+        local rwy = math.floor(m.my + math.sin(rdv_ang) * rdv_spawn_dist)
         local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Unknown")
         rendezvous:setCallSign(rname)
         rendezvous:setPosition(rwx, rwy)
         rendezvous:setRotation((270 - math.deg(rdv_ang)) % 360)
-        rendezvous:setWarpDrive(false):setImpulseMaxSpeed(SHIP_WARP)
+        rendezvous:setWarpDrive(false):setImpulseMaxSpeed(RDV_WARP)
         rendezvous:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(rendezvous)
         rendezvous:setCommsFunction(function(src, tgt) setCommsMessage('"Move along."') end)
