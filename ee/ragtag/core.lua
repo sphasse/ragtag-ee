@@ -629,7 +629,13 @@ function RT.spawnPlayer(x, y, heading, opts)
         p:setEnergy(p:getMaxEnergy() * cond.energy_pct)
     end
     p:setReputationPoints(opts.credits ~= nil and opts.credits or c.credits or 0)
-    table.insert(RT.players, p)
+    -- onNewPlayerShip fires during setTemplate above and may have already registered
+    -- the ship (e.g. to preserve a non-Independent faction). Guard against duplicates.
+    local already = false
+    for _, existing in ipairs(RT.players) do
+        if existing == p then already = true; break end
+    end
+    if not already then table.insert(RT.players, p) end
     RT.player = RT.players[1]   -- backward-compat alias always points to first ship
     RT.named[cs] = p
     return p

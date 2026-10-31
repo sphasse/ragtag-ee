@@ -18,17 +18,6 @@
 -- Setting[Director]: Whether the scenario talks to the external AI director.
 -- Director[On|Default]: Dynamic encounters and opportunities from the AI director.
 -- Director[Off]: Static universe with scripted random encounters only.
--- Setting[Ships]: How many player ships to spawn.
--- Ships[1|Default]: One ship (the Magpie).
--- Ships[2]: Magpie + Raven.
--- Ships[3]: + Jackdaw.
--- Ships[4]: + Starling.
--- Ships[5]: + Wren.
--- Ships[6]: + Kestrel.
--- Ships[7]: + Harrier.
--- Ships[8]: + Merlin.
--- Ships[9]: + Osprey.
--- Ships[10]: + Swift.
 
 require("utils.lua")
 require("ragtag/core.lua")
@@ -1874,52 +1863,48 @@ function init()
     VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest"})
     PROX.init()
 
-    -- Spawn player ship(s) at Port Vesper (safe starting location)
+    -- Spawn the primary ship at Port Vesper. Additional ships join via the
+    -- in-game "Create player ship" selection screen; onNewPlayerShip handles them.
+    RT.PLAYER_TEMPLATE = "Light Freighter"
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
     RT.spawnPlayer(px, py, 0)
-    local num_ships = tonumber(getScenarioSetting("Ships")) or 1
-    local c = RT.campaign
-    for i = 2, num_ships do
-        local extra   = c.extra_ships and c.extra_ships[i-1]
-        local credits = extra and extra.credits or c.credits or 150
-        RT.spawnPlayer(px + (i - 1) * 4000, py, 0, {
-            callsign = _SHIP_ROSTER[i],
-            credits  = credits,
-        })
-    end
 
-    -- Ships created from the selection screen spawn at 0,0 with no faction.
-    -- Move them to Port Vesper and give starting credits so they can play.
+    -- Ships created via the "Create player ship" selection screen spawn at 0,0 with no
+    -- faction or name.  Move them to Port Vesper, set faction, and assign the next
+    -- available roster name so every Drift freighter gets its bird name.
     onNewPlayerShip(function(ship)
         local vx, vy = VERSE.at("Port Vesper", 1.5, 1.5)
         local offset = #RT.players * 4000
         ship:setPosition(vx + offset, vy)
-        ship:setFaction(RT.PLAYER_FACTION)
+        local tmpl = ship:getTypeName()
+        local faction =
+            tmpl == "Concord Enforcer" and "Concord"  or
+            tmpl == "Corsair Raider"   and "Corsairs" or
+            RT.PLAYER_FACTION
+        ship:setFaction(faction)
+        -- Auto-assign the next available roster name for freighters.
+        -- RT.spawnPlayer overrides this with its explicit callsign, so no conflict.
+        if tmpl == "Light Freighter" then
+            local used = {}
+            for _, p in ipairs(RT.players) do used[p:getCallSign()] = true end
+            for _, name in ipairs(_SHIP_ROSTER) do
+                if not used[name] then ship:setCallSign(name); break end
+            end
+        end
         if RT.campaign then
             ship:setReputationPoints(RT.campaign.credits or 150)
         end
+        -- Pre-register so RT.update's sync loop doesn't override the faction next frame.
+        -- (RT.spawnPlayer may also insert; the duplicate guard there prevents double-entry.)
+        local found = false
+        for _, p in ipairs(RT.players) do
+            if p == ship then found = true; break end
+        end
+        if not found then
+            table.insert(RT.players, ship)
+            RT.player = RT.players[1]
+        end
     end)
-
-    -- GM buttons to add further ships mid-session (appear in the GM console).
-    -- Clicking one spawns the ship near Port Vesper and removes the button.
-    local function _addShipGMButton(i)
-        local name = _SHIP_ROSTER[i]
-        addGMFunction("Add ship: " .. name, function()
-            local vx, vy = VERSE.at("Port Vesper", 1.5, 1.5)
-            local c2 = RT.campaign
-            local extra   = c2.extra_ships and c2.extra_ships[i-1]
-            local credits = extra and extra.credits or (c2.credits or 150)
-            RT.spawnPlayer(vx + (#RT.players) * 4000, vy, 0, {
-                callsign = name,
-                credits  = credits,
-            })
-            removeGMFunction("Add ship: " .. name)
-            globalMessage(name .. " has undocked from Port Vesper.", 5)
-        end)
-    end
-    for i = num_ships + 1, #_SHIP_ROSTER do
-        _addShipGMButton(i)
-    end
 
     -- Custom Port Vesper comms: welcome message on first hail, standard message after
     local vesper = RT.find("Port Vesper")

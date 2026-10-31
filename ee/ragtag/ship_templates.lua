@@ -8,58 +8,17 @@
 
 local _pf = __ship_templates["Flavia P.Falcon"]
 
-local _DRIFT_SHIPS = {
-    {
-        name = "Magpie",
-        desc = "A battered Flavia transport running independent colors. Shows its age but flies true. The crew says she's got a good heart—whatever that means for a ship.",
-    },
-    {
-        name = "Raven",
-        desc = "Older than she looks and meaner than she sounds. The Raven's been through half the Drift and back. Someone painted over her registration twice.",
-    },
-    {
-        name = "Jackdaw",
-        desc = "Fast for a freighter, and the crew likes it that way. The Jackdaw's had her warp coils replaced three times. She runs hot but she runs.",
-    },
-    {
-        name = "Starling",
-        desc = "Small and quick, the Starling moves cargo no one asks questions about. Her hull plating is mismatched; most of it's newer than the frame.",
-    },
-    {
-        name = "Wren",
-        desc = "The smallest of the class and proud of it. The Wren can dock where bigger ships can't, which comes in handy more than you'd think.",
-    },
-    {
-        name = "Kestrel",
-        desc = "Stripped-down and re-tuned by her last crew, the Kestrel runs hotter than spec. Engineering earns their pay on this one.",
-    },
-    {
-        name = "Harrier",
-        desc = "A working ship with working-ship scars. The Harrier's been repaired more times than her manifest shows, and she flies better for it.",
-    },
-    {
-        name = "Merlin",
-        desc = "Deceptively quick off the line. The Merlin looks unremarkable—which is exactly how her captain likes it.",
-    },
-    {
-        name = "Osprey",
-        desc = "Built for the deep lanes, the Osprey has extra shielding on the bow and a pilot who knows when to run. Experienced crew, worn paint.",
-    },
-    {
-        name = "Swift",
-        desc = "Newest of the class and still has that fresh-welded smell. The Swift hasn't earned her scars yet—but she will.",
-    },
-}
-
-for _, info in ipairs(_DRIFT_SHIPS) do
-    local t = _pf:copy(info.name)
-    t:setLocaleName(info.name)
-    t:setDescription(info.desc)
-    -- Register directly: copy already has all playership components from the original.
-    -- Calling setType("playership") again would reset reactor/coolant to empty tables,
-    -- which is harmless here but we avoid it to stay explicit.
-    __player_ship_templates[#__player_ship_templates + 1] = t
-end
+-- ── Independent Freighter ─────────────────────────────────────────────────────
+-- Generic Flavia-class transport for the Drift campaign.  The scenario assigns
+-- one of the named sister ships (Magpie, Raven, Jackdaw …) at spawn time.
+local freighter = _pf:copy("Light Freighter")
+freighter:setLocaleName("Light Freighter")
+freighter:setDescription(
+    "A Flavia-class transport running independent colors. " ..
+    "One of the Drift's sister ships—Magpie, Raven, Jackdaw and the rest—" ..
+    "will be assigned at spawn. Solid, unglamorous, and surprisingly hard to kill."
+)
+__player_ship_templates[#__player_ship_templates + 1] = freighter
 
 -- ── Concord Enforcer ──────────────────────────────────────────────────────────
 -- Heavy patrol cutter in Concord service colors. Well-armored, forward-biased
