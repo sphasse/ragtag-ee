@@ -17,6 +17,12 @@ local U = 1000  -- world units per universe unit
 
 -- Callsign pools for proximity-spawned patrols, keyed by faction.
 local _PATROL_NAMES = {
+    Concord = {
+        "Dortmunder",   "Long Arm",      "Due Process",   "Standing Order", "Iron Mandate",
+        "Hard Line",    "Last Warning",  "Quiet Authority","Fine Print",    "Common Law",
+        "By The Book",  "Public Order",  "Clear Channel", "The Compact",   "Right of Way",
+        "Warrant Served","No Exception", "Border Notice", "Terms of Service","The Arbiter",
+    },
     Corsairs = {
         "Iron Hand",    "Toll Taker",    "Night Watch",   "Knife's Edge",  "Dead Weight",
         "Rough Rider",  "Bloodhound",    "Dark Passage",  "Last Stop",     "The Collector",

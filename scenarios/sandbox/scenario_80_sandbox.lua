@@ -392,45 +392,48 @@ function JOBS.accept(m, skip_log, ship)
         m.obj = "Hack " .. name
         m._spawned  = true
     elseif m.type == "tailing" and not m._spawned then
-        -- Timing: place both ships equidistant from the meeting point so they arrive
-        -- at the same moment the player (travelling at warp 1) reaches the target area.
-        local WARP1    = 500  -- game units/sec (warp 1 = 30 U/min)
-        local px, py   = (ship or RT.player):getPosition()
-        local d_player = math.sqrt((m.wx - px)^2 + (m.wy - py)^2)
-        local d_meet   = math.max(d_player, 15000)  -- minimum 15 U (~30 s at warp 1)
-        local T        = d_meet / WARP1
+        -- Geometric timing: rendezvous point (mx, my) is at distance D from station.
+        -- Ships travel at 0.25 warp (SHIP_WARP = 125 u/s) and spawn D/4 from the rendezvous.
+        -- Player travels at WARP1 (500 u/s): T = D/500.  Ship travel = (D/4)/125 = T. ✓
+        local WARP1     = 500
+        local SHIP_WARP = 125   -- 0.25 warp
+        local D = math.max(m.distance_u, 15000)
+        local T = D / WARP1
+        local spawn_dist = T * SHIP_WARP   -- = D/4
 
-        -- Keep pre-computed meeting direction; recalculate distance so timing works out
-        local meet_ang = math.atan(m.my - m.wy, m.mx - m.wx)
-        m.mx = math.floor(m.wx + math.cos(meet_ang) * d_meet)
-        m.my = math.floor(m.wy + math.sin(meet_ang) * d_meet)
+        -- Two spawn angles at least 90° apart so ships approach from different directions.
+        local t_ang   = math.random() * 2 * math.pi
+        local rdv_ang = t_ang + math.pi * 0.5 + math.random() * math.pi  -- 90-270° offset
 
-        -- Target ship: Unknown faction so Corsair proximity spawns ignore it.
-        -- setWarpDrive + setWarpSpeed required even when the template has warp —
-        -- ECS CpuShip spawns don't inherit the template's warp state automatically.
+        -- Target ship: Unknown faction; setWarpDrive+setWarpSpeed required on ECS CpuShip spawns.
         local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
+        local twx = math.floor(m.mx + math.cos(t_ang) * spawn_dist)
+        local twy = math.floor(m.my + math.sin(t_ang) * spawn_dist)
         local target = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
         target:setCallSign(tname)
-        target:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
+        target:setPosition(twx + random(-1000, 1000), twy + random(-1000, 1000))
         target:setHull(target:getHullMax())
         target:setScanningParameters(1, 1)
-        target:setWarpDrive(true):setWarpSpeed(500)
+        target:setWarpDrive(true):setWarpSpeed(SHIP_WARP)
         target:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(target)
         target:setCommsFunction(function(src, tgt) setCommsMessage('"No response."') end)
 
-        -- Rendezvous ship: spawn d_meet beyond meeting point (total 2×d_meet from target)
-        -- Both ships travel at warp 1 and arrive at the meeting point at time T.
+        -- Rendezvous ship: same distance, different angle.
         local rname = _FREIGHTER_NAMES[math.random(#_FREIGHTER_NAMES)]
-        local rx = math.floor(m.mx + math.cos(meet_ang) * d_meet)
-        local ry = math.floor(m.my + math.sin(meet_ang) * d_meet)
+        local rwx = math.floor(m.mx + math.cos(rdv_ang) * spawn_dist)
+        local rwy = math.floor(m.my + math.sin(rdv_ang) * spawn_dist)
         local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Unknown")
         rendezvous:setCallSign(rname)
-        rendezvous:setPosition(rx, ry)
-        rendezvous:setWarpDrive(true):setWarpSpeed(500)
+        rendezvous:setPosition(rwx, rwy)
+        rendezvous:setWarpDrive(true):setWarpSpeed(SHIP_WARP)
         rendezvous:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(rendezvous)
         rendezvous:setCommsFunction(function(src, tgt) setCommsMessage('"Move along."') end)
+
+        -- Update wx/wy to target's actual spawn position for the "last spotted at" log hint.
+        m.wx = twx
+        m.wy = twy
 
         m.target_cs     = tname
         m.rendezvous_cs = rname
@@ -815,20 +818,18 @@ function JOBS.stationHook(source, target)
                     end
                 elseif mtype == "tailing" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
-                    local wx, wy, dist, region = _spawnInVerse(rx, ry)
-                    if not wx then
+                    -- Rendezvous point at full mission distance; ships spawn D/4 away
+                    -- and travel at 0.25 warp so all three parties arrive at the same time.
+                    local mx, my, dist, region = _spawnInVerse(rx, ry)
+                    if not mx then
                         slots_failed = slots_failed + 1
                     else
-                        local meet_ang  = math.random() * 2 * math.pi
-                        local meet_dist = (20 + math.random() * 15) * 1000
-                        local mx = math.floor(wx + math.cos(meet_ang) * meet_dist)
-                        local my = math.floor(wy + math.sin(meet_ang) * meet_dist)
-                        print(string.format("[TAILING] Station: %s | Target: (%d,%d) | Meet: (%d,%d) | Dist: %.1fU | Slot %d",
-                            cs, wx, wy, mx, my, dist/1000, slot_num))
+                        print(string.format("[TAILING] Station: %s | Rendezvous: (%d,%d) | Dist: %.1fU | Slot %d",
+                            cs, mx, my, dist/1000, slot_num))
                         local mission_ok, mission_err = pcall(function()
                             return MISSION.newTailing({
                                 origin = cs,
-                                wx = wx, wy = wy,
+                                wx = mx, wy = my,  -- placeholder; spawn block overwrites with target position
                                 mx = mx, my = my,
                                 tier = tier,
                                 distance_u = dist,
@@ -971,14 +972,20 @@ local function _tailingDisperse(m)
     end
     local tgt = RT.find(m.target_cs or "")
     if RT.valid(tgt) and #available >= 1 then
-        local st = RT.find(available[1]); if RT.valid(st) then
-            local sx, sy = st:getPosition(); tgt:setFaction("Independent"); tgt:orderFlyTowards(sx, sy)
+        local st = RT.find(available[1])
+        if RT.valid(st) then
+            tgt:setFaction("Independent")
+            tgt:setWarpDrive(true):setWarpSpeed(300)
+            tgt:orderDock(st)
         end
     end
     local rdv = RT.find(m.rendezvous_cs or "")
     if RT.valid(rdv) and #available >= 2 then
-        local st = RT.find(available[2]); if RT.valid(st) then
-            local sx, sy = st:getPosition(); rdv:orderFlyTowards(sx, sy)
+        local st = RT.find(available[2])
+        if RT.valid(st) then
+            rdv:setFaction("Independent")
+            rdv:setWarpDrive(true):setWarpSpeed(300)
+            rdv:orderDock(st)
         end
     end
 end
@@ -1264,15 +1271,23 @@ function JOBS.update()
                     if m._fly_refresh then  -- skip first-frame noise
                         local tx2, ty2 = tgt:getPosition()
                         local d_tgt = math.sqrt((m.mx-tx2)^2+(m.my-ty2)^2)
-                        local d_rdv = RT.valid(rdv) and RT.dist(rdv, {getPosition=function() return m.mx,m.my end}) or -1
+                        local ok_ts, spd_tgt = pcall(function()
+                            local vx, vy = tgt:getVelocity(); return math.sqrt(vx*vx+vy*vy) end)
+                        if not ok_ts then spd_tgt = -1 end
+                        local d_rdv, spd_rdv = -1, -1
                         if RT.valid(rdv) then
                             local rx2, ry2 = rdv:getPosition()
                             d_rdv = math.sqrt((m.mx-rx2)^2+(m.my-ry2)^2)
+                            local ok_rs, v = pcall(function()
+                                local vx, vy = rdv:getVelocity(); return math.sqrt(vx*vx+vy*vy) end)
+                            if ok_rs then spd_rdv = v end
                         end
-                        print(string.format("[TAILING] %s %.1fU from meet | %s %.1fU from meet | meet_at T-%ds",
-                            m.target_cs, d_tgt/1000,
-                            m.rendezvous_cs, d_rdv/1000,
-                            math.max(0, math.floor(m._meet_at - now))))
+                        local msg = string.format("[TAILING] %s %.1fU @%.0fu/s | %s %.1fU @%.0fu/s | T-%ds",
+                            m.target_cs, d_tgt/1000, spd_tgt,
+                            m.rendezvous_cs, d_rdv/1000, spd_rdv,
+                            math.max(0, math.floor(m._meet_at - now)))
+                        print(msg)
+                        RT.shipLog(msg, "#606060")
                     end
                     m._fly_refresh = now + 20
                 end
@@ -1285,13 +1300,12 @@ function JOBS.update()
                     rdv:orderIdle()
                     local mx, my = tgt:getPosition()
                     RT.shipLog("[Tailing] Meeting in progress at " .. MISSION.gridRef(mx, my)
-                        .. ". Science: scan both ships. 60 seconds.", "#FFCC80")
+                        .. ". Science: scan both ships. 90 seconds.", "#FFCC80")
                     m.obj = "Scan both ships at meeting"
                     JOBS.updateObj()
                 end
 
-                -- Rendezvous deadline: if the window has closed and we never saw the meeting, fail.
-                -- 2-minute grace period covers slow AI pathing near the waypoint.
+                -- Rendezvous deadline: ships arrive at T; 120s grace covers AI pathing variance.
                 if now > m._meet_at + 120 and not m._meeting then
                     RT.shipLog("[Tailing] Ships completed their rendezvous unobserved. Contract failed.", "#FF8080")
                     _tailingDisperse(m)
@@ -1302,8 +1316,8 @@ function JOBS.update()
                 end
 
             elseif not m._scanned then
-                -- 60-second scan window
-                if now - m._meeting_at > 60 then
+                -- 90-second scan window (player may arrive slightly after the meeting starts)
+                if now - m._meeting_at > 90 then
                     RT.shipLog("[Tailing] Meeting ended — not scanned in time. Contract lost.", "#FF8080")
                     _tailingDisperse(m)
                     MISSION.untrack(m.id)
