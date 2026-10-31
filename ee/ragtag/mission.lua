@@ -569,7 +569,7 @@ function MISSION.newDelivery(opts)
         dest         = opts.dest,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
+        short        = arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward, nil),
         obj          = "Deliver to " .. dest_short,
         -- brief shown after accepting (lore + contact's words)
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
