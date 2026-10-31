@@ -987,7 +987,7 @@ end
 
 -- Target detected the player or a probe — abort mission
 local function _tailingSpook(m, reason)
-    RT.shipLog("[Tailing] " .. reason .. " -- target spooked. Contract lost.", "#FF8080")
+    RT.shipLog("[Tailing] Contract failed — looks like they got spooked. (" .. reason .. ")", "#FF8080")
     _tailingDisperse(m)
 end
 
@@ -1242,16 +1242,29 @@ function JOBS.update()
                     goto next_entry
                 end
 
-                -- Detection: scan probe within 5u (en route — probes are active sensors)
-                local tx, ty = tgt:getPosition()
-                for _, obj in ipairs(getObjectsInRadius(tx, ty, 5000)) do
-                    if RT.valid(obj) and isObjectType(obj, "ScanProbe") then
-                        _tailingSpook(m, "Target detected a probe")
-                        MISSION.untrack(m.id)
-                        table.remove(_active, i)
-                        JOBS.updateObj()
-                        goto next_entry
+                -- Detection en route: player ship or probe within 10u spooks the target
+                local spook_en_route = nil
+                for _, p in ipairs(RT.players) do
+                    if RT.valid(p) and RT.dist(p, tgt) < 10000 then
+                        spook_en_route = "target spotted the ship"
+                        break
                     end
+                end
+                if not spook_en_route then
+                    local tx, ty = tgt:getPosition()
+                    for _, obj in ipairs(getObjectsInRadius(tx, ty, 10000)) do
+                        if RT.valid(obj) and isObjectType(obj, "ScanProbe") then
+                            spook_en_route = "target detected a probe"
+                            break
+                        end
+                    end
+                end
+                if spook_en_route then
+                    _tailingSpook(m, spook_en_route)
+                    MISSION.untrack(m.id)
+                    table.remove(_active, i)
+                    JOBS.updateObj()
+                    goto next_entry
                 end
 
                 -- Stall watchdog: re-issue fly orders every 20 s in case AI gets stuck
@@ -1306,15 +1319,29 @@ function JOBS.update()
                 end
 
             elseif not m._scanned then
-                -- Detection during meeting: player within 2u spooks both ships
+                -- Detection during meeting: player ship or probe within 10u spooks both ships
+                local spook_meeting = nil
                 for _, p in ipairs(RT.players) do
-                    if RT.valid(p) and RT.dist(p, tgt) < 2000 then
-                        _tailingSpook(m, "Player spooked the meeting")
-                        MISSION.untrack(m.id)
-                        table.remove(_active, i)
-                        JOBS.updateObj()
-                        goto next_entry
+                    if RT.valid(p) and RT.dist(p, tgt) < 10000 then
+                        spook_meeting = "ship got too close during the meeting"
+                        break
                     end
+                end
+                if not spook_meeting and RT.valid(tgt) then
+                    local tx, ty = tgt:getPosition()
+                    for _, obj in ipairs(getObjectsInRadius(tx, ty, 10000)) do
+                        if RT.valid(obj) and isObjectType(obj, "ScanProbe") then
+                            spook_meeting = "probe detected during the meeting"
+                            break
+                        end
+                    end
+                end
+                if spook_meeting then
+                    _tailingSpook(m, spook_meeting)
+                    MISSION.untrack(m.id)
+                    table.remove(_active, i)
+                    JOBS.updateObj()
+                    goto next_entry
                 end
 
                 -- 90-second scan window (player may arrive slightly after the meeting starts)
