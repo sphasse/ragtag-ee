@@ -1334,7 +1334,7 @@ function JOBS.update()
                                     local ok, s = pcall(function() return rdv:isScannedBy(p) end)
                                     if ok and s then
                                         m._rdv_scanned = true
-                                        RT.shipLog("[Tailing] Contact ship identified.", "#FFCC80")
+                                        RT.shipLog("[Tailing] Contact ship " .. m.rendezvous_cs .. " identified.", "#FFCC80")
                                     end
                                 end
                                 if m._tgt_scanned and m._rdv_scanned then
