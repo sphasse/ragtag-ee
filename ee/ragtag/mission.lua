@@ -448,6 +448,8 @@ local _HACKING_ARCHETYPES = {
     },
 }
 
+MISSION.SALVAGE_ARCHETYPES = _SALVAGE_ARCHETYPES  -- exposed for use by other systems (e.g. combat drops)
+
 -- Base reward by tier (rounded to nearest 5 after all multipliers)
 local _BASE_REWARD = {[0] = 50, [1] = 75, [2] = 100}
 

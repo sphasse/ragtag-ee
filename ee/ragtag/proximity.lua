@@ -235,17 +235,18 @@ local function _spawnGroup(region_name, px, py)
             local dx, dy = self:getPosition()
             local count = math.random(1, 3)
             for _ = 1, count do
+                local arch   = MISSION.SALVAGE_ARCHETYPES[math.random(#MISSION.SALVAGE_ARCHETYPES)]
                 local reward = math.random(10, 30)
                 local ox = (math.random() * 2 - 1) * 2000
                 local oy = (math.random() * 2 - 1) * 2000
                 local pod = SupplyDrop():setFaction("Independent")
                                         :setCallSign("Debris")
                                         :setPosition(dx + ox, dy + oy)
-                pod:setDescriptions("Combat Salvage", "Wreckage from a downed vessel.")
+                pod:setDescriptions("Salvage Container", arch.cargo)
                 pod:onPickUp(function(pod_self, player)
                     if RT.valid(player) then
-                        RT.addCredits(reward, "combat salvage", player)
-                        RT.shipLog("[Salvage] Combat debris recovered: +" .. reward .. "cr.", "#80FF80")
+                        RT.addCredits(reward, "salvage: " .. arch.cargo, player)
+                        RT.shipLog("[Salvage] Recovered " .. arch.cargo .. ": +" .. reward .. "cr.", "#80FF80")
                     end
                 end)
             end
