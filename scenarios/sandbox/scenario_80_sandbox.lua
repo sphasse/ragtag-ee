@@ -581,6 +581,7 @@ function JOBS.stationHook(source, target)
         end
 
         -- Generate missions for slots that need them
+        local slots_failed = 0
         if #slots_to_generate > 0 then
             local candidates = {}
             for _, d in ipairs(VERSE.STATIONS) do
@@ -595,7 +596,6 @@ function JOBS.stationHook(source, target)
             local station_e = RT.find(cs)
             local dest_idx  = 1
             local dist_min, dist_max = JOBS.getDistanceRange()
-            local slots_failed = 0
             for _, slot_num in ipairs(slots_to_generate) do
                 local tier  = math.min(mt, math.random(0, 1))
                 local mtype = pickMissionType()
