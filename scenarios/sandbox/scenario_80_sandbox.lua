@@ -363,7 +363,20 @@ function JOBS.accept(m, skip_log)
         m.obj = "Hack " .. name
         m._spawned  = true
     elseif m.type == "tailing" and not m._spawned then
-        -- Spawn target ship as Unknown faction — requires Science scanning to identify
+        -- Timing: place both ships equidistant from the meeting point so they arrive
+        -- at the same moment the player (travelling at warp 1) reaches the target area.
+        local WARP1    = 500  -- game units/sec (warp 1 = 30 U/min)
+        local px, py   = RT.player:getPosition()
+        local d_player = math.sqrt((m.wx - px)^2 + (m.wy - py)^2)
+        local d_meet   = math.max(d_player, 15000)  -- minimum 15 U (~30 s at warp 1)
+        local T        = d_meet / WARP1
+
+        -- Keep pre-computed meeting direction; recalculate distance so timing works out
+        local meet_ang = math.atan(m.my - m.wy, m.mx - m.wx)
+        m.mx = math.floor(m.wx + math.cos(meet_ang) * d_meet)
+        m.my = math.floor(m.wy + math.sin(meet_ang) * d_meet)
+
+        -- Target ship: Unknown faction — requires Science scan to identify
         local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
         local target = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
         target:setCallSign(tname)
@@ -374,12 +387,12 @@ function JOBS.accept(m, skip_log)
         RT.register(target)
         target:setCommsFunction(function(src, tgt) setCommsMessage('"No response."') end)
 
-        -- Rendezvous ship: spawn 30u from meeting point on far side from target
+        -- Rendezvous ship: spawn d_meet beyond meeting point (total 2×d_meet from target)
+        -- Both ships travel at warp 1 and arrive at the meeting point at time T.
         local rname = _FREIGHTER_NAMES[math.random(#_FREIGHTER_NAMES)]
-        local meet_ang = math.atan(m.my - m.wy, m.mx - m.wx)
-        local rx = math.floor(m.mx + math.cos(meet_ang) * 30000)
-        local ry = math.floor(m.my + math.sin(meet_ang) * 30000)
-        local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Independent")
+        local rx = math.floor(m.mx + math.cos(meet_ang) * d_meet)
+        local ry = math.floor(m.my + math.sin(meet_ang) * d_meet)
+        local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Unknown")
         rendezvous:setCallSign(rname)
         rendezvous:setPosition(rx, ry)
         rendezvous:orderFlyTowards(m.mx, m.my)
@@ -388,6 +401,7 @@ function JOBS.accept(m, skip_log)
 
         m.target_cs     = tname
         m.rendezvous_cs = rname
+        m._meet_at      = getScenarioTime() + T
         local suffix = _distRewardSuffix(m)
         m.short = "Surveil " .. tname .. " (tailing)" .. suffix
         m.obj   = "Locate " .. tname
@@ -424,8 +438,9 @@ function JOBS.accept(m, skip_log)
             local hdx = m.mx - m.wx
             local hdy = m.my - m.wy
             local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
-            RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. Approach with care.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#60CCFF")
+            local t_min = math.max(1, math.floor((m._meet_at - getScenarioTime()) / 60 + 0.5))
+            RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. We expect a rendezvous in ~%dm. Approach with care.",
+                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg, t_min), "#60CCFF")
         else
             RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
                 m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#60CCFF")
