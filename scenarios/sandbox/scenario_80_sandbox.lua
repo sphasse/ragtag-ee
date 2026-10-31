@@ -393,8 +393,8 @@ function JOBS.accept(m, skip_log, ship)
         m._spawned  = true
     elseif m.type == "tailing" and not m._spawned then
         -- Geometric timing: rendezvous point (mx, my) is at distance D from station.
-        -- Ships travel at 0.25 warp (SHIP_WARP = 125 u/s) and spawn D/4 from the rendezvous.
-        -- Player travels at WARP1 (500 u/s): T = D/500.  Ship travel = (D/4)/125 = T. ✓
+        -- Ships use pure impulse at SHIP_WARP (no warp drive) for reliable, instant startup.
+        -- Player travels at WARP1 (500 u/s): T = D/500.  Ships travel (D/4)/125 = T. ✓
         local WARP1     = 500
         local SHIP_WARP = 125   -- 0.25 warp
         local D = math.max(m.distance_u, 15000)
@@ -405,9 +405,8 @@ function JOBS.accept(m, skip_log, ship)
         local t_ang   = math.random() * 2 * math.pi
         local rdv_ang = t_ang + math.pi * 0.5 + math.random() * math.pi  -- 90-270° offset
 
-        -- Target ship: Unknown faction; setWarpDrive+setWarpSpeed required on ECS CpuShip spawns.
+        -- Target ship: Unknown faction; no warp drive, fast impulse only.
         -- Pre-rotate toward rendezvous: heading = (270 - deg(t_ang)) % 360 (EE: 0=N, 90=E, CW).
-        -- This skips the ~18s rotation startup, so warp engages in ~10s instead of ~28s.
         local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
         local twx = math.floor(m.mx + math.cos(t_ang) * spawn_dist)
         local twy = math.floor(m.my + math.sin(t_ang) * spawn_dist)
@@ -417,7 +416,7 @@ function JOBS.accept(m, skip_log, ship)
         target:setRotation((270 - math.deg(t_ang)) % 360)
         target:setHull(target:getHullMax())
         target:setScanningParameters(1, 1)
-        target:setWarpDrive(true):setWarpSpeed(SHIP_WARP)
+        target:setWarpDrive(false):setImpulseMaxSpeed(SHIP_WARP)
         target:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(target)
         target:setCommsFunction(function(src, tgt) setCommsMessage('"No response."') end)
@@ -430,7 +429,7 @@ function JOBS.accept(m, skip_log, ship)
         rendezvous:setCallSign(rname)
         rendezvous:setPosition(rwx, rwy)
         rendezvous:setRotation((270 - math.deg(rdv_ang)) % 360)
-        rendezvous:setWarpDrive(true):setWarpSpeed(SHIP_WARP)
+        rendezvous:setWarpDrive(false):setImpulseMaxSpeed(SHIP_WARP)
         rendezvous:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(rendezvous)
         rendezvous:setCommsFunction(function(src, tgt) setCommsMessage('"Move along."') end)
