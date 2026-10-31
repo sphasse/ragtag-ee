@@ -73,6 +73,17 @@ local function _sd(cs) return _SHORT[cs] or cs end   -- short dest name (<=14 ch
 local _active = {}   -- list of {mission=m, phase="active"|"done"}
 local _done   = {}   -- id → true (taken or completed this session)
 
+-- Destroy any un-materialised CpuShip markers in a salvage cluster.
+local function _cleanSalvageCluster(m)
+    if not m._cluster then return end
+    for _, e in ipairs(m._cluster) do
+        if not e._materialized and RT.valid(e.marker) then
+            e.marker:setCanBeDestroyed(true)
+            e.marker:destroy()
+        end
+    end
+end
+
 local _MISSION_WEIGHTS = {
     {type = "delivery", weight = 15},
     {type = "salvage",  weight = 7},
@@ -249,34 +260,44 @@ function JOBS.accept(m, skip_log, ship)
 
     JOBS.updateObj()
 
-    -- Spawn salvage cargo pod immediately so player can see it on scanners
+    -- Spawn a cluster of unknown salvage pods; Science must scan to find the right one.
+    -- The real cargo materialises as a SupplyDrop when identified; decoys drop standard loot.
     if m.type == "salvage" and not m._spawned then
-        local cargo_pod = SupplyDrop():setFaction("Independent"):setPosition(m.wx, m.wy)
-        cargo_pod:setDescriptions("Salvage Container", m.cargo)
-        -- Use the cargo name as the callsign (capitalize first letter)
-        local cargo_name = m.cargo:gsub("^%l", string.upper)
-        cargo_pod:setCallSign(cargo_name)
-        print(string.format("[SALVAGE SPAWN] Pod spawned at (%d, %d) for mission from %s", m.wx, m.wy, m.origin))
-        -- Set up pickup callback to mark mission complete
-        cargo_pod:onPickUp(function(self, player)
-            -- Find the mission this cargo belongs to
-            for _, entry in ipairs(_active) do
-                local mission = entry.mission
-                if mission.type == "salvage" and mission.cargo_obj == self then
-                    mission._found = true
-                    mission.obj = "Return " .. mission.cargo .. " to " .. mission.origin
-                    RT.shipLog("[Salvage] Cargo pod collected: " .. mission.cargo .. ". Return to " .. mission.origin .. " for payment.", "#80FF80")
-                    JOBS.updateObj()
-                    if mission.intercept and not mission.intercept.fired then
-                        mission.intercept.fired = true
-                        MISSION._spawnIntercept(mission, player:getPosition())
-                    end
-                    break
-                end
+        local _DECOY_LORE = {
+            "Pressurised coolant drum — salvage value, no mission relevance.",
+            "Fuel cell casing, empty. Useful for the alloy.",
+            "Structural debris, stripped clean.",
+            "Machine components, fire-damaged.",
+        }
+        local _DECOY_CARGO = {"Scrap Metal", "Coolant Residue", "Spent Fuel Cells", "Salvage Debris"}
+        local n = math.random(3, 5)
+        local target_idx = math.random(1, n)
+        m._cluster = {}
+        for i = 1, n do
+            local angle  = (i - 1) * (360 / n) + math.random(-20, 20)
+            local spread = math.random(1500, 4000)
+            local cx = m.wx + math.cos(math.rad(angle)) * spread
+            local cy = m.wy + math.sin(math.rad(angle)) * spread
+            local pod = CpuShip():setTemplate("MT52 Hornet"):setFaction("Independent")
+            pod:setPosition(cx, cy):setCallSign("Unknown Salvage"):orderIdle()
+            pod:setCanBeDestroyed(false):setScanningParameters(1, 1)
+            if i == target_idx then
+                pod:setDescriptions(
+                    "Unidentified salvage container — have Science scan to identify",
+                    "Mission Cargo: " .. m.cargo .. ". Retrieve and return to " .. m.origin .. "."
+                )
+                m._cluster[i] = {marker = pod, is_target = true,  _materialized = false}
+            else
+                local di = math.random(#_DECOY_CARGO)
+                pod:setDescriptions(
+                    "Unidentified salvage container — have Science scan to identify",
+                    _DECOY_LORE[di]
+                )
+                m._cluster[i] = {marker = pod, is_target = false, cargo = _DECOY_CARGO[di], _materialized = false}
             end
-        end)
-        RT.register(cargo_pod)
-        m.cargo_obj = cargo_pod  -- store reference
+            RT.register(pod)
+        end
+        print(string.format("[SALVAGE] Cluster of %d pods at (%.0f, %.0f), target=%d", n, m.wx, m.wy, target_idx))
         m._spawned = true
     -- Spawn boarding/hacking/destroy targets immediately so player knows the target name
     elseif (m.type == "boarding" or m.type == "destroy") and not m._spawned then
@@ -465,6 +486,7 @@ function JOBS.complete(entry, completing_ship)
     for i, a in ipairs(_active) do
         if a == entry then table.remove(_active, i); break end
     end
+    _cleanSalvageCluster(entry.mission)  -- remove any unscanned pods still in the field
     MISSION.untrack(entry.mission.id)
     RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short, completing_ship)
 
@@ -980,6 +1002,7 @@ function JOBS.update()
 
         -- Expiry check (before any type logic so we never act on a dead mission)
         if m._expires_at and now > m._expires_at then
+            _cleanSalvageCluster(m)
             RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
             MISSION.untrack(m.id)
             table.remove(_active, i)
@@ -988,15 +1011,62 @@ function JOBS.update()
         end
 
         if m.type == "salvage" and not m._found then
-            -- Check if cargo pod still exists (if destroyed before pickup)
+            -- If the identified cargo pod was destroyed before pickup, fail the mission
             if m.cargo_obj and not RT.valid(m.cargo_obj) then
-                RT.shipLog("[Salvage] Cargo destroyed -- contract lost.", "#FF8080")
+                RT.shipLog("[Salvage] Cargo destroyed — contract lost.", "#FF8080")
                 MISSION.untrack(m.id)
                 table.remove(_active, i)
                 JOBS.updateObj()
                 goto next_entry
             end
-            -- Pickup is handled by onPickUp callback on the SupplyDrop
+            -- Scan the cluster: materialise a SupplyDrop when each pod is identified
+            if m._cluster then
+                for _, ce in ipairs(m._cluster) do
+                    if not ce._materialized and RT.valid(ce.marker) then
+                        local scanned = false
+                        for _, p in ipairs(RT.players) do
+                            if ce.marker:isFullyScannedBy(p) then scanned = true; break end
+                        end
+                        if scanned then
+                            local mx, my = ce.marker:getPosition()
+                            ce.marker:setCanBeDestroyed(true); ce.marker:destroy()
+                            ce._materialized = true
+                            local drop = SupplyDrop():setFaction("Independent"):setPosition(mx, my)
+                            RT.register(drop)
+                            if ce.is_target then
+                                local cargo_name = m.cargo:gsub("^%l", string.upper)
+                                drop:setDescriptions("Salvage Container", m.cargo):setCallSign(cargo_name)
+                                drop:onPickUp(function(self, player)
+                                    for _, ae in ipairs(_active) do
+                                        local mis = ae.mission
+                                        if mis.type == "salvage" and mis.cargo_obj == self then
+                                            mis._found = true
+                                            mis.obj = "Return " .. mis.cargo .. " to " .. mis.origin
+                                            RT.shipLog("[Salvage] Cargo collected: " .. mis.cargo .. ". Return to " .. mis.origin .. " for payment.", "#80FF80")
+                                            JOBS.updateObj()
+                                            if mis.intercept and not mis.intercept.fired then
+                                                mis.intercept.fired = true
+                                                MISSION._spawnIntercept(mis, player:getPosition())
+                                            end
+                                            break
+                                        end
+                                    end
+                                end)
+                                m.cargo_obj = drop
+                                RT.shipLog("[Salvage] Mission cargo identified in the debris field. Move in to collect it.", "#80FF80")
+                            else
+                                local label = ce.cargo or "Salvage Debris"
+                                drop:setDescriptions("Standard Salvage", label):setCallSign(label)
+                                drop:onPickUp(function(self, player)
+                                    player:setReputationPoints(player:getReputationPoints() + math.random(25, 50))
+                                    RT.shipLog("[Salvage] Standard debris recovered — small bonus.", "#FFFF80")
+                                end)
+                                RT.shipLog("[Salvage] Debris identified: " .. label .. " — not the mission cargo.", "#FFFF80")
+                            end
+                        end
+                    end
+                end
+            end
 
         elseif m.type == "boarding" then
             -- Phase 1: watch for disable (impulse health < 0.3 or hull < 25%)
