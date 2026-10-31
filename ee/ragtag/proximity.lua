@@ -15,6 +15,22 @@ PROX = PROX or {}
 
 local U = 1000  -- world units per universe unit
 
+-- Callsign pools for proximity-spawned patrols, keyed by faction.
+local _PATROL_NAMES = {
+    Corsairs = {
+        "Iron Hand",    "Toll Taker",    "Night Watch",   "Knife's Edge",  "Dead Weight",
+        "Rough Rider",  "Bloodhound",    "Dark Passage",  "Last Stop",     "The Collector",
+        "Chain Breaker","Gravel Voice",  "Broken Wing",   "Rust & Bone",   "Border Watch",
+        "Razorbill",    "Red Watch",     "Scar Tissue",   "Grim Patrol",   "Hard Collection",
+    },
+    Hollow = {
+        "The Patience", "Null Signal",   "What Remains",  "Absent Light",  "The Quiet",
+        "Echo Null",    "No Return",     "The Hunger",    "Empty Passage", "Far Signal",
+        "Last Transmission", "Signal Ghost", "The Watching", "Deep Null",  "Void Thought",
+        "Absence",      "What Follows",  "No Memory",     "Still Hollow",  "Fragment Seven",
+    },
+}
+
 PROX.config = {
     check_interval       = 8,     -- seconds between proximity checks
     region_cooldown      = 90,    -- min seconds between spawns per region
@@ -223,10 +239,23 @@ local function _spawnGroup(region_name, px, py)
 
     -- Spawn ships.
     local ship_names = {}
+    local _name_pool  = _PATROL_NAMES[zone.faction]
+    local _used_names = {}
     for _, tmpl in ipairs(templates) do
         local s = CpuShip():setTemplate(tmpl):setFaction(zone.faction)
         s:setPosition(sx + (math.random() * 2 - 1) * 500,
                       sy + (math.random() * 2 - 1) * 500)
+        if _name_pool then
+            local avail = {}
+            for _, n in ipairs(_name_pool) do
+                if not _used_names[n] then avail[#avail+1] = n end
+            end
+            if #avail > 0 then
+                local picked = avail[math.random(#avail)]
+                s:setCallSign(picked)
+                _used_names[picked] = true
+            end
+        end
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
