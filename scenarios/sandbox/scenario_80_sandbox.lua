@@ -457,7 +457,7 @@ function JOBS.accept(m, skip_log, ship)
 
         if m.type == "boarding" or m.type == "destroy" then
             local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
-            RT.shipLog(string.format("Contract: %s. %dm to complete. %s is at %s%s.",
+            RT.shipLog(string.format("Contract: %s. %dm to complete. %s last seen around %s%s.",
                 m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
         elseif m.type == "hacking" then
             RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
@@ -921,7 +921,7 @@ function JOBS.stationHook(source, target)
 
                     if cap.type == "boarding" or cap.type == "destroy" then
                         local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
-                        RT.shipLog(string.format("Contract: %s. %dm to complete. %s is at %s%s.",
+                        RT.shipLog(string.format("Contract: %s. %dm to complete. %s last seen around %s%s.",
                             cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
                     elseif cap.type == "hacking" then
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
