@@ -18,6 +18,17 @@
 -- Setting[Director]: Whether the scenario talks to the external AI director.
 -- Director[On|Default]: Dynamic encounters and opportunities from the AI director.
 -- Director[Off]: Static universe with scripted random encounters only.
+-- Setting[Ships]: How many player ships to spawn.
+-- Ships[1|Default]: One ship (the Magpie).
+-- Ships[2]: Magpie + Raven.
+-- Ships[3]: + Jackdaw.
+-- Ships[4]: + Starling.
+-- Ships[5]: + Wren.
+-- Ships[6]: + Kestrel.
+-- Ships[7]: + Harrier.
+-- Ships[8]: + Merlin.
+-- Ships[9]: + Osprey.
+-- Ships[10]: + Swift.
 
 require("utils.lua")
 require("ragtag/core.lua")
@@ -28,6 +39,13 @@ require("ragtag/mission.lua")
 require("ragtag/rumors.lua")
 
 local SESSION_ID = "sandbox"
+
+-- Named ships available to the campaign — slot 1 is always the primary.
+-- All are Flavia P.Falcon class; names are birds (sister ships to the Magpie).
+local _SHIP_ROSTER = {
+    "Magpie", "Raven", "Jackdaw", "Starling", "Wren",
+    "Kestrel", "Harrier", "Merlin", "Osprey", "Swift",
+}
 
 -- Session state
 local S = {
@@ -214,7 +232,7 @@ end
 
 function JOBS.init() end
 
-function JOBS.accept(m, skip_log)
+function JOBS.accept(m, skip_log, ship)
     if #_active >= 2 then return false end
     _done[m.id] = true
     -- Drain from dynamic queue if this was director-pushed
@@ -366,7 +384,7 @@ function JOBS.accept(m, skip_log)
         -- Timing: place both ships equidistant from the meeting point so they arrive
         -- at the same moment the player (travelling at warp 1) reaches the target area.
         local WARP1    = 500  -- game units/sec (warp 1 = 30 U/min)
-        local px, py   = RT.player:getPosition()
+        local px, py   = (ship or RT.player):getPosition()
         local d_player = math.sqrt((m.wx - px)^2 + (m.wy - py)^2)
         local d_meet   = math.max(d_player, 15000)  -- minimum 15 U (~30 s at warp 1)
         local T        = d_meet / WARP1
@@ -870,7 +888,7 @@ function JOBS.stationHook(source, target)
                 if #_active >= 2 then
                     setCommsMessage('"You\'re already carrying two jobs. Finish one first."')
                 else
-                    JOBS.accept(cap, true)  -- skip_log=true, we'll write it after the message
+                    JOBS.accept(cap, true, s2)  -- skip_log=true; pass ship for tailing timing
                     setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"\n\nTransmitting details to your log.")
                     -- Now write to log after showing the message
                     local dest_hint
@@ -900,8 +918,9 @@ function JOBS.stationHook(source, target)
                         local hdx = cap.mx - cap.wx
                         local hdy = cap.my - cap.wy
                         local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
-                        RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. Approach with care.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg), "#60CCFF")
+                        local t_min = math.max(1, math.floor((cap._meet_at - getScenarioTime()) / 60 + 0.5))
+                        RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. We expect a rendezvous in ~%dm. Approach with care.",
+                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg, t_min), "#60CCFF")
                     else
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
                             cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#60CCFF")
@@ -1854,9 +1873,19 @@ function init()
     VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest"})
     PROX.init()
 
-    -- Spawn player at Port Vesper (safe starting location)
+    -- Spawn player ship(s) at Port Vesper (safe starting location)
     local px, py = VERSE.at("Port Vesper", 1.5, 1.5)
     RT.spawnPlayer(px, py, 0)
+    local num_ships = tonumber(getScenarioSetting("Ships")) or 1
+    local c = RT.campaign
+    for i = 2, num_ships do
+        local extra   = c.extra_ships and c.extra_ships[i-1]
+        local credits = extra and extra.credits or c.credits or 150
+        RT.spawnPlayer(px + (i - 1) * 4000, py, 0, {
+            callsign = _SHIP_ROSTER[i],
+            credits  = credits,
+        })
+    end
 
     -- Custom Port Vesper comms: welcome message on first hail, standard message after
     local vesper = RT.find("Port Vesper")

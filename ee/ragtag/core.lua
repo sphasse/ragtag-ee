@@ -229,7 +229,8 @@ local function defaultCampaign()
         version = 1,
         ship_name = "Magpie",
         credits = 150,
-        upgrades = {},   -- list of upgrade ids, applied in purchase order
+        upgrades = {},    -- list of upgrade ids, applied in purchase order
+        extra_ships = {}, -- [{name, credits}, ...] one entry per ship beyond the primary
         sessions = {},   -- "s1" -> {outcome="success", at=...}
         flags = {},      -- story flags: string -> bool/number/string
         notes = {},      -- short human-readable campaign log lines
@@ -290,6 +291,16 @@ function RT.saveCampaign()
     if RT.campaign == nil then return end
     if RT.valid(RT.player) then
         RT.campaign.credits = math.floor(RT.player:getReputationPoints())
+    end
+    RT.campaign.extra_ships = RT.campaign.extra_ships or {}
+    for i = 2, #RT.players do
+        local p = RT.players[i]
+        if RT.valid(p) then
+            local entry = RT.campaign.extra_ships[i-1] or {}
+            entry.name    = p:getCallSign()
+            entry.credits = math.floor(p:getReputationPoints())
+            RT.campaign.extra_ships[i-1] = entry
+        end
     end
     getScriptStorage():set(RT.CAMPAIGN_KEY, toJSON(RT.campaign))
 end
@@ -617,7 +628,7 @@ function RT.spawnPlayer(x, y, heading, opts)
         p:setShields(cm_f * cond.front_shield_pct, cm_r * cond.rear_shield_pct)
         p:setEnergy(p:getMaxEnergy() * cond.energy_pct)
     end
-    p:setReputationPoints(c.credits or 0)
+    p:setReputationPoints(opts.credits ~= nil and opts.credits or c.credits or 0)
     table.insert(RT.players, p)
     RT.player = RT.players[1]   -- backward-compat alias always points to first ship
     RT.named[cs] = p
