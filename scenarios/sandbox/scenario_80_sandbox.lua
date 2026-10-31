@@ -405,9 +405,9 @@ function JOBS.accept(m, skip_log, ship)
         m.mx = math.floor(m.wx + math.cos(meet_ang) * d_meet)
         m.my = math.floor(m.wy + math.sin(meet_ang) * d_meet)
 
-        -- Target ship: Unknown faction — requires Science scan to identify
+        -- Target ship: Independent faction (debug; switch to Unknown for live play)
         local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
-        local target = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
+        local target = CpuShip():setTemplate(m.target_template):setFaction("Independent")
         target:setCallSign(tname)
         target:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
         target:setHull(target:getHullMax())
@@ -421,7 +421,7 @@ function JOBS.accept(m, skip_log, ship)
         local rname = _FREIGHTER_NAMES[math.random(#_FREIGHTER_NAMES)]
         local rx = math.floor(m.mx + math.cos(meet_ang) * d_meet)
         local ry = math.floor(m.my + math.sin(meet_ang) * d_meet)
-        local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Unknown")
+        local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Independent")
         rendezvous:setCallSign(rname)
         rendezvous:setPosition(rx, ry)
         rendezvous:orderFlyTowards(m.mx, m.my)
@@ -1264,6 +1264,17 @@ function JOBS.update()
                         .. ". Science: scan both ships. 60 seconds.", "#FFCC80")
                     m.obj = "Scan both ships at meeting"
                     JOBS.updateObj()
+                end
+
+                -- Rendezvous deadline: if the window has closed and we never saw the meeting, fail.
+                -- 2-minute grace period covers slow AI pathing near the waypoint.
+                if now > m._meet_at + 120 and not m._meeting then
+                    RT.shipLog("[Tailing] Ships completed their rendezvous unobserved. Contract failed.", "#FF8080")
+                    _tailingDisperse(m)
+                    MISSION.untrack(m.id)
+                    table.remove(_active, i)
+                    JOBS.updateObj()
+                    goto next_entry
                 end
 
             elseif not m._scanned then
