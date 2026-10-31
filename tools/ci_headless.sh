@@ -9,7 +9,7 @@
 # Linux only. Needs: git cmake ninja-build g++ libsdl2-dev python3.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-EE_COMMIT="${EE_COMMIT:-b492ea94326c229ec8c0047872451129c4338871}"
+EE_COMMIT="${EE_COMMIT:-310bebd12f14d82239070445ad190d13680f124b}"  # EE-2026.09.22PR
 SP_COMMIT="${SP_COMMIT:-bbe714aac5a855108ccedb43a99d8334b18ce792}"
 SCENARIO="${SCENARIO:-scenario_80_sandbox.lua}"
 PLAYTHROUGH="${PLAYTHROUGH:-0}"
