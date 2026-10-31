@@ -406,12 +406,15 @@ function JOBS.accept(m, skip_log, ship)
         local rdv_ang = t_ang + math.pi * 0.5 + math.random() * math.pi  -- 90-270° offset
 
         -- Target ship: Unknown faction; setWarpDrive+setWarpSpeed required on ECS CpuShip spawns.
+        -- Pre-rotate toward rendezvous: heading = (270 - deg(t_ang)) % 360 (EE: 0=N, 90=E, CW).
+        -- This skips the ~18s rotation startup, so warp engages in ~10s instead of ~28s.
         local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
         local twx = math.floor(m.mx + math.cos(t_ang) * spawn_dist)
         local twy = math.floor(m.my + math.sin(t_ang) * spawn_dist)
         local target = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
         target:setCallSign(tname)
         target:setPosition(twx + random(-1000, 1000), twy + random(-1000, 1000))
+        target:setRotation((270 - math.deg(t_ang)) % 360)
         target:setHull(target:getHullMax())
         target:setScanningParameters(1, 1)
         target:setWarpDrive(true):setWarpSpeed(SHIP_WARP)
@@ -426,6 +429,7 @@ function JOBS.accept(m, skip_log, ship)
         local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Unknown")
         rendezvous:setCallSign(rname)
         rendezvous:setPosition(rwx, rwy)
+        rendezvous:setRotation((270 - math.deg(rdv_ang)) % 360)
         rendezvous:setWarpDrive(true):setWarpSpeed(SHIP_WARP)
         rendezvous:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(rendezvous)
@@ -1241,18 +1245,7 @@ function JOBS.update()
                     goto next_entry
                 end
 
-                -- Detection: player within 5u
-                for _, p in ipairs(RT.players) do
-                    if RT.valid(p) and RT.dist(p, tgt) < 5000 then
-                        _tailingSpook(m, "Player within detection range")
-                        MISSION.untrack(m.id)
-                        table.remove(_active, i)
-                        JOBS.updateObj()
-                        goto next_entry
-                    end
-                end
-
-                -- Detection: scan probe within 5u
+                -- Detection: scan probe within 5u (en route — probes are active sensors)
                 local tx, ty = tgt:getPosition()
                 for _, obj in ipairs(getObjectsInRadius(tx, ty, 5000)) do
                     if RT.valid(obj) and isObjectType(obj, "ScanProbe") then
@@ -1316,6 +1309,17 @@ function JOBS.update()
                 end
 
             elseif not m._scanned then
+                -- Detection during meeting: player within 2u spooks both ships
+                for _, p in ipairs(RT.players) do
+                    if RT.valid(p) and RT.dist(p, tgt) < 2000 then
+                        _tailingSpook(m, "Player spooked the meeting")
+                        MISSION.untrack(m.id)
+                        table.remove(_active, i)
+                        JOBS.updateObj()
+                        goto next_entry
+                    end
+                end
+
                 -- 90-second scan window (player may arrive slightly after the meeting starts)
                 if now - m._meeting_at > 90 then
                     RT.shipLog("[Tailing] Meeting ended — not scanned in time. Contract lost.", "#FF8080")
