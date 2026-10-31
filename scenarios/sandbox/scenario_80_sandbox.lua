@@ -1887,6 +1887,27 @@ function init()
         })
     end
 
+    -- GM buttons to add further ships mid-session (appear in the GM console).
+    -- Clicking one spawns the ship near Port Vesper and removes the button.
+    local function _addShipGMButton(i)
+        local name = _SHIP_ROSTER[i]
+        addGMFunction("Add ship: " .. name, function()
+            local vx, vy = VERSE.at("Port Vesper", 1.5, 1.5)
+            local c2 = RT.campaign
+            local extra   = c2.extra_ships and c2.extra_ships[i-1]
+            local credits = extra and extra.credits or (c2.credits or 150)
+            RT.spawnPlayer(vx + (#RT.players) * 4000, vy, 0, {
+                callsign = name,
+                credits  = credits,
+            })
+            removeGMFunction("Add ship: " .. name)
+            globalMessage(name .. " has undocked from Port Vesper.", 5)
+        end)
+    end
+    for i = num_ships + 1, #_SHIP_ROSTER do
+        _addShipGMButton(i)
+    end
+
     -- Custom Port Vesper comms: welcome message on first hail, standard message after
     local vesper = RT.find("Port Vesper")
     if RT.valid(vesper) then
