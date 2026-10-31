@@ -221,18 +221,6 @@ local function _spawnGroup(region_name, px, py)
     local wanted = RT.campaign.flags and RT.campaign.flags.wanted
     local is_shakedown = (zone.comms == "shakedown") and not wanted
 
-    -- Loot table for combat salvage drops.
-    local _LOOT = {
-        {"weapons locker",      "Small arms and ammunition.",              15, 30},
-        {"fuel cells",          "Partially-spent drive cells.",            10, 20},
-        {"ship components",     "Stripped hull plating and drive parts.",  10, 25},
-        {"a data core",         "Navigation logs. Someone wants these.",   15, 30},
-        {"coolant canisters",   "Standard drive coolant. Always useful.",  10, 20},
-        {"a cargo pod",         "Sealed. Contents unknown.",               15, 30},
-        {"ordnance scraps",     "Partial missile load.",                   10, 25},
-        {"personal effects",    "You'd rather not think about it.",        10, 15},
-    }
-
     -- Spawn ships.
     local ship_names = {}
     for _, tmpl in ipairs(templates) do
@@ -247,19 +235,17 @@ local function _spawnGroup(region_name, px, py)
             local dx, dy = self:getPosition()
             local count = math.random(1, 3)
             for _ = 1, count do
-                local entry  = _LOOT[math.random(#_LOOT)]
-                local label, desc, rmin, rmax = entry[1], entry[2], entry[3], entry[4]
-                local reward = math.random(rmin, rmax)
+                local reward = math.random(10, 30)
                 local ox = (math.random() * 2 - 1) * 2000
                 local oy = (math.random() * 2 - 1) * 2000
                 local pod = SupplyDrop():setFaction("Independent")
                                         :setCallSign("Debris")
                                         :setPosition(dx + ox, dy + oy)
-                pod:setDescriptions("Combat Salvage: " .. label, desc)
+                pod:setDescriptions("Combat Salvage", "Wreckage from a downed vessel.")
                 pod:onPickUp(function(pod_self, player)
                     if RT.valid(player) then
-                        RT.addCredits(reward, "salvage: " .. label, player)
-                        RT.shipLog("[Salvage] Recovered " .. label .. ": +" .. reward .. "cr.", "#80FF80")
+                        RT.addCredits(reward, "combat salvage", player)
+                        RT.shipLog("[Salvage] Combat debris recovered: +" .. reward .. "cr.", "#80FF80")
                     end
                 end)
             end
