@@ -223,14 +223,14 @@ local function _spawnGroup(region_name, px, py)
 
     -- Loot table for combat salvage drops.
     local _LOOT = {
-        {"weapons locker",      "Small arms and ammunition.",              80, 150},
-        {"fuel cells",          "Partially-spent drive cells.",            40,  90},
-        {"ship components",     "Stripped hull plating and drive parts.",  50, 110},
-        {"a data core",         "Navigation logs. Someone wants these.",   70, 140},
-        {"coolant canisters",   "Standard drive coolant. Always useful.",  30,  70},
-        {"a cargo pod",         "Sealed. Contents unknown.",               60, 130},
-        {"ordnance scraps",     "Partial missile load.",                   50, 100},
-        {"personal effects",    "You'd rather not think about it.",        20,  50},
+        {"weapons locker",      "Small arms and ammunition.",              15, 30},
+        {"fuel cells",          "Partially-spent drive cells.",            10, 20},
+        {"ship components",     "Stripped hull plating and drive parts.",  10, 25},
+        {"a data core",         "Navigation logs. Someone wants these.",   15, 30},
+        {"coolant canisters",   "Standard drive coolant. Always useful.",  10, 20},
+        {"a cargo pod",         "Sealed. Contents unknown.",               15, 30},
+        {"ordnance scraps",     "Partial missile load.",                   10, 25},
+        {"personal effects",    "You'd rather not think about it.",        10, 15},
     }
 
     -- Spawn ships.
