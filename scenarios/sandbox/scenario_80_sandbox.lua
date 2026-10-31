@@ -405,14 +405,17 @@ function JOBS.accept(m, skip_log, ship)
         m.mx = math.floor(m.wx + math.cos(meet_ang) * d_meet)
         m.my = math.floor(m.wy + math.sin(meet_ang) * d_meet)
 
-        -- Target ship: Unknown faction so Corsair proximity spawns ignore it
+        -- Target ship: Unknown faction so Corsair proximity spawns ignore it.
+        -- setWarpDrive + setWarpSpeed required even when the template has warp —
+        -- ECS CpuShip spawns don't inherit the template's warp state automatically.
         local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
         local target = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
         target:setCallSign(tname)
         target:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
         target:setHull(target:getHullMax())
         target:setScanningParameters(1, 1)
-        target:orderFlyTowards(m.mx, m.my)
+        target:setWarpDrive(true):setWarpSpeed(500)
+        target:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(target)
         target:setCommsFunction(function(src, tgt) setCommsMessage('"No response."') end)
 
@@ -424,7 +427,8 @@ function JOBS.accept(m, skip_log, ship)
         local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Unknown")
         rendezvous:setCallSign(rname)
         rendezvous:setPosition(rx, ry)
-        rendezvous:orderFlyTowards(m.mx, m.my)
+        rendezvous:setWarpDrive(true):setWarpSpeed(500)
+        rendezvous:orderFlyTowardsBlind(m.mx, m.my)
         RT.register(rendezvous)
         rendezvous:setCommsFunction(function(src, tgt) setCommsMessage('"Move along."') end)
 
@@ -1255,8 +1259,8 @@ function JOBS.update()
 
                 -- Stall watchdog: re-issue fly orders every 20 s in case AI gets stuck
                 if not m._fly_refresh or now > m._fly_refresh then
-                    tgt:orderFlyTowards(m.mx, m.my)
-                    if RT.valid(rdv) then rdv:orderFlyTowards(m.mx, m.my) end
+                    tgt:orderFlyTowardsBlind(m.mx, m.my)
+                    if RT.valid(rdv) then rdv:orderFlyTowardsBlind(m.mx, m.my) end
                     if m._fly_refresh then  -- skip first-frame noise
                         local tx2, ty2 = tgt:getPosition()
                         local d_tgt = math.sqrt((m.mx-tx2)^2+(m.my-ty2)^2)
