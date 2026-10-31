@@ -221,6 +221,18 @@ local function _spawnGroup(region_name, px, py)
     local wanted = RT.campaign.flags and RT.campaign.flags.wanted
     local is_shakedown = (zone.comms == "shakedown") and not wanted
 
+    -- Loot table for combat salvage drops.
+    local _LOOT = {
+        {"weapons locker",      "Small arms and ammunition.",              80, 150},
+        {"fuel cells",          "Partially-spent drive cells.",            40,  90},
+        {"ship components",     "Stripped hull plating and drive parts.",  50, 110},
+        {"a data core",         "Navigation logs. Someone wants these.",   70, 140},
+        {"coolant canisters",   "Standard drive coolant. Always useful.",  30,  70},
+        {"a cargo pod",         "Sealed. Contents unknown.",               60, 130},
+        {"ordnance scraps",     "Partial missile load.",                   50, 100},
+        {"personal effects",    "You'd rather not think about it.",        20,  50},
+    }
+
     -- Spawn ships.
     local ship_names = {}
     for _, tmpl in ipairs(templates) do
@@ -230,6 +242,28 @@ local function _spawnGroup(region_name, px, py)
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
+
+        s:onDestruction(function(self, instigator)
+            local dx, dy = self:getPosition()
+            local count = math.random(1, 3)
+            for _ = 1, count do
+                local entry  = _LOOT[math.random(#_LOOT)]
+                local label, desc, rmin, rmax = entry[1], entry[2], entry[3], entry[4]
+                local reward = math.random(rmin, rmax)
+                local ox = (math.random() * 2 - 1) * 2000
+                local oy = (math.random() * 2 - 1) * 2000
+                local pod = SupplyDrop():setFaction("Independent")
+                                        :setCallSign("Debris")
+                                        :setPosition(dx + ox, dy + oy)
+                pod:setDescriptions("Combat Salvage: " .. label, desc)
+                pod:onPickUp(function(pod_self, player)
+                    if RT.valid(player) then
+                        RT.addCredits(reward, "salvage: " .. label, player)
+                        RT.shipLog("[Salvage] Recovered " .. label .. ": +" .. reward .. "cr.", "#80FF80")
+                    end
+                end)
+            end
+        end)
 
         if zone.comms ~= "none" and not is_shakedown then
             -- Corsairs and wanted-Concord: default taunt
