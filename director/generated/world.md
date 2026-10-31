@@ -16,6 +16,10 @@ The nebula patches between Port Vesper and Dustmote aren't dense enough to hide 
 - The Arbiter Line [safe]: The Arbiter Line, where Concord checkpoints watch traffic between the Core and the Border. Stations: Concord Waypoint Galen.
 - The Cinder Fields [safe]: The Cinder Fields: farming worlds under a cold red sun. Stations: Tamsin Hollow (shipwright).
 - The Concord Core [safe]: The Core: Concord worlds around the white sun Lumen. Rich, safe, and watched. Stations: Ostia Highport (shipwright), Lumen Exchange (shipwright), Sentinel Fleet Yard.
+- The Deep Black [safe]: Past the edge of the charts. Nothing here but silence and distance.
+- The Far Reach [safe]: Past the edge of the charts. Nothing here but silence and distance.
+- The Long Dark [safe]: Past the edge of the charts. Nothing here but silence and distance.
+- The Outer Dark [safe]: Past the edge of the charts. Nothing here but silence and distance.
 - The Rim [safe]: The Rim: frontier worlds, long lanes, and law that arrives late or not at all. Stations: Lastchance Outpost (shipwright).
 - The Shroud [safe]: The Shroud: a vast nebula where sensors fail and ships go missing. Spacers tell stories.
 - The Deep Shroud [risky]: The Deep Shroud. Uncharted. Your sensors pick up tones that aren't quite noise.

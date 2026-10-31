@@ -150,6 +150,16 @@ VERSE.extend({
          desc = "The Boneyard: the Settlement War battlefield around dead Ashgrave. Wrecks everywhere, and the drones never stopped fighting."},
         {name = "the Maw", x = 156, y = 109, r = 39, danger = 3,
          desc = "The Maw. Hollow space. Nobody comes back from here in a ship like yours."},
+        -- Boundary anchors: define the edge of charted space (~200U beyond the core verse).
+        -- Too far for normal traffic; reserved for long-range missions and future content.
+        {name = "the Outer Dark",  x = -391, y = -336, r = 1, danger = 0,
+         desc = "Past the edge of the charts. Nothing here but silence and distance."},
+        {name = "the Far Reach",   x =  400, y = -336, r = 1, danger = 0,
+         desc = "Past the edge of the charts. Nothing here but silence and distance."},
+        {name = "the Deep Black",  x = -391, y =  348, r = 1, danger = 0,
+         desc = "Past the edge of the charts. Nothing here but silence and distance."},
+        {name = "the Long Dark",   x =  400, y =  348, r = 1, danger = 0,
+         desc = "Past the edge of the charts. Nothing here but silence and distance."},
     },
 
     nebula_fields = {

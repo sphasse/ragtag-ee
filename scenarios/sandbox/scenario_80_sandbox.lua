@@ -100,6 +100,38 @@ function JOBS.getMissionDistance()
     end
 end
 
+-- Bounding box of the verse: derived from VERSE.REGIONS extents + margin (in game units).
+-- Computed once on first call; open space inside the box is valid mission territory.
+local _VERSE_BOUNDS = nil
+local function _verseBounds()
+    if _VERSE_BOUNDS then return _VERSE_BOUNDS end
+    local xn, xx, yn, yx = math.huge, -math.huge, math.huge, -math.huge
+    for _, r in ipairs(VERSE.REGIONS) do
+        if r.x - r.r < xn then xn = r.x - r.r end
+        if r.x + r.r > xx then xx = r.x + r.r end
+        if r.y - r.r < yn then yn = r.y - r.r end
+        if r.y + r.r > yx then yx = r.y + r.r end
+    end
+    _VERSE_BOUNDS = {x_min = xn * U, x_max = xx * U, y_min = yn * U, y_max = yx * U}
+    return _VERSE_BOUNDS
+end
+
+-- Pick a spawn coordinate within the verse bounding box (named region or open space).
+-- Returns wx, wy, dist, region on success; nil, nil, nil, nil if all attempts miss.
+local function _spawnInVerse(rx, ry, max_tries)
+    local b = _verseBounds()
+    for _ = 1, (max_tries or 8) do
+        local ang  = math.random() * 2 * math.pi
+        local dist = JOBS.getMissionDistance()
+        local wx = math.floor(rx + math.cos(ang) * dist)
+        local wy = math.floor(ry + math.sin(ang) * dist)
+        if wx >= b.x_min and wx <= b.x_max and wy >= b.y_min and wy <= b.y_max then
+            return wx, wy, dist, VERSE.regionAt(wx, wy)
+        end
+    end
+    return nil, nil, nil, nil
+end
+
 -- Get the distance range (min, max) for the current mode
 function JOBS.getDistanceRange()
     local mode = S.mission_distance_mode or "medium"
@@ -563,6 +595,7 @@ function JOBS.stationHook(source, target)
             local station_e = RT.find(cs)
             local dest_idx  = 1
             local dist_min, dist_max = JOBS.getDistanceRange()
+            local slots_failed = 0
             for _, slot_num in ipairs(slots_to_generate) do
                 local tier  = math.min(mt, math.random(0, 1))
                 local mtype = pickMissionType()
@@ -571,12 +604,13 @@ function JOBS.stationHook(source, target)
                     local dest_e = RT.find(candidates[dest_idx])
                     local distance_u = 0
                     local dest_danger = 0
+                    local dest_region = nil
                     if RT.valid(station_e) and RT.valid(dest_e) then
                         local ox, oy = station_e:getPosition()
                         local dx, dy = dest_e:getPosition()
                         local ddx, ddy = dx - ox, dy - oy
                         distance_u = math.sqrt(ddx * ddx + ddy * ddy)
-                        local dest_region = VERSE.regionAt(dx, dy)
+                        dest_region = VERSE.regionAt(dx, dy)
                         dest_danger = dest_region and dest_region.danger or 0
                         print(string.format("[DELIVERY] %s > %s | Dist: %.1fU | Slot %d", cs, candidates[dest_idx], distance_u/1000, slot_num))
                     end
@@ -593,90 +627,82 @@ function JOBS.stationHook(source, target)
                     dest_idx = dest_idx + 1
                 elseif mtype == "salvage" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
-                    local ang  = math.random() * 2 * math.pi
-                    local dist = JOBS.getMissionDistance()
-                    local wx = math.floor(rx + math.cos(ang) * dist)
-                    local wy = math.floor(ry + math.sin(ang) * dist)
-                    local region = VERSE.regionAt(wx, wy)
-                    local danger_level = region and region.danger or 0
-                    print(string.format("[SALVAGE] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
-                        cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
-                    local mission_ok, mission_err = pcall(function()
-                        return MISSION.newSalvage({
-                            origin = cs,
-                            wx = wx,
-                            wy = wy,
-                            tier = tier,
-                            distance_u = dist,
-                            danger_level = danger_level,
-                            region_name = region and region.name or nil,
-                            distance_min_u = dist_min,
-                            distance_max_u = dist_max,
-                        })
-                    end)
-                    if mission_ok then
-                        generated_mission = mission_err
+                    local wx, wy, dist, region = _spawnInVerse(rx, ry)
+                    if not wx then
+                        slots_failed = slots_failed + 1
                     else
-                        print("[ERROR] Salvage mission generation failed: " .. tostring(mission_err))
-                        error("Salvage: " .. tostring(mission_err))
+                        print(string.format("[SALVAGE] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
+                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
+                        local mission_ok, mission_err = pcall(function()
+                            return MISSION.newSalvage({
+                                origin = cs,
+                                wx = wx,
+                                wy = wy,
+                                tier = tier,
+                                distance_u = dist,
+                                danger_level = region.danger,
+                                region_name = region.name,
+                                distance_min_u = dist_min,
+                                distance_max_u = dist_max,
+                            })
+                        end)
+                        if mission_ok then
+                            generated_mission = mission_err
+                        else
+                            print("[ERROR] Salvage mission generation failed: " .. tostring(mission_err))
+                            error("Salvage: " .. tostring(mission_err))
+                        end
                     end
                 elseif mtype == "boarding" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
-                    local ang  = math.random() * 2 * math.pi
-                    local dist = JOBS.getMissionDistance()
-                    local wx = math.floor(rx + math.cos(ang) * dist)
-                    local wy = math.floor(ry + math.sin(ang) * dist)
-                    local region = VERSE.regionAt(wx, wy)
-                    local danger_level = region and region.danger or 0
-                    print(string.format("[BOARDING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
-                        cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
-                    -- Find nearby stations for target destination (search from TARGET position, not origin)
-                    local nearby = {}
-                    for _, st in ipairs(VERSE.STATIONS) do
-                        if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then  -- not origin, not hostile
-                            local st_e = RT.find(st.cs)
-                            if RT.valid(st_e) then
-                                local sx, sy = st_e:getPosition()
-                                -- Distance from target spawn point to station
-                                local ddx, ddy = sx - wx, sy - wy
-                                local st_dist = math.sqrt(ddx * ddx + ddy * ddy)
-                                if st_dist < 150000 then  -- within 150U of target spawn
-                                    nearby[#nearby + 1] = st.cs
+                    local wx, wy, dist, region = _spawnInVerse(rx, ry)
+                    if not wx then
+                        slots_failed = slots_failed + 1
+                    else
+                        print(string.format("[BOARDING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
+                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
+                        local nearby = {}
+                        for _, st in ipairs(VERSE.STATIONS) do
+                            if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then
+                                local st_e = RT.find(st.cs)
+                                if RT.valid(st_e) then
+                                    local sx, sy = st_e:getPosition()
+                                    local ddx, ddy = sx - wx, sy - wy
+                                    if ddx * ddx + ddy * ddy < 150000 * 150000 then
+                                        nearby[#nearby + 1] = st.cs
+                                    end
                                 end
                             end
                         end
-                    end
-                    local mission_ok, mission_err = pcall(function()
-                        return MISSION.newBoarding({
-                            origin = cs,
-                            wx = wx,
-                            wy = wy,
-                            tier = tier,
-                            distance_u = dist,
-                            danger_level = danger_level,
-                            region_name = region and region.name or nil,
-                            nearby_stations = nearby,
-                            distance_min_u = dist_min,
-                            distance_max_u = dist_max,
-                        })
-                    end)
-                    if mission_ok then
-                        offers[#offers + 1] = mission_err
-                    else
-                        print("[ERROR] Boarding mission generation failed: " .. tostring(mission_err))
-                        error("Boarding: " .. tostring(mission_err))
+                        local mission_ok, mission_err = pcall(function()
+                            return MISSION.newBoarding({
+                                origin = cs,
+                                wx = wx,
+                                wy = wy,
+                                tier = tier,
+                                distance_u = dist,
+                                danger_level = region.danger,
+                                region_name = region.name,
+                                nearby_stations = nearby,
+                                distance_min_u = dist_min,
+                                distance_max_u = dist_max,
+                            })
+                        end)
+                        if mission_ok then
+                            offers[#offers + 1] = mission_err
+                        else
+                            print("[ERROR] Boarding mission generation failed: " .. tostring(mission_err))
+                            error("Boarding: " .. tostring(mission_err))
+                        end
                     end
                 elseif (mtype == "hacking" or mtype == "destroy") and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
-                    local ang  = math.random() * 2 * math.pi
-                    local dist = JOBS.getMissionDistance()
-                    local wx = math.floor(rx + math.cos(ang) * dist)
-                    local wy = math.floor(ry + math.sin(ang) * dist)
-                    local region = VERSE.regionAt(wx, wy)
-                    local danger_level = region and region.danger or 0
-                    print(string.format("[%s] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
-                        mtype:upper(), cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
-                    if mtype == "hacking" then
+                    local wx, wy, dist, region = _spawnInVerse(rx, ry)
+                    if not wx then
+                        slots_failed = slots_failed + 1
+                    elseif mtype == "hacking" then
+                        print(string.format("[HACKING] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
+                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                         local mission_ok, mission_err = pcall(function()
                             return MISSION.newHacking({
                                 origin = cs,
@@ -684,8 +710,8 @@ function JOBS.stationHook(source, target)
                                 wy = wy,
                                 tier = tier,
                                 distance_u = dist,
-                                danger_level = danger_level,
-                                region_name = region and region.name or nil,
+                                danger_level = region.danger,
+                                region_name = region.name,
                                 distance_min_u = dist_min,
                                 distance_max_u = dist_max,
                             })
@@ -697,17 +723,16 @@ function JOBS.stationHook(source, target)
                             error("Hacking: " .. tostring(mission_err))
                         end
                     else  -- destroy
-                        -- Find nearby stations for target destination (search from TARGET position, not origin)
+                        print(string.format("[DESTROY] Station: %s (%d, %d) | Target: (%d, %d) | Dist: %.1fU (%.0f) | Slot %d",
+                            cs, rx, ry, wx, wy, dist/1000, dist, slot_num))
                         local nearby = {}
                         for _, st in ipairs(VERSE.STATIONS) do
-                            if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then  -- not origin, not hostile
+                            if st.cs ~= cs and st.fac ~= "Corsairs" and st.fac ~= "Hollow" then
                                 local st_e = RT.find(st.cs)
                                 if RT.valid(st_e) then
                                     local sx, sy = st_e:getPosition()
-                                    -- Distance from target spawn point to station
                                     local ddx, ddy = sx - wx, sy - wy
-                                    local st_dist = math.sqrt(ddx * ddx + ddy * ddy)
-                                    if st_dist < 150000 then  -- within 150U of target spawn
+                                    if ddx * ddx + ddy * ddy < 150000 * 150000 then
                                         nearby[#nearby + 1] = st.cs
                                     end
                                 end
@@ -721,8 +746,8 @@ function JOBS.stationHook(source, target)
                                 tier = tier,
                                 nearby_stations = nearby,
                                 distance_u = dist,
-                                danger_level = danger_level,
-                                region_name = region and region.name or nil,
+                                danger_level = region.danger,
+                                region_name = region.name,
                                 distance_min_u = dist_min,
                                 distance_max_u = dist_max,
                             })
@@ -736,37 +761,35 @@ function JOBS.stationHook(source, target)
                     end
                 elseif mtype == "tailing" and RT.valid(station_e) then
                     local rx, ry = station_e:getPosition()
-                    local ang  = math.random() * 2 * math.pi
-                    local dist = JOBS.getMissionDistance()
-                    local wx = math.floor(rx + math.cos(ang) * dist)
-                    local wy = math.floor(ry + math.sin(ang) * dist)
-                    -- Meeting point: 20-35u from target spawn in a random direction
-                    local meet_ang  = math.random() * 2 * math.pi
-                    local meet_dist = (20 + math.random() * 15) * 1000
-                    local mx = math.floor(wx + math.cos(meet_ang) * meet_dist)
-                    local my = math.floor(wy + math.sin(meet_ang) * meet_dist)
-                    local region = VERSE.regionAt(wx, wy)
-                    local danger_level = region and region.danger or 0
-                    print(string.format("[TAILING] Station: %s | Target: (%d,%d) | Meet: (%d,%d) | Dist: %.1fU | Slot %d",
-                        cs, wx, wy, mx, my, dist/1000, slot_num))
-                    local mission_ok, mission_err = pcall(function()
-                        return MISSION.newTailing({
-                            origin = cs,
-                            wx = wx, wy = wy,
-                            mx = mx, my = my,
-                            tier = tier,
-                            distance_u = dist,
-                            danger_level = danger_level,
-                            region_name = region and region.name or nil,
-                            distance_min_u = dist_min,
-                            distance_max_u = dist_max,
-                        })
-                    end)
-                    if mission_ok then
-                        generated_mission = mission_err
+                    local wx, wy, dist, region = _spawnInVerse(rx, ry)
+                    if not wx then
+                        slots_failed = slots_failed + 1
                     else
-                        print("[ERROR] Tailing mission generation failed: " .. tostring(mission_err))
-                        error("Tailing: " .. tostring(mission_err))
+                        local meet_ang  = math.random() * 2 * math.pi
+                        local meet_dist = (20 + math.random() * 15) * 1000
+                        local mx = math.floor(wx + math.cos(meet_ang) * meet_dist)
+                        local my = math.floor(wy + math.sin(meet_ang) * meet_dist)
+                        print(string.format("[TAILING] Station: %s | Target: (%d,%d) | Meet: (%d,%d) | Dist: %.1fU | Slot %d",
+                            cs, wx, wy, mx, my, dist/1000, slot_num))
+                        local mission_ok, mission_err = pcall(function()
+                            return MISSION.newTailing({
+                                origin = cs,
+                                wx = wx, wy = wy,
+                                mx = mx, my = my,
+                                tier = tier,
+                                distance_u = dist,
+                                danger_level = region.danger,
+                                region_name = region.name,
+                                distance_min_u = dist_min,
+                                distance_max_u = dist_max,
+                            })
+                        end)
+                        if mission_ok then
+                            generated_mission = mission_err
+                        else
+                            print("[ERROR] Tailing mission generation failed: " .. tostring(mission_err))
+                            error("Tailing: " .. tostring(mission_err))
+                        end
                     end
                 elseif dest_idx <= #candidates then
                     -- fallback: delivery
@@ -815,6 +838,10 @@ function JOBS.stationHook(source, target)
         local lines = {"Work out of " .. cs .. ":\n"}
         for _, m in ipairs(offers) do
             lines[#lines + 1] = string.format("* %s", m.short)
+        end
+        if slots_failed > 0 then
+            local noun = slots_failed == 1 and "contract was" or "contracts were"
+            lines[#lines + 1] = string.format("\n(%d %s just picked up by another crew.)", slots_failed, noun)
         end
         setCommsMessage(table.concat(lines, "\n"))
         for _, m in ipairs(offers) do
