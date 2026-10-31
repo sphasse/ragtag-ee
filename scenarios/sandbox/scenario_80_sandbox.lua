@@ -278,7 +278,7 @@ function JOBS.accept(m, skip_log, ship)
             local spread = math.random(1500, 4000)
             local cx = m.wx + math.cos(math.rad(angle)) * spread
             local cy = m.wy + math.sin(math.rad(angle)) * spread
-            local pod = CpuShip():setTemplate("MT52 Hornet"):setFaction("Independent")
+            local pod = CpuShip():setTemplate("MT52 Hornet"):setFaction("Unknown")
             pod:setPosition(cx, cy):setCallSign("Unknown Salvage"):orderIdle()
             pod:setCanBeDestroyed(false):setScanningParameters(1, 1)
             if i == target_idx then
