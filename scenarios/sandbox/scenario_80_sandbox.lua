@@ -405,9 +405,9 @@ function JOBS.accept(m, skip_log, ship)
         m.mx = math.floor(m.wx + math.cos(meet_ang) * d_meet)
         m.my = math.floor(m.wy + math.sin(meet_ang) * d_meet)
 
-        -- Target ship: Independent faction (debug; switch to Unknown for live play)
+        -- Target ship: Unknown faction so Corsair proximity spawns ignore it
         local tname = _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]
-        local target = CpuShip():setTemplate(m.target_template):setFaction("Independent")
+        local target = CpuShip():setTemplate(m.target_template):setFaction("Unknown")
         target:setCallSign(tname)
         target:setPosition(m.wx + random(-2000, 2000), m.wy + random(-2000, 2000))
         target:setHull(target:getHullMax())
@@ -421,7 +421,7 @@ function JOBS.accept(m, skip_log, ship)
         local rname = _FREIGHTER_NAMES[math.random(#_FREIGHTER_NAMES)]
         local rx = math.floor(m.mx + math.cos(meet_ang) * d_meet)
         local ry = math.floor(m.my + math.sin(meet_ang) * d_meet)
-        local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Independent")
+        local rendezvous = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Unknown")
         rendezvous:setCallSign(rname)
         rendezvous:setPosition(rx, ry)
         rendezvous:orderFlyTowards(m.mx, m.my)
@@ -1251,6 +1251,26 @@ function JOBS.update()
                         JOBS.updateObj()
                         goto next_entry
                     end
+                end
+
+                -- Stall watchdog: re-issue fly orders every 20 s in case AI gets stuck
+                if not m._fly_refresh or now > m._fly_refresh then
+                    tgt:orderFlyTowards(m.mx, m.my)
+                    if RT.valid(rdv) then rdv:orderFlyTowards(m.mx, m.my) end
+                    if m._fly_refresh then  -- skip first-frame noise
+                        local tx2, ty2 = tgt:getPosition()
+                        local d_tgt = math.sqrt((m.mx-tx2)^2+(m.my-ty2)^2)
+                        local d_rdv = RT.valid(rdv) and RT.dist(rdv, {getPosition=function() return m.mx,m.my end}) or -1
+                        if RT.valid(rdv) then
+                            local rx2, ry2 = rdv:getPosition()
+                            d_rdv = math.sqrt((m.mx-rx2)^2+(m.my-ry2)^2)
+                        end
+                        print(string.format("[TAILING] %s %.1fU from meet | %s %.1fU from meet | meet_at T-%ds",
+                            m.target_cs, d_tgt/1000,
+                            m.rendezvous_cs, d_rdv/1000,
+                            math.max(0, math.floor(m._meet_at - now))))
+                    end
+                    m._fly_refresh = now + 20
                 end
 
                 -- Meeting: target and rendezvous within 1.5u
