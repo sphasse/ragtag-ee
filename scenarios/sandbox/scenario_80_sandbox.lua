@@ -969,18 +969,18 @@ local function _tailingDisperse(m)
     if RT.valid(tgt) and #available >= 1 then
         local st = RT.find(available[1])
         if RT.valid(st) then
-            tgt:setFaction("Independent")
+            local sx, sy = st:getPosition()
             tgt:setWarpDrive(true):setWarpSpeed(300)
-            tgt:orderDock(st)
+            tgt:orderFlyTowardsBlind(sx, sy)
         end
     end
     local rdv = RT.find(m.rendezvous_cs or "")
     if RT.valid(rdv) and #available >= 2 then
         local st = RT.find(available[2])
         if RT.valid(st) then
-            rdv:setFaction("Independent")
+            local sx, sy = st:getPosition()
             rdv:setWarpDrive(true):setWarpSpeed(300)
-            rdv:orderDock(st)
+            rdv:orderFlyTowardsBlind(sx, sy)
         end
     end
 end
