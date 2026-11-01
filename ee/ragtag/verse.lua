@@ -531,7 +531,7 @@ function VERSE.spawnTransport(route, rng, near_station)
     local age  = rng.int(8, 45)
     local cap  = rng.pick(_CAPTAINS)
     local scan2 = string.format("Currently hauling %s. Captain %s — %s", VERSE.CARGO[kind], cap.name, cap.bio)
-    if #scan2 > 160 then scan2 = string.sub(scan2, 1, 157) .. "..." end
+    if #scan2 > 200 then scan2 = string.sub(scan2, 1, 197) .. "..." end
     s:setDescriptions(
         string.format("%s. %s, %d years in service.", tmpl, yard, age),
         scan2
