@@ -450,6 +450,37 @@ end
 
 local TYPES = {"Personnel", "Goods", "Garbage", "Equipment", "Fuel"}
 
+local _YARDS = {
+    "Rim Works Collective, Ashgrave",
+    "Vesper Industrial, Port Vesper",
+    "Concord Ordnance Yards, Lumen",
+    "Cinder Fields Fabricators",
+    "Kestrel Ironworks",
+    "Greywater Shipwrights",
+    "Calloway & Sons, Kestrel",
+    "Ironhold Assembly, Cardinal",
+    "Pale Star Works",
+    "Settlement Procurement, decommissioned",
+}
+
+local _CAPTAINS = {
+    {name="Mira Valos",    bio="Former Concord transport pilot. Grounded after Ashgrave — her version of events differs from the record."},
+    {name="Dex Hollowell", bio="Third-generation hauler out of the Cinder Fields. Hasn't set foot on a Core world in eleven years and intends to keep it that way."},
+    {name="Sable Orrin",   bio="Ran with Corsairs out of Blackwater until the raid on Vesper Station. That was fourteen years ago. Some debts stay paid."},
+    {name="Rook Farren",   bio="Ex-Concord quartermaster. Knows every customs trick in the book because he wrote half of them."},
+    {name="Tess Malvoy",   bio="Grew up on one of these ships. Inherited it and the debt that came with it. Still paying off both."},
+    {name="Calder Prin",   bio="Worked the Maw routes for six years. Retired to the Rim voluntarily. Won't say why."},
+    {name="Wren Ashby",    bio="Settlement War veteran, Independent faction. Took the amnesty, bought the ship. Doesn't talk about the war."},
+    {name="Orin Slack",    bio="Claims to have never missed a delivery. Most of the stations that could dispute it are no longer standing."},
+    {name="Pell Davan",    bio="Came out of the Core with forged credentials and a ship that technically belonged to someone else. That was twenty years ago. Statute of limitations, probably."},
+    {name="Saray Cohm",    bio="Inherited a freight contract and a failing ship from a business partner. The contract expired. The ship didn't."},
+    {name="Bram Esten",    bio="Flew Concord patrol ships for twelve years. Took early retirement after the Greywater Incident. The Concord calls it a commendation. He calls it a buyout."},
+    {name="Vael Drax",     bio="No flight record before fifteen years ago. Pays in cash. Always on time."},
+    {name="Corra Nine",    bio="Self-taught pilot out of the Rim. Never held a license the Concord would recognize, but the cargo always arrives."},
+    {name="Henley Cass",   bio="Runs the same three-station loop he's run for twenty years. Knows every dock worker by name. Has no ambitions he'll admit to."},
+    {name="Zura Falke",    bio="Former science officer, Concord Survey Corps. Left after the Pale Sun expedition. Delivers freight now. Doesn't discuss the expedition."},
+}
+
 local function stationByName(cs)
     local info = RT.stations[cs]
     if info and RT.valid(info.entity) then return info.entity end
@@ -496,7 +527,13 @@ function VERSE.spawnTransport(route, rng, near_station)
     -- freighter gets a modest warp drive (the AI uses it on long legs).
     s:setWarpDrive(true)
     s:setWarpSpeed(rng.float(250, 400))
-    s:setDescriptions("Freighter", string.format("%s hauling %s.", tmpl, VERSE.CARGO[kind]))
+    local yard = rng.pick(_YARDS)
+    local age  = rng.int(8, 45)
+    local cap  = rng.pick(_CAPTAINS)
+    s:setDescriptions(
+        string.format("%s. %s, %d years in service.", tmpl, yard, age),
+        string.format("Currently hauling %s. Captain %s — %s", VERSE.CARGO[kind], cap.name, cap.bio)
+    )
     local rec = {ship = s, route = route, kind = kind, dest = nil, docked_since = nil,
                  linger = rng.float(20, 60), last_order = getScenarioTime(), name = s:getCallSign()}
     rec.dest = dest
