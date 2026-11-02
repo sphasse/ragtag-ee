@@ -7,56 +7,36 @@ local _ARCHETYPES = {
         lore="A sealed container came off a freighter in the belt. Transponder's still pinging.",
         accept_msg='"Finder\'s fee. Bring it back intact."',
         recv_msg='"Container secured. That\'s what we were hoping for."',
-        intercept_types={{type="pirates",strength="scout",weight=2,
-            msg="Another ship is burning hard for the same beacon. They want the pod."}},
-        intercept_chance=0.20,
     },
     {
         cargo="an emergency beacon kit", urgent=false, reward_mult=0.9, tier_min=0,
         lore="Evac pod came down in the field. No crew — just the kit. Still useful to someone.",
         accept_msg='"Salvage rights are clear. Just go get it."',
         recv_msg='"That kit will save someone\'s life eventually."',
-        intercept_types={}, intercept_chance=0,
     },
     {
         cargo="a lost survey drone", urgent=false, reward_mult=1.1, tier_min=0,
         lore="Mapping probe went dark after passing through a debris cloud. Data core may still be intact.",
         accept_msg='"If the core is readable, there\'s a bonus in it."',
         recv_msg='"Data core intact. The bonus is yours."',
-        intercept_types={{type="rival",strength="scout",weight=2,
-            msg="Competing salvager just changed heading. They know about the drone."}},
-        intercept_chance=0.20,
     },
     {
         cargo="a corporate flight recorder", urgent=false, reward_mult=1.3, tier_min=1,
         lore="A wreck that nobody is officially looking for. The flight recorder is worth more than the hull.",
         accept_msg='"Don\'t look at what\'s on it. Just bring it back."',
         recv_msg='"We\'ll take it from here. You didn\'t find this."',
-        intercept_types={{type="rival",strength="light",weight=3,
-            msg="Corporate security ship just appeared on sensors. Someone tipped them off."}},
-        intercept_chance=0.40,
     },
     {
         cargo="a sealed courier pouch", urgent=true, reward_mult=1.2, tier_min=1,
         lore="A courier ran into trouble. The ship is gone, but the pouch is hardened and should have survived.",
         accept_msg='"Delivery contract is intact if the pouch is. Same rate."',
         recv_msg='"Seal\'s unbroken. Contract honoured."',
-        intercept_types={{type="pirates",strength="light",weight=3,
-            msg="Whoever took out the courier is still in the area."}},
-        intercept_chance=0.50,
     },
     {
         cargo="a weapons locker", urgent=true, reward_mult=1.4, tier_min=2,
         lore="Patrol ship went down hard. The armory container ejected clean. Concord will want it, but finders keep it.",
         accept_msg='"Manifest says it\'s unsecured. Move fast."',
         recv_msg='"Secured. We\'ll keep this one quiet."',
-        intercept_types={
-            {type="concord",strength="medium",weight=2,
-             msg="Concord patrol is moving to secure the site. They want that locker."},
-            {type="pirates",strength="medium",weight=2,
-             msg="Corsair raider closing fast. They're after the weapons locker."},
-        },
-        intercept_chance=0.55,
     },
 }
 
@@ -121,12 +101,6 @@ function M.generate(opts)
         urgent and 1.5 or 1.0)
     local prefix = urgent and "URGENT: " or ""
 
-    local intercept = nil
-    if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
-        local ic = MISSION.weightedPick(arch.intercept_types)
-        intercept = {itype=ic.type, strength=ic.strength, trigger=0, msg_log=ic.msg, fired=false}
-    end
-
     return {
         id           = MISSION.nextId(),
         type         = "salvage",
@@ -140,7 +114,6 @@ function M.generate(opts)
         obj          = "Recover " .. arch.cargo,
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
-        intercept    = intercept,
         urgent       = urgent,
         distance_u   = opts.distance_u or 0,
         region_name  = opts.region_name,
@@ -234,12 +207,6 @@ function M.update(m, entry, ctx)
                                 RT.shipLog("[Salvage] Cargo collected: " .. mis.cargo
                                     .. ". Return to " .. mis.origin .. " for payment.", "#80FF80")
                                 JOBS.updateObj()
-                                if mis.intercept and not mis.intercept.fired then
-                                    mis.intercept.fired = true
-                                    if MISSION._spawnIntercept then
-                                        MISSION._spawnIntercept(mis, player:getPosition())
-                                    end
-                                end
                                 break
                             end
                         end

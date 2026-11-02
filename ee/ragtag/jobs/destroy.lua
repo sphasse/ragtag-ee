@@ -10,7 +10,6 @@ local _ARCHETYPES = {
         recv_msg='"Target eliminated. Bounty posted to your account."',
         target_template="MT52 Hornet",
         reward_mult=1.0, tier_min=0,
-        intercept_types={}, intercept_chance=0,
     },
     {
         cargo="proof of destruction", short_offer="Destroy a rogue AI ship",
@@ -20,9 +19,6 @@ local _ARCHETYPES = {
         recv_msg='"Threat neutralized. Wreckage retrieved for analysis."',
         target_template="Adder MK5",
         reward_mult=1.1, tier_min=0,
-        intercept_types={{type="rival",strength="scout",weight=2,
-            msg="Another ship on intercept. Someone else wants that bounty."}},
-        intercept_chance=0.25,
     },
     {
         cargo="a quarantine certificate", short_offer="Destroy a plague ship",
@@ -32,9 +28,6 @@ local _ARCHETYPES = {
         recv_msg='"Contaminated hulk destroyed. Medical authority confirms clean burn."',
         target_template="Flavia P.Falcon",
         reward_mult=1.2, tier_min=1,
-        intercept_types={{type="rival",strength="scout",weight=2,
-            msg="Courier inbound — corporate wants to recover the sample before you burn it."}},
-        intercept_chance=0.30,
     },
     {
         cargo="combat telemetry", short_offer="Eliminate a pirate captain",
@@ -44,9 +37,6 @@ local _ARCHETYPES = {
         recv_msg='"Captain confirmed KIA. The lanes just got safer."',
         target_template="Phobos T3",
         reward_mult=1.3, tier_min=1,
-        intercept_types={{type="pirates",strength="medium",weight=3,
-            msg="Corsair reinforcements breaking off nearby patrol. They're coming for you."}},
-        intercept_chance=0.40,
     },
     {
         cargo="a black-ops confirmation", short_offer="Destroy a defector's ship",
@@ -56,13 +46,6 @@ local _ARCHETYPES = {
         recv_msg='"Target eliminated. Files unrecoverable. This conversation never happened."',
         target_template="Phobos M3P",
         reward_mult=1.5, tier_min=2,
-        intercept_types={
-            {type="concord",strength="medium",weight=2,
-             msg="Concord patrol responding. Official story is they're here to help. Don't believe it."},
-            {type="rival",strength="heavy",weight=1,
-             msg="Heavy contact inbound — Hollow interceptor. They want the defector alive."},
-        },
-        intercept_chance=0.50,
     },
 }
 
@@ -123,12 +106,6 @@ function M.generate(opts)
         target_dest = opts.nearby_stations[math.random(#opts.nearby_stations)]
     end
 
-    local intercept = nil
-    if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
-        local ic = MISSION.weightedPick(arch.intercept_types)
-        intercept = {itype=ic.type, strength=ic.strength, trigger=0, msg_log=ic.msg, fired=false}
-    end
-
     return {
         id              = MISSION.nextId(),
         type            = "destroy",
@@ -145,7 +122,6 @@ function M.generate(opts)
         complete_msg    = arch.recv_msg,
         target_template = arch.target_template,
         target_dest     = target_dest,
-        intercept       = intercept,
         distance_u      = opts.distance_u or 0,
         region_name     = opts.region_name,
         faction_label   = arch.faction_label,

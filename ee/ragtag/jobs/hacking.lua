@@ -7,7 +7,6 @@ local _ARCHETYPES = {
         lore="Someone has been running routes they don't want on record. The log lives in a relay buoy.",
         accept_msg='"Get Relay in position and crack it before anyone notices the uplink."',
         recv_msg='"Routes confirmed. This is exactly what we needed."',
-        reward_mult=1.0, tier_min=0, intercept_types={}, intercept_chance=0,
     },
     {
         cargo="a comms archive", short_offer="Extract comms from a dark relay",
@@ -15,9 +14,6 @@ local _ARCHETYPES = {
         accept_msg='"Pull the archive intact. Partial data is worthless to us."',
         recv_msg='"Everything\'s here. Good clean extraction."',
         reward_mult=1.0, tier_min=0,
-        intercept_types={{type="rival",strength="scout",weight=2,
-            msg="Courier on intercept heading — someone else wants that archive."}},
-        intercept_chance=0.20,
     },
     {
         cargo="a contraband manifest", short_offer="Crack a smuggler's relay cache",
@@ -25,9 +21,6 @@ local _ARCHETYPES = {
         accept_msg='"Crack it quietly. If they notice the uplink they\'ll wipe the buffer."',
         recv_msg='"Manifest intact. Half a dozen ships just had a very bad week."',
         reward_mult=1.1, tier_min=0,
-        intercept_types={{type="pirates",strength="scout",weight=3,
-            msg="Two contacts breaking off a nearby lane. They're watching this relay."}},
-        intercept_chance=0.30,
     },
     {
         cargo="docking access codes", short_offer="Pull codes from a relay buffer",
@@ -35,9 +28,6 @@ local _ARCHETYPES = {
         accept_msg='"In and out before the rotation. You have a narrow window."',
         recv_msg='"Codes are live. We\'ll use them once — don\'t ask what for."',
         reward_mult=1.3, tier_min=1,
-        intercept_types={{type="concord",strength="scout",weight=2,
-            msg="Concord patrol just changed heading. They may have flagged the uplink attempt."}},
-        intercept_chance=0.35,
     },
     {
         cargo="a black ledger fragment", short_offer="Break into a hardened relay",
@@ -45,9 +35,6 @@ local _ARCHETYPES = {
         accept_msg='"This relay is hardened. It will resist. Don\'t stop until you\'re through."',
         recv_msg='"Fragment verified. You just changed some very powerful people\'s plans."',
         reward_mult=1.5, tier_min=2,
-        intercept_types={{type="rival",strength="medium",weight=3,
-            msg="Corporate security responding. They know what you're pulling."}},
-        intercept_chance=0.50,
     },
 }
 
@@ -98,12 +85,6 @@ function M.generate(opts)
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u)
 
-    local intercept = nil
-    if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
-        local ic = MISSION.weightedPick(arch.intercept_types)
-        intercept = {itype=ic.type, strength=ic.strength, trigger=0, msg_log=ic.msg, fired=false}
-    end
-
     return {
         id             = MISSION.nextId(),
         type           = "hacking",
@@ -119,7 +100,6 @@ function M.generate(opts)
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
                          .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
         complete_msg   = arch.recv_msg,
-        intercept      = intercept,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
         _spawned       = false,
