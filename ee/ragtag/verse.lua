@@ -124,10 +124,10 @@ end
 
 
 VERSE.SALVAGE_TIERS = {
-    [0] = {pods = {3, 5}, value = {15, 30}, spread = 1.5},
-    [1] = {pods = {4, 5}, value = {35, 60}, spread = 2.0},
-    [2] = {pods = {4, 6}, value = {60, 100}, spread = 2.5},
-    [3] = {pods = {5, 7}, value = {120, 200}, spread = 3.0},
+    [0] = {pods = {3, 5}, value = {5,  10}, spread = 1.5},
+    [1] = {pods = {4, 5}, value = {7,  12}, spread = 2.0},
+    [2] = {pods = {4, 6}, value = {9,  15}, spread = 2.5},
+    [3] = {pods = {5, 7}, value = {13, 20}, spread = 3.0},
 }
 
 
@@ -797,7 +797,7 @@ function VERSE.updateAmbient(now)
     if not RT.valid(rec.ship) or rec.ship:getDockedWith() then return end
     local x, y = rec.ship:getPosition()
     local dx, dy = vectorFromAngle(rec.ship:getHeading() + 180, 1500, true)
-    local pod = VERSE.spawnPod(x + dx, y + dy, VERSE.rng_live.int(20, 45), POD_KINDS[1], 0)
+    local pod = VERSE.spawnPod(x + dx, y + dy, VERSE.rng_live.int(5, 10), POD_KINDS[1], 0)
     pod:setCallSign("Lost crate")
     table.insert(VERSE.ambient_pods, pod)
 end
