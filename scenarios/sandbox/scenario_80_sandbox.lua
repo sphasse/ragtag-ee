@@ -292,8 +292,14 @@ function JOBS.refreshPanel()
 end
 
 function JOBS.maxTier()
-    local n = RT.campaign and #(RT.campaign.upgrades or {}) or 0
-    if n >= 5 then return 2 elseif n >= 2 then return 1 else return 0 end
+    if not RT.campaign then return 0 end
+    local cost_map = {}
+    for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
+    local total = 0
+    for _, id in ipairs(RT.campaign.upgrades or {}) do
+        total = total + (cost_map[id] or 0)
+    end
+    if total >= 1000 then return 2 elseif total >= 500 then return 1 else return 0 end
 end
 
 function JOBS.init() end
@@ -2289,9 +2295,36 @@ function addSessionGMFunctions()
         local lines = {"=== CAMPAIGN STATUS ===\n"}
         if RT.campaign then
             table.insert(lines, string.format("Session: %d", S.session_num))
-            table.insert(lines, string.format("Credits: %d\n", RT.campaign.credits))
+            table.insert(lines, string.format("Credits: %d", RT.campaign.credits))
 
-            table.insert(lines, "REPUTATION:")
+            -- Upgrades and investment
+            local cost_map = {}
+            for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
+            local total_invested = 0
+            local upgrade_lines = {}
+            for _, id in ipairs(RT.campaign.upgrades or {}) do
+                local cost = cost_map[id] or 0
+                total_invested = total_invested + cost
+                for _, u in ipairs(RT.UPGRADES) do
+                    if u.id == id then
+                        upgrade_lines[#upgrade_lines+1] = string.format("  %s (%dcr)", u.name, cost)
+                        break
+                    end
+                end
+            end
+            local tier = JOBS.maxTier()
+            local next_threshold = tier == 0 and 500 or (tier == 1 and 1000 or nil)
+            local tier_note = next_threshold
+                and string.format(" — tier %d (next tier at %dcr)", tier, next_threshold)
+                or  string.format(" — tier %d (max)", tier)
+            table.insert(lines, string.format("\nUPGRADES: %dcr invested%s", total_invested, tier_note))
+            if #upgrade_lines == 0 then
+                table.insert(lines, "  (none)")
+            else
+                for _, l in ipairs(upgrade_lines) do table.insert(lines, l) end
+            end
+
+            table.insert(lines, "\nREPUTATION:")
             local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic", "Unknown"}
             for _, faction in ipairs(factions) do
                 local rep = RT.getReputation(faction)
