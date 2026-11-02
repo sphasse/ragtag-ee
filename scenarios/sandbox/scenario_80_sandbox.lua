@@ -929,7 +929,7 @@ function addSessionGMFunctions()
         addGMFunction("< Back to Factions", showReputationFactionList)
         local current = RT.getReputation(faction) or 0
         addGMFunction(string.format("%s: %+d", faction, current), function() end)
-        local deltas = {50, 10, 1, -1, -10, -50}
+        local deltas = {100, -100}
         for _, d in ipairs(deltas) do
             local label = string.format("%s %+d", faction, d)
             addGMFunction(label, function()

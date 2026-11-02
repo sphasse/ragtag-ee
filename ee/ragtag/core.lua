@@ -309,7 +309,7 @@ end
 -- Reputation system
 --------------------------------------------------------------------------------
 
--- Modify reputation with a faction. Clamps to -100..+100.
+-- Modify reputation with a faction. Unbounded.
 function RT.addReputation(faction, amount, reason)
     if not RT.campaign or not RT.campaign.reputation then return end
     if not RT.campaign.reputation[faction] then
@@ -317,7 +317,7 @@ function RT.addReputation(faction, amount, reason)
     end
 
     local old_rep = RT.campaign.reputation[faction]
-    local new_rep = math.max(-100, math.min(100, old_rep + amount))
+    local new_rep = old_rep + amount
     RT.campaign.reputation[faction] = new_rep
 
     if amount ~= 0 and reason then

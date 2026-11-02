@@ -233,8 +233,7 @@ function JOBS.complete(entry, completing_ship)
         if RT.valid(os_e) then fac = os_e:getFaction() end
     end
     if fac then
-        local rep_gain = math.max(1, math.floor(entry.mission.reward / 20))
-        RT.addReputation(fac, rep_gain, "completed: " .. entry.mission.short)
+        RT.addReputation(fac, entry.mission.reward, "completed: " .. entry.mission.short)
     end
 
     JOBS.updateObj()
@@ -262,8 +261,7 @@ function JOBS.update()
                 if not handled then
                     RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
                     if m.origin_faction then
-                        local rep_loss = math.max(2, math.floor(m.reward / 10))
-                        RT.addReputation(m.origin_faction, -rep_loss, "failed: " .. m.short)
+                        RT.addReputation(m.origin_faction, -m.reward, "failed: " .. m.short)
                     end
                 end
                 if mod and mod.cleanup then mod.cleanup(m) end
