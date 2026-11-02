@@ -293,6 +293,7 @@ function M.spawn(m)
     DIR.registerKill(convoy)
     local mission_ref = m
     convoy:setCommsFunction(function(src, tgt)
+        print(string.format("[ESCORT-DIAG] convoy comms opened: waiting=%s", tostring(mission_ref._convoy_waiting)))
         if mission_ref._convoy_waiting then
             setCommsMessage('"Standing by at the dock. Ready to depart on your mark."')
         else
@@ -300,6 +301,9 @@ function M.spawn(m)
         end
     end)
     m.convoy_cs = convoy_name
+    print(string.format("[ESCORT-DIAG] spawn complete: convoy=%s pos=(%.0f,%.0f) dx=%.0f dy=%.0f spawned=%s",
+        convoy_name, ox + math.cos(dock_angle) * 800, oy + math.sin(dock_angle) * 800,
+        m.dx, m.dy, tostring(m._spawned)))
 
     -- Two escort fighters: impulse-only (~1/3 warp), standing by at origin.
     -- Pick two distinct names from the pool.
@@ -384,17 +388,29 @@ function M.update(m, entry, ctx)
     -- Wait at origin until the player undocks, then release the convoy.
     if m._convoy_waiting then
         local origin_e = RT.find(m.origin)
+        local origin_valid = RT.valid(origin_e)
+        local player_count = 0
         local player_left = true
         RT.forEachPlayer(function(p)
-            if RT.valid(p) then
-                local docked = p:getDockedWith()
-                if docked and RT.valid(origin_e) and docked == origin_e then
-                    player_left = false
-                end
+            player_count = player_count + 1
+            local docked = p:getDockedWith()
+            local docked_cs = (docked and docked ~= false and RT.valid(docked)) and docked:getCallSign() or "nil"
+            print(string.format("[ESCORT-DIAG] player %d: getDockedWith=%s origin_valid=%s origin=%s",
+                player_count, tostring(docked_cs), tostring(origin_valid), tostring(m.origin)))
+            if docked and origin_valid and docked == origin_e then
+                player_left = false
             end
         end)
+        -- Throttle: print waiting status every ~10s
+        if not m._diag_next or ctx.now >= m._diag_next then
+            m._diag_next = ctx.now + 10
+            print(string.format("[ESCORT-DIAG] waiting: players=%d player_left=%s convoy_cs=%s dx=%.0f dy=%.0f",
+                player_count, tostring(player_left), tostring(m.convoy_cs), m.dx or -1, m.dy or -1))
+        end
         if player_left then
             m._convoy_waiting = false
+            print(string.format("[ESCORT-DIAG] releasing convoy %s -> orderFlyTowards(%.0f, %.0f)",
+                m.convoy_cs, m.dx, m.dy))
             convoy:orderFlyTowards(m.dx, m.dy)
             RT.shipLog("[Escort] " .. m.convoy_cs .. " is underway. Escort them to " .. m.dest .. ".", "#60CCFF")
         end
