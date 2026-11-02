@@ -10,7 +10,7 @@
 -- Setting[Starting Credits]: How much money to start with (Fresh start only).
 -- Starting Credits[Modest (200)|Default]: Enough for a few repairs or one small upgrade.
 -- Starting Credits[Comfortable (500)]: Enough to buy a decent upgrade right away.
--- Starting Credits[Well-off (1000)]: Can afford multiple upgrades or a jump drive.
+-- Starting Credits[Well-off (1000)]: Can afford multiple upgrades immediately.
 -- Setting[Danger Level]: How aggressive the universe is.
 -- Danger Level[Relaxed]: Fewer hostiles, more time to explore.
 -- Danger Level[Normal|Default]: Balanced encounters.

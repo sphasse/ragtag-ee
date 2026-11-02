@@ -46,7 +46,7 @@ Reputation matters. Corsairs who've seen you run will back off sooner. Corsairs 
 
 ## Upgrades
 
-Your starting ship is a freighter — decent shields, basic weapons, no jump drive. Stations stock different upgrades; ask around. Upgrade shields before venturing into risky space. Save for the jump drive if you're going far.
+Your starting ship is a freighter — decent shields, basic weapons, warp drive. Stations stock different upgrades; ask around. Upgrade shields before venturing into risky space. The warp coil overhaul is the big mobility upgrade if you're covering long distances.
 
 ---
 

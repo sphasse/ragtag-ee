@@ -20,7 +20,7 @@ Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine
 - **17 distinct regions** with varying danger levels (safe, risky, dangerous, deadly)
 - **Dynamic trade traffic**: 15 AI freighters following realistic routes, docking and departing
 - **Salvage economy**: 25+ salvage clusters (credits, missiles, hull patches) respawn each session
-- **Progressive upgrades**: 16 total upgrades across different shipyards (shields, weapons, engines, jump drive)
+- **Progressive upgrades**: 15 total upgrades across different shipyards (shields, weapons, engines, warp)
 - **Proximity spawn system**: faction patrols that scale with player strength, region danger, and reputation (see below)
 
 ### Five Factions

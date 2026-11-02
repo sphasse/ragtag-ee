@@ -25,7 +25,7 @@ RUMORS.pool = {
     "Fuel prices spiked after that hauler went missing near Blackwater. Insurance costs.",
     "Old-timer said platinum's been cheap for months. Somebody's dumping reserves.",
     "Medical shipments to the Rim are delayed. Concord says it's a paperwork issue.",
-    "Jump freighter captains are refusing Boneyard runs. Too many ships not coming back.",
+    "Freighter captains are refusing Boneyard runs. Too many ships not coming back.",
 
     -- Corsairs & piracy (15)
     "Corsairs hit three freighters in the Gauntlet this week. They're getting bolder.",

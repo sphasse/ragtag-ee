@@ -17,7 +17,7 @@
 ### Starting Credits (Fresh start only)
 - **Modest (200)**: Enough for small repairs or one basic upgrade
 - **Comfortable (500)**: Can buy a decent upgrade immediately
-- **Well-off (1000)**: Multiple upgrades or a jump drive
+- **Well-off (1000)**: Multiple upgrades immediately
 
 ### Danger Level
 - **Relaxed**: Fewer hostiles, more breathing room (good for learning)
@@ -50,7 +50,7 @@
 - **16 upgrades** available across different stations
 - Costs: 150-500 credits each
 - Each station sells different upgrades (ask the shipwright)
-- Jump drive (500cr) is the big one—enables long-range travel
+- Warp coil overhaul (250cr) is the big mobility upgrade
 
 ### Jobs
 
@@ -188,7 +188,7 @@ Offer hooks:
 
 ### Upgrade Progression
 - Session 1-2: Basic upgrades (hull, shields mk2, repair crew, forward beams)
-- Session 3-4: Advanced upgrades (jump drive, combat thrusters, sensor suite)
+- Session 3-4: Advanced upgrades (warp overhaul, combat thrusters, sensor suite)
 - Session 5+: Top-tier (heavy beams, warp overhaul, reactor overhaul) unlocks dangerous zones
 
 ### Region Recommendations by Upgrade Level

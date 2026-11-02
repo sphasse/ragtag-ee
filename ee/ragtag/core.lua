@@ -538,10 +538,6 @@ RT.UPGRADES = {
     {id = "sensor_suite", name = "Long-range sensor suite", cost = 150,
      desc = "Long-range radar 30u -> 45u.",
      apply = function(p) p:setLongRangeRadarRange(45000) end},
-    {id = "jump_drive", name = "Second-hand jump drive", cost = 500,
-     desc = "Jump drive, 5u - 30u.",
-     apply = function(p) p:setJumpDrive(true); p:setJumpDriveRange(5000, 30000) end},
-
     -- Second tier: what it takes to survive Blackwater, the Boneyard and, eventually, the Maw.
     {id = "reactor_overhaul", name = "Reactor overhaul", cost = 200,
      desc = "+50% energy capacity.",

@@ -169,7 +169,7 @@ If the table wants to keep playing after the arc, the campaign continues normall
 ### Good stopping points
 
 - After one post-arc mission (natural wind-down)
-- After a significant purchase — a jump drive or max-tier weapon unlock feels like a chapter ending
+- After a significant purchase — a warp overhaul or max-tier weapon unlock feels like a chapter ending
 - After a dramatic combat — the Boneyard or Maw if the crew is feeling bold
 
 Wrap with a Director prompt: *"Give a brief out-of-character session summary — what the crew accomplished, what changed."* The GM console will generate a short debrief based on the session log.

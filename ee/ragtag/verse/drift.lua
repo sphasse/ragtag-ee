@@ -95,7 +95,7 @@ VERSE.extend({
          flavor = "Hob's Landing. Dock where you like, pay what you owe, settle disputes outside.",
          desc = "The biggest town on the Rim, orbiting the dusty world Hob."},
         {cs = "Dustmote Salvage", tmpl = "Small Station", fac = "Independent", x = 104, y = -36,
-         shop = {"jump_drive", "heavy_beams", "front_tube", "hull_plating_2"},
+         shop = {"heavy_beams", "front_tube", "hull_plating_2"},
          flavor = "Dustmote Salvage. We buy anything. We sell everything. We ask nothing.",
          desc = "A scrapyard and black market. Half its stock fell off the back of a Concord freighter."},
         {cs = "Saint Brennan's Mission", tmpl = "Small Station", fac = "Independent", x = 72, y = -62,
@@ -268,8 +268,7 @@ VERSE.extend({
 
     rumors = {
         "Corsairs are working the Gauntlet again. Three crews, maybe four. Go round, or go fast.",
-        "Dustmote Salvage has a jump drive for sale. Don't ask whose it was.",
-        "The Boneyard drones are still shooting at a war that ended twenty years ago. There's good salvage between the wrecks, if you're quick.",
+"The Boneyard drones are still shooting at a war that ended twenty years ago. There's good salvage between the wrecks, if you're quick.",
         "Freighter came back from beyond Lastchance with half her crew. Wouldn't say what they saw. Wouldn't say anything.",
         "There's a rift somewhere deep in the Shroud. Ships go in. I've never heard of one coming out where it went in.",
         "Concord's tightening the Arbiter Line. They're checking manifests twice now.",
