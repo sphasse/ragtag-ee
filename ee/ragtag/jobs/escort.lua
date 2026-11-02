@@ -174,7 +174,12 @@ local function _spawnInterceptors(m, cx, cy)
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
-        m._interceptors[#m._interceptors + 1] = {cs = cs, sx = ex, sy = ey}
+        m._interceptors[#m._interceptors + 1] = {
+            cs = cs, sx = ex, sy = ey,
+            init_hull    = s:getHullMax(),
+            init_shields = s:getShieldMax(0),
+            switched     = false,
+        }
     end
 end
 
@@ -419,6 +424,21 @@ function M.update(m, entry, ctx)
             RT.shipLog("[Escort] " .. m.convoy_cs .. " is underway. Escort them to " .. m.dest .. ".", "#60CCFF")
         end
         return nil
+    end
+
+    -- Switch interceptors to roaming (fight back) once they take any damage.
+    for _, interc in ipairs(m._interceptors) do
+        if not interc.switched then
+            local s = RT.find(interc.cs)
+            if RT.valid(s) then
+                local hit = s:getHull() < interc.init_hull
+                    or (interc.init_shields > 0 and s:getShieldLevel(0) < interc.init_shields)
+                if hit then
+                    s:orderRoaming()
+                    interc.switched = true
+                end
+            end
+        end
     end
 
     local cx, cy = convoy:getPosition()
