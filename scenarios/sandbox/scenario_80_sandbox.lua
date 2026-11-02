@@ -681,7 +681,6 @@ function init()
     -- Sandbox uses the whole universe; only explicitly require the starting location
     VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest"})
     PROX.init()
-    PROX.addGMButtons()
 
     -- Spawn the primary ship at Port Vesper. Additional ships join via the
     -- in-game "Create player ship" selection screen; onNewPlayerShip handles them.
@@ -1005,6 +1004,12 @@ function addSessionGMFunctions()
         if RT.valid(RT.player) then
             RT.addCredits(-10, "GM penalty")
         end
+    end)
+
+    addGMFunction("Spawns: " .. PROX.getModeName(), function()
+        PROX.cycleMode()
+        clearGMFunctions()
+        addSessionGMFunctions()
     end)
 
     addGMFunction("Work Cooldown: " .. (JOBS.config.work_cooldown_enabled and "ON" or "OFF"), function()

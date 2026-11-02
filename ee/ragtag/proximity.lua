@@ -551,20 +551,15 @@ function PROX.init()
     end
 end
 
--- Add a GM button that cycles through None / Low / Medium / High spawn rates.
--- Call once from the scenario's init(), after PROX.init().
-function PROX.addGMButtons()
-    local function _register()
-        local mode  = _SPAWN_MODES[PROX._mode_idx]
-        local label = "Spawns: " .. mode.name
-        PROX._gm_btn_label = label
-        addGMFunction(label, function()
-            removeGMFunction(PROX._gm_btn_label)
-            PROX._mode_idx = (PROX._mode_idx % #_SPAWN_MODES) + 1
-            _register()
-        end)
-    end
-    _register()
+-- Helpers for scenario GM menus — use PROX.getModeName() and PROX.cycleMode()
+-- inside addSessionGMFunctions() rather than calling addGMButtons() at init time,
+-- so the button survives clearGMFunctions() calls in sub-menus.
+function PROX.getModeName()
+    return _SPAWN_MODES[PROX._mode_idx].name
+end
+
+function PROX.cycleMode()
+    PROX._mode_idx = (PROX._mode_idx % #_SPAWN_MODES) + 1
 end
 
 -- Manually add a no-spawn exclusion zone around a named station.
