@@ -11,9 +11,10 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 6. Comms
 7. Persistence (ScriptStorage)
 8. JSON
-9. GM screen
-10. Factions and templates
-11. Headless testing
+9. Font and character set limitations
+10. GM screen
+11. Factions and templates
+12. Headless testing
 
 ## 1. Scenario file format
 - File name `scenario_NN_name.lua` in the `scripts/` folder. NN orders the list.
@@ -91,18 +92,36 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 - A table with keys 1..n becomes an array; anything else becomes an object. **An empty table becomes `{}`, not `[]`**, so consumers must accept either for empty lists.
 - Entities and functions serialise to null. Convert to callsigns first.
 
-## 9. GM screen
+## 9. Font and character set limitations
+
+EE's built-in font covers basic ASCII only. Any character outside that set logs
+`Failed to find glyph in font: 0xNNNN` and renders as a blank. **Never use
+Unicode characters in any string that will be displayed in-game** — this includes
+`setCommsMessage`, `addCommsReply`, `RT.shipLog`, `addGMFunction` labels,
+`addCustomInfo`, and any field that ends up in a comms menu or HUD.
+
+Characters that have caused problems in this project:
+
+| Char | Codepoint | Notes |
+|---|---|---|
+| ● | U+25CF | Was used as bullet in `offerText`; replaced with `*` |
+
+Safe alternatives for common symbols: `*` (bullet), `->` or `>` (arrow),
+`--` (separator), `+`/`-` (plus/minus). Stick to letters, digits, and basic
+punctuation (`! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ \` { | } ~`).
+
+## 10. GM screen
 - `addGMFunction(label, fn)` adds a button; `removeGMFunction(label)`, `clearGMFunctions()`.
 - `addGMMessage(text)` shows a dismissable message to the GM.
 - Prefix button labels with the session (e.g. "S2: fire ambush") so the GM can tell campaign tools from session tools.
 
-## 10. Factions and templates
+## 11. Factions and templates
 - Factions: "Independent", "Human Navy", "Kraylor", "Arlenians", "Exuari", "Ghosts", "Ktlitans", "TSN", "USN", "CUF". Exuari are hostile to Independent; Human Navy and Ghosts are neutral to Independent.
 - An Independent player ship can't be attacked by `orderAttack` from a non-hostile faction. For "the law chases you" scenes, use `orderFlyTowards`/`orderFlyTowardsBlind` toward the player and resolve the outcome with distance checks.
 - Useful templates: player "Flavia P.Falcon" (rear beams, rear tube, warp), "Phobos M3P", "Atlantis". Small hostiles: "MT52 Hornet", "Adder MK5", "Piranha F12". Medium: "Phobos T3", "Stalker Q7". Heavy: "Nirvana R5", "Atlantis X23". Civilians: "Flavia", "Tug". Patrol: "Phobos M3". Stations: "Small Station", "Medium Station", "Large Station", "Huge Station".
 - CpuShip orders: `orderIdle()`, `orderRoaming()`, `orderAttack(target)`, `orderDefendTarget(t)`, `orderFlyTowards(x, y)`, `orderFlyTowardsBlind(x, y)`, `orderFlyFormation(leader, dx, dy)`, `orderDock(station)`, `orderRetreat()`.
 
-## 11. Headless testing
+## 12. Headless testing
 - Launch from the EmptyEpsilon folder: `EmptyEpsilon headless=scenario_90_longhaul_1.lua httpserver=8080`. On a machine without a display, also set `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy`.
 - Then drive it over HTTP: `curl --data 'return tostring(getScenarioTime())' http://localhost:8080/exec.lua`.
 - Lua errors appear in the terminal / `EmptyEpsilon.log` as `LUA-Error:` with a traceback.

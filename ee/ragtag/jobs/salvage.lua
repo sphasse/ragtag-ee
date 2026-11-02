@@ -317,7 +317,7 @@ end
 function M.offerText(m, stats)
     local region = m.region_name or "open space"
     local prefix = m.urgent and "URGENT: " or ""
-    return string.format("● %sRecover %s from %s.\n  %s", prefix, m.cargo, region, stats)
+    return string.format("* %sRecover %s from %s.\n  %s", prefix, m.cargo, region, stats)
 end
 
 function M.spawn(m)

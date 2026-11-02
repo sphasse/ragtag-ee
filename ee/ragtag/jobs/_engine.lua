@@ -441,7 +441,7 @@ local function _offerMissions(cs)
         local dist_u  = math.floor((m.distance_u or 0) / 1000 + 0.5)
         local dur_min = math.floor((mod2 and mod2.duration(m) or 1200) / 60)
         local stats   = string.format("%dU · %dcr · %d min", dist_u, m.reward, dur_min)
-        lines[#lines + 1] = mod2 and mod2.offerText(m, stats) or ("● " .. m.short .. "\n  " .. stats)
+        lines[#lines + 1] = mod2 and mod2.offerText(m, stats) or ("* " .. m.short .. "\n  " .. stats)
     end
     if slots_failed > 0 then
         local noun = slots_failed == 1 and "contract was" or "contracts were"

@@ -406,7 +406,7 @@ end
 
 function M.offerText(m, stats)
     local region = m.region_name or "open space"
-    return string.format("● Eliminate a %s in %s.\n  %s", m.faction_label or "target", region, stats)
+    return string.format("* Eliminate a %s in %s.\n  %s", m.faction_label or "target", region, stats)
 end
 
 function M.spawn(m)

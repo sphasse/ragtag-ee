@@ -259,7 +259,7 @@ function M.duration(m)
 end
 
 function M.offerText(m, stats)
-    return string.format("● Escort convoy to %s.\n  %s", m.dest, stats)
+    return string.format("* Escort convoy to %s.\n  %s", m.dest, stats)
 end
 
 function M.spawn(m)
