@@ -1267,13 +1267,13 @@ function JOBS.update()
                     if now - m._last_jam_check > 2 then
                         m._last_jam_check = now
                         local rx, ry = target:getPosition()
-                        -- Aim beams at nearest player in the 1U–4U ring; safe inside 1U
+                        -- Aim beams at nearest player within 4U
                         local beam_target = nil
                         local beam_dist   = math.huge
                         for _, p in ipairs(RT.players) do
                             if RT.valid(p) then
                                 local d = RT.dist(target, p)
-                                if d > 1000 and d < 4000 and d < beam_dist then
+                                if d < 4000 and d < beam_dist then
                                     beam_target = p
                                     beam_dist   = d
                                 end
