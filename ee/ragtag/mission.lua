@@ -33,7 +33,7 @@ local _ARCHETYPES = {
         lore   = "The destination station is short-staffed and someone isn't doing well.",
         accept_msg = '"Move fast. People are waiting on the other end."',
         recv_msg   = '"You got here in time. Thank you."',
-        reward_mult = 1.1, tier_min = 0,
+        urgent = true, reward_mult = 1.1, tier_min = 0,
         intercept_types = {}, intercept_chance = 0,
     },
     {
@@ -41,7 +41,7 @@ local _ARCHETYPES = {
         lore   = "Someone is moving their savings to a safer port. Don't ask how much is inside.",
         accept_msg = '"Don\'t lose it. Don\'t open it. Please."',
         recv_msg   = '"I thought I\'d never see this again."',
-        reward_mult = 0.9, tier_min = 0,
+        urgent = false, reward_mult = 0.9, tier_min = 0,
         intercept_types = {
             {type="pirates", strength="scout", weight=3,
              msg="Two contacts on an intercept heading. They know what you're carrying."},
@@ -53,7 +53,7 @@ local _ARCHETYPES = {
         lore   = "Fresh scan data from a prospecting run. A rival outfit would pay well for it.",
         accept_msg = '"Bonded delivery. No stops, no detours."',
         recv_msg   = '"Ahead of schedule. Appreciated."',
-        reward_mult = 1.0, tier_min = 0,
+        urgent = false, reward_mult = 1.0, tier_min = 0,
         intercept_types = {
             {type="rival", strength="scout", weight=3,
              msg="A courier just lit off after you. They want that data off your ship."},
@@ -65,7 +65,7 @@ local _ARCHETYPES = {
         lore   = "Beacon relay parts for an outpost that went dark. No backup comms until you deliver.",
         accept_msg = '"Someone out there is waiting to call for help. Move."',
         recv_msg   = '"We\'re back online. You have no idea what that means to us."',
-        reward_mult = 1.0, tier_min = 0,
+        urgent = true, reward_mult = 1.0, tier_min = 0,
         intercept_types = {}, intercept_chance = 0,
     },
     {
@@ -73,7 +73,7 @@ local _ARCHETYPES = {
         lore   = "Another crew quoted this run first. Get there before they do.",
         accept_msg = '"Beat them to it and the contract bonus is yours."',
         recv_msg   = '"You got here first. Contract\'s yours."',
-        reward_mult = 0.95, tier_min = 0,
+        urgent = true, reward_mult = 0.95, tier_min = 0,
         intercept_types = {
             {type="rival", strength="scout", weight=3,
              msg="Competing delivery ship burning hard on your heading."},
@@ -85,7 +85,7 @@ local _ARCHETYPES = {
         lore   = "They said don't ask. The pay says don't argue.",
         accept_msg = '"You didn\'t see this. We never spoke."',
         recv_msg   = '"Quiet and fast. Just how we like it."',
-        reward_mult = 1.5, tier_min = 1,
+        urgent = false, reward_mult = 1.5, tier_min = 1,
         intercept_types = {
             {type="pirates",  strength="light", weight=2,
              msg="Three ships on intercept. Word got out you're carrying something valuable."},
@@ -99,7 +99,7 @@ local _ARCHETYPES = {
         lore   = "Corporate courier contract. The paperwork is above your clearance level.",
         accept_msg = '"Deliver to the named recipient only. Do not break the seal."',
         recv_msg   = '"Intact and on time. Your bond is cleared."',
-        reward_mult = 1.2, tier_min = 1,
+        urgent = false, reward_mult = 1.2, tier_min = 1,
         intercept_types = {
             {type="rival", strength="light", weight=3,
              msg="Corporate security ship — not Concord. Someone doesn't want those documents to arrive."},
@@ -111,7 +111,7 @@ local _ARCHETYPES = {
         lore   = "Alive and secured. Licensed transfer. Don't let them talk to you.",
         accept_msg = '"They\'ll try to negotiate. Standard contract: you don\'t open the bay."',
         recv_msg   = '"Secure, no incidents. The bond transfers to you now."',
-        reward_mult = 1.4, tier_min = 1,
+        urgent = false, reward_mult = 1.4, tier_min = 1,
         intercept_types = {
             {type="pirates", strength="light", weight=3,
              msg="Fast ships on an intercept heading. Friends of your passenger, most likely."},
@@ -123,7 +123,7 @@ local _ARCHETYPES = {
         lore   = "Licensed arms transfer, cleared manifest. Concord will still want to look.",
         accept_msg = '"Everything is above board. Mostly. Move fast."',
         recv_msg   = '"All present, no tamper seals broken. Good work."',
-        reward_mult = 1.3, tier_min = 2,
+        urgent = false, reward_mult = 1.3, tier_min = 2,
         intercept_types = {
             {type="concord", strength="medium", weight=2,
              msg="Concord patrol moving to intercept. Arms manifests get extra scrutiny out here."},
@@ -137,7 +137,7 @@ local _ARCHETYPES = {
         lore   = "Rare items. High value. Somebody talked.",
         accept_msg = '"The value is in the pieces, not the container. Be careful."',
         recv_msg   = '"Every piece intact. I\'ll remember your callsign."',
-        reward_mult = 1.35, tier_min = 2,
+        urgent = false, reward_mult = 1.35, tier_min = 2,
         intercept_types = {
             {type="pirates", strength="medium", weight=3,
              msg="Two ships on a cut-off vector. They know exactly what the cargo is worth."},
@@ -158,7 +158,7 @@ local _SALVAGE_ARCHETYPES = {
         lore   = "A sealed container came off a freighter in the belt. Transponder's still pinging.",
         accept_msg = '"Finder\'s fee. Bring it back intact."',
         recv_msg   = '"Container secured. That\'s what we were hoping for."',
-        reward_mult = 1.0, tier_min = 0,
+        urgent = false, reward_mult = 1.0, tier_min = 0,
         intercept_types = {
             {type="pirates", strength="scout", weight=2,
              msg="Another ship is burning hard for the same beacon. They want the pod."},
@@ -170,7 +170,7 @@ local _SALVAGE_ARCHETYPES = {
         lore   = "Evac pod came down in the field. No crew — just the kit. Still useful to someone.",
         accept_msg = '"Salvage rights are clear. Just go get it."',
         recv_msg   = '"That kit will save someone\'s life eventually."',
-        reward_mult = 0.9, tier_min = 0,
+        urgent = false, reward_mult = 0.9, tier_min = 0,
         intercept_types = {}, intercept_chance = 0,
     },
     {
@@ -178,7 +178,7 @@ local _SALVAGE_ARCHETYPES = {
         lore   = "Mapping probe went dark after passing through a debris cloud. Data core may still be intact.",
         accept_msg = '"If the core is readable, there\'s a bonus in it."',
         recv_msg   = '"Data core intact. The bonus is yours."',
-        reward_mult = 1.1, tier_min = 0,
+        urgent = false, reward_mult = 1.1, tier_min = 0,
         intercept_types = {
             {type="rival", strength="scout", weight=2,
              msg="Competing salvager just changed heading. They know about the drone."},
@@ -190,7 +190,7 @@ local _SALVAGE_ARCHETYPES = {
         lore   = "A wreck that nobody is officially looking for. The flight recorder is worth more than the hull.",
         accept_msg = '"Don\'t look at what\'s on it. Just bring it back."',
         recv_msg   = '"We\'ll take it from here. You didn\'t find this."',
-        reward_mult = 1.3, tier_min = 1,
+        urgent = false, reward_mult = 1.3, tier_min = 1,
         intercept_types = {
             {type="rival", strength="light", weight=3,
              msg="Corporate security ship just appeared on sensors. Someone tipped them off."},
@@ -202,7 +202,7 @@ local _SALVAGE_ARCHETYPES = {
         lore   = "A courier ran into trouble. The ship is gone, but the pouch is hardened and should have survived.",
         accept_msg = '"Delivery contract is intact if the pouch is. Same rate."',
         recv_msg   = '"Seal\'s unbroken. Contract honoured."',
-        reward_mult = 1.2, tier_min = 1,
+        urgent = true, reward_mult = 1.2, tier_min = 1,
         intercept_types = {
             {type="pirates", strength="light", weight=3,
              msg="Whoever took out the courier is still in the area."},
@@ -214,7 +214,7 @@ local _SALVAGE_ARCHETYPES = {
         lore   = "Patrol ship went down hard. The armory container ejected clean. Concord will want it, but finders keep it.",
         accept_msg = '"Manifest says it\'s unsecured. Move fast."',
         recv_msg   = '"Secured. We\'ll keep this one quiet."',
-        reward_mult = 1.4, tier_min = 2,
+        urgent = true, reward_mult = 1.4, tier_min = 2,
         intercept_types = {
             {type="concord", strength="medium", weight=2,
              msg="Concord patrol is moving to secure the site. They want that locker."},
@@ -548,6 +548,8 @@ function MISSION.newDelivery(opts)
     local arch = pool[math.random(#pool)]
     local dest_short = _short(opts.dest)
     local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.delivery, arch.reward_mult or 1.0, opts.distance_u, opts.danger_level, opts.distance_min_u, opts.distance_max_u)
+    local urgent = arch.urgent or false
+    local prefix = urgent and "URGENT: " or ""
 
     -- Decide interception for this instance
     local intercept = nil
@@ -571,12 +573,13 @@ function MISSION.newDelivery(opts)
         dest         = opts.dest,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward, nil),
+        short        = prefix .. arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward, nil),
         obj          = "Deliver to " .. dest_short,
-        -- brief shown after accepting (lore + contact's words)
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
         intercept    = intercept,
+        urgent       = urgent,
+        distance_u   = opts.distance_u or 0,
     }
 end
 
@@ -597,6 +600,8 @@ function MISSION.newSalvage(opts)
     local distance_u = opts.distance_u or 0
     local danger_level = opts.danger_level or 0
     local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.salvage, arch.reward_mult or 1.0, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
+    local urgent = arch.urgent or false
+    local prefix = urgent and "URGENT: " or ""
 
     local intercept = nil
     if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
@@ -619,11 +624,13 @@ function MISSION.newSalvage(opts)
         wy           = opts.wy,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = arch.cargo .. " (salvage)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
+        short        = prefix .. arch.cargo .. " (salvage)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
         obj          = "Recover " .. arch.cargo,
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
         intercept    = intercept,
+        urgent       = urgent,
+        distance_u   = distance_u,
         _found       = false,
     }
 end
@@ -684,6 +691,7 @@ function MISSION.newBoarding(opts)
         target_template = target_template,
         target_dest     = target_dest,
         intercept       = intercept,
+        distance_u      = distance_u,
         _spawned        = false,
         _disabled       = false,
         _boarded        = false,
@@ -745,6 +753,7 @@ function MISSION.newDestroy(opts)
         target_template = arch.target_template,
         target_dest     = target_dest,
         intercept       = intercept,
+        distance_u      = distance_u,
         _spawned        = false,
         _destroyed      = false,
         target_cs       = nil,
@@ -797,6 +806,7 @@ function MISSION.newHacking(opts)
                          .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
         complete_msg   = arch.recv_msg,
         intercept      = intercept,
+        distance_u     = distance_u,
         _spawned       = false,
         _hacked        = false,
         target_cs      = nil,

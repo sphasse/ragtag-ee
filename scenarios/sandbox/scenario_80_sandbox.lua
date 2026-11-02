@@ -103,9 +103,29 @@ local function pickMissionType()
     return "delivery"
 end
 
-JOBS.MISSION_DURATION = 20 * 60   -- seconds before an untouched mission expires
+JOBS.MISSION_DURATION = 20 * 60   -- fallback only; dynamic duration used instead
 JOBS._panel_next      = 0          -- next scenario-time to refresh the relay panel
 JOBS.WORK_COOLDOWN    = 10 * 60   -- seconds before slot offers new work after mission taken/expired
+
+local _SPEED_WARP1   = 500   -- EE world-units/s at warp 1
+local _SPEED_IMPULSE = 100   -- EE world-units/s at full impulse
+
+function JOBS.missionDuration(m)
+    local d = m.distance_u or 60000
+    local t = m.type
+    if t == "tailing" then
+        return math.floor(2 * d / _SPEED_WARP1 + 180)
+    elseif t == "salvage" then
+        return m.urgent and math.floor(2 * d / _SPEED_WARP1 + 180)
+                        or  math.floor(2 * d / _SPEED_IMPULSE + 180)
+    elseif t == "delivery" then
+        return m.urgent and math.floor(d / _SPEED_WARP1 + 180)
+                        or  math.floor(d / _SPEED_IMPULSE + 180)
+    else
+        -- destroy / boarding / hacking: combat baseline of 10 min on top of transit
+        return math.floor(2 * d / _SPEED_WARP1 + 780)
+    end
+end
 
 -- Mission distance calculation based on mode
 function JOBS.getMissionDistance()
@@ -240,7 +260,8 @@ function JOBS.accept(m, skip_log, ship)
     for i, dm in ipairs(MISSION._dynamic_queue) do
         if dm.id == m.id then table.remove(MISSION._dynamic_queue, i); break end
     end
-    m._expires_at = getScenarioTime() + JOBS.MISSION_DURATION
+    m._time_limit = JOBS.missionDuration(m)
+    m._expires_at = getScenarioTime() + m._time_limit
     _active[#_active+1] = {mission = m, phase = "active"}
 
     -- Mark which station slot this mission came from (for per-slot cooldown)
@@ -471,10 +492,10 @@ function JOBS.accept(m, skip_log, ship)
         if m.type == "boarding" or m.type == "destroy" then
             local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
             RT.shipLog(string.format("Contract: %s. %dm to complete. %s last seen around %s%s.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
+                m.short, math.floor(m._time_limit / 60), m.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
         elseif m.type == "hacking" then
             RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), m.target_cs or "unknown", dest_hint), "#60CCFF")
+                m.short, math.floor(m._time_limit / 60), m.target_cs or "unknown", dest_hint), "#60CCFF")
         elseif m.type == "tailing" then
             -- Heading from spawn to meeting point (EE: 0=north, 90=east)
             local hdx = m.mx - m.wx
@@ -482,10 +503,10 @@ function JOBS.accept(m, skip_log, ship)
             local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
             local t_min = math.max(1, math.floor((m._meet_at - getScenarioTime()) / 60 + 0.5))
             RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. We expect a rendezvous in ~%dm. Approach with care.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg, t_min), "#60CCFF")
+                m.short, math.floor(m._time_limit / 60), dest_hint, heading_deg, t_min), "#60CCFF")
         else
             RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
-                m.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#60CCFF")
+                m.short, math.floor(m._time_limit / 60), dest_hint), "#60CCFF")
         end
         if m.intercept then
             RT.shipLog("Intelligence suggests this run may not be quiet.", "#FFCC80")
@@ -923,20 +944,20 @@ function JOBS.stationHook(source, target)
                     if cap.type == "boarding" or cap.type == "destroy" then
                         local heading_text = cap.target_dest and (" heading toward " .. cap.target_dest) or ""
                         RT.shipLog(string.format("Contract: %s. %dm to complete. %s last seen around %s%s.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
+                            cap.short, math.floor(cap._time_limit / 60), cap.target_cs or "unknown", dest_hint, heading_text), "#60CCFF")
                     elseif cap.type == "hacking" then
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Target: %s at %s.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), cap.target_cs or "unknown", dest_hint), "#60CCFF")
+                            cap.short, math.floor(cap._time_limit / 60), cap.target_cs or "unknown", dest_hint), "#60CCFF")
                     elseif cap.type == "tailing" then
                         local hdx = cap.mx - cap.wx
                         local hdy = cap.my - cap.wy
                         local heading_deg = math.floor((math.deg(math.atan(hdx, -hdy)) + 360) % 360 + 0.5)
                         local t_min = math.max(1, math.floor((cap._meet_at - getScenarioTime()) / 60 + 0.5))
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Target last spotted at %s heading %03d. We expect a rendezvous in ~%dm. Approach with care.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint, heading_deg, t_min), "#60CCFF")
+                            cap.short, math.floor(cap._time_limit / 60), dest_hint, heading_deg, t_min), "#60CCFF")
                     else
                         RT.shipLog(string.format("Contract: %s. %dm to complete. Head to %s.",
-                            cap.short, math.floor(JOBS.MISSION_DURATION / 60), dest_hint), "#60CCFF")
+                            cap.short, math.floor(cap._time_limit / 60), dest_hint), "#60CCFF")
                     end
                 end
                 addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
