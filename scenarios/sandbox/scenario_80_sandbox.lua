@@ -1185,34 +1185,25 @@ function JOBS.update()
                         target:orderIdle()
                         target:setImpulseMaxSpeed(5)
                         target:setCommsFunction(function(src, tgt)
-                            setCommsMessage('"We\'re done. Come aboard and take what you came for."')
-                        end)
-                        m.obj = "Board " .. m.target_cs
-                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Move within 1U to board.", "#FFCC80")
-                        JOBS.updateObj()
-                    end
-                end
-
-            -- Phase 3: wait for player to get close (proximity boarding since docking doesn't work reliably)
-            elseif not m._boarded then
-                local target = RT.find(m.target_cs)
-                if RT.valid(target) then
-                    local tx, ty = target:getPosition()
-                    for _, p in ipairs(RT.players) do
-                        if RT.valid(p) then
-                            local px, py = p:getPosition()
-                            local dx, dy = px - tx, py - ty
-                            local dist = math.sqrt(dx * dx + dy * dy)
-                            if dist < 1000 then  -- 1U proximity boarding
+                            setCommsMessage(string.format(
+                                '"%s" is drifting and not responding to further hails.\n\nPull alongside and send a boarding party.',
+                                m.target_cs))
+                            addCommsReply("Send boarding party", function(s2, t2)
                                 m._boarded = true
                                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
                                 RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
                                 JOBS.updateObj()
-                                break
-                            end
-                        end
+                                setCommsMessage(string.format(
+                                    '"Take it. Just let us go."\n\n%s secured.', m.cargo))
+                            end)
+                        end)
+                        m.obj = "Board " .. m.target_cs
+                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Hail them to send a boarding party.", "#FFCC80")
+                        JOBS.updateObj()
                     end
                 end
+
+            -- Phase 2: wait for Relay to initiate boarding via comms (m._boarded set in comms reply above)
             end
 
         elseif m.type == "destroy" then
