@@ -39,10 +39,7 @@ local _PATROL_NAMES = {
 
 PROX.config = {
     check_interval       = 8,     -- seconds between proximity checks
-    region_cooldown      = 90,    -- min seconds between spawns per region
-    global_cooldown      = 60,    -- min seconds between any spawn event
-    max_active           = 4,     -- max simultaneous proximity-spawn ships (all zones)
-    density_limit        = 3,     -- skip spawn if this many hostiles already within density_radius
+    global_cooldown      = 120,   -- min seconds between any spawn event (scaled by spawn mode)
     density_radius_u     = 10,    -- radius (u) for the density check
     spawn_lead_u         = 10,    -- u ahead of player along their current heading for spawn aim
     spawn_spread_u       = 4,     -- random spread (u) around spawn aim point
@@ -51,8 +48,20 @@ PROX.config = {
     recall_timeout       = 120,   -- seconds before a recalled group despawns
     shakedown_timeout    = 45,    -- seconds before an unresponded Concord shake-down auto-resolves
     shakedown_scan_secs  = 30,    -- delay after player submits to inspection
-    spawn_frequency      = 1.0,   -- spawn rate multiplier (0.5 = half as often, 2.0 = twice as often, exposed to GM)
+    concord_despawn      = 120,   -- seconds after a peaceful Concord resolution before ships vanish
 }
+
+-- Spawn-rate modes cycled by the GM button.
+-- freq: cooldown divisor (higher = shorter cooldowns = more spawns).
+-- max_active: ship cap across all zones.
+-- density: hostile ships within density_radius before a spawn is suppressed.
+local _SPAWN_MODES = {
+    {name = "None",   freq = 0,   max_active =  0, density =  0},
+    {name = "Low",    freq = 0.5, max_active =  6, density =  3},
+    {name = "Medium", freq = 1.0, max_active = 12, density =  6},
+    {name = "High",   freq = 2.0, max_active = 24, density = 12},
+}
+PROX._mode_idx = 3  -- default: Medium
 
 -- Boneyard-specific relic war drone groups.
 local _RELIC_GROUPS = {
@@ -67,14 +76,14 @@ local _RELIC_GROUPS = {
 -- comms = "none"       → silent attack on sight (Relic, Hollow)
 -- comms = nil          → default Corsair taunt
 PROX.zones = {
-    ["the Concord Core"]  = {faction = "Concord",  comms = "shakedown"},
-    ["the Arbiter Line"]  = {faction = "Concord",  comms = "shakedown"},
-    ["the Shroud"]        = {faction = "Corsairs"},
-    ["Halcyon Rest"]      = {faction = "Corsairs"},
-    ["the Gauntlet"]      = {faction = "Corsairs"},
-    ["Blackwater Reach"]  = {faction = "Corsairs"},
-    ["the Boneyard"]      = {faction = "Relic",    groups = _RELIC_GROUPS, comms = "none"},
-    ["the Maw"]           = {faction = "Hollow",   comms = "none"},
+    ["the Concord Core"]  = {faction = "Concord",  comms = "shakedown", cooldown = 300},
+    ["the Arbiter Line"]  = {faction = "Concord",  comms = "shakedown", cooldown = 360},
+    ["the Shroud"]        = {faction = "Corsairs",                       cooldown = 240},
+    ["Halcyon Rest"]      = {faction = "Corsairs",                       cooldown = 240},
+    ["the Gauntlet"]      = {faction = "Corsairs",                       cooldown = 180},
+    ["Blackwater Reach"]  = {faction = "Corsairs",                       cooldown = 180},
+    ["the Boneyard"]      = {faction = "Relic",    groups = _RELIC_GROUPS, comms = "none", cooldown = 180},
+    ["the Maw"]           = {faction = "Hollow",   comms = "none",      cooldown = 120},
 }
 
 -- Internal state — reset by PROX.init().
@@ -432,7 +441,7 @@ local function _processGroup(group, now, player)
     -- After a peaceful shake-down, schedule departure (fly back to spawn, then vanish).
     if group.is_shakedown and group.shakedown_done and
        not group.shakedown_hostile and not group.despawn_at then
-        group.despawn_at = now + 30
+        group.despawn_at = now + PROX.config.concord_despawn
         for _, cs in ipairs(group.ships) do
             local s = RT.named[cs]
             if RT.valid(s) then s:orderFlyTowards(group.spawn_x, group.spawn_y) end
@@ -520,6 +529,7 @@ function PROX.init()
     PROX._safe_stns  = {}
     PROX._next_check = 0
     PROX._last_spawn = -99999
+    PROX._mode_idx   = 3  -- Medium
 
     for _, r in ipairs(VERSE.REGIONS) do
         if PROX.zones[r.name] then
@@ -539,6 +549,22 @@ function PROX.init()
             table.insert(PROX._safe_stns, {x = wx, y = wy, r = ds_r})
         end
     end
+end
+
+-- Add a GM button that cycles through None / Low / Medium / High spawn rates.
+-- Call once from the scenario's init(), after PROX.init().
+function PROX.addGMButtons()
+    local function _register()
+        local mode  = _SPAWN_MODES[PROX._mode_idx]
+        local label = "Spawns: " .. mode.name
+        PROX._gm_btn_label = label
+        addGMFunction(label, function()
+            removeGMFunction(PROX._gm_btn_label)
+            PROX._mode_idx = (PROX._mode_idx % #_SPAWN_MODES) + 1
+            _register()
+        end)
+    end
+    _register()
 end
 
 -- Manually add a no-spawn exclusion zone around a named station.
@@ -581,23 +607,25 @@ function PROX.update(delta)
         i = i - 1
     end
 
+    -- Spawn mode gate: None stops all new spawns (watchdog above still cleans up).
+    local mode = _SPAWN_MODES[PROX._mode_idx]
+    if mode.freq == 0 then return end
+
     -- Count total active ships across all groups.
     local active_ship_count = 0
     for _, g in ipairs(PROX._active) do
         active_ship_count = active_ship_count + #g.ships
     end
-    if active_ship_count >= PROX.config.max_active then return end
+    if active_ship_count >= mode.max_active then return end
 
-    -- Global cooldown (adjusted by spawn frequency).
-    local freq_mult = PROX.config.spawn_frequency or 1.0
-    local adj_global = PROX.config.global_cooldown / freq_mult
-    if now - PROX._last_spawn < adj_global then return end
+    -- Global cooldown (scaled by spawn mode frequency).
+    if now - PROX._last_spawn < PROX.config.global_cooldown / mode.freq then return end
 
     if not player then return end
     local px, py = player:getPosition()
 
     -- Density check: don't pile on if there are already enough nearby hostiles.
-    if _nearbyHostiles(px, py) >= PROX.config.density_limit then return end
+    if _nearbyHostiles(px, py) >= mode.density then return end
 
     -- Find the deepest eligible zone the player is in.
     local best_name, best_depth = nil, 0
@@ -611,11 +639,9 @@ function PROX.update(delta)
             -- but the wanted flag means the normal patrol system handles pursuit there).
             if zone.faction == "Concord" and wanted then goto skip end
 
-            -- Region cooldown (frequency-adjusted).
-            local freq_mult = PROX.config.spawn_frequency or 1.0
-            local adj_region_cd = PROX.config.region_cooldown / freq_mult
+            -- Region cooldown (scaled by spawn mode frequency).
             local last = PROX._region_cd[name] or -99999
-            if now - last < adj_region_cd then goto skip end
+            if now - last < zone.cooldown / mode.freq then goto skip end
 
             -- No active group already in the same cell.
             local cell = _cellKey(px, py)
