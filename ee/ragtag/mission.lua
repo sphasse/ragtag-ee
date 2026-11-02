@@ -461,7 +461,7 @@ local _HACKING_ARCHETYPES = {
 MISSION.SALVAGE_ARCHETYPES = _SALVAGE_ARCHETYPES  -- exposed for use by other systems (e.g. combat drops)
 
 -- Base reward by tier (rounded to nearest 5 after all multipliers)
-local _BASE_REWARD = {[0] = 50, [1] = 75, [2] = 100}
+local _BASE_REWARD = {[0] = 50, [1] = 65, [2] = 80}
 
 -- Mission type difficulty multipliers (delivery is baseline 1.0)
 local _TYPE_MULT = {
@@ -473,19 +473,24 @@ local _TYPE_MULT = {
     boarding = 1.8,
 }
 
--- Calculate final reward with distance and danger modifiers
--- distance_min_u, distance_max_u: range for scaling distance bonus from 0% to 30%
-local function _calcReward(base, type_mult, arch_mult, distance_u, danger_level, distance_min_u, distance_max_u)
-    local reward = base * type_mult * arch_mult
+-- Calculate final reward with distance, danger, and urgency modifiers.
+-- distance_min_u/max_u: range for scaling the 0-30% distance bonus.
+-- urgency_mult: 1.5 for urgent delivery/salvage, 1.0 otherwise.
+local function _calcReward(base, type_mult, distance_u, danger_level, distance_min_u, distance_max_u, urgency_mult)
+    local reward = base * type_mult
     -- Distance bonus: 0-30% scaled linearly across the distance range
     if distance_u and distance_min_u and distance_max_u and distance_max_u > distance_min_u then
         local dist_pct = (distance_u - distance_min_u) / (distance_max_u - distance_min_u)
-        dist_pct = math.max(0, math.min(1, dist_pct))  -- clamp to 0-1
-        reward = reward * (1.0 + dist_pct * 0.30)  -- 0% to 30% bonus
+        dist_pct = math.max(0, math.min(1, dist_pct))
+        reward = reward * (1.0 + dist_pct * 0.30)
     end
     -- Danger bonus: +15% per danger level
     if danger_level and danger_level > 0 then
         reward = reward * (1.0 + danger_level * 0.15)
+    end
+    -- Urgency premium
+    if urgency_mult and urgency_mult > 1 then
+        reward = reward * urgency_mult
     end
     return math.floor(reward / 5 + 0.5) * 5  -- round to nearest 5
 end
@@ -548,7 +553,7 @@ function MISSION.newDelivery(opts)
 
     local arch = pool[math.random(#pool)]
     local dest_short = _short(opts.dest)
-    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.delivery, arch.reward_mult or 1.0, opts.distance_u, opts.danger_level, opts.distance_min_u, opts.distance_max_u)
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.delivery, opts.distance_u, opts.danger_level, opts.distance_min_u, opts.distance_max_u, urgent and 1.5 or 1.0)
     local urgent = arch.urgent or false
     local prefix = urgent and "URGENT: " or ""
 
@@ -602,7 +607,7 @@ function MISSION.newSalvage(opts)
     -- Calculate distance and danger
     local distance_u = opts.distance_u or 0
     local danger_level = opts.danger_level or 0
-    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.salvage, arch.reward_mult or 1.0, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.salvage, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u, urgent and 1.5 or 1.0)
     local urgent = arch.urgent or false
     local prefix = urgent and "URGENT: " or ""
 
@@ -655,7 +660,7 @@ function MISSION.newBoarding(opts)
     -- Calculate distance and danger
     local distance_u = opts.distance_u or 0
     local danger_level = opts.danger_level or 0
-    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.boarding, arch.reward_mult or 1.0, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.boarding, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
 
     local templates = _BOARDING_TEMPLATES[tier] or _BOARDING_TEMPLATES[0]
     local target_template = templates[math.random(#templates)]
@@ -721,7 +726,7 @@ function MISSION.newDestroy(opts)
     -- Calculate distance and danger
     local distance_u = opts.distance_u or 0
     local danger_level = opts.danger_level or 0
-    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.destroy, arch.reward_mult or 1.0, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.destroy, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
 
     -- Pick destination station for target
     local target_dest = nil
@@ -783,7 +788,7 @@ function MISSION.newHacking(opts)
     -- Calculate distance and danger
     local distance_u = opts.distance_u or 0
     local danger_level = opts.danger_level or 0
-    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.hacking, arch.reward_mult or 1.0, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.hacking, distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
 
     local intercept = nil
     if #arch.intercept_types > 0 and math.random() < (arch.intercept_chance or 0) then
@@ -892,7 +897,7 @@ function MISSION.newTailing(opts)
 
     local distance_u   = opts.distance_u   or 0
     local danger_level = opts.danger_level or 0
-    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.tailing, arch.reward_mult or 1.0,
+    local reward = _calcReward(_BASE_REWARD[tier], _TYPE_MULT.tailing,
         distance_u, danger_level, opts.distance_min_u, opts.distance_max_u)
 
     local templates = _TAILING_TEMPLATES[tier] or _TAILING_TEMPLATES[0]

@@ -266,12 +266,15 @@ local function _spawnGroup(region_name, px, py)
         DIR.registerKill(s)
         DIR.allowControl(s)
 
+        local zdanger = zone.danger or 0
         s:onDestruction(function(self, instigator)
             local dx, dy = self:getPosition()
             local count = math.random(1, 3)
             for _ = 1, count do
                 local arch   = MISSION.SALVAGE_ARCHETYPES[math.random(#MISSION.SALVAGE_ARCHETYPES)]
-                local reward = math.random(10, 30)
+                local min_cr = 5 + zdanger * 2
+                local max_cr = 10 + math.floor(zdanger * 2.5)
+                local reward = math.random(min_cr, max_cr)
                 local ox = (math.random() * 2 - 1) * 2000
                 local oy = (math.random() * 2 - 1) * 2000
                 local pod = SupplyDrop():setFaction("Independent")
