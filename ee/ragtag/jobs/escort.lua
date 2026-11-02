@@ -153,6 +153,37 @@ local _ARCHETYPES = {
 -- Internal helpers
 -- ---------------------------------------------------------------------------
 
+local function _dismissFighters(m)
+    if m._fighters_dismissed then return end
+    m._fighters_dismissed = true
+    local fighter_list = m.fighter_cs or {}
+    if #fighter_list == 0 then return end
+    local candidates = {}
+    for cs, _ in pairs(VERSE.STATIONS or {}) do
+        if cs ~= m.origin and cs ~= m.dest then candidates[#candidates + 1] = cs end
+    end
+    local tx, ty
+    if #candidates > 0 then
+        local dep_e = RT.find(candidates[math.random(#candidates)])
+        if RT.valid(dep_e) then tx, ty = dep_e:getPosition() end
+    end
+    if not tx then tx = m.dx + (m.dx - m.ox); ty = m.dy + (m.dy - m.oy) end
+    local dep_ships = {}
+    for _, cs in ipairs(fighter_list) do
+        local s = RT.find(cs)
+        if RT.valid(s) then
+            s:orderFlyTowardsBlind(tx, ty)
+            s:setCommsFunction(function(src, tgt)
+                setCommsMessage('"Good flying, Captain. We\'ve got our own heading now."')
+            end)
+            dep_ships[#dep_ships + 1] = cs
+        end
+    end
+    if #dep_ships > 0 then
+        _departing[#_departing + 1] = {ships = dep_ships, despawn_at = getScenarioTime() + 300}
+    end
+end
+
 local function _spawnInterceptors(m, cx, cy)
     local to_dest = math.atan(m.dy - cy, m.dx - cx)
     for _ = 1, 3 do
@@ -257,7 +288,8 @@ function M.generate(opts)
         _convoy_lost    = false,
         _ambush1        = false,
         _ambush2        = false,
-        _interceptors   = {},
+        _interceptors       = {},
+        _fighters_dismissed = false,
         convoy_cs       = nil,
         fighter_cs      = {},
     }
@@ -460,6 +492,7 @@ function M.update(m, entry, ctx)
                     local s = RT.find(interc.cs)
                     if RT.valid(s) then s:orderFlyTowardsBlind(interc.sx, interc.sy) end
                 end
+                _dismissFighters(m)
                 RT.shipLog("[Escort] " .. m.convoy_cs .. " has docked at " .. m.dest .. ". Dock to collect payment.", "#80FF80")
                 m.obj = "Dock at " .. m.dest .. " to collect payment"
                 JOBS.updateObj()
@@ -520,41 +553,10 @@ function M.cleanup(m)
         if RT.valid(s) then s:destroy() end
     end
 
-    local fighter_list = m.fighter_cs or {}
-    if m._convoy_arrived and #fighter_list > 0 then
-        -- Pick a departure waypoint: any station that isn't origin or dest.
-        local candidates = {}
-        for cs, _ in pairs(VERSE.STATIONS or {}) do
-            if cs ~= m.origin and cs ~= m.dest then
-                candidates[#candidates + 1] = cs
-            end
-        end
-        local tx, ty
-        if #candidates > 0 then
-            local dep_e = RT.find(candidates[math.random(#candidates)])
-            if RT.valid(dep_e) then tx, ty = dep_e:getPosition() end
-        end
-        if not tx then
-            -- Fallback: continue past the destination.
-            tx = m.dx + (m.dx - m.ox)
-            ty = m.dy + (m.dy - m.oy)
-        end
-        local dep_ships = {}
-        for _, cs in ipairs(fighter_list) do
-            local s = RT.find(cs)
-            if RT.valid(s) then
-                s:orderFlyTowardsBlind(tx, ty)
-                s:setCommsFunction(function(src, tgt)
-                    setCommsMessage('"Good flying, Captain. We\'ve got our own heading now."')
-                end)
-                dep_ships[#dep_ships + 1] = cs
-            end
-        end
-        if #dep_ships > 0 then
-            _departing[#_departing + 1] = {ships = dep_ships, despawn_at = getScenarioTime() + 300}
-        end
+    if m._convoy_arrived then
+        _dismissFighters(m)  -- no-op if already dismissed in update()
     else
-        for _, cs in ipairs(fighter_list) do
+        for _, cs in ipairs(m.fighter_cs or {}) do
             local s = RT.find(cs)
             if RT.valid(s) then s:destroy() end
         end
