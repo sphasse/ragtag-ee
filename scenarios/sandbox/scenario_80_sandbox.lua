@@ -1189,9 +1189,9 @@ function JOBS.update()
                             local sx, sy = src:getPosition()
                             local dx, dy = tx - sx, ty - sy
                             local dist = math.sqrt(dx * dx + dy * dy)
-                            if dist > 500 then  -- must be within 0.5U to board
+                            if dist > 250 then  -- must be within 0.25U to board
                                 setCommsMessage(string.format(
-                                    '"%s" is drifting — no response on any channel.\n\nRange: %.1fU. Close to within 0.5U to pull alongside.',
+                                    '"%s" is drifting — no response on any channel.\n\nRange: %.2fU. Close to within 0.25U to pull alongside.',
                                     m.target_cs, dist / 1000))
                             else
                                 setCommsMessage(string.format(
@@ -1208,7 +1208,7 @@ function JOBS.update()
                             end
                         end)
                         m.obj = "Board " .. m.target_cs
-                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Close to 0.5U and hail to board.", "#FFCC80")
+                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Close to 0.25U and hail to board.", "#FFCC80")
                         JOBS.updateObj()
                     end
                 end
