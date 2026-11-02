@@ -11,6 +11,34 @@ M.type_mult = 1.5
 
 local U = 1000  -- world units per universe unit
 
+-- Callsign pool for independent escort fighters.
+local _ESCORT_NAMES = {
+    "Jackdaw",    "Kestrel",    "Merlin",     "Hobby",      "Shrike",
+    "Harrier",    "Skua",       "Fulmar",     "Tern",       "Martin",
+    "Whimbrel",   "Dunlin",     "Sanderling", "Turnstone",  "Razorbill",
+    "Low Rider",  "Flat Spin",  "Slip Draft", "Dead Air",   "Quick Burn",
+    "Knife Edge", "Short Hop",  "Belly Down", "Wide Open",  "Hard Bank",
+    "Mudlark",    "Guillemot",  "Puffin",     "Curlew",     "Redshank",
+}
+
+-- Post-completion departure tracking; processed by _tickDeparting each JOBS cycle.
+local _departing = {}  -- list of {ships={cs,...}, despawn_at=t}
+
+local function _tickDeparting(now)
+    local i = #_departing
+    while i >= 1 do
+        local d = _departing[i]
+        if now > d.despawn_at then
+            for _, cs in ipairs(d.ships) do
+                local s = RT.find(cs)
+                if RT.valid(s) then s:destroy() end
+            end
+            table.remove(_departing, i)
+        end
+        i = i - 1
+    end
+end
+
 -- ---------------------------------------------------------------------------
 -- Archetypes
 -- ---------------------------------------------------------------------------
@@ -210,6 +238,7 @@ function M.generate(opts)
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
         _spawned        = false,
+        _convoy_docking = false,
         _convoy_arrived = false,
         _convoy_lost    = false,
         _ambush1        = false,
@@ -251,7 +280,7 @@ function M.spawn(m)
     local sf = convoy:getShieldMax(0)
     local sr = convoy:getShieldMax(1)
     if sf > 0 then convoy:setShields(sf, sr) end
-    convoy:orderDock(dest_e)
+    convoy:orderFlyTowards(dx, dy)
     convoy:setCommsFunction(function(src, tgt)
         setCommsMessage('"Don\'t let them get us. We\'re counting on you."')
     end)
@@ -260,13 +289,23 @@ function M.spawn(m)
     m.convoy_cs = convoy_name
 
     -- Two escort fighters: impulse-only (~1/3 warp), standing by at origin.
+    -- Pick two distinct names from the pool.
+    local name_pool = {}
+    for _, n in ipairs(_ESCORT_NAMES) do name_pool[#name_pool + 1] = n end
+    local function _pickEscortName()
+        local idx = math.random(#name_pool)
+        local n = name_pool[idx]
+        table.remove(name_pool, idx)
+        return n
+    end
+
     local fighters = {}
     for i = 1, 2 do
         local angle = (i - 1) * math.pi + math.random() * 0.4 - 0.2
         local fx = ox + math.cos(angle) * 3 * U
         local fy = oy + math.sin(angle) * 3 * U
         local f = CpuShip():setTemplate("MT52 Hornet"):setFaction("Independent")
-        local fname = "Escort-" .. i
+        local fname = _pickEscortName()
         f:setCallSign(fname)
         f:setPosition(fx, fy)
         f:setImpulseMaxSpeed(165, -60)
@@ -329,22 +368,31 @@ function M.update(m, entry, ctx)
         return nil
     end
 
+    local cx, cy = convoy:getPosition()
+
     if not m._convoy_arrived then
-        local docked = convoy:getDockedWith()
         local dest_e = RT.find(m.dest)
-        if docked and RT.valid(dest_e) and docked == dest_e then
-            m._convoy_arrived = true
-            RT.shipLog("[Escort] " .. m.convoy_cs .. " has docked at " .. m.dest .. ". Dock to collect payment.", "#80FF80")
-            m.obj = "Dock at " .. m.dest .. " to collect payment"
-            JOBS.updateObj()
+        if RT.valid(dest_e) then
+            local dex, dey = dest_e:getPosition()
+            local cdist = math.sqrt((cx - dex)^2 + (cy - dey)^2)
+            if not m._convoy_docking and cdist < 5 * U then
+                convoy:orderDock(dest_e)
+                m._convoy_docking = true
+            end
+            local docked = convoy:getDockedWith()
+            if docked and docked == dest_e then
+                m._convoy_arrived = true
+                RT.shipLog("[Escort] " .. m.convoy_cs .. " has docked at " .. m.dest .. ". Dock to collect payment.", "#80FF80")
+                m.obj = "Dock at " .. m.dest .. " to collect payment"
+                JOBS.updateObj()
+            end
         end
     end
 
     if not m._ambush1 or not m._ambush2 then
-        local cx, cy = convoy:getPosition()
-        local vdx    = m.dx - m.ox
-        local vdy    = m.dy - m.oy
-        local tsq    = vdx * vdx + vdy * vdy
+        local vdx = m.dx - m.ox
+        local vdy = m.dy - m.oy
+        local tsq = vdx * vdx + vdy * vdy
         if tsq > 0 then
             local prog = ((cx - m.ox) * vdx + (cy - m.oy) * vdy) / tsq
             if not m._ambush1 and prog >= 0.33 then
@@ -379,9 +427,45 @@ function M.cleanup(m)
         local s = RT.find(m.convoy_cs)
         if RT.valid(s) and not m._convoy_arrived then s:destroy() end
     end
-    for _, cs in ipairs(m.fighter_cs or {}) do
-        local s = RT.find(cs)
-        if RT.valid(s) then s:destroy() end
+
+    local fighter_list = m.fighter_cs or {}
+    if m._convoy_arrived and #fighter_list > 0 then
+        -- Pick a departure waypoint: any station that isn't origin or dest.
+        local candidates = {}
+        for cs, _ in pairs(VERSE.STATIONS or {}) do
+            if cs ~= m.origin and cs ~= m.dest then
+                candidates[#candidates + 1] = cs
+            end
+        end
+        local tx, ty
+        if #candidates > 0 then
+            local dep_e = RT.find(candidates[math.random(#candidates)])
+            if RT.valid(dep_e) then tx, ty = dep_e:getPosition() end
+        end
+        if not tx then
+            -- Fallback: continue past the destination.
+            tx = m.dx + (m.dx - m.ox)
+            ty = m.dy + (m.dy - m.oy)
+        end
+        local dep_ships = {}
+        for _, cs in ipairs(fighter_list) do
+            local s = RT.find(cs)
+            if RT.valid(s) then
+                s:orderFlyTowardsBlind(tx, ty)
+                s:setCommsFunction(function(src, tgt)
+                    setCommsMessage('"Good flying, Captain. We\'ve got our own heading now."')
+                end)
+                dep_ships[#dep_ships + 1] = cs
+            end
+        end
+        if #dep_ships > 0 then
+            _departing[#_departing + 1] = {ships = dep_ships, despawn_at = getScenarioTime() + 300}
+        end
+    else
+        for _, cs in ipairs(fighter_list) do
+            local s = RT.find(cs)
+            if RT.valid(s) then s:destroy() end
+        end
     end
 end
 
@@ -397,3 +481,4 @@ function M.completeReply(m, entry)
 end
 
 JOBS.register(M)
+JOBS._tick_hooks[#JOBS._tick_hooks + 1] = _tickDeparting

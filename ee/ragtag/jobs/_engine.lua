@@ -31,6 +31,7 @@ JOBS._active       = {}   -- list of {mission, phase}
 JOBS._done         = {}   -- mission id → true (taken or completed this session)
 JOBS._station_work = {}   -- callsign → {slots = [...]}
 JOBS._panel_next   = 0
+JOBS._tick_hooks   = {}   -- functions(now) called each update cycle for post-mission work
 
 -- Ship name pools used by boarding, destroy, and tailing modules.
 local _CORSAIR_NAMES = {
@@ -281,6 +282,8 @@ function JOBS.update()
         end
         i = i - 1
     end
+
+    for _, fn in ipairs(JOBS._tick_hooks) do fn(now) end
 end
 
 -- ── Station hook ──────────────────────────────────────────────────────────────
