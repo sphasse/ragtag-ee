@@ -681,6 +681,7 @@ function init()
     -- Sandbox uses the whole universe; only explicitly require the starting location
     VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest"})
     PROX.init()
+    PROX.addGMButtons()
 
     -- Spawn the primary ship at Port Vesper. Additional ships join via the
     -- in-game "Create player ship" selection screen; onNewPlayerShip handles them.
