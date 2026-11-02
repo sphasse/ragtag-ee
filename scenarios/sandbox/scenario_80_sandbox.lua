@@ -439,6 +439,12 @@ function JOBS.accept(m, skip_log, ship)
         s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
         s:setCanBeDestroyed(false)
         s:setSystemHealth("reactor", 1.0)
+        s:setSystemHealth("beamweapons", 1.0)
+        -- Four overlapping 120-degree mounts at 90-degree intervals → full 360° coverage at 4U
+        s:setBeamWeapon(0, 120, 0,   4000, 6, 4)
+        s:setBeamWeapon(1, 120, 90,  4000, 6, 4)
+        s:setBeamWeapon(2, 120, 180, 4000, 6, 4)
+        s:setBeamWeapon(3, 120, 270, 4000, 6, 4)
 
         -- Make reactor hackable
         s:setSystemHackedLevel("reactor", 0.0)
@@ -1256,15 +1262,31 @@ function JOBS.update()
                     table.remove(_active, i)
                     JOBS.updateObj()
                 else
-                    -- Relay jamming: check for probes every 2 seconds (performance throttle)
+                    -- Every 2s: update beam target and destroy jammed probes
                     m._last_jam_check = m._last_jam_check or 0
                     if now - m._last_jam_check > 2 then
                         m._last_jam_check = now
                         local rx, ry = target:getPosition()
+                        -- Aim beams at nearest player in range; orderIdle when clear
+                        local beam_target = nil
+                        local beam_dist   = math.huge
+                        for _, p in ipairs(RT.players) do
+                            if RT.valid(p) then
+                                local d = RT.dist(target, p)
+                                if d < 4000 and d < beam_dist then
+                                    beam_target = p
+                                    beam_dist   = d
+                                end
+                            end
+                        end
+                        if beam_target then
+                            target:orderAttack(beam_target)
+                        else
+                            target:orderIdle()
+                        end
+                        -- Jamming: destroy scan probes within 5U
                         for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
-                            -- Don't destroy the relay itself!
                             if RT.valid(obj) and obj ~= target then
-                                -- Test isObjectType from utils.lua
                                 if isObjectType(obj, "ScanProbe") then
                                     obj:destroy()
                                     RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
