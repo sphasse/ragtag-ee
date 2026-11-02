@@ -1009,18 +1009,12 @@ function addSessionGMFunctions()
 
     addGMFunction("Work Cooldown: " .. (JOBS.config.work_cooldown_enabled and "ON" or "OFF"), function()
         JOBS.config.work_cooldown_enabled = not JOBS.config.work_cooldown_enabled
-        -- Clear the function and re-add with new label
         clearGMFunctions()
         addSessionGMFunctions()
-        local mode = JOBS.config.work_cooldown_enabled and "ENABLED" or "DISABLED"
-        addGMMessage("Work cooldown " .. mode .. ".\n\n" ..
-            (JOBS.config.work_cooldown_enabled and "Taking a mission triggers a 10 minute new job cooldown." or
-            "Stations offer unlimited missions (testing mode)."))
     end)
 
     local distance_labels = {short = "SHORT", medium = "MEDIUM", long = "LONG"}
     addGMFunction("Job Distance: " .. (distance_labels[JOBS.config.mission_distance_mode] or "MEDIUM"), function()
-        -- Cycle: short -> medium -> long -> short
         if JOBS.config.mission_distance_mode == "short" then
             JOBS.config.mission_distance_mode = "medium"
         elseif JOBS.config.mission_distance_mode == "medium" then
@@ -1028,12 +1022,8 @@ function addSessionGMFunctions()
         else
             JOBS.config.mission_distance_mode = "short"
         end
-        -- Clear and re-add with new label
         clearGMFunctions()
         addSessionGMFunctions()
-        local ranges = {short = "15-50U", medium = "60-200U", long = "120-400U"}
-        addGMMessage("Job distance set to " .. distance_labels[JOBS.config.mission_distance_mode] .. ".\n\n" ..
-            "New missions will spawn at " .. ranges[JOBS.config.mission_distance_mode] .. " from origin station.")
     end)
 
     addGMFunction("Witness: Start", function()
