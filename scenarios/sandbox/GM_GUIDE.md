@@ -47,10 +47,14 @@
 - Salvage is intentionally lower than job pay — it supplements missions rather than replacing them
 
 ### Upgrade
-- **16 upgrades** available across different stations
-- Costs: 150-500 credits each
-- Each station sells different upgrades (ask the shipwright)
-- Warp coil overhaul (250cr) is the big mobility upgrade
+- **15 upgrades** available across different stations
+- Costs: 150–450 credits each; each station sells a different selection
+- Warp coil overhaul (250cr) is the key mobility upgrade
+- **Mission tiers are gated by total upgrade investment**, not upgrade count:
+  - **<500cr invested** — delivery and salvage only (tier 0)
+  - **500–999cr invested** — hacking and tailing unlock (tier 1)
+  - **1000cr+ invested** — boarding and destroy unlock (tier 2)
+- Check current investment in the **Campaign Status** GM button
 
 ### Jobs
 
@@ -189,15 +193,18 @@ Offer hooks:
 - Director instruction: "Create an opportunity that plays to what they've been doing"
 
 ### Upgrade Progression
-- Session 1-2: Basic upgrades (hull, shields mk2, repair crew, forward beams)
-- Session 3-4: Advanced upgrades (warp overhaul, combat thrusters, sensor suite)
-- Session 5+: Top-tier (heavy beams, warp overhaul, reactor overhaul) unlocks dangerous zones
 
-### Region Recommendations by Upgrade Level
-- **Stock ship**: Core, Border, Rim safe zones
-- **2-3 upgrades**: Gauntlet (risky but good salvage), Shroud edge
-- **5+ upgrades**: Deep Shroud, Boneyard (dangerous but valuable)
-- **8+ upgrades**: Blackwater Reach, Maw approaches (deadly)
+| Investment | Typical point | Mission tier | Notes |
+|---|---|---|---|
+| 0–499cr | Session 1 | Tier 0 | Delivery and salvage only |
+| 500–999cr | Session 2–3 | Tier 1 | Hacking and tailing available |
+| 1000cr+ | Session 3–4 | Tier 2 | Boarding and destroy available |
+
+### Region Recommendations by Investment
+- **Stock / <300cr**: Core, Border, Rim safe zones
+- **300–600cr**: Gauntlet (risky but good salvage), Shroud edge
+- **600–1000cr**: Deep Shroud, Boneyard (dangerous but valuable)
+- **1000cr+**: Blackwater Reach, Maw approaches (deadly)
 
 ## Troubleshooting
 

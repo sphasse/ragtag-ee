@@ -40,7 +40,7 @@ Let the crew find their feet. Don't rush them into the story arc. This phase is 
 
 Look for two or more of these signals:
 
-- At least 2 upgrades purchased
+- At least 300–400cr invested in upgrades (visible in Campaign Status)
 - Crew has visited 3+ regions (visible in Director session context)
 - They've run at least one non-delivery mission (salvage, boarding, or hacking)
 - About 45–60 minutes of play
@@ -162,7 +162,11 @@ The arc runs through seven phases automatically. Your main job is setting tone a
 If the table wants to keep playing after the arc, the campaign continues normally. A few things to know:
 
 - **Proximity spawns resume** — the Witness guard lifts. If the crew is in dangerous space, they may get a fight immediately.
-- **Higher-tier missions unlock** — with 3+ upgrades, the job board offers boarding, hacking, and destroy contracts at tier 2. These pay significantly more (150–300 cr) but have faction consequences: boarding hits Corsair rep by −100, destroy hits by −200, and destroy targets also trigger the general ship-kill penalty. Hacking and tailing are rep-neutral. Hacking targets are stationary Concord relay beacons with 360° laser defense at 4U range — the crew must hack from outside that ring while Engineering manages shields.
+- **Higher-tier missions unlock** based on total upgrade investment (check Campaign Status):
+  - **500cr invested** — hacking and tailing unlock (tier 1)
+  - **1000cr invested** — boarding and destroy unlock (tier 2)
+
+  These pay significantly more (150–300 cr) but have faction consequences: boarding hits Corsair rep by −100, destroy hits by −200, and destroy targets also trigger the general ship-kill penalty. Hacking and tailing are rep-neutral. Hacking targets are stationary Concord relay beacons with 360° laser defense at 4U range — the crew must hack from outside that ring while Engineering manages shields.
 - **Wanted flag carries** — if Concord issued a warrant during the arc (or during free play), it persists. Concord zones are hostile until the flag is cleared. Currently no in-game way to clear it — treat it as a story consequence.
 - **Director continuity** — prompt the Director to reference what the crew did: *"In any NPC dialogue, acknowledge that the Kael broadcast happened and that people are talking about it."*
 
