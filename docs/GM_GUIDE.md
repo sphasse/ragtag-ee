@@ -162,7 +162,7 @@ The arc runs through seven phases automatically. Your main job is setting tone a
 If the table wants to keep playing after the arc, the campaign continues normally. A few things to know:
 
 - **Proximity spawns resume** — the Witness guard lifts. If the crew is in dangerous space, they may get a fight immediately.
-- **Higher-tier missions unlock** — with 3+ upgrades, the job board offers boarding, hacking, and destroy contracts at tier 2. These pay significantly more (150–300 cr) but have faction consequences: boarding hits Corsair rep by −100, destroy hits by −200, and destroy targets also trigger the general ship-kill penalty. Hacking and tailing are rep-neutral.
+- **Higher-tier missions unlock** — with 3+ upgrades, the job board offers boarding, hacking, and destroy contracts at tier 2. These pay significantly more (150–300 cr) but have faction consequences: boarding hits Corsair rep by −100, destroy hits by −200, and destroy targets also trigger the general ship-kill penalty. Hacking and tailing are rep-neutral. Hacking targets are stationary Concord relay beacons with 360° laser defense at 4U range — the crew must hack from outside that ring while Engineering manages shields.
 - **Wanted flag carries** — if Concord issued a warrant during the arc (or during free play), it persists. Concord zones are hostile until the flag is cleared. Currently no in-game way to clear it — treat it as a story consequence.
 - **Director continuity** — prompt the Director to reference what the crew did: *"In any NPC dialogue, acknowledge that the Kael broadcast happened and that people are talking about it."*
 

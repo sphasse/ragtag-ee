@@ -60,13 +60,15 @@ Hail any station and ask "Any work available?" — the station offers two missio
 |---|---|---|
 | **Delivery** | 50–130 cr | +reward with origin faction on complete; −2× on fail |
 | **Salvage** | 60–155 cr | Same; urgent salvage pays 1.5× |
-| **Hacking** | 85–215 cr | Rep-neutral (relay hack is undetected) |
+| **Hacking** | 85–215 cr | Rep-neutral (relay hack is undetected); beacon fires on anyone within 4U |
 | **Destroy** | 100–250 cr | −200 Corsairs on kill; +reward with origin on complete |
 | **Boarding** | 115–285 cr | −100 Corsairs on disable; +reward with origin on complete |
 
 Time limits scale with distance — short-range delivery might be 3–5 minutes, a long boarding run could be 25+. Urgent missions are explicitly flagged and pay 1.5× but have tighter windows.
 
 Failing or letting a mission expire costs the crew **double the reward** in reputation with the issuing faction.
+
+**Hacking specifics:** The target is a stationary Concord comms relay beacon. It has four overlapping laser mounts covering 360° with a 4U range — Engineering must keep shields up while Science hacks any system to 75%. The beacon also jams scan probes within 5U. Hack from outside 4U to stay out of the fire. Mission is rep-neutral since the hack is undetected.
 
 ### Combat
 - **Corsairs** ambush in the Gauntlet and Blackwater
