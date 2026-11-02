@@ -157,9 +157,9 @@ function JOBS.getDistanceRange()
     if mode == "short" then
         return 15000, 50000  -- 15-50U
     elseif mode == "long" then
-        return 120000, 400000  -- 120-400U
+        return 60000, 200000  -- 60-200U
     else
-        return 60000, 200000  -- 60-200U (medium/default)
+        return 30000, 100000  -- 30-100U (medium/default)
     end
 end
 
