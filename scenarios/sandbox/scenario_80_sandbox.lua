@@ -127,15 +127,64 @@ function JOBS.missionDuration(m)
     end
 end
 
+local function _stationFaction(cs)
+    for _, st in ipairs(VERSE.STATIONS) do
+        if st.cs == cs then return st.fac end
+    end
+    return "Independent"
+end
+
+-- Build the rich 2-line offer text shown in the mission listing.
+function JOBS.offerText(m)
+    local dist_u  = math.floor(m.distance_u / 1000 + 0.5)
+    local dur_min = math.floor(JOBS.missionDuration(m) / 60)
+    local stats   = string.format("%dU · %dcr · %d min to complete", dist_u, m.reward, dur_min)
+    local t = m.type
+
+    if t == "delivery" then
+        local fac     = m.dest_faction or "Independent"
+        local urgent  = m.urgent and "URGENT: " or ""
+        local desc    = string.format("%sDeliver %s to %s (%s).", urgent, m.cargo, m.dest, fac)
+        return desc .. "\n  Delivery · " .. stats
+    elseif t == "salvage" then
+        local region  = m.region_name or "open space"
+        local urgent  = m.urgent and "URGENT: " or ""
+        local desc    = string.format("%sRecover %s from %s.", urgent, m.cargo, region)
+        return desc .. "\n  Salvage · " .. stats:gsub("(%d+U)", "%1 round trip", 1)
+    elseif t == "boarding" then
+        local fac_label = m.faction_label or "hostile vessel"
+        local region    = m.region_name or "open space"
+        local loc       = m.target_dest and (" near " .. m.target_dest) or (" in " .. region)
+        local desc      = string.format("Disable and board a %s%s.", fac_label, loc)
+        return desc .. "\n  Boarding · " .. stats
+    elseif t == "destroy" then
+        local fac_label = m.faction_label or "hostile vessel"
+        local region    = m.region_name or "open space"
+        local heading   = m.target_dest and (", heading toward " .. m.target_dest) or ""
+        local desc      = string.format("Eliminate a %s in %s%s.", fac_label, region, heading)
+        return desc .. "\n  Destroy · " .. stats
+    elseif t == "hacking" then
+        local region = m.region_name or "open space"
+        local desc   = string.format("Breach a Concord comms relay in %s.", region)
+        return desc .. "\n  Hacking · " .. stats
+    elseif t == "tailing" then
+        local region = m.region_name or "open space"
+        local desc   = string.format("Surveil a ship of unknown affiliation in %s.", region)
+        return desc .. "\n  Tailing · " .. stats
+    else
+        return m.short .. "\n  " .. stats
+    end
+end
+
 -- Mission distance calculation based on mode
 function JOBS.getMissionDistance()
     local mode = S.mission_distance_mode or "medium"
     if mode == "short" then
-        return (15 + math.random() * 35) * 1000  -- 15-50U
+        return (15 + math.random() * 35) * 1000   -- 15-50U
     elseif mode == "long" then
-        return (120 + math.random() * 280) * 1000  -- 120-400U
+        return (60 + math.random() * 140) * 1000  -- 60-200U
     else
-        return (60 + math.random() * 140) * 1000  -- 60-200U (medium/default)
+        return (30 + math.random() * 70) * 1000   -- 30-100U (medium/default)
     end
 end
 
@@ -185,10 +234,6 @@ end
 
 -- Extract distance/reward suffix from mission short description
 -- e.g. "Disable Blackjack (boarding) (the Shroud, 45u) (185cr)" -> " (the Shroud, 45u) (185cr)"
-local function _distRewardSuffix(mission)
-    local suffix = mission.short:match("( %([^)]+%) %(%d+cr%))$")
-    return suffix or ""
-end
 
 -- Per-station work tracking: {callsign → {slots = {[1] = {mission, offered_at, taken_at}, ...}}}
 -- Each slot tracks a mission independently with its own cooldown timer
@@ -371,13 +416,11 @@ function JOBS.accept(m, skip_log, ship)
         end)
 
         m.target_cs = name
-        -- Update short description and objective with actual target name
-        local suffix = _distRewardSuffix(m)
         if m.type == "boarding" then
-            m.short = "Disable " .. name .. " (boarding)" .. suffix
+            m.short = "Disable " .. name
             m.obj = "Intercept " .. name
         else  -- destroy
-            m.short = "Destroy " .. name .. " (destroy)" .. suffix
+            m.short = "Destroy " .. name
             m.obj = "Destroy " .. name
         end
         m._spawned  = true
@@ -405,9 +448,7 @@ function JOBS.accept(m, skip_log, ship)
         end)
 
         m.target_cs = name
-        -- Update short description and objective with actual relay name
-        local suffix = _distRewardSuffix(m)
-        m.short = "Hack " .. name .. " (hacking)" .. suffix
+        m.short = "Hack " .. name
         m.obj = "Hack " .. name
         m._spawned  = true
     elseif m.type == "tailing" and not m._spawned then
@@ -465,8 +506,7 @@ function JOBS.accept(m, skip_log, ship)
         m.target_cs     = tname
         m.rendezvous_cs = rname
         m._meet_at      = getScenarioTime() + T
-        local suffix = _distRewardSuffix(m)
-        m.short = "Surveil " .. tname .. " (tailing)" .. suffix
+        m.short = "Surveil " .. tname
         m.obj   = "Locate " .. tname
         m._spawned = true
     end
@@ -700,6 +740,7 @@ function JOBS.stationHook(source, target)
                     generated_mission = MISSION.newDelivery({
                         origin = cs,
                         dest = candidates[dest_idx],
+                        dest_faction = _stationFaction(candidates[dest_idx]),
                         tier = tier,
                         distance_u = distance_u,
                         danger_level = dest_danger,
@@ -864,7 +905,11 @@ function JOBS.stationHook(source, target)
                     end
                 elseif dest_idx <= #candidates then
                     -- fallback: delivery
-                    generated_mission = MISSION.newDelivery({origin = cs, dest = candidates[dest_idx], tier = tier})
+                    generated_mission = MISSION.newDelivery({
+                        origin = cs, dest = candidates[dest_idx],
+                        dest_faction = _stationFaction(candidates[dest_idx]),
+                        tier = tier,
+                    })
                     dest_idx = dest_idx + 1
                 end
 
@@ -906,9 +951,9 @@ function JOBS.stationHook(source, target)
             return
         end
 
-        local lines = {"Work out of " .. cs .. ":\n"}
+        local lines = {"Work out of " .. cs .. ":"}
         for _, m in ipairs(offers) do
-            lines[#lines + 1] = string.format("* %s", m.short)
+            lines[#lines + 1] = "\n" .. JOBS.offerText(m)
         end
         if slots_failed > 0 then
             local noun = slots_failed == 1 and "contract was" or "contracts were"

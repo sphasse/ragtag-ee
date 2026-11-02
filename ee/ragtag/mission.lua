@@ -236,6 +236,7 @@ local _BOARDING_ARCHETYPES = {
     {
         cargo  = "a stolen data core",
         short_offer = "Disable a Corsair runner",
+        faction_label = "Corsair runner",
         lore   = "A Corsair runner lifted survey data from a prospecting team. The owner wants it back quietly.",
         accept_msg = '"Disable the ship and take back the core. Don\'t destroy it — the data might not survive the hull breach."',
         recv_msg   = '"Data core intact. You\'ve got a friend in this business."',
@@ -245,6 +246,7 @@ local _BOARDING_ARCHETYPES = {
     {
         cargo  = "a hijacked courier",
         short_offer = "Board a captured courier",
+        faction_label = "captured Independent courier",
         lore   = "An independent courier was pulled off their route — ship taken, crew stuck aboard. Someone wants them back.",
         accept_msg = '"They\'re still alive. Disable the ship and get them out before the Corsairs move them again."',
         recv_msg   = '"I thought that was it for me. Thank you."',
@@ -258,6 +260,7 @@ local _BOARDING_ARCHETYPES = {
     {
         cargo  = "a locked evidence container",
         short_offer = "Intercept a smuggling run",
+        faction_label = "Corsair smuggler",
         lore   = "Smuggler running contraband for a connected outfit. Concord wants the evidence container — not the ship, not the crew.",
         accept_msg = '"Disable them cleanly. Destroy the ship and the evidence chain breaks."',
         recv_msg   = '"Chain of custody intact. Well done."',
@@ -271,6 +274,7 @@ local _BOARDING_ARCHETYPES = {
     {
         cargo  = "a Corsair lieutenant",
         short_offer = "Capture a Corsair officer",
+        faction_label = "Corsair officer",
         lore   = "Mid-level Corsair officer moving between cells. Intelligence wants them alive for questioning.",
         accept_msg = '"Disable the escort — they\'ll be running a light ship, fast. Board carefully."',
         recv_msg   = '"We\'ll take custody from here. What they know is worth more than you\'d guess."',
@@ -284,6 +288,7 @@ local _BOARDING_ARCHETYPES = {
     {
         cargo  = "a corporate defector",
         short_offer = "Stop a fleeing operative",
+        faction_label = "corporate operative",
         lore   = "A corporate operative who knows too much tried to disappear. The parent company wants them back with the financial records intact.",
         accept_msg = '"Disable the ship before they can vent the data. Board fast."',
         recv_msg   = '"Asset secured and records intact. Discretion noted."',
@@ -312,6 +317,7 @@ local _DESTROY_ARCHETYPES = {
     {
         cargo  = "a bounty claim",
         short_offer = "Eliminate a wanted fugitive",
+        faction_label = "wanted Corsair",
         lore   = "A wanted corsair with a dead-or-alive bounty. Last seen operating a fast raider.",
         accept_msg = '"Destroy the target completely. No boarding, no survivors. We want proof."',
         recv_msg   = '"Target eliminated. Bounty posted to your account."',
@@ -322,6 +328,7 @@ local _DESTROY_ARCHETYPES = {
     {
         cargo  = "proof of destruction",
         short_offer = "Destroy a rogue AI ship",
+        faction_label = "rogue AI drone",
         lore   = "An automated patrol ship malfunctioned and is broadcasting corrupted IFF codes. It's firing on friendlies.",
         accept_msg = '"Eliminate the target. Do not attempt boarding — the AI is hostile to all organics."',
         recv_msg   = '"Threat neutralized. Wreckage retrieved for analysis."',
@@ -336,6 +343,7 @@ local _DESTROY_ARCHETYPES = {
     {
         cargo  = "a quarantine certificate",
         short_offer = "Destroy a plague ship",
+        faction_label = "quarantined plague freighter",
         lore   = "A freighter carrying an unstable bioweapon sample lost containment. The crew is dead or worse.",
         accept_msg = '"Burn it out of space. Do not approach within 1U. Do not board. Complete destruction only."',
         recv_msg   = '"Contaminated hulk destroyed. Medical authority confirms clean burn."',
@@ -350,6 +358,7 @@ local _DESTROY_ARCHETYPES = {
     {
         cargo  = "combat telemetry",
         short_offer = "Eliminate a pirate captain",
+        faction_label = "Corsair captain",
         lore   = "A corsair captain with fifteen raids to their name. Known for heavy armor and refusing surrender.",
         accept_msg = '"No quarter. This one doesn\'t run and doesn\'t dock quietly."',
         recv_msg   = '"Captain confirmed KIA. The lanes just got safer."',
@@ -364,6 +373,7 @@ local _DESTROY_ARCHETYPES = {
     {
         cargo  = "a black-ops confirmation",
         short_offer = "Destroy a defector's ship",
+        faction_label = "Concord defector",
         lore   = "A former Concord officer stole classified files and is running for Hollow space. Eliminate before they cross the line.",
         accept_msg = '"Target is armed, experienced, and knows you\'re coming. Total destruction. No witnesses."',
         recv_msg   = '"Target eliminated. Files unrecoverable. This conversation never happened."',
@@ -495,15 +505,6 @@ local _SHORT_NAMES = {
 }
 local function _short(cs) return _SHORT_NAMES[cs] or cs end
 
--- Format distance/reward suffix for mission short descriptions
--- e.g. " (the Shroud, 45u) (185cr)"
-local function _distReward(distance_u, reward, region_name)
-    local dist_rounded = math.floor((distance_u / 1000 + 2.5) / 5) * 5
-    if region_name then
-        return string.format(" (%s, %du) (%dcr)", region_name, dist_rounded, reward)
-    end
-    return string.format(" (%du) (%dcr)", dist_rounded, reward)
-end
 
 local _id_seq = 0
 local function _nextId()
@@ -573,13 +574,15 @@ function MISSION.newDelivery(opts)
         dest         = opts.dest,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = prefix .. arch.cargo .. " → " .. dest_short .. " (delivery)" .. _distReward(opts.distance_u or 0, reward, nil),
+        short        = prefix .. arch.cargo .. " → " .. dest_short,
         obj          = "Deliver to " .. dest_short,
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
         intercept    = intercept,
         urgent       = urgent,
         distance_u   = opts.distance_u or 0,
+        region_name  = opts.region_name,
+        dest_faction = opts.dest_faction or "Independent",
     }
 end
 
@@ -624,13 +627,14 @@ function MISSION.newSalvage(opts)
         wy           = opts.wy,
         cargo        = arch.cargo,
         reward       = reward,
-        short        = prefix .. arch.cargo .. " (salvage)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
+        short        = prefix .. arch.cargo,
         obj          = "Recover " .. arch.cargo,
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
         complete_msg = arch.recv_msg,
         intercept    = intercept,
         urgent       = urgent,
         distance_u   = distance_u,
+        region_name  = opts.region_name,
         _found       = false,
     }
 end
@@ -683,7 +687,7 @@ function MISSION.newBoarding(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer .. " (boarding)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
+        short           = arch.short_offer,
         obj             = "Locate and disable target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
@@ -692,6 +696,8 @@ function MISSION.newBoarding(opts)
         target_dest     = target_dest,
         intercept       = intercept,
         distance_u      = distance_u,
+        region_name     = opts.region_name,
+        faction_label   = arch.faction_label,
         _spawned        = false,
         _disabled       = false,
         _boarded        = false,
@@ -745,7 +751,7 @@ function MISSION.newDestroy(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
-        short           = arch.short_offer .. " (destroy)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
+        short           = arch.short_offer,
         obj             = "Locate and destroy target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
                           .. "\n\nTarget must be completely destroyed. No boarding, no salvage.",
@@ -754,6 +760,8 @@ function MISSION.newDestroy(opts)
         target_dest     = target_dest,
         intercept       = intercept,
         distance_u      = distance_u,
+        region_name     = opts.region_name,
+        faction_label   = arch.faction_label,
         _spawned        = false,
         _destroyed      = false,
         target_cs       = nil,
@@ -800,13 +808,14 @@ function MISSION.newHacking(opts)
         system         = arch.system or "reactor",
         hack_threshold = 0.75,
         reward         = reward,
-        short          = arch.short_offer .. " (hacking)" .. _distReward(opts.distance_u or 0, reward, opts.region_name),
+        short          = arch.short_offer,
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
                          .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
         complete_msg   = arch.recv_msg,
         intercept      = intercept,
         distance_u     = distance_u,
+        region_name    = opts.region_name,
         _spawned       = false,
         _hacked        = false,
         target_cs      = nil,
@@ -900,13 +909,14 @@ function MISSION.newTailing(opts)
         my               = opts.my,
         cargo            = arch.cargo,
         reward           = reward,
-        short            = arch.short_offer .. " (tailing)" .. _distReward(distance_u, reward, opts.region_name),
+        short            = arch.short_offer,
         obj              = "Locate target",
         brief            = arch.lore .. "\n\n" .. arch.accept_msg
                            .. "\n\nThey'll detect a probe signature or any ship within weapons range — spook them before the meeting and the contract is lost.",
         complete_msg     = arch.recv_msg,
         target_template  = target_template,
         distance_u       = distance_u,   -- stored for spawn-time geometry (ship spawn dist = D/4)
+        region_name      = opts.region_name,
         _spawned         = false,
         _meeting         = false,
         _meeting_at      = nil,
