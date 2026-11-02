@@ -173,24 +173,44 @@ Danger levels: 0=safe, 1=risky, 2=dangerous, 3=deadly, 4=extremely deadly.
 
 ---
 
+## Reputation system
+
+`RT.addReputation(faction, amount, reason)` — unbounded (no clamp). Persisted to campaign save.
+
+**Standard amounts:**
+- Job completed: `+mission.reward` (full credit value) with origin faction
+- Job expired/failed: `-mission.reward` with origin faction
+- Ship destroyed: `-200` with ship's faction (fires automatically from `RT.trackShipForReputation`)
+- Ship disabled (boarding): `-100` with Corsairs (fired explicitly in boarding module at disable)
+
+**GM adjustment**: +100 / −100 per button press. Faction list shows live standing; detail sub-menu self-refreshes after each press.
+
+**Proximity spawn effects** (from CLAUDE.md):
+- Corsairs >+20: 50% longer spawn cooldowns
+- Corsairs <−20: 30% shorter cooldowns (hunt you)
+- Concord >+20: shake-downs dismissed without fine
+- Concord <−20: skip shake-down, immediate attack
+
+---
+
 ## Registered job types (current)
 
-| Type | Weight | tier_min | mult | Notes |
-|---|---|---|---|---|
-| `delivery` | 15 | 0 | 1.0 | Ferry cargo between stations |
-| `salvage` | 7 | 0 | 1.2 | Recover a cargo pod from coordinates |
-| `hacking` | 3 | 0 | 1.4 | Breach comms relay (75% any system) |
-| `tailing` | 3 | 0 | 1.3 | Follow a target ship to its destination |
-| `destroy` | 3 | 0 | 1.6 | Eliminate a target ship |
-| `boarding` | 3 | 0 | 1.8 | Disable and board a target ship |
-| `escort` | 4 | 0 | 1.5 | Escort an impulse-only convoy with two fighter escorts; two Corsair intercept waves at 33% and 67% of route |
+| Type | Weight | tier_min | mult | Rep on complete | Rep on fail/expire |
+|---|---|---|---|---|---|
+| `delivery` | 15 | 0 | 1.0 | +reward (origin faction) | −reward |
+| `salvage` | 7 | 0 | 1.2 | +reward (origin faction) | −reward |
+| `hacking` | 3 | 0 | 1.4 | none (undetected) | none |
+| `tailing` | 3 | 0 | 1.3 | +reward (origin faction) | −reward |
+| `destroy` | 3 | 0 | 1.6 | +reward (origin faction); −200 Corsairs on kill | −reward |
+| `boarding` | 3 | 0 | 1.8 | +reward (origin faction); −100 Corsairs on disable | −reward |
+| `escort` | 3 | 0 | 1.5 | +reward (origin faction) | −reward |
 
 ---
 
 ## Escort specifics
 
-- Convoy: Flavia P.Falcon, Independent, impulse-only (~125 u/s), no weapons
-- Escort fighters: 2× MT52 Hornet, Independent, impulse-only (~165 u/s)
+- Convoy: `"Flavia"` (NPC template — NOT `"Flavia P.Falcon"` which is a player template and won't accept AI orders), Independent, impulse-only (~125 u/s), no weapons
+- Escort fighters: 2× MT52 Hornet, Independent, impulse-only (~200 u/s)
 - Fighter names: drawn without replacement from `_ESCORT_NAMES` pool (30 bird/indie-flight names)
 - Convoy switches from `orderFlyTowards` → `orderDock` when within 5U of destination
 - Post-mission: fighters get dismissal comms, fly to a random third station, despawn after 5 min via `_tickDeparting` in `JOBS._tick_hooks`

@@ -40,7 +40,7 @@ Dock at any station and hail them — ask **"Any work available?"** and they'll 
 
 Jobs range from simple deliveries to salvage recoveries, surveillance runs, hacking relays, and harder contracts that pay accordingly. Pay scales with distance and how dangerous the space you're heading into.
 
-Reputation matters. Corsairs who've seen you run will back off sooner. Corsairs who've seen you fold will come looking. The Concord remembers if you've been helpful or if you've run from an inspection.
+Reputation matters — and it's cumulative. Complete a contract for a faction and you gain standing equal to the payout. Let one expire and you lose it. Destroy a ship and you lose 200 with that faction immediately. Disable a ship during a boarding run costs 100. There's no cap — reputation can climb well into the hundreds or plummet deep negative over a campaign.
 
 ---
 

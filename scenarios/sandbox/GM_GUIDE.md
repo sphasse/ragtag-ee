@@ -62,15 +62,16 @@ Hail any station and ask "Any work available?" — the station offers two missio
 
 | Type | Pay range | Faction rep |
 |---|---|---|
-| **Delivery** | 50–130 cr | +reward with origin faction on complete; −2× on fail |
+| **Delivery** | 50–130 cr | +reward with origin faction on complete; −reward on fail/expire |
 | **Salvage** | 60–155 cr | Same; urgent salvage pays 1.5× |
 | **Hacking** | 85–215 cr | Rep-neutral (relay hack is undetected); beacon fires on anyone within 4U |
 | **Destroy** | 100–250 cr | −200 Corsairs on kill; +reward with origin on complete |
 | **Boarding** | 115–285 cr | −100 Corsairs on disable; +reward with origin on complete |
+| **Escort** | 90–230 cr | +reward with origin on complete; Corsair intercepts at 33% and 67% of route |
 
 Time limits scale with distance — short-range delivery might be 3–5 minutes, a long boarding run could be 25+. Urgent missions are explicitly flagged and pay 1.5× but have tighter windows.
 
-Failing or letting a mission expire costs the crew **double the reward** in reputation with the issuing faction.
+Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction. Reputation is unbounded — it accumulates across sessions with no cap.
 
 **Hacking specifics:** The target is a stationary Concord comms relay beacon. It has four overlapping laser mounts covering 360° with a 4U range — Engineering must keep shields up while Science hacks any system to 75%. The beacon also jams scan probes within 5U. Hack from outside 4U to stay out of the fire. Mission is rep-neutral since the hack is undetected.
 
@@ -79,7 +80,8 @@ Failing or letting a mission expire costs the crew **double the reward** in repu
 - **Relic drones** guard the Boneyard (war machines, hostile to all)
 - **Hollow ships** in the Maw (deadly—avoid early game)
 - **Concord patrols** are neutral unless you attack them or flee from inspections
-- **Killing any faction ship costs −200 rep with that faction** — one combat easily tanks Corsair standing
+- **Killing any faction ship costs −200 rep with that faction** — one fight can tank Corsair standing significantly
+- Reputation is unbounded (no ±100 cap), so a long campaign can see standing in the hundreds or deep negative
 
 ## GM Tools (Buttons)
 
@@ -92,6 +94,7 @@ Failing or letting a mission expire costs the crew **double the reward** in repu
 - **Sandbox: End session**: Call when the crew docks and you're ready to wrap up
 - **Sandbox: +500 credits**: Large reward for major accomplishments
 - **Sandbox: Spawn salvage nearby**: Drop a supply pod near the player
+- **Reputation...**: Opens faction list showing current standing. Select a faction to adjust it +100 or −100 (self-refreshes after each press)
 
 ### AI Director Buttons (if director is running)
 - **AI: twist**: "Create a complication"
