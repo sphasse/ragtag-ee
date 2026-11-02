@@ -162,7 +162,7 @@ The arc runs through seven phases automatically. Your main job is setting tone a
 If the table wants to keep playing after the arc, the campaign continues normally. A few things to know:
 
 - **Proximity spawns resume** — the Witness guard lifts. If the crew is in dangerous space, they may get a fight immediately.
-- **Higher-tier missions unlock** — with 3+ upgrades, the job board now offers boarding, hacking, and destroy contracts at tier 2. These pay significantly more and hit harder.
+- **Higher-tier missions unlock** — with 3+ upgrades, the job board offers boarding, hacking, and destroy contracts at tier 2. These pay significantly more (150–300 cr) but have faction consequences: boarding hits Corsair rep by −100, destroy hits by −200, and destroy targets also trigger the general ship-kill penalty. Hacking and tailing are rep-neutral.
 - **Wanted flag carries** — if Concord issued a warrant during the arc (or during free play), it persists. Concord zones are hostile until the flag is cleared. Currently no in-game way to clear it — treat it as a story consequence.
 - **Director continuity** — prompt the Director to reference what the crew did: *"In any NPC dialogue, acknowledge that the Kael broadcast happened and that people are talking about it."*
 
@@ -180,11 +180,28 @@ Wrap with a Director prompt: *"Give a brief out-of-character session summary —
 
 ### Reputation effects
 
+**How reputation changes:**
+
+| Action | Faction affected | Change |
+|---|---|---|
+| Complete a mission | Origin station's faction | +mission reward (50–300) |
+| Fail or let a mission expire | Origin station's faction | −2× mission reward |
+| Destroy any faction ship | That ship's faction | −200 |
+| Board and disable a ship | Corsairs | −100 |
+| Hack a Concord relay | Concord | No change (undetected) |
+| Tail a ship | — | No change |
+
+Rep is capped at −100 to +100. One ship kill is usually enough to reach −100 with that faction; running missions is the main recovery path.
+
+**What reputation does:**
+
 | Faction | High rep (>+20) | Low rep (<−20) |
 |---|---|---|
 | Corsairs | Patrols leave you alone (longer spawn cooldown) | Shorter cooldown — they hunt you |
 | Concord | Shake-downs dismissed, no fine | Skip shake-down, immediate attack |
 | Independent | Full station access | No current effect |
+
+> **Note for GMs:** The rep change is logged in-game on the Relay console immediately when it fires. Watch for the crew noticing their first big reputation swing — it's a good moment to play up the consequences in Director dialogue.
 
 ### Danger levels
 

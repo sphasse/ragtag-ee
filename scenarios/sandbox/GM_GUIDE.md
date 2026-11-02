@@ -41,9 +41,10 @@
 - Some stations buy/sell specific goods (the AI may mention this)
 
 ### Salvage
-- **Debris fields** in every region (scan to reveal value)
-- **Better salvage** in dangerous zones (risk vs reward)
+- **Debris fields** in every region — scan pods to reveal value (5–20 cr each, higher in dangerous zones)
+- **Combat drops** — destroyed enemy ships leave 1–3 salvage pods; value scales with zone danger
 - **Derelict ships** have logs (scan fully to read them)
+- Salvage is intentionally lower than job pay — it supplements missions rather than replacing them
 
 ### Upgrade
 - **16 upgrades** available across different stations
@@ -51,11 +52,28 @@
 - Each station sells different upgrades (ask the shipwright)
 - Jump drive (500cr) is the big one—enables long-range travel
 
+### Jobs
+
+Hail any station and ask "Any work available?" — the station offers two missions. Five types:
+
+| Type | Pay range | Faction rep |
+|---|---|---|
+| **Delivery** | 50–130 cr | +reward with origin faction on complete; −2× on fail |
+| **Salvage** | 60–155 cr | Same; urgent salvage pays 1.5× |
+| **Hacking** | 85–215 cr | Rep-neutral (relay hack is undetected) |
+| **Destroy** | 100–250 cr | −200 Corsairs on kill; +reward with origin on complete |
+| **Boarding** | 115–285 cr | −100 Corsairs on disable; +reward with origin on complete |
+
+Time limits scale with distance — short-range delivery might be 3–5 minutes, a long boarding run could be 25+. Urgent missions are explicitly flagged and pay 1.5× but have tighter windows.
+
+Failing or letting a mission expire costs the crew **double the reward** in reputation with the issuing faction.
+
 ### Combat
 - **Corsairs** ambush in the Gauntlet and Blackwater
 - **Relic drones** guard the Boneyard (war machines, hostile to all)
 - **Hollow ships** in the Maw (deadly—avoid early game)
 - **Concord patrols** are neutral unless you attack them or flee from inspections
+- **Killing any faction ship costs −200 rep with that faction** — one combat easily tanks Corsair standing
 
 ## GM Tools (Buttons)
 
@@ -193,9 +211,9 @@ Offer hooks:
 - Or manually destroy some enemies (GM → click ship → destroy)
 
 ### Crew has too much money
-- Reduce spawned salvage value
-- Make upgrades more expensive (edit `ee/ragtag/core.lua` RT.UPGRADES table)
-- Or let them be space-rich! It's sandbox—no wrong way to play
+- Salvage and job pay are balanced — 50–300 cr/mission, 5–20 cr/salvage pod
+- If they're still swimming in credits, the upgrade shop caps out at 8–10 upgrades; that's intentional
+- Or let them be space-rich! It's sandbox — no wrong way to play
 
 ### Crew is bored
 - AI instruction: "Create an interesting mystery"
