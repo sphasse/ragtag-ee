@@ -234,8 +234,8 @@ function M.generate(opts)
         cargo          = arch.cargo,
         reward         = reward,
         short          = arch.short_offer,
-        obj            = "Escort convoy to " .. opts.dest,
-        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. "\n\n" .. arch.accept_msg .. "\n\nUndock when you're ready to begin.",
+        obj            = "Escort convoy to " .. opts.dest .. " (" .. MISSION.gridRef(opts.dx, opts.dy) .. ")",
+        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. MISSION.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nUndock when you're ready to begin.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
@@ -360,8 +360,8 @@ function M.acceptLog(m)
     local f1 = (m.fighter_cs and m.fighter_cs[1]) or "Escort-1"
     local f2 = (m.fighter_cs and m.fighter_cs[2]) or "Escort-2"
     return string.format(
-        "[Escort] %s is docked at %s, ready to depart. You command the escort fleet — %s and %s are standing by. Undock when ready to begin.",
-        m.convoy_cs or "Convoy", m.origin, f1, f2)
+        "[Escort] %s is docked at %s, ready to depart. Destination: %s (%s). You command the escort fleet — %s and %s are standing by. Undock when ready to begin.",
+        m.convoy_cs or "Convoy", m.origin, m.dest, MISSION.gridRef(m.dx, m.dy), f1, f2)
 end
 
 function M.update(m, entry, ctx)
