@@ -1445,6 +1445,7 @@ local W = {
     checkpoint_fired = false,
     checkpoint_choice = nil,     -- "comply" | "stall" | "run"
     checkpoint_timer  = 0,
+    transit_warned   = false,    -- one-time Concord traffic warning en route
     sable_warned     = false,
     broadcast_done   = false,
     -- entity callsigns
@@ -1604,7 +1605,7 @@ local function W_startBroadcast()
     if RT.valid(buoy) then
         local bx, by = buoy:getPosition()
         RT.shipLog("[Relay] " .. W.buoy_cs .. " at grid " .. MISSION.gridRef(bx, by) ..
-            ". Open the hacking panel and target the reactor.", "#A0C0FF")
+            ". Science: open the hacking panel and breach the reactor to 50% to trigger the broadcast.", "#A0C0FF")
         buoy:setCommsFunction(function(src, tgt)
             setCommsMessage('"Public Relay Node. Unauthorized access detected. This channel is Concord-licensed."')
         end)
@@ -1686,16 +1687,22 @@ end
 
 local function W_startShroudRun()
     W_enterPhase("shroud_run")
-    RT.shipLog("[Navigation] Approaching the Shroud. Long-range sensors degrading. Watch for contacts.", "#C0C0C0")
+    local hp = VERSE.places["Halcyon Rest"]
+    local hloc = hp and (" Grid " .. MISSION.gridRef(hp.x, hp.y)) or ""
+    RT.shipLog("[Navigation] Entering the Shroud. Long-range sensors degrading — watch for contacts. Halcyon Rest" .. hloc .. " is a neutral station inside the nebula.", "#C0C0C0")
     RT.setObjective("Reach Halcyon Rest", true)
 end
 
 local function W_startRevealed()
     W_enterPhase("revealed")
     if W.complied then
-        RT.shipLog('[Message] A dead-drop transmission: "The data wasn\'t in the pod -- it\'s still with you, hidden in the lining. Get to Halcyon Rest. There\'s a public relay buoy. Finish this." -- unsigned.', "#A0C0FF")
+        local hp = VERSE.places["Halcyon Rest"]
+        local hloc = hp and (" Grid " .. MISSION.gridRef(hp.x, hp.y) .. ", deep in the Shroud") or " (deep in the Shroud)"
+        RT.shipLog('[Message] Dead-drop — Mira\'s contact: "Concord got the pod, not the data. It\'s sewn into the outer casing — check your cargo hold, they left it behind. Get to Halcyon Rest' .. hloc .. '. Find Sable. There\'s a public relay buoy. This isn\'t over."', "#A0C0FF")
     else
-        RT.shipLog('[Stasis] Transmission from the pod: "My name is Kael Voss. I was a Concord logistics officer. What I know will end careers. Get me to Halcyon Rest -- there\'s a relay buoy there. One broadcast and it\'s over. Whatever she paid you, I\'ll double it."', "#A0C0FF")
+        local hp = VERSE.places["Halcyon Rest"]
+        local hloc = hp and (" Grid " .. MISSION.gridRef(hp.x, hp.y) .. ", deep in the Shroud") or " (deep in the Shroud)"
+        RT.shipLog('[Stasis] Transmission from the pod: "My name is Kael Voss. I was a Concord logistics officer. What I know will end careers. Get me to Halcyon Rest' .. hloc .. ' -- there\'s a relay buoy there. One broadcast and it\'s over. Whatever she paid you, I\'ll double it."', "#A0C0FF")
     end
     RT.setObjective("Reach Halcyon Rest", true)
 end
@@ -1801,7 +1808,7 @@ local function W_startOffer()
     mira:setCommsFunction(function(src, tgt)
         setCommsMessage('"I need a discreet crew -- no questions asked. Passenger in stasis who needs to reach Dustmote Salvage quietly. Concord would prefer he never arrive. 300 credits. Yes or no?"')
         addCommsReply("We'll take the job.", function(s2, t2)
-            setCommsMessage('"Good. Transferring the pod now. He draws five energy a second from your reactor -- keep him stable. Get to Dustmote Salvage before Concord gets word."\n\nMira\'s Luck goes dark.')
+            setCommsMessage('"Good. Transferring the pod now. He draws five energy a second from your reactor -- keep him stable. Get to Dustmote Salvage before Concord gets word. If things go wrong, ask for Sable at Halcyon Rest -- she knows what to do with him."\n\nMira\'s Luck goes dark.')
             addCommsReply("Understood.", function(s3, t3) RT.stationComms(s3, t3) end)
             local m = RT.find("Mira's Luck")
             if RT.valid(m) then m:destroy() end
@@ -1854,6 +1861,10 @@ local function W_update(delta)
             -- Trigger checkpoint when 40U from Dustmote Salvage (104, -36)
             local dx, dy = px - 104000, py + 36000
             local dist_sq = dx * dx + dy * dy
+            if not W.transit_warned and dist_sq < 70000 * 70000 then
+                W.transit_warned = true
+                RT.shipLog("[Comms] Heavy Concord traffic on the approach to Dustmote. Something has their attention out here.", "#FFAA00")
+            end
             if not W.checkpoint_fired and dist_sq < 40000 * 40000 then
                 W.checkpoint_fired = true
                 W_startCheckpoint()
