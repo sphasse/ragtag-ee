@@ -160,7 +160,8 @@ local function _spawnInterceptors(m, cx, cy)
         local ex = cx + math.cos(angle) * 10 * U + (math.random() - 0.5) * 500
         local ey = cy + math.sin(angle) * 10 * U + (math.random() - 0.5) * 500
         local s = CpuShip():setTemplate("MT52 Hornet"):setFaction("Corsairs")
-        s:setCallSign(JOBS.corsairName())
+        local cs = JOBS.corsairName()
+        s:setCallSign(cs)
         s:setPosition(ex, ey)
         s:setImpulseMaxSpeed(165, -60)
         s:setWarpSpeed(0)
@@ -168,6 +169,7 @@ local function _spawnInterceptors(m, cx, cy)
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
+        m._interceptors[#m._interceptors + 1] = {cs = cs, sx = ex, sy = ey}
     end
 end
 
@@ -241,9 +243,11 @@ function M.generate(opts)
         _convoy_waiting = true,
         _convoy_docking = false,
         _convoy_arrived = false,
+        _arrived_at     = nil,
         _convoy_lost    = false,
         _ambush1        = false,
         _ambush2        = false,
+        _interceptors   = {},
         convoy_cs       = nil,
         fighter_cs      = {},
     }
@@ -408,11 +412,25 @@ function M.update(m, entry, ctx)
             local docked = convoy:getDockedWith()
             if docked and docked == dest_e then
                 m._convoy_arrived = true
+                m._arrived_at = ctx.now
+                for _, interc in ipairs(m._interceptors) do
+                    local s = RT.find(interc.cs)
+                    if RT.valid(s) then s:orderFlyTowardsBlind(interc.sx, interc.sy) end
+                end
                 RT.shipLog("[Escort] " .. m.convoy_cs .. " has docked at " .. m.dest .. ". Dock to collect payment.", "#80FF80")
                 m.obj = "Dock at " .. m.dest .. " to collect payment"
                 JOBS.updateObj()
             end
         end
+    end
+
+    -- Despawn recalled interceptors 2 minutes after convoy docks.
+    if m._arrived_at and ctx.now > m._arrived_at + 120 and #m._interceptors > 0 then
+        for _, interc in ipairs(m._interceptors) do
+            local s = RT.find(interc.cs)
+            if RT.valid(s) then s:destroy() end
+        end
+        m._interceptors = {}
     end
 
     if not m._ambush1 or not m._ambush2 then
@@ -452,6 +470,11 @@ function M.cleanup(m)
     if m.convoy_cs then
         local s = RT.find(m.convoy_cs)
         if RT.valid(s) and not m._convoy_arrived then s:destroy() end
+    end
+
+    for _, interc in ipairs(m._interceptors or {}) do
+        local s = RT.find(interc.cs)
+        if RT.valid(s) then s:destroy() end
     end
 
     local fighter_list = m.fighter_cs or {}
