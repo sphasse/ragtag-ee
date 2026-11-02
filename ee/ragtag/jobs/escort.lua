@@ -282,8 +282,13 @@ function M.spawn(m)
     local sr = convoy:getShieldMax(1)
     if sf > 0 then convoy:setShields(sf, sr) end
     convoy:orderDock(origin_e)
+    local mission_ref = m
     convoy:setCommsFunction(function(src, tgt)
-        setCommsMessage('"Don\'t let them get us. We\'re counting on you."')
+        if mission_ref._convoy_waiting then
+            setCommsMessage('"Waiting for you to depart. We\'ll follow your lead."')
+        else
+            setCommsMessage('"We\'re underway to ' .. mission_ref.dest .. '. Thank you for the escort."')
+        end
     end)
     RT.register(convoy)
     DIR.registerKill(convoy)
