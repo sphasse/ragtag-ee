@@ -150,7 +150,7 @@ function JOBS.offerText(m)
         local region  = m.region_name or "open space"
         local urgent  = m.urgent and "URGENT: " or ""
         local desc    = string.format("%sRecover %s from %s.", urgent, m.cargo, region)
-        return desc .. "\n  Salvage · " .. stats:gsub("(%d+U)", "%1 round trip", 1)
+        return desc .. "\n  Salvage · " .. stats:gsub("(%d+U)", "%1 out and back", 1)
     elseif t == "boarding" then
         local fac_label = m.faction_label or "hostile vessel"
         local region    = m.region_name or "open space"
