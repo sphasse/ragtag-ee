@@ -901,7 +901,8 @@ function JOBS.stationHook(source, target)
                     setCommsMessage('"You look pretty busy. I think I\'ll save my work for someone that gets stuff done."')
                 else
                     JOBS.accept(cap, true, s2)  -- skip_log=true; pass ship for tailing timing
-                    setCommsMessage(cap.brief .. "\n\n\"Come back when it\'s done.\"\n\nTransmitting details to your log.")
+                    local outro = cap.type == "delivery" and "" or "\n\n\"Come back when it\'s done.\""
+                    setCommsMessage(cap.brief .. outro .. "\n\nTransmitting details to your log.")
                     -- Now write to log after showing the message
                     local dest_hint
                     if cap.type == "delivery" and cap.dest then
