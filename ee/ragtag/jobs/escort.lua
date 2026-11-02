@@ -165,7 +165,12 @@ local function _spawnInterceptors(m, cx, cy)
         s:setPosition(ex, ey)
         s:setImpulseMaxSpeed(200, 60)
         s:setWarpSpeed(0)
-        s:orderRoaming()
+        local convoy_target = RT.find(m.convoy_cs)
+        if RT.valid(convoy_target) then
+            s:orderAttack(convoy_target)
+        else
+            s:orderRoaming()
+        end
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
