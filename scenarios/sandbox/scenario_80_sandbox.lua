@@ -1185,20 +1185,30 @@ function JOBS.update()
                         target:orderIdle()
                         target:setImpulseMaxSpeed(5)
                         target:setCommsFunction(function(src, tgt)
-                            setCommsMessage(string.format(
-                                '"%s" is drifting and not responding to further hails.\n\nPull alongside and send a boarding party.',
-                                m.target_cs))
-                            addCommsReply("Send boarding party", function(s2, t2)
-                                m._boarded = true
-                                m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                                RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
-                                JOBS.updateObj()
+                            local tx, ty = tgt:getPosition()
+                            local sx, sy = src:getPosition()
+                            local dx, dy = tx - sx, ty - sy
+                            local dist = math.sqrt(dx * dx + dy * dy)
+                            if dist > 500 then  -- must be within 0.5U to board
                                 setCommsMessage(string.format(
-                                    '"Take it. Just let us go."\n\n%s secured.', m.cargo))
-                            end)
+                                    '"%s" is drifting — no response on any channel.\n\nRange: %.1fU. Close to within 0.5U to pull alongside.',
+                                    m.target_cs, dist / 1000))
+                            else
+                                setCommsMessage(string.format(
+                                    '"%s" is alongside — crew standing by.\n\nSend the boarding party?',
+                                    m.target_cs))
+                                addCommsReply("Send boarding party", function(s2, t2)
+                                    m._boarded = true
+                                    m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                                    RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
+                                    JOBS.updateObj()
+                                    setCommsMessage(string.format(
+                                        '"Take it. Just let us go."\n\n%s secured.', m.cargo))
+                                end)
+                            end
                         end)
                         m.obj = "Board " .. m.target_cs
-                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Hail them to send a boarding party.", "#FFCC80")
+                        RT.shipLog("[Target] " .. m.target_cs .. " disabled. Close to 0.5U and hail to board.", "#FFCC80")
                         JOBS.updateObj()
                     end
                 end
