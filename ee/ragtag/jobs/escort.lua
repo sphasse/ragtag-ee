@@ -233,11 +233,12 @@ function M.generate(opts)
         reward         = reward,
         short          = arch.short_offer,
         obj            = "Escort convoy to " .. opts.dest,
-        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. "\n\n" .. arch.accept_msg,
+        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. "\n\n" .. arch.accept_msg .. "\n\nUndock when you're ready to begin.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
         _spawned        = false,
+        _convoy_waiting = true,
         _convoy_docking = false,
         _convoy_arrived = false,
         _convoy_lost    = false,
@@ -280,7 +281,7 @@ function M.spawn(m)
     local sf = convoy:getShieldMax(0)
     local sr = convoy:getShieldMax(1)
     if sf > 0 then convoy:setShields(sf, sr) end
-    convoy:orderFlyTowards(dx, dy)
+    convoy:orderDock(origin_e)
     convoy:setCommsFunction(function(src, tgt)
         setCommsMessage('"Don\'t let them get us. We\'re counting on you."')
     end)
@@ -310,7 +311,7 @@ function M.spawn(m)
         f:setPosition(fx, fy)
         f:setImpulseMaxSpeed(165, -60)
         f:setWarpSpeed(0)
-        f:orderFlyTowards(dx, dy)  -- engages hostiles on approach
+        f:orderDefendTarget(convoy)
         local cname = convoy_name
         f:setCommsFunction(function(src, tgt)
             setCommsMessage('"Standing by, Captain. Your orders?"')
@@ -350,8 +351,8 @@ function M.acceptLog(m)
     local f1 = (m.fighter_cs and m.fighter_cs[1]) or "Escort-1"
     local f2 = (m.fighter_cs and m.fighter_cs[2]) or "Escort-2"
     return string.format(
-        "[Escort] %s is underway to %s. You command the escort fleet. %s and %s are standing by for your orders.",
-        m.convoy_cs or "Convoy", m.dest, f1, f2)
+        "[Escort] %s is docked at %s, ready to depart. You command the escort fleet — %s and %s are standing by. Undock when ready to begin.",
+        m.convoy_cs or "Convoy", m.origin, f1, f2)
 end
 
 function M.update(m, entry, ctx)
@@ -365,6 +366,26 @@ function M.update(m, entry, ctx)
         m.obj = "Mission failed — convoy lost"
         JOBS.updateObj()
         m._expires_at = ctx.now - 1
+        return nil
+    end
+
+    -- Wait at origin until the player undocks, then release the convoy.
+    if m._convoy_waiting then
+        local origin_e = RT.find(m.origin)
+        local player_left = true
+        RT.forEachPlayer(function(p)
+            if RT.valid(p) then
+                local docked = p:getDockedWith()
+                if docked and RT.valid(origin_e) and docked == origin_e then
+                    player_left = false
+                end
+            end
+        end)
+        if player_left then
+            m._convoy_waiting = false
+            convoy:orderFlyTowards(m.dx, m.dy)
+            RT.shipLog("[Escort] " .. m.convoy_cs .. " is underway. Escort them to " .. m.dest .. ".", "#60CCFF")
+        end
         return nil
     end
 
