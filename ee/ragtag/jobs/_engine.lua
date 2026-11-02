@@ -308,6 +308,29 @@ local function _offerMissions(cs)
     local mt      = JOBS.maxTier()
     local n_slots = JOBS.stationSlots(cs)
 
+    -- Reputation penalty: reduce how many offers the station will show.
+    local _rep_nag = nil
+    local n_offer
+    do
+        local se = RT.find(cs)
+        local sfac = RT.valid(se) and se:getFaction() or nil
+        local rep = sfac and RT.getReputation(sfac) or 0
+        local penalty
+        if rep < -400 then
+            penalty  = n_slots
+            _rep_nag = '"We\'ve got nothing for someone with your reputation. Come back when you\'ve earned some trust."'
+        elseif rep < -200 then
+            penalty  = 2
+            _rep_nag = '"If you were more trustworthy, I\'d have more work for you."'
+        elseif rep < 0 then
+            penalty  = 1
+            _rep_nag = '"If you were more trustworthy, I\'d have more work for you."'
+        else
+            penalty  = 0
+        end
+        n_offer = math.max(0, n_slots - penalty)
+    end
+
     if not JOBS._station_work[cs] then
         local slots = {}
         for i = 1, n_slots do slots[i] = {mission=nil, offered_at=0, taken_at=nil} end
@@ -413,8 +436,13 @@ local function _offerMissions(cs)
         ::next_slot::
     end
 
+    -- Apply reputation cap on displayed offers.
+    while #offers > n_offer do table.remove(offers) end
+
     if #offers == 0 then
-        if JOBS.config.work_cooldown_enabled then
+        if _rep_nag and n_offer == 0 then
+            setCommsMessage(_rep_nag)
+        elseif JOBS.config.work_cooldown_enabled then
             local min_r = math.huge
             for _, slot in pairs(ss.slots) do
                 if slot.taken_at then
@@ -446,6 +474,9 @@ local function _offerMissions(cs)
     if slots_failed > 0 then
         local noun = slots_failed == 1 and "contract was" or "contracts were"
         lines[#lines + 1] = string.format("\n(%d %s just picked up by another crew.)", slots_failed, noun)
+    end
+    if _rep_nag then
+        lines[#lines + 1] = "\n" .. _rep_nag
     end
     setCommsMessage(table.concat(lines, "\n"))
 
