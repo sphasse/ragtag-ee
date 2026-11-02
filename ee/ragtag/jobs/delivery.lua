@@ -38,7 +38,7 @@ local _ARCHETYPES = {
         cargo="ration crates", urgent=true, reward_mult=0.95, tier_min=0,
         lore="Another crew quoted this run first. Get there before they do.",
         accept_msg='"Beat them to it and the contract bonus is yours."',
-        recv_msg='"You got here first. Contract\'s yours."',
+        recv_msg='"Beat the other crew. Payment\'s yours."',
         intercept_types={{type="rival",strength="scout",weight=3,
             msg="Competing delivery ship burning hard on your heading."}},
         intercept_chance=0.40,
