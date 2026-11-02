@@ -284,10 +284,26 @@ function JOBS.update()
 end
 
 -- ── Station hook ──────────────────────────────────────────────────────────────
+
+local _SLOT_BY_TMPL = {
+    ["Small Station"]  = 1,
+    ["Medium Station"] = 2,
+    ["Large Station"]  = 3,
+    ["Huge Station"]   = 3,
+}
+function JOBS.stationSlots(cs)
+    for _, st in ipairs(VERSE.STATIONS) do
+        if st.cs == cs then
+            return _SLOT_BY_TMPL[st.tmpl] or JOBS.config.station_slots
+        end
+    end
+    return JOBS.config.station_slots
+end
+
 local function _offerMissions(cs)
     local now     = getScenarioTime()
     local mt      = JOBS.maxTier()
-    local n_slots = JOBS.config.station_slots
+    local n_slots = JOBS.stationSlots(cs)
 
     if not JOBS._station_work[cs] then
         local slots = {}
@@ -422,7 +438,7 @@ local function _offerMissions(cs)
         local dist_u  = math.floor((m.distance_u or 0) / 1000 + 0.5)
         local dur_min = math.floor((mod2 and mod2.duration(m) or 1200) / 60)
         local stats   = string.format("%dU · %dcr · %d min", dist_u, m.reward, dur_min)
-        lines[#lines + 1] = mod2 and mod2.offerText(m, stats) or ("● " .. m.short .. " · " .. stats)
+        lines[#lines + 1] = mod2 and mod2.offerText(m, stats) or ("● " .. m.short .. "\n  " .. stats)
     end
     if slots_failed > 0 then
         local noun = slots_failed == 1 and "contract was" or "contracts were"
