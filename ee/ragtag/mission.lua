@@ -529,6 +529,22 @@ local function _weightedPick(list)
 end
 
 -- ---------------------------------------------------------------------------
+-- Public API helpers (used by jobs/* modules)
+-- ---------------------------------------------------------------------------
+
+MISSION.calcReward   = _calcReward
+MISSION.nextId       = _nextId
+MISSION.weightedPick = _weightedPick
+MISSION.shortName    = _short
+
+function MISSION.stationFaction(cs)
+    for _, st in ipairs(VERSE.STATIONS) do
+        if st.cs == cs then return st.fac end
+    end
+    return "Independent"
+end
+
+-- ---------------------------------------------------------------------------
 -- Public API
 -- ---------------------------------------------------------------------------
 
