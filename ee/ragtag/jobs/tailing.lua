@@ -151,8 +151,7 @@ end
 
 function M.offerText(m, stats)
     local region = m.region_name or "open space"
-    return string.format("Shadow a ship to a covert meeting in %s. Science-heavy.", region)
-        .. "\n  Tailing · " .. stats
+    return string.format("● Shadow a ship to a covert meeting in %s. · %s", region, stats)
 end
 
 function M.spawn(m)

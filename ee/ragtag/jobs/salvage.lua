@@ -158,11 +158,9 @@ function M.duration(m)
 end
 
 function M.offerText(m, stats)
-    local region  = m.region_name or "open space"
-    local prefix  = m.urgent and "URGENT: " or ""
-    local s_range = stats:gsub("(%d+U)", "%1 out and back", 1)
-    return string.format("%sRecover %s from %s.", prefix, m.cargo, region)
-        .. "\n  Salvage · " .. s_range
+    local region = m.region_name or "open space"
+    local prefix = m.urgent and "URGENT: " or ""
+    return string.format("● %sRecover %s from %s. · %s", prefix, m.cargo, region, stats)
 end
 
 function M.spawn(m)

@@ -135,8 +135,7 @@ end
 
 function M.offerText(m, stats)
     local region = m.region_name or "open space"
-    return string.format("Breach a Concord comms relay in %s.", region)
-        .. "\n  Hacking · " .. stats
+    return string.format("● Breach a Concord comms relay in %s. · %s", region, stats)
 end
 
 function M.spawn(m)

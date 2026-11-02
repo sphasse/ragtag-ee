@@ -183,8 +183,7 @@ end
 function M.offerText(m, stats)
     local fac    = m.dest_faction or "Independent"
     local prefix = m.urgent and "URGENT: " or ""
-    return string.format("%sDeliver %s to %s (%s).", prefix, m.cargo, m.dest, fac)
-        .. "\n  Delivery · " .. stats
+    return string.format("● %sDeliver %s to %s (%s). · %s", prefix, m.cargo, m.dest, fac, stats)
 end
 
 function M.spawn(m)
