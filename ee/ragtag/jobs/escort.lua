@@ -275,27 +275,30 @@ function M.spawn(m)
     m.dx, m.dy = dx, dy
 
     -- Convoy ship: impulse-only (~1/4 warp), no weapons, shields.
+    -- Spawns near the origin dock and idles there; orderDock is avoided because
+    -- issuing orderFlyTowards to a docked ship in EE ECS is unreliable.
     local convoy_name = JOBS.freighterName()
     local convoy = CpuShip():setTemplate("Flavia P.Falcon"):setFaction("Independent")
     convoy:setCallSign(convoy_name)
-    convoy:setPosition(ox + math.random(-1500, 1500), oy + math.random(-1500, 1500))
+    local dock_angle = math.random() * 2 * math.pi
+    convoy:setPosition(ox + math.cos(dock_angle) * 800, oy + math.sin(dock_angle) * 800)
     convoy:setImpulseMaxSpeed(125, -40)
     convoy:setWarpSpeed(0)
     convoy:setWeaponTubeCount(0)
     local sf = convoy:getShieldMax(0)
     local sr = convoy:getShieldMax(1)
     if sf > 0 then convoy:setShields(sf, sr) end
-    convoy:orderDock(origin_e)
+    convoy:orderIdle()
+    RT.register(convoy)
+    DIR.registerKill(convoy)
     local mission_ref = m
     convoy:setCommsFunction(function(src, tgt)
         if mission_ref._convoy_waiting then
-            setCommsMessage('"Waiting for you to depart. We\'ll follow your lead."')
+            setCommsMessage('"Standing by at the dock. Ready to depart on your mark."')
         else
             setCommsMessage('"We\'re underway to ' .. mission_ref.dest .. '. Thank you for the escort."')
         end
     end)
-    RT.register(convoy)
-    DIR.registerKill(convoy)
     m.convoy_cs = convoy_name
 
     -- Two escort fighters: impulse-only (~1/3 warp), standing by at origin.
@@ -321,6 +324,9 @@ function M.spawn(m)
         f:setImpulseMaxSpeed(165, -60)
         f:setWarpSpeed(0)
         f:orderDefendTarget(convoy)
+        RT.register(f)
+        DIR.registerKill(f)
+        DIR.allowControl(f)
         local cname = convoy_name
         f:setCommsFunction(function(src, tgt)
             setCommsMessage('"Standing by, Captain. Your orders?"')
@@ -347,9 +353,6 @@ function M.spawn(m)
                 end
             end)
         end)
-        RT.register(f)
-        DIR.registerKill(f)
-        DIR.allowControl(f)
         fighters[i] = fname
     end
     m.fighter_cs = fighters
@@ -360,7 +363,7 @@ function M.acceptLog(m)
     local f1 = (m.fighter_cs and m.fighter_cs[1]) or "Escort-1"
     local f2 = (m.fighter_cs and m.fighter_cs[2]) or "Escort-2"
     return string.format(
-        "[Escort] %s is docked at %s, ready to depart. Destination: %s (%s). You command the escort fleet — %s and %s are standing by. Undock when ready to begin.",
+        "[Escort] %s is standing by at %s dock. Destination: %s (%s). You command the escort fleet — %s and %s are standing by. Undock when ready to begin.",
         m.convoy_cs or "Convoy", m.origin, m.dest, MISSION.gridRef(m.dx, m.dy), f1, f2)
 end
 
