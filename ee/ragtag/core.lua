@@ -368,10 +368,10 @@ function RT.trackShipForReputation(ship)
     if not ship or not RT.valid(ship) then return end
     local faction = ship:getFaction()
     -- Only track ships from factions we care about (not player ships, not derelict)
-    if faction == RT.PLAYER_FACTION or faction == "Derelict" then return end
+    if faction == RT.PLAYER_FACTION or faction == "Derelict" or faction == "Unknown" then return end
 
     RT.onKill(ship, function()
-        RT.addReputation(faction, -10, "destroyed " .. ship:getCallSign())
+        RT.addReputation(faction, -200, "destroyed " .. ship:getCallSign())
     end)
 end
 

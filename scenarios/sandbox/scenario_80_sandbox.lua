@@ -307,6 +307,8 @@ function JOBS.accept(m, skip_log, ship)
     end
     m._time_limit = JOBS.missionDuration(m)
     m._expires_at = getScenarioTime() + m._time_limit
+    local _os = RT.find(m.origin)
+    if RT.valid(_os) then m.origin_faction = _os:getFaction() end
     _active[#_active+1] = {mission = m, phase = "active"}
 
     -- Mark which station slot this mission came from (for per-slot cooldown)
@@ -564,16 +566,14 @@ function JOBS.complete(entry, completing_ship)
     MISSION.untrack(entry.mission.id)
     RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short, completing_ship)
 
-    -- Award reputation based on mission origin station's faction
-    local origin_station = RT.find(entry.mission.origin)
-    if RT.valid(origin_station) then
-        local faction = origin_station:getFaction()
-        RT.addReputation(faction, 10, "mission: " .. entry.mission.short)
+    -- Award reputation with origin faction equal to the mission reward
+    local _rep_faction = entry.mission.origin_faction
+    if not _rep_faction then
+        local _os = RT.find(entry.mission.origin)
+        if RT.valid(_os) then _rep_faction = _os:getFaction() end
     end
-
-    -- For destroy missions, penalize Corsairs since we killed one of theirs
-    if entry.mission.type == "destroy" then
-        RT.addReputation("Corsairs", -10, "destroyed Corsair target")
+    if _rep_faction then
+        RT.addReputation(_rep_faction, entry.mission.reward, "completed: " .. entry.mission.short)
     end
 
     JOBS.updateObj()
@@ -1083,6 +1083,9 @@ function JOBS.update()
                 if RT.valid(rdv) then rdv:destroy() end
             end
             RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
+            if m.origin_faction then
+                RT.addReputation(m.origin_faction, -2 * m.reward, "failed: " .. m.short)
+            end
             MISSION.untrack(m.id)
             table.remove(_active, i)
             JOBS.updateObj()
@@ -1177,6 +1180,7 @@ function JOBS.update()
                     local hull_pct  = target:getHull() / target:getHullMax()
                     if impulse_h < 0.3 or hull_pct < 0.25 then
                         m._disabled = true
+                        RT.addReputation("Corsairs", -100, "boarded " .. m.target_cs)
                         target:setCanBeDestroyed(false)
                         target:orderIdle()
                         target:setImpulseMaxSpeed(5)
@@ -1218,6 +1222,7 @@ function JOBS.update()
                 if not RT.valid(target) then
                     -- Target destroyed!
                     m._destroyed = true
+                    RT.addReputation("Corsairs", -200, "destroyed " .. m.target_cs)
                     m.obj = "Return to " .. m.origin
                     RT.shipLog("[Target] " .. m.target_cs .. " destroyed. Return to " .. m.origin .. ".", "#80FF80")
                     JOBS.updateObj()
