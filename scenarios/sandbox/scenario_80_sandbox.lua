@@ -924,6 +924,22 @@ function addSessionGMFunctions()
     end)
 
     -- Reputation adjustment submenu
+    local function showFactionDetail(faction)
+        clearGMFunctions()
+        addGMFunction("< Back to Factions", showReputationFactionList)
+        local current = RT.getReputation(faction) or 0
+        addGMFunction(string.format("%s: %+d", faction, current), function() end)
+        local deltas = {50, 10, 1, -1, -10, -50}
+        for _, d in ipairs(deltas) do
+            local label = string.format("%s %+d", faction, d)
+            addGMFunction(label, function()
+                RT.addReputation(faction, d, "GM adjustment")
+                RT.saveCampaign()
+                showFactionDetail(faction)
+            end)
+        end
+    end
+
     local function showReputationFactionList()
         clearGMFunctions()
         addGMFunction("< Back to Main", function()
@@ -933,50 +949,9 @@ function addSessionGMFunctions()
 
         local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic"}
         for _, faction in ipairs(factions) do
-            addGMFunction(faction .. "...", function()
-                clearGMFunctions()
-                addGMFunction("< Back to Factions", showReputationFactionList)
-
-                local current = RT.getReputation(faction) or 0
-                addGMFunction(string.format("Current: %+d", current), function()
-                    addGMMessage(string.format("%s reputation: %+d", faction, RT.getReputation(faction) or 0))
-                end)
-
-                addGMFunction(faction .. " +50", function()
-                    RT.adjustReputation(faction, 50)
-                    RT.saveCampaign()
-                    addGMMessage(string.format("%s +50 (now %+d)", faction, RT.getReputation(faction)))
-                end)
-
-                addGMFunction(faction .. " +10", function()
-                    RT.adjustReputation(faction, 10)
-                    RT.saveCampaign()
-                    addGMMessage(string.format("%s +10 (now %+d)", faction, RT.getReputation(faction)))
-                end)
-
-                addGMFunction(faction .. " +1", function()
-                    RT.adjustReputation(faction, 1)
-                    RT.saveCampaign()
-                    addGMMessage(string.format("%s +1 (now %+d)", faction, RT.getReputation(faction)))
-                end)
-
-                addGMFunction(faction .. " -1", function()
-                    RT.adjustReputation(faction, -1)
-                    RT.saveCampaign()
-                    addGMMessage(string.format("%s -1 (now %+d)", faction, RT.getReputation(faction)))
-                end)
-
-                addGMFunction(faction .. " -10", function()
-                    RT.adjustReputation(faction, -10)
-                    RT.saveCampaign()
-                    addGMMessage(string.format("%s -10 (now %+d)", faction, RT.getReputation(faction)))
-                end)
-
-                addGMFunction(faction .. " -50", function()
-                    RT.adjustReputation(faction, -50)
-                    RT.saveCampaign()
-                    addGMMessage(string.format("%s -50 (now %+d)", faction, RT.getReputation(faction)))
-                end)
+            local rep = RT.getReputation(faction) or 0
+            addGMFunction(string.format("%s (%+d)...", faction, rep), function()
+                showFactionDetail(faction)
             end)
         end
     end
