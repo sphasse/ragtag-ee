@@ -68,7 +68,7 @@ VERSE.extend({
          desc = "Concord customs station, watching the Border trade lanes."},
 
         -- The Border (Independent)
-        {cs = "Port Vesper", tmpl = "Medium Station", fac = "Independent", x = 0, y = 0,
+        {cs = "Port Vesper", tmpl = "Large Station", fac = "Independent", x = 0, y = 0,
          shop = {"hull_plating", "missile_racks", "repair_crew", "engine_tune", "forward_beams"},
          flavor = "Port Vesper traffic control. Mind the dock clamps, they bite.",
          desc = "A crowded independent trading post built around an old ore refinery."},

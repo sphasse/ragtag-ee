@@ -5,7 +5,7 @@
 
 local M = {}
 M.type      = "escort"
-M.weight    = 4
+M.weight    = 3
 M.tier_min  = 0
 M.type_mult = 1.5
 
