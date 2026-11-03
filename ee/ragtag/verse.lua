@@ -8,8 +8,9 @@
 -- and at the far edge, under a blue sun, the raiders everyone is afraid of.
 -- All names here are our own.
 --
--- The layout is generated from a fixed seed, so the map is identical every
--- session. Salvage is re-rolled per session so there is always something to find.
+-- The layout is generated from a fixed seed so the map is identical every
+-- session. Initial salvage clusters are spawned by the WORLD "salvage" plugin;
+-- VERSE.build() falls back to static spawning only if that plugin is absent.
 --
 -- Usage (in init(), before creating anything else):
 --   VERSE.setupFactions()
@@ -426,22 +427,21 @@ function VERSE.spawnPod(x, y, value, kind_rec, tier)
     return art
 end
 
-function VERSE.spawnCluster(cx, cy, tier, rng)
-    local t = VERSE.SALVAGE_TIERS[tier]
-    local n = rng.int(t.pods[1], t.pods[2])
+-- value_mult scales credit values (0.5/1.0/2.0 for low/medium/high reward).
+-- Returns a list of the spawned artifact objects so callers can track them.
+function VERSE.spawnCluster(cx, cy, tier, rng, value_mult)
+    value_mult = value_mult or 1.0
+    local t    = VERSE.SALVAGE_TIERS[tier]
+    local n    = rng.int(t.pods[1], t.pods[2])
+    local arts = {}
     for i = 1, n do
-        local a = rng.float(0, 360)
-        local d = rng.float(0.2, t.spread) * U
+        local a      = rng.float(0, 360)
+        local d      = rng.float(0.2, t.spread) * U
         local dx, dy = vectorFromAngle(a, d, true)
-        VERSE.spawnPod(cx + dx, cy + dy, rng.int(t.value[1], t.value[2]), pickKind(rng), tier)
+        local val    = math.max(1, math.floor(rng.int(t.value[1], t.value[2]) * value_mult + 0.5))
+        arts[#arts + 1] = VERSE.spawnPod(cx + dx, cy + dy, val, pickKind(rng), tier)
     end
-end
-
-local function buildSalvage(rng)
-    for _, c in ipairs(VERSE.SALVAGE) do
-        local jx, jy = rng.float(-2, 2), rng.float(-2, 2)
-        VERSE.spawnCluster((c.x + jx) * U, (c.y + jy) * U, c.tier, rng)
-    end
+    return arts
 end
 
 --------------------------------------------------------------------------------
@@ -825,7 +825,15 @@ function VERSE.build(opts)
     buildHazards()
     VERSE.garrison_count = buildGarrisons()
     buildWrecks(map_rng)
-    buildSalvage(salvage_rng)
+    -- Initial salvage clusters are spawned by the WORLD "salvage" plugin on
+    -- the first update tick. If that plugin is absent, call VERSE.buildSalvage()
+    -- from your scenario's init() instead.
+    if not (WORLD and WORLD.isEnabled and WORLD.isEnabled("salvage")) then
+        for _, c in ipairs(VERSE.SALVAGE) do
+            local jx, jy = salvage_rng.float(-2, 2), salvage_rng.float(-2, 2)
+            VERSE.spawnCluster((c.x + jx) * U, (c.y + jy) * U, c.tier, salvage_rng)
+        end
+    end
     if opts.transports ~= false then
         for _, route in ipairs(VERSE.ROUTES) do
             for i = 1, route.count do VERSE.spawnTransport(route, map_rng) end

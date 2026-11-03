@@ -457,6 +457,7 @@ function addSessionGMFunctions()
     -- World Plugins submenu (forward-declared so zone menus can reference back)
     local showWorldPluginsMenu
     local showSpawnZonesMenu
+    local showSalvageMenu
 
     -- Ordered zone list with short display names for GM buttons.
     local _ZONE_ORDER = {
@@ -504,6 +505,35 @@ function addSessionGMFunctions()
         end
     end
 
+    showSalvageMenu = function()
+        clearGMFunctions()
+        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
+
+        local salv_on = WORLD.isEnabled("salvage")
+        addGMFunction("Salvage: " .. (salv_on and "ON" or "OFF"), function()
+            if salv_on then WORLD.disable("salvage") else WORLD.enable("salvage") end
+            showSalvageMenu()
+        end)
+
+        local cur_d = SALV.getDensity()
+        for i, name in ipairs(SALV.DENSITY_NAMES) do
+            local cap_i = i
+            addGMFunction("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
+                SALV.setDensity(cap_i)
+                showSalvageMenu()
+            end)
+        end
+
+        local cur_r = SALV.getReward()
+        for i, name in ipairs(SALV.REWARD_NAMES) do
+            local cap_i = i
+            addGMFunction("Reward: " .. name .. (i == cur_r and " [*]" or ""), function()
+                SALV.setReward(cap_i)
+                showSalvageMenu()
+            end)
+        end
+    end
+
     showWorldPluginsMenu = function()
         clearGMFunctions()
         addGMFunction("< Back to Main", function()
@@ -524,6 +554,7 @@ function addSessionGMFunctions()
         end)
 
         addGMFunction("Spawn Zones...", function() showSpawnZonesMenu() end)
+        addGMFunction("Salvage...",     function() showSalvageMenu()    end)
     end
     addGMFunction("World Plugins...", showWorldPluginsMenu)
 

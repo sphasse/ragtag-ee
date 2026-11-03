@@ -5,3 +5,4 @@
 require("ragtag/world/_engine.lua")
 require("ragtag/world/defenders.lua")
 require("ragtag/world/proximity.lua")
+require("ragtag/world/salvage.lua")
