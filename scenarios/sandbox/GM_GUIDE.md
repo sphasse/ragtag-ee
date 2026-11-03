@@ -73,6 +73,17 @@ Time limits scale with distance — short-range delivery might be 3–5 minutes,
 
 Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction. Reputation is unbounded — it accumulates across sessions with no cap.
 
+**Reputation affects job availability** at each station based on standing with that station's faction:
+
+| Standing | Effect |
+|---|---|
+| 0 and above | Full offers |
+| −1 to −200 | One fewer offer + warning message |
+| −201 to −400 | Two fewer offers + warning message |
+| Below −400 | No offers — station won't deal with the crew at all |
+
+The station keeps generating work internally; standing recovery restores offers immediately once the threshold is crossed back.
+
 **Hacking specifics:** The target is a stationary Concord comms relay beacon. It has four overlapping laser mounts covering 360° with a 4U range — Engineering must keep shields up while Science hacks any system to 75%. The beacon also jams scan probes within 5U. Hack from outside 4U to stay out of the fire. Mission is rep-neutral since the hack is undetected.
 
 ### Combat
