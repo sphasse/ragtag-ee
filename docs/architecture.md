@@ -1,6 +1,6 @@
 # Architecture
 
-## Layers
+## Engine layers
 
 ```
 scenarios/<campaign>/scenario_NN.lua      stories: beats, NPCs, objectives, choices
@@ -16,6 +16,46 @@ director/ (Python)                        AI director + GM web console → local
 
 Generated from the universe data by `tools/check.py --fix`:
 `ee/ragtag/verse/extensions/index.lua`, `docs/verse_map.svg`, `director/generated/world.md`.
+
+## Sandbox campaign systems
+
+The sandbox scenario layers additional systems on top of the core engine:
+
+```
+VERSE / core         — world foundation: stations, regions, factions, traffic, comms
+  ├── JOBS           — player economy: paid contracts offered at stations
+  ├── RUMORS         — information economy: circulating intel, quest hooks
+  ├── WORLD plugins  — ambient features: patrols, defenders (run every frame)
+  └── MISSIONS arcs  — story events: multi-phase scripted arcs with GM controls
+```
+
+**VERSE / core** is the complete world by itself. Stations have buy/sell/news
+comms; freighters have travel comms; the universe is flyable without any
+campaign system loaded.
+
+**JOBS** adds a job board to every station. Players hail "Any work available?"
+to get offers. Each contract type (delivery, salvage, hacking, boarding,
+destroy, escort, tailing) is a self-contained module in `ee/ragtag/jobs/`.
+
+**RUMORS** powers every "heard any news?" comms reply, on both stations and
+freighters. Rumors have priority (1–10), optional faction filter, optional
+category, and an optional `once` flag. Low-priority (1) rumors form background
+chatter and are subject to a per-source cooldown. Higher-priority rumors bypass
+the cooldown so quest hooks always reach the player; `once=true` rumors
+self-remove after first delivery.
+
+**WORLD plugins** run every frame and manage their own state. Current plugins:
+`proximity` (zone-based faction patrols with per-zone intensity) and
+`defenders` (loitering escorts at Concord/Independent stations). Plugins can
+be toggled and tuned by the GM at runtime.
+
+**MISSIONS arcs** are multi-phase story events with trigger conditions and GM
+controls. Each arc is a module in `ee/ragtag/missions/`. Arcs can inject and
+remove rumors to set up and tear down quest hooks, and can lock the job board
+while they run. Current arcs: `witness` (the Kael Voss whistleblower arc).
+
+For contributor details see
+`.claude/skills/empty-epsilon-scenarios/references/expansion_model.md`.
 
 ## Decoupling contracts
 - Scenarios reference universe places by name and declare them with `VERSE.requirePlaces`; `check.py`
