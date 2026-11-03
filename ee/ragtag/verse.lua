@@ -569,7 +569,7 @@ function VERSE.transportComms(source, target, rec)
         -- Deliver a rumor with cooldown, or ping the director for dynamic content
         local rumor_text = nil
         if RUMORS and RUMORS.get then
-            rumor_text = RUMORS.get(s:getCallSign())
+            rumor_text = RUMORS.get(s:getCallSign(), t:getFaction())
         elseif VERSE.RUMORS and #VERSE.RUMORS > 0 then
             rumor_text = VERSE.RUMORS[math.floor(random(1, #VERSE.RUMORS + 0.999))]
         else

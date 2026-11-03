@@ -704,7 +704,7 @@ function RT.stationComms(source, target)
         -- Deliver a rumor with cooldown, plus ping the director for dynamic content
         local rumor_text = "\"Let me think...\""
         if RUMORS and RUMORS.get then
-            rumor_text = "\"" .. RUMORS.get(s:getCallSign()) .. "\""
+            rumor_text = "\"" .. RUMORS.get(s:getCallSign(), t:getFaction()) .. "\""
         end
         setCommsMessage(rumor_text)
         if DIR then

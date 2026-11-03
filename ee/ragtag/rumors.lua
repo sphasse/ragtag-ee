@@ -1,8 +1,22 @@
 -- ee/ragtag/rumors.lua
--- 100 rumors for the Drift universe, delivered by stations and freighters.
--- ~10% hint at the Concord accounting scandal (Kael Voss arc).
+-- Unified rumors system: background lore pool + injectable high-priority rumors.
+--
+-- Background pool (priority 1): 100 strings, cycle through all before repeating.
+--   Subject to per-source cooldown (RUMORS.COOLDOWN_SECONDS).
+--
+-- Injected rumors (priority 2-10): added by missions/plugins via RUMORS.add().
+--   Priority >= 2 bypasses the cooldown so quest hooks always cut through.
+--   Persist until explicitly removed with RUMORS.remove() or RUMORS.removeCategory().
+--
+-- API:
+--   RUMORS.add({text, priority, faction, category})  -- returns assigned id
+--   RUMORS.remove(id)                                -- remove one rumor
+--   RUMORS.removeCategory(category)                  -- remove all in a category
+--   RUMORS.get(callsign, source_faction)             -- call from comms handlers
 
 RUMORS = RUMORS or {}
+
+-- ─── Background pool ──────────────────────────────────────────────────────────
 
 RUMORS.pool = {
     -- General trade & economy (20)
@@ -109,10 +123,7 @@ RUMORS.pool = {
     "Sentinel Fleet Yard used to build warships. Now they retrofit freighters. Times change.",
     "Waypoint Galen has the longest bar in the Drift. Crew from six stations drink there.",
 
-    -- ═══════════════════════════════════════════════════════════════════════════
-    -- SCANDAL HINTS (~10 rumors) - Kael Voss / Concord accounting irregularities
-    -- ═══════════════════════════════════════════════════════════════════════════
-
+    -- Concord accounting scandal hints (~10)
     "Heard Concord supply shipments to the Border don't match the manifests. Auditors found a discrepancy but nobody's saying how big.",
     "Logistics officer on Lumen got reassigned overnight. No explanation, no forwarding post. Just gone.",
     "Someone's cooking the books on Concord fleet contracts. Millions unaccounted for. Inspector started asking questions and got transferred.",
@@ -125,42 +136,74 @@ RUMORS.pool = {
     "Someone leaked partial Concord budget files to the independent net. Numbers don't match official reports by 40 million credits. Files disappeared an hour later.",
 }
 
--- Shuffle rumors using Fisher-Yates
-local function shuffleRumors()
-    for i = #RUMORS.pool, 2, -1 do
-        local j = math.random(i)
-        RUMORS.pool[i], RUMORS.pool[j] = RUMORS.pool[j], RUMORS.pool[i]
+-- ─── Injected rumors ──────────────────────────────────────────────────────────
+
+RUMORS._injected = RUMORS._injected or {}
+RUMORS._next_id  = RUMORS._next_id  or 1
+
+function RUMORS.add(r)
+    local id = r.id or ("rumor_" .. RUMORS._next_id)
+    RUMORS._next_id = RUMORS._next_id + 1
+    RUMORS._injected[#RUMORS._injected + 1] = {
+        id       = id,
+        text     = r.text,
+        priority = r.priority or 1,
+        faction  = r.faction,   -- nil = any source faction
+        category = r.category,  -- nil = uncategorized; use e.g. "START_WITNESS_MISSION"
+    }
+    return id
+end
+
+function RUMORS.remove(id)
+    for i = #RUMORS._injected, 1, -1 do
+        if RUMORS._injected[i].id == id then
+            table.remove(RUMORS._injected, i)
+            return true
+        end
+    end
+    return false
+end
+
+-- Remove all injected rumors with the given category.
+-- Missions call this once the player has acted on the hook.
+function RUMORS.removeCategory(category)
+    for i = #RUMORS._injected, 1, -1 do
+        if RUMORS._injected[i].category == category then
+            table.remove(RUMORS._injected, i)
+        end
     end
 end
 
--- Initialize on first require
-if not RUMORS._shuffled then
-    shuffleRumors()
-    RUMORS._shuffled = true
-    RUMORS._index = 1
+-- ─── Background pool cycling ──────────────────────────────────────────────────
+
+local function _shuffle(t)
+    for i = #t, 2, -1 do
+        local j = math.random(i)
+        t[i], t[j] = t[j], t[i]
+    end
 end
 
--- Get the next rumor (cycles through all 100 before repeating)
-function RUMORS.next()
-    local rumor = RUMORS.pool[RUMORS._index]
+if not RUMORS._shuffled then
+    _shuffle(RUMORS.pool)
+    RUMORS._shuffled = true
+    RUMORS._index    = 1
+end
+
+local function _nextBackground()
+    local text = RUMORS.pool[RUMORS._index]
     RUMORS._index = RUMORS._index + 1
     if RUMORS._index > #RUMORS.pool then
         RUMORS._index = 1
-        shuffleRumors()  -- Re-shuffle when we've seen all 100
+        _shuffle(RUMORS.pool)
     end
-    return rumor
+    return text
 end
 
--- Get a random rumor (doesn't cycle)
-function RUMORS.random()
-    return RUMORS.pool[math.random(#RUMORS.pool)]
-end
+-- ─── Cooldown (background only) ───────────────────────────────────────────────
 
--- Cooldown tracking (per ship callsign)
-RUMORS._cooldowns = {}
-RUMORS.COOLDOWN_SECONDS = 300  -- 5 minutes
+RUMORS._cooldowns      = RUMORS._cooldowns or {}
+RUMORS.COOLDOWN_SECONDS = 300  -- 5 minutes between background rumors per source
 
--- "No news" responses when cooldown is active
 RUMORS.no_news = {
     "Nothing new since you asked last time.",
     "Same stories making the rounds. Check back later.",
@@ -214,27 +257,44 @@ RUMORS.no_news = {
     "Patience. Good intel takes time.",
 }
 
--- Check if ship can get a rumor (returns true if cooldown expired)
-function RUMORS.canGetRumor(ship_callsign)
-    if not RUMORS._cooldowns[ship_callsign] then
-        return true
+-- ─── Main entry point ─────────────────────────────────────────────────────────
+
+-- Returns a rumor string for a comms source.
+--   callsign     : player ship callsign (used for cooldown tracking)
+--   source_faction: faction of the NPC being hailed (nil = any)
+--
+-- Priority >= 2 rumors bypass the cooldown so quest hooks always cut through.
+-- Background cycling (priority 1) is subject to the per-source cooldown.
+function RUMORS.get(callsign, source_faction)
+    -- Collect injected rumors matching the source faction, priority >= 2
+    local high = {}
+    for _, r in ipairs(RUMORS._injected) do
+        if r.priority >= 2 then
+            if r.faction == nil or r.faction == source_faction then
+                high[#high + 1] = r
+            end
+        end
     end
-    local now = getScenarioTime and getScenarioTime() or 0
-    return (now - RUMORS._cooldowns[ship_callsign]) >= RUMORS.COOLDOWN_SECONDS
-end
 
--- Mark that ship just received a rumor
-function RUMORS.markRumorReceived(ship_callsign)
-    local now = getScenarioTime and getScenarioTime() or 0
-    RUMORS._cooldowns[ship_callsign] = now
-end
+    if #high > 0 then
+        -- Pick from the highest priority tier available
+        local best = 0
+        for _, r in ipairs(high) do
+            if r.priority > best then best = r.priority end
+        end
+        local tier = {}
+        for _, r in ipairs(high) do
+            if r.priority == best then tier[#tier + 1] = r end
+        end
+        return tier[math.random(#tier)].text
+    end
 
--- Get rumor or "no news" response based on cooldown
-function RUMORS.get(ship_callsign)
-    if RUMORS.canGetRumor(ship_callsign) then
-        RUMORS.markRumorReceived(ship_callsign)
-        return RUMORS.next()
-    else
+    -- Fall through to background pool with cooldown
+    local now  = getScenarioTime and getScenarioTime() or 0
+    local last = RUMORS._cooldowns[callsign]
+    if last and (now - last) < RUMORS.COOLDOWN_SECONDS then
         return RUMORS.no_news[math.random(#RUMORS.no_news)]
     end
+    RUMORS._cooldowns[callsign] = now
+    return _nextBackground()
 end
