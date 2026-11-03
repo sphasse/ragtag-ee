@@ -42,6 +42,11 @@ function WORLD.get(id, key, fallback)
     return fallback
 end
 
+-- Return whether a plugin is currently enabled.
+function WORLD.isEnabled(id)
+    return WORLD._enabled[id] == true
+end
+
 -- Set a runtime config override for a plugin.
 function WORLD.set(id, key, value)
     if WORLD._config[id] then WORLD._config[id][key] = value end

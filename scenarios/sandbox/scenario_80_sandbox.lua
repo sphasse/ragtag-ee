@@ -455,11 +455,40 @@ function addSessionGMFunctions()
         end
     end)
 
-    addGMFunction("Spawns: " .. PROX.getModeName(), function()
-        PROX.cycleMode()
+    -- World Plugins submenu
+    local function showWorldPluginsMenu()
         clearGMFunctions()
-        addSessionGMFunctions()
-    end)
+        addGMFunction("< Back to Main", function()
+            clearGMFunctions()
+            addSessionGMFunctions()
+        end)
+
+        -- Defenders toggle
+        local def_on = WORLD.isEnabled("defenders")
+        addGMFunction("Defenders: " .. (def_on and "ON" or "OFF"), function()
+            if def_on then WORLD.disable("defenders") else WORLD.enable("defenders") end
+            showWorldPluginsMenu()
+        end)
+
+        -- Proximity toggle
+        local prox_on = WORLD.isEnabled("proximity")
+        addGMFunction("Proximity: " .. (prox_on and "ON" or "OFF"), function()
+            if prox_on then WORLD.disable("proximity") else WORLD.enable("proximity") end
+            showWorldPluginsMenu()
+        end)
+
+        -- Spawn intensity buttons (individual, current marked with [*])
+        local cur_idx = PROX.getModeIdx()
+        for i, name in ipairs(PROX.MODE_NAMES) do
+            local label = "Spawns: " .. name .. (i == cur_idx and " [*]" or "")
+            local cap_i = i
+            addGMFunction(label, function()
+                PROX.setMode(cap_i)
+                showWorldPluginsMenu()
+            end)
+        end
+    end
+    addGMFunction("World Plugins...", showWorldPluginsMenu)
 
     addGMFunction("Work Cooldown: " .. (JOBS.config.work_cooldown_enabled and "ON" or "OFF"), function()
         JOBS.config.work_cooldown_enabled = not JOBS.config.work_cooldown_enabled

@@ -606,12 +606,26 @@ function _P.cleanup(state)
 end
 
 -- ── PROX shims (GM-menu compatibility) ───────────────────────────────────────
--- Scenario GM buttons can still call PROX.getModeName() and PROX.cycleMode().
+-- Scenario GM buttons can call PROX.getModeName(), PROX.cycleMode(),
+-- PROX.setMode(idx), and read PROX.MODE_NAMES for menu building.
+
+PROX.MODE_NAMES = {"None", "Low", "Medium", "High"}
 
 function PROX.getModeName()
     local st = WORLD._state["proximity"]
     if not st then return _SPAWN_MODES[3].name end
     return _SPAWN_MODES[st.mode_idx or 3].name
+end
+
+function PROX.getModeIdx()
+    local st = WORLD._state["proximity"]
+    return st and (st.mode_idx or 3) or 3
+end
+
+function PROX.setMode(idx)
+    local st = WORLD._state["proximity"]
+    if not st then return end
+    st.mode_idx = math.max(1, math.min(idx, #_SPAWN_MODES))
 end
 
 function PROX.cycleMode()
