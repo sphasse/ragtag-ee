@@ -458,6 +458,7 @@ function addSessionGMFunctions()
     local showWorldPluginsMenu
     local showSpawnZonesMenu
     local showSalvageMenu
+    local showTrafficMenu
 
     -- Ordered zone list with short display names for GM buttons.
     local _ZONE_ORDER = {
@@ -534,6 +535,26 @@ function addSessionGMFunctions()
         end
     end
 
+    showTrafficMenu = function()
+        clearGMFunctions()
+        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
+
+        local traf_on = WORLD.isEnabled("traffic")
+        addGMFunction("Traffic: " .. (traf_on and "ON" or "OFF"), function()
+            if traf_on then WORLD.disable("traffic") else WORLD.enable("traffic") end
+            showTrafficMenu()
+        end)
+
+        local cur_d = TRAFF.getDensity()
+        for i, name in ipairs(TRAFF.DENSITY_NAMES) do
+            local cap_i = i
+            addGMFunction("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
+                TRAFF.setDensity(cap_i)
+                showTrafficMenu()
+            end)
+        end
+    end
+
     showWorldPluginsMenu = function()
         clearGMFunctions()
         addGMFunction("< Back to Main", function()
@@ -555,6 +576,7 @@ function addSessionGMFunctions()
 
         addGMFunction("Spawn Zones...", function() showSpawnZonesMenu() end)
         addGMFunction("Salvage...",     function() showSalvageMenu()    end)
+        addGMFunction("Traffic...",     function() showTrafficMenu()    end)
     end
     addGMFunction("World Plugins...", showWorldPluginsMenu)
 

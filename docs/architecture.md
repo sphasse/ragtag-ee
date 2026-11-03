@@ -45,9 +45,11 @@ the cooldown so quest hooks always reach the player; `once=true` rumors
 self-remove after first delivery.
 
 **WORLD plugins** run every frame and manage their own state. Current plugins:
-`proximity` (zone-based faction patrols with per-zone intensity) and
-`defenders` (loitering escorts at Concord/Independent stations). Plugins can
-be toggled and tuned by the GM at runtime.
+`proximity` (zone-based faction patrols with per-zone intensity),
+`defenders` (loitering escorts at Concord/Independent stations),
+`salvage` (dynamic debris clusters with density/reward settings), and
+`traffic` (freighter routes and ambient crate drops with density setting).
+Plugins can be toggled and tuned by the GM at runtime.
 
 **MISSIONS arcs** are multi-phase story events with trigger conditions and GM
 controls. Each arc is a module in `ee/ragtag/missions/`. Arcs can inject and

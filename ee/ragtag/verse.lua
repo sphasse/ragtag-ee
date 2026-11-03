@@ -150,7 +150,6 @@ VERSE.places = {}       -- name -> {x, y} in world units, for scenarios
 VERSE.discovered_this_session = {}
 VERSE.region = nil
 VERSE.last_region_check = -10
-VERSE.last_transport_check = -10
 VERSE.respawn_queue = {}
 VERSE.ambient_pods = {}
 VERSE.next_ambient = 300
@@ -824,11 +823,7 @@ function VERSE.build(opts)
     VERSE.garrison_count = buildGarrisons()
     buildWrecks(map_rng)
     -- Salvage clusters are spawned by the WORLD "salvage" plugin on first tick.
-    if opts.transports ~= false then
-        for _, route in ipairs(VERSE.ROUTES) do
-            for i = 1, route.count do VERSE.spawnTransport(route, map_rng) end
-        end
-    end
+    -- Freighter traffic is spawned by the WORLD "traffic" plugin on first tick.
 
     if DIR then
         DIR.addStateProvider(function()
@@ -846,11 +841,7 @@ function VERSE.update(delta)
         VERSE.updateRegion()
         VERSE.updateWrecks()
     end
-    if now - VERSE.last_transport_check >= 2 then
-        VERSE.last_transport_check = now
-        VERSE.updateTransports(now)
-        VERSE.updateAmbient(now)
-    end
+    -- Transport and ambient updates are driven by the WORLD "traffic" plugin.
 end
 
 -- Scenarios declare the places they depend on. Missing ones are reported to
