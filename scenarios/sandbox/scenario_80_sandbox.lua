@@ -23,7 +23,6 @@ require("utils.lua")
 require("ragtag/core.lua")
 require("ragtag/verse.lua")
 require("ragtag/director.lua")
-require("ragtag/proximity.lua")
 require("ragtag/mission.lua")
 require("ragtag/jobs.lua")
 require("ragtag/missions.lua")
@@ -157,8 +156,6 @@ function init()
     VERSE.build({session = S.session_num})
     -- Sandbox uses the whole universe; only explicitly require the starting location
     VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest"})
-    PROX.init()
-
     -- Spawn the primary ship at Port Vesper. Additional ships join via the
     -- in-game "Create player ship" selection screen; onNewPlayerShip handles them.
     RT.PLAYER_TEMPLATE = "Light Freighter"
@@ -526,7 +523,6 @@ function update(delta)
     RT.updateKillTracking()  -- Track ship kills for reputation
     VERSE.update(delta)
     DIR.update(delta)
-    if not JOBS.config.jobboard_locked then PROX.update(delta) end
 
     if S.phase == "ending" then return end
 

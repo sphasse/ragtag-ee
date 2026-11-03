@@ -71,13 +71,17 @@ require("ragtag/world.lua")   -- after core/verse/jobs/missions
 WORLD.update(delta)
 ```
 
+No `PROX.init()` or `PROX.update()` calls needed — the proximity plugin is
+handled automatically by `WORLD.update()`.
+
 ---
 
 ## Registered plugins (current)
 
-| id | Name | Factions | Notes |
-|---|---|---|---|
-| `defenders` | Station Defenders | Concord, Independent | One fighter per station; respawns on death |
+| id | Name | Notes |
+|---|---|---|
+| `defenders` | Station Defenders | One MT52 Hornet per Concord/Independent station; respawns on death |
+| `proximity` | Proximity Spawns | Ambient faction patrols; zone-based; GM-controllable spawn mode |
 
 ---
 
@@ -130,12 +134,67 @@ arc that grants the player local military authority.
 
 ---
 
-## Future: migrating proximity spawns
+## Proximity plugin
 
-`ee/ragtag/proximity.lua` contains the same ambient-update pattern and would
-fit naturally as a world plugin. To migrate:
+Zone-based ambient patrol spawns that create predictable risk zones players
+learn to navigate. Ships spawn ahead of the player, leash to their region,
+and despawn when the player leaves.
 
-1. Wrap its logic in a `_P` module with `_P.init` / `_P.update`.
-2. Move PROX config into `_P.defaults`.
-3. Register it and add `require("ragtag/world/proximity.lua")` to `world.lua`.
-4. Replace `PROX.update(delta)` in the scenario with `WORLD.update(delta)`.
+### Spawn mode (GM control)
+
+The scenario's GM button cycles four modes via `PROX.cycleMode()` / `PROX.getModeName()`:
+
+| Mode | Freq | Max ships | Density cap |
+|---|---|---|---|
+| None | 0 | 0 | 0 |
+| Low | 0.5x | 6 | 3 |
+| Medium (default) | 1.0x | 12 | 6 |
+| High | 2.0x | 24 | 12 |
+
+### Zone definitions (`PROX.zones`)
+
+| Region | Faction | Comms |
+|---|---|---|
+| the Concord Core | Concord | shakedown |
+| the Arbiter Line | Concord | shakedown |
+| the Shroud | Corsairs | taunt |
+| Halcyon Rest | Corsairs | taunt |
+| the Gauntlet | Corsairs | taunt |
+| Blackwater Reach | Corsairs | taunt |
+| the Boneyard | Relic | silent |
+| the Maw | Hollow | silent |
+
+### Shakedown (Concord)
+
+Concord patrols in non-wanted mode open comms and request inspection rather
+than attacking. Players can submit, declare clean cargo, or refuse. Refusing
+issues a `wanted` flag; submitting or complying may levy a fine scaled to
+current credits.
+
+### Config defaults
+
+| Key | Default | Effect |
+|---|---|---|
+| `check_interval` | `8` | Seconds between proximity checks |
+| `global_cooldown` | `120` | Min seconds between any spawn (scaled by mode freq) |
+| `station_exclusion_u` | `20` | No spawns within this radius of any station |
+| `recall_timeout` | `120` | Seconds before a recalled group despawns |
+| `spawn_mode_idx` | `3` | Starting mode index (1=None, 2=Low, 3=Medium, 4=High) |
+
+Override: `WORLD.set("proximity", "global_cooldown", 60)`
+
+### Jobboard lock
+
+When `JOBS.config.jobboard_locked` is true, new spawns are suppressed but the
+watchdog still cleans up existing groups.
+
+### PROX shims
+
+The `PROX` global still exists for GM-menu compatibility:
+
+```lua
+PROX.getModeName()             -- returns current mode name string
+PROX.cycleMode()               -- advances to next mode
+PROX.addExclusion(cs, r_u)     -- adds a no-spawn bubble around station 'cs'
+PROX.zones                     -- zone configuration table (read/write)
+```
