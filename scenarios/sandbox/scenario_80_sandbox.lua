@@ -27,6 +27,7 @@ require("ragtag/proximity.lua")
 require("ragtag/mission.lua")
 require("ragtag/jobs.lua")
 require("ragtag/missions.lua")
+require("ragtag/world.lua")
 require("ragtag/rumors.lua")
 require("ragtag/ship_templates.lua")  -- custom playership templates; must load before init
 
@@ -576,6 +577,7 @@ function update(delta)
 
     JOBS.update()
     MISSIONS.update(delta)
+    WORLD.update(delta)
     RUMORS.checkWrecks()
 
 end
