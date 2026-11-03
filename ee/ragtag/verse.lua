@@ -9,8 +9,7 @@
 -- All names here are our own.
 --
 -- The layout is generated from a fixed seed so the map is identical every
--- session. Initial salvage clusters are spawned by the WORLD "salvage" plugin;
--- VERSE.build() falls back to static spawning only if that plugin is absent.
+-- session. Salvage clusters are spawned by the WORLD "salvage" plugin.
 --
 -- Usage (in init(), before creating anything else):
 --   VERSE.setupFactions()
@@ -814,7 +813,6 @@ function VERSE.build(opts)
     if not VERSE.factions_ready then VERSE.setupFactions() end
     local map_rng = VERSE.rng(VERSE.SEED)
     VERSE.rng_live = VERSE.rng(VERSE.SEED + 7919 * VERSE.session + math.floor(random(0, 100000)))
-    local salvage_rng = VERSE.rng(VERSE.SEED + 104729 * VERSE.session)
 
     buildStars()
     buildPlanets()
@@ -825,15 +823,7 @@ function VERSE.build(opts)
     buildHazards()
     VERSE.garrison_count = buildGarrisons()
     buildWrecks(map_rng)
-    -- Initial salvage clusters are spawned by the WORLD "salvage" plugin on
-    -- the first update tick. If that plugin is absent, call VERSE.buildSalvage()
-    -- from your scenario's init() instead.
-    if not (WORLD and WORLD.isEnabled and WORLD.isEnabled("salvage")) then
-        for _, c in ipairs(VERSE.SALVAGE) do
-            local jx, jy = salvage_rng.float(-2, 2), salvage_rng.float(-2, 2)
-            VERSE.spawnCluster((c.x + jx) * U, (c.y + jy) * U, c.tier, salvage_rng)
-        end
-    end
+    -- Salvage clusters are spawned by the WORLD "salvage" plugin on first tick.
     if opts.transports ~= false then
         for _, route in ipairs(VERSE.ROUTES) do
             for i = 1, route.count do VERSE.spawnTransport(route, map_rng) end
