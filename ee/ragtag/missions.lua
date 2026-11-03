@@ -4,3 +4,4 @@
 
 require("ragtag/missions/_engine.lua")
 require("ragtag/missions/witness.lua")
+require("ragtag/missions/whistleblower.lua")
