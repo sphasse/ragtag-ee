@@ -409,7 +409,7 @@ M.phases.revealed = {
     enter = function(st)
         st.phase_entered = getScenarioTime()
         local hp    = VERSE.places["Halcyon Rest"]
-        local hloc  = hp and (" Grid " .. MISSION.gridRef(hp.x, hp.y) .. ", deep in the Shroud") or " (deep in the Shroud)"
+        local hloc  = hp and (" Grid " .. JOBS.gridRef(hp.x, hp.y) .. ", deep in the Shroud") or " (deep in the Shroud)"
         if st.complied then
             RT.shipLog('[Message] Dead-drop -- Mira\'s contact: "Concord got the pod, not the data. It\'s sewn into the outer casing -- check your cargo hold, they left it behind. Get to Halcyon Rest' .. hloc .. '. Find Sable. There\'s a public relay buoy. This isn\'t over."', "#A0C0FF")
         else
@@ -436,7 +436,7 @@ M.phases.shroud_run = {
         st.phase_entered = getScenarioTime()
         st.corsair_names = {}
         local hp    = VERSE.places["Halcyon Rest"]
-        local hloc  = hp and (" Grid " .. MISSION.gridRef(hp.x, hp.y)) or ""
+        local hloc  = hp and (" Grid " .. JOBS.gridRef(hp.x, hp.y)) or ""
         RT.shipLog("[Navigation] Entering the Shroud. Long-range sensors degrading -- watch for contacts. Halcyon Rest" .. hloc .. " is a neutral station inside the nebula.", "#C0C0C0")
         RT.setObjective("Reach Halcyon Rest", true)
     end,
@@ -509,7 +509,7 @@ M.phases.halcyon = {
         st.buoy_cs = buoy:getCallSign()
 
         local bx, by = buoy:getPosition()
-        RT.shipLog("[Intel] Relay buoy: " .. st.buoy_cs .. " at grid " .. MISSION.gridRef(bx, by) .. ".", "#A0C0FF")
+        RT.shipLog("[Intel] Relay buoy: " .. st.buoy_cs .. " at grid " .. JOBS.gridRef(bx, by) .. ".", "#A0C0FF")
 
         RT.addStationHook("Halcyon Rest", function(source, target)
             if not RT.isPlayer(source) then return end
@@ -571,7 +571,7 @@ M.phases.broadcast = {
         local buoy = RT.find(st.buoy_cs or "")
         if RT.valid(buoy) then
             local bx, by = buoy:getPosition()
-            RT.shipLog("[Relay] " .. st.buoy_cs .. " at grid " .. MISSION.gridRef(bx, by) ..
+            RT.shipLog("[Relay] " .. st.buoy_cs .. " at grid " .. JOBS.gridRef(bx, by) ..
                 ". Science: open the hacking panel and breach the reactor to 50% to trigger the broadcast.", "#A0C0FF")
             buoy:setCommsFunction(function(src, tgt)
                 setCommsMessage('"Public Relay Node. Unauthorized access detected. This channel is Concord-licensed."')

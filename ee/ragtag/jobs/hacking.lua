@@ -280,7 +280,7 @@ function M.prepareOpts(ctx)
     if not wx then return nil end
     return {
         origin         = ctx.station_cs,
-        origin_faction = MISSION.stationFaction(ctx.station_cs),
+        origin_faction = JOBS.stationFaction(ctx.station_cs),
         wx = wx, wy = wy,
         tier           = ctx.tier,
         distance_u     = dist,
@@ -307,14 +307,14 @@ function M.generate(opts)
     end
     if #pool == 0 then pool = _ARCHETYPES end
     local arch   = pool[math.random(#pool)]
-    local reward = MISSION.calcReward(
+    local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["hacking"],
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u)
 
     return {
-        id             = MISSION.nextId(),
+        id             = JOBS.nextId(),
         type           = "hacking",
         tier           = tier,
         origin         = opts.origin,
@@ -375,7 +375,7 @@ end
 function M.acceptLog(m)
     return string.format("Contract: %s. %dm to complete. Target: %s at grid %s.",
         m.short, math.floor(m._time_limit / 60),
-        m.target_cs or "unknown", MISSION.gridRef(m.wx, m.wy))
+        m.target_cs or "unknown", JOBS.gridRef(m.wx, m.wy))
 end
 
 local _SYSTEMS = {"reactor","beamweapons","missilesystem","maneuver","impulse","warp","jumpdrive","frontshield","rearshield"}

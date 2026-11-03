@@ -230,7 +230,7 @@ function M.prepareOpts(ctx)
     local region = VERSE.regionAt(dx, dy)
     return {
         origin         = ctx.station_cs,
-        origin_faction = MISSION.stationFaction(ctx.station_cs),
+        origin_faction = JOBS.stationFaction(ctx.station_cs),
         dest           = dest_cs,
         tier           = ctx.tier,
         ox = ox, oy = oy,
@@ -259,13 +259,13 @@ function M.generate(opts)
     end
     if #pool == 0 then pool = _ARCHETYPES end
     local arch = pool[math.random(#pool)]
-    local reward = MISSION.calcReward(
+    local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["escort"],
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u)
     return {
-        id             = MISSION.nextId(),
+        id             = JOBS.nextId(),
         type           = "escort",
         tier           = tier,
         origin         = opts.origin,
@@ -275,8 +275,8 @@ function M.generate(opts)
         cargo          = arch.cargo,
         reward         = reward,
         short          = arch.short_offer,
-        obj            = "Escort convoy to " .. opts.dest .. " (" .. MISSION.gridRef(opts.dx, opts.dy) .. ")",
-        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. MISSION.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nUndock when you're ready to begin.",
+        obj            = "Escort convoy to " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")",
+        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nUndock when you're ready to begin.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
@@ -409,7 +409,7 @@ function M.acceptLog(m)
     local f2 = (m.fighter_cs and m.fighter_cs[2]) or "Escort-2"
     return string.format(
         "[Escort] %s is standing by at %s dock. Destination: %s (%s). You command the escort fleet — %s and %s are standing by. Undock when ready to begin.",
-        m.convoy_cs or "Convoy", m.origin, m.dest, MISSION.gridRef(m.dx, m.dy), f1, f2)
+        m.convoy_cs or "Convoy", m.origin, m.dest, JOBS.gridRef(m.dx, m.dy), f1, f2)
 end
 
 function M.update(m, entry, ctx)
@@ -518,7 +518,7 @@ function M.update(m, entry, ctx)
             if not m._ambush1 and prog >= 0.33 then
                 _spawnInterceptors(m, cx, cy)
                 m._ambush1 = true
-                RT.shipLog("[Escort] Corsair intercept at " .. MISSION.gridRef(cx, cy) .. "!", "#FF8080")
+                RT.shipLog("[Escort] Corsair intercept at " .. JOBS.gridRef(cx, cy) .. "!", "#FF8080")
                 DIR.emit("escort_ambush", {wave=1, convoy=m.convoy_cs}, "normal")
             elseif m._ambush1 and not m._ambush2 and prog >= 0.67 then
                 _spawnInterceptors(m, cx, cy)

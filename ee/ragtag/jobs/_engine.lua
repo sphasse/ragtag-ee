@@ -33,7 +33,73 @@ JOBS._station_work = {}   -- callsign → {slots = [...]}
 JOBS._panel_next   = 0
 JOBS._tick_hooks   = {}   -- functions(now) called each update cycle for post-mission work
 
--- Ship name pools used by boarding, destroy, and tailing modules.
+-- Director injection queue: create_delivery action pushes records here;
+-- the engine drains them into the station panel on the next offer refresh.
+JOBS._dynamic_queue = {}
+
+-- ── Shared utilities (used by all job type modules) ───────────────────────────
+
+local _id_seq = 0
+function JOBS.nextId()
+    _id_seq = _id_seq + 1
+    return "job_" .. _id_seq
+end
+
+-- Returns the in-game sector label (e.g. "F5") for world-unit coordinates.
+function JOBS.gridRef(wx, wy)
+    return getSectorName(wx, wy)
+end
+
+local _SHORT_NAMES = {
+    ["Concord Station Arbiter"] = "C.S. Arbiter",
+    ["Concord Waypoint Galen"]  = "Waypoint Galen",
+    ["Saint Brennan's Mission"] = "St. Brennan's",
+    ["Lastchance Outpost"]      = "Lastchance",
+    ["Dustmote Salvage"]        = "Dustmote",
+    ["Greywater Depot"]         = "Greywater",
+}
+function JOBS.shortName(cs) return _SHORT_NAMES[cs] or cs end
+
+function JOBS.stationFaction(cs)
+    for _, st in ipairs(VERSE.STATIONS) do
+        if st.cs == cs then return st.fac end
+    end
+    return "Independent"
+end
+
+function JOBS.weightedPick(list)
+    local total = 0
+    for _, e in ipairs(list) do total = total + (e.weight or 1) end
+    local r = math.random() * total
+    for _, e in ipairs(list) do
+        r = r - (e.weight or 1)
+        if r <= 0 then return e end
+    end
+    return list[#list]
+end
+
+-- Calculate reward with distance, danger, and urgency modifiers.
+-- distance_min_u/max_u: range for a 0-30% distance bonus.
+-- danger_level: +15% per level.  urgency_mult: 1.5 for urgent, 1.0 otherwise.
+function JOBS.calcReward(base, type_mult, distance_u, danger_level, distance_min_u, distance_max_u, urgency_mult)
+    local reward = base * type_mult
+    if distance_u and distance_min_u and distance_max_u and distance_max_u > distance_min_u then
+        local dist_pct = math.max(0, math.min(1,
+            (distance_u - distance_min_u) / (distance_max_u - distance_min_u)))
+        reward = reward * (1.0 + dist_pct * 0.30)
+    end
+    if danger_level and danger_level > 0 then
+        reward = reward * (1.0 + danger_level * 0.15)
+    end
+    if urgency_mult and urgency_mult > 1 then
+        reward = reward * urgency_mult
+    end
+    return math.floor(reward / 5 + 0.5) * 5
+end
+
+function JOBS.untrack(_id) end   -- no-op; retained for call-site compatibility
+
+-- ── Ship name pools used by boarding, destroy, and tailing modules. ──────────
 local _CORSAIR_NAMES = {
     "Blackjack", "Cutthroat", "Rogue Star", "Night Runner", "Silent Edge",
     "Red Drift", "Ghost Hound", "Dark Current", "Bone Cutter", "Scarlet Wake",
@@ -174,8 +240,8 @@ end
 function JOBS.accept(m, skip_log, ship)
     if #JOBS._active >= JOBS.config.max_active then return false end
     JOBS._done[m.id] = true
-    for i, dm in ipairs(MISSION._dynamic_queue) do
-        if dm.id == m.id then table.remove(MISSION._dynamic_queue, i); break end
+    for i, dm in ipairs(JOBS._dynamic_queue) do
+        if dm.id == m.id then table.remove(JOBS._dynamic_queue, i); break end
     end
 
     local mod = JOBS._registry[m.type]
@@ -207,7 +273,7 @@ function JOBS.accept(m, skip_log, ship)
     if not skip_log then
         local line = mod and mod.acceptLog and mod.acceptLog(m)
         if not line then
-            local dest = m.dest or (m.wx and ("grid " .. MISSION.gridRef(m.wx, m.wy)) or "??")
+            local dest = m.dest or (m.wx and ("grid " .. JOBS.gridRef(m.wx, m.wy)) or "??")
             line = string.format("Contract: %s. %dm to complete. Head to %s.",
                 m.short, math.floor(m._time_limit / 60), dest)
         end
@@ -224,7 +290,7 @@ function JOBS.complete(entry, completing_ship)
     end
     local mod = JOBS._registry[entry.mission.type]
     if mod and mod.cleanup then mod.cleanup(entry.mission) end
-    MISSION.untrack(entry.mission.id)
+    JOBS.untrack(entry.mission.id)
     RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short, completing_ship)
 
     local fac = entry.mission.origin_faction
@@ -265,7 +331,7 @@ function JOBS.update()
                     end
                 end
                 if mod and mod.cleanup then mod.cleanup(m) end
-                MISSION.untrack(m.id)
+                JOBS.untrack(m.id)
                 table.remove(JOBS._active, i)
                 JOBS.updateObj()
             else
@@ -273,7 +339,7 @@ function JOBS.update()
                 if mod and mod.update then
                     local result = mod.update(m, entry, {now=now, jobs=JOBS})
                     if result == "remove" then
-                        MISSION.untrack(m.id)
+                        JOBS.untrack(m.id)
                         table.remove(JOBS._active, i)
                         JOBS.updateObj()
                     end
@@ -363,7 +429,7 @@ local function _offerMissions(cs)
     local offers = {}
 
     -- Director-pushed missions take priority.
-    for _, m in ipairs(MISSION._dynamic_queue) do
+    for _, m in ipairs(JOBS._dynamic_queue) do
         if m.origin == cs and not JOBS._done[m.id] then
             offers[#offers + 1] = m
         end
@@ -492,7 +558,7 @@ local function _offerMissions(cs)
                 setCommsMessage(cap.brief .. outro .. "\n\nTransmitting details to your log.")
                 local log_line = mod3 and mod3.acceptLog and mod3.acceptLog(cap)
                 if not log_line then
-                    local dest = cap.dest or (cap.wx and ("grid " .. MISSION.gridRef(cap.wx, cap.wy)) or "??")
+                    local dest = cap.dest or (cap.wx and ("grid " .. JOBS.gridRef(cap.wx, cap.wy)) or "??")
                     log_line = string.format("Contract: %s. %dm to complete. Head to %s.",
                         cap.short, math.floor(cap._time_limit / 60), dest)
                 end

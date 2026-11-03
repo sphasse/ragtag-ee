@@ -245,9 +245,9 @@ function M.prepareOpts(ctx)
     local region = VERSE.regionAt(dx, dy)
     return {
         origin         = ctx.station_cs,
-        origin_faction = MISSION.stationFaction(ctx.station_cs),
+        origin_faction = JOBS.stationFaction(ctx.station_cs),
         dest           = dest_cs,
-        dest_faction   = MISSION.stationFaction(dest_cs),
+        dest_faction   = JOBS.stationFaction(dest_cs),
         tier           = ctx.tier,
         distance_u     = math.sqrt(ddx*ddx + ddy*ddy),
         danger_level   = region and region.danger or 0,
@@ -274,17 +274,17 @@ function M.generate(opts)
     if #pool == 0 then pool = _ARCHETYPES end
     local arch   = pool[math.random(#pool)]
     local urgent = arch.urgent or false
-    local reward = MISSION.calcReward(
+    local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["delivery"],
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u,
         urgent and 1.5 or 1.0)
     local prefix = urgent and "URGENT: " or ""
-    local dest_short = MISSION.shortName(opts.dest)
+    local dest_short = JOBS.shortName(opts.dest)
 
     return {
-        id           = MISSION.nextId(),
+        id           = JOBS.nextId(),
         type         = "delivery",
         tier         = tier,
         origin       = opts.origin,
@@ -326,7 +326,7 @@ function M.acceptLog(m)
     if RT.valid(dest_e) then
         local dx, dy = dest_e:getPosition()
         return string.format("Contract: %s. %dm to complete. Head to %s (%s).",
-            m.short, math.floor(m._time_limit / 60), m.dest, MISSION.gridRef(dx, dy))
+            m.short, math.floor(m._time_limit / 60), m.dest, JOBS.gridRef(dx, dy))
     end
     return string.format("Contract: %s. %dm to complete. Head to %s.",
         m.short, math.floor(m._time_limit / 60), m.dest or "??")

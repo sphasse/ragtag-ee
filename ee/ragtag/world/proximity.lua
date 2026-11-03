@@ -264,7 +264,7 @@ local function _spawnGroup(st, region_name, px, py)
             local dx, dy = self:getPosition()
             local count = math.random(1, 3)
             for _ = 1, count do
-                local arch   = MISSION.SALVAGE_ARCHETYPES[math.random(#MISSION.SALVAGE_ARCHETYPES)]
+                local arch   = JOBS.SALVAGE_ARCHETYPES[math.random(#JOBS.SALVAGE_ARCHETYPES)]
                 local min_cr = 5 + zdanger * 2
                 local max_cr = 10 + math.floor(zdanger * 2.5)
                 local reward = math.random(min_cr, max_cr)

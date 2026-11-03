@@ -307,7 +307,7 @@ function M.prepareOpts(ctx)
     if not mx then return nil end
     return {
         origin         = ctx.station_cs,
-        origin_faction = MISSION.stationFaction(ctx.station_cs),
+        origin_faction = JOBS.stationFaction(ctx.station_cs),
         wx = mx, wy = my,   -- placeholder; spawn overwrites with target position
         mx = mx, my = my,
         tier           = ctx.tier,
@@ -337,14 +337,14 @@ function M.generate(opts)
     local arch    = pool[math.random(#pool)]
     local templates = _TEMPLATES[tier] or _TEMPLATES[0]
     local target_template = templates[math.random(#templates)]
-    local reward = MISSION.calcReward(
+    local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["tailing"],
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u)
 
     return {
-        id               = MISSION.nextId(),
+        id               = JOBS.nextId(),
         type             = "tailing",
         tier             = tier,
         origin           = opts.origin,
@@ -440,7 +440,7 @@ function M.acceptLog(m)
     return string.format(
         "Contract: %s. %dm to complete. Target last spotted at %s heading %03d. We expect a rendezvous in ~%dm. Approach with care.",
         m.short, math.floor(m._time_limit / 60),
-        MISSION.gridRef(m.wx, m.wy), heading_deg, t_min)
+        JOBS.gridRef(m.wx, m.wy), heading_deg, t_min)
 end
 
 function M.update(m, entry, ctx)
@@ -491,7 +491,7 @@ function M.update(m, entry, ctx)
             tgt:orderIdle()
             rdv:orderIdle()
             local mx, my = tgt:getPosition()
-            RT.shipLog("[Tailing] Meeting in progress at " .. MISSION.gridRef(mx, my)
+            RT.shipLog("[Tailing] Meeting in progress at " .. JOBS.gridRef(mx, my)
                 .. ". Science: scan both ships. 90 seconds.", "#FFCC80")
             m.obj = "Scan both ships at meeting"
             JOBS.updateObj()
@@ -554,7 +554,7 @@ function M.update(m, entry, ctx)
                         m._scanned = true
                         m.obj = "Return intel to " .. m.origin
                         local cx, cy = tgt:getPosition()
-                        RT.shipLog("[Tailing] Both ships identified at " .. MISSION.gridRef(cx, cy)
+                        RT.shipLog("[Tailing] Both ships identified at " .. JOBS.gridRef(cx, cy)
                             .. ". Return to " .. m.origin .. ".", "#80FF80")
                         JOBS.updateObj()
                         _disperse(m)

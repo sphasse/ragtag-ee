@@ -208,7 +208,7 @@ M.phases.transit = {
         if RT.valid(arbiter) then
             local ax, ay = arbiter:getPosition()
             RT.shipLog("[Whistleblower] Concord Station Arbiter at grid " ..
-                MISSION.gridRef(ax, ay) ..
+                JOBS.gridRef(ax, ay) ..
                 ". Their docking records terminal is on the outer hull. Concord patrols the Arbiter Line -- expect shake-downs.", "#A0C0FF")
         end
         RT.setObjective("Reach Concord Station Arbiter", true)
@@ -227,7 +227,7 @@ M.phases.transit = {
             _spawnTerminal(st)
             local tx, ty = VERSE.at("Concord Station Arbiter", 8, -4)
             RT.shipLog("[Whistleblower] Data terminal located: " .. (st.terminal_cs or "unknown") ..
-                " at grid " .. MISSION.gridRef(tx, ty) ..
+                " at grid " .. JOBS.gridRef(tx, ty) ..
                 ". Hack any system to 75% to extract the logs.", "#A0C0FF")
             RT.setObjective("Hack " .. (st.terminal_cs or "the data terminal"), true)
             MISSIONS.phase("whistleblower", "hacking")
@@ -348,7 +348,7 @@ M.phases.deliver = {
         if RT.valid(tamsin) then
             local tx, ty = tamsin:getPosition()
             RT.shipLog("[Whistleblower] Tamsin Hollow at grid " ..
-                MISSION.gridRef(tx, ty) .. ". Marta's payment is waiting there.", "#A0C0FF")
+                JOBS.gridRef(tx, ty) .. ". Marta's payment is waiting there.", "#A0C0FF")
         end
         RT.setObjective("Dock at Tamsin Hollow", true)
 

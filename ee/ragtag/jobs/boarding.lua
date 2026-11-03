@@ -289,7 +289,7 @@ function M.prepareOpts(ctx)
     end
     return {
         origin         = ctx.station_cs,
-        origin_faction = MISSION.stationFaction(ctx.station_cs),
+        origin_faction = JOBS.stationFaction(ctx.station_cs),
         wx = wx, wy = wy,
         tier           = ctx.tier,
         distance_u     = dist,
@@ -318,7 +318,7 @@ function M.generate(opts)
     if #pool == 0 then pool = _ARCHETYPES end
     local arch      = pool[math.random(#pool)]
     local templates = _TEMPLATES[tier] or _TEMPLATES[0]
-    local reward = MISSION.calcReward(
+    local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["boarding"],
         opts.distance_u, opts.danger_level,
@@ -330,7 +330,7 @@ function M.generate(opts)
     end
 
     return {
-        id              = MISSION.nextId(),
+        id              = JOBS.nextId(),
         type            = "boarding",
         tier            = tier,
         origin          = opts.origin,
@@ -406,7 +406,7 @@ function M.acceptLog(m)
     local heading_text = m.target_dest and (" heading toward " .. m.target_dest) or ""
     return string.format("Contract: %s. %dm to complete. %s last seen around %s%s.",
         m.short, math.floor(m._time_limit / 60),
-        m.target_cs or "unknown", MISSION.gridRef(m.wx, m.wy), heading_text)
+        m.target_cs or "unknown", JOBS.gridRef(m.wx, m.wy), heading_text)
 end
 
 function M.update(m, entry, ctx)

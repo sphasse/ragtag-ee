@@ -215,8 +215,8 @@ local _ARCHETYPES = {
      recv_msg='"Secured. We\'ll keep this one quiet."'},
 }
 
--- Expose for combat drops (other systems reference MISSION.SALVAGE_ARCHETYPES).
-MISSION.SALVAGE_ARCHETYPES = _ARCHETYPES
+-- Expose for combat drops (other systems reference JOBS.SALVAGE_ARCHETYPES).
+JOBS.SALVAGE_ARCHETYPES = _ARCHETYPES
 
 local _DECOY_LORE = {
     "Pressurised coolant drum — salvage value, no mission relevance.",
@@ -249,7 +249,7 @@ function M.prepareOpts(ctx)
     if not wx then return nil end
     return {
         origin         = ctx.station_cs,
-        origin_faction = MISSION.stationFaction(ctx.station_cs),
+        origin_faction = JOBS.stationFaction(ctx.station_cs),
         wx = wx, wy = wy,
         tier           = ctx.tier,
         distance_u     = dist,
@@ -277,7 +277,7 @@ function M.generate(opts)
     if #pool == 0 then pool = _ARCHETYPES end
     local arch   = pool[math.random(#pool)]
     local urgent = arch.urgent or false
-    local reward = MISSION.calcReward(
+    local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["salvage"],
         opts.distance_u, opts.danger_level,
@@ -286,7 +286,7 @@ function M.generate(opts)
     local prefix = urgent and "URGENT: " or ""
 
     return {
-        id           = MISSION.nextId(),
+        id           = JOBS.nextId(),
         type         = "salvage",
         tier         = tier,
         origin       = opts.origin,
@@ -352,7 +352,7 @@ end
 
 function M.acceptLog(m)
     return string.format("Contract: %s. %dm to complete. Head to grid %s.",
-        m.short, math.floor(m._time_limit / 60), MISSION.gridRef(m.wx, m.wy))
+        m.short, math.floor(m._time_limit / 60), JOBS.gridRef(m.wx, m.wy))
 end
 
 function M.update(m, entry, ctx)
