@@ -28,8 +28,7 @@ local _SPAWN_MODES = {
 -- ── Config defaults ──────────────────────────────────────────────────────────
 _P.defaults = {
     check_interval      = 8,     -- seconds between proximity checks
-    global_cooldown     = 120,   -- min seconds between any spawn event (scaled by mode)
-    density_radius_u    = 10,    -- radius (u) for the density check
+    density_radius_u    = 10,    -- radius (u) for the per-zone density check
     spawn_lead_u        = 10,    -- u ahead of player for spawn aim
     spawn_spread_u      = 4,     -- random spread (u) around spawn aim point
     station_exclusion_u = 20,    -- no spawns within this radius of any station
@@ -38,7 +37,7 @@ _P.defaults = {
     shakedown_timeout   = 45,    -- seconds before an unresponded shake-down auto-resolves
     shakedown_scan_secs = 30,    -- delay after player submits to inspection
     concord_despawn     = 120,   -- seconds after peaceful Concord resolution before ships vanish
-    spawn_mode_idx      = 3,     -- default mode index (3 = Medium)
+    default_zone_mode   = 3,     -- starting mode for each zone (1=None 2=Low 3=Medium 4=High)
 }
 
 -- ── Static data ──────────────────────────────────────────────────────────────
@@ -504,15 +503,16 @@ function _P.init(state)
     state.regions    = {}
     state.active     = {}
     state.region_cd  = {}
+    state.zone_modes = {}   -- region_name -> mode index (1=None 2=Low 3=Medium 4=High)
     state.exclusions = {}
     state.safe_stns  = {}
     state.next_check = 0
-    state.last_spawn = -99999
-    state.mode_idx   = _cfg("spawn_mode_idx")
 
+    local default_mode = _cfg("default_zone_mode")
     for _, r in ipairs(VERSE.REGIONS) do
         if PROX.zones[r.name] then
-            state.regions[r.name] = r
+            state.regions[r.name]    = r
+            state.zone_modes[r.name] = default_mode
         end
     end
 
@@ -548,35 +548,42 @@ function _P.update(state, delta, now)
     end
 
     if not spawning_ok then return end
-
-    local mode = _SPAWN_MODES[state.mode_idx]
-    if mode.freq == 0 then return end
-
-    local active_ship_count = 0
-    for _, g in ipairs(state.active) do
-        active_ship_count = active_ship_count + #g.ships
-    end
-    if active_ship_count >= mode.max_active then return end
-
-    if now - state.last_spawn < _cfg("global_cooldown") / mode.freq then return end
-
     if not player then return end
+
     local px, py = player:getPosition()
 
-    if _nearbyHostiles(px, py) >= mode.density then return end
+    -- Count active ships per zone for per-zone cap checks.
+    local zone_ships = {}
+    for _, g in ipairs(state.active) do
+        local zn = g.region_name
+        zone_ships[zn] = (zone_ships[zn] or 0) + #g.ships
+    end
 
+    -- Find the deepest zone the player is in where all per-zone conditions pass.
     local best_name, best_depth = nil, 0
     for name, region in pairs(state.regions) do
         local depth = _depthIn(px, py, region)
         if depth > 0 then
-            local zone   = PROX.zones[name]
-            local wanted = RT.campaign.flags and RT.campaign.flags.wanted
+            local zone     = PROX.zones[name]
+            local mode_idx = state.zone_modes[name] or _cfg("default_zone_mode")
+            local mode     = _SPAWN_MODES[mode_idx]
+            local wanted   = RT.campaign.flags and RT.campaign.flags.wanted
 
+            -- Zone disabled or Concord suppressed on wanted status.
+            if mode.freq == 0 then goto skip end
             if zone.faction == "Concord" and wanted then goto skip end
 
+            -- Per-zone active ship cap.
+            if (zone_ships[name] or 0) >= mode.max_active then goto skip end
+
+            -- Per-zone cooldown (zone.cooldown shortened by mode frequency).
             local last = state.region_cd[name] or -99999
             if now - last < zone.cooldown / mode.freq then goto skip end
 
+            -- Per-zone density: don't pile on if enough hostiles already nearby.
+            if _nearbyHostiles(px, py) >= mode.density then goto skip end
+
+            -- One group per grid cell at a time.
             local cell = _cellKey(px, py)
             local cell_busy = false
             for _, g in ipairs(state.active) do
@@ -605,35 +612,29 @@ function _P.cleanup(state)
     end
 end
 
--- ── PROX shims (GM-menu compatibility) ───────────────────────────────────────
--- Scenario GM buttons can call PROX.getModeName(), PROX.cycleMode(),
--- PROX.setMode(idx), and read PROX.MODE_NAMES for menu building.
+-- ── PROX shims (GM-menu and scenario compatibility) ───────────────────────────
+-- Scenario code reads PROX.MODE_NAMES and calls PROX.getZoneMode /
+-- PROX.setZoneMode for per-zone spawn control.
 
 PROX.MODE_NAMES = {"None", "Low", "Medium", "High"}
 
-function PROX.getModeName()
+-- Returns the mode index for a named zone (1=None 2=Low 3=Medium 4=High).
+function PROX.getZoneMode(zone_name)
     local st = WORLD._state["proximity"]
-    if not st then return _SPAWN_MODES[3].name end
-    return _SPAWN_MODES[st.mode_idx or 3].name
+    if not st or not st.zone_modes then
+        return _cfg("default_zone_mode")
+    end
+    return st.zone_modes[zone_name] or _cfg("default_zone_mode")
 end
 
-function PROX.getModeIdx()
+-- Sets the mode index for a named zone.
+function PROX.setZoneMode(zone_name, idx)
     local st = WORLD._state["proximity"]
-    return st and (st.mode_idx or 3) or 3
+    if not st or not st.zone_modes then return end
+    st.zone_modes[zone_name] = math.max(1, math.min(idx, #_SPAWN_MODES))
 end
 
-function PROX.setMode(idx)
-    local st = WORLD._state["proximity"]
-    if not st then return end
-    st.mode_idx = math.max(1, math.min(idx, #_SPAWN_MODES))
-end
-
-function PROX.cycleMode()
-    local st = WORLD._state["proximity"]
-    if not st then return end
-    st.mode_idx = (st.mode_idx % #_SPAWN_MODES) + 1
-end
-
+-- Manually add a no-spawn exclusion zone around a named station.
 function PROX.addExclusion(station_cs, radius_u)
     local st = WORLD._state["proximity"]
     if not st then return end

@@ -454,38 +454,76 @@ function addSessionGMFunctions()
         end
     end)
 
-    -- World Plugins submenu
-    local function showWorldPluginsMenu()
+    -- World Plugins submenu (forward-declared so zone menus can reference back)
+    local showWorldPluginsMenu
+    local showSpawnZonesMenu
+
+    -- Ordered zone list with short display names for GM buttons.
+    local _ZONE_ORDER = {
+        "the Concord Core", "the Arbiter Line",
+        "the Shroud", "Halcyon Rest", "the Gauntlet", "Blackwater Reach",
+        "the Boneyard", "the Maw",
+    }
+    local _ZONE_LABEL = {
+        ["the Concord Core"]  = "Concord Core",
+        ["the Arbiter Line"]  = "Arbiter Line",
+        ["the Shroud"]        = "The Shroud",
+        ["Halcyon Rest"]      = "Halcyon Rest",
+        ["the Gauntlet"]      = "The Gauntlet",
+        ["Blackwater Reach"]  = "Blackwater Reach",
+        ["the Boneyard"]      = "The Boneyard",
+        ["the Maw"]           = "The Maw",
+    }
+
+    local function showZoneDetailMenu(zone_name)
+        clearGMFunctions()
+        addGMFunction("< Back to Zones", function() showSpawnZonesMenu() end)
+        local label   = _ZONE_LABEL[zone_name] or zone_name
+        local cur_idx = PROX.getZoneMode(zone_name)
+        for i, mode_name in ipairs(PROX.MODE_NAMES) do
+            local cap_i  = i
+            local cap_zn = zone_name
+            addGMFunction(label .. ": " .. mode_name .. (i == cur_idx and " [*]" or ""), function()
+                PROX.setZoneMode(cap_zn, cap_i)
+                showZoneDetailMenu(cap_zn)
+            end)
+        end
+    end
+
+    showSpawnZonesMenu = function()
+        clearGMFunctions()
+        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
+        for _, zn in ipairs(_ZONE_ORDER) do
+            local label     = _ZONE_LABEL[zn] or zn
+            local mode_idx  = PROX.getZoneMode(zn)
+            local mode_name = PROX.MODE_NAMES[mode_idx] or "?"
+            local cap_zn    = zn
+            addGMFunction(label .. ": " .. mode_name, function()
+                showZoneDetailMenu(cap_zn)
+            end)
+        end
+    end
+
+    showWorldPluginsMenu = function()
         clearGMFunctions()
         addGMFunction("< Back to Main", function()
             clearGMFunctions()
             addSessionGMFunctions()
         end)
 
-        -- Defenders toggle
         local def_on = WORLD.isEnabled("defenders")
         addGMFunction("Defenders: " .. (def_on and "ON" or "OFF"), function()
             if def_on then WORLD.disable("defenders") else WORLD.enable("defenders") end
             showWorldPluginsMenu()
         end)
 
-        -- Proximity toggle
         local prox_on = WORLD.isEnabled("proximity")
         addGMFunction("Proximity: " .. (prox_on and "ON" or "OFF"), function()
             if prox_on then WORLD.disable("proximity") else WORLD.enable("proximity") end
             showWorldPluginsMenu()
         end)
 
-        -- Spawn intensity buttons (individual, current marked with [*])
-        local cur_idx = PROX.getModeIdx()
-        for i, name in ipairs(PROX.MODE_NAMES) do
-            local label = "Spawns: " .. name .. (i == cur_idx and " [*]" or "")
-            local cap_i = i
-            addGMFunction(label, function()
-                PROX.setMode(cap_i)
-                showWorldPluginsMenu()
-            end)
-        end
+        addGMFunction("Spawn Zones...", function() showSpawnZonesMenu() end)
     end
     addGMFunction("World Plugins...", showWorldPluginsMenu)
 
