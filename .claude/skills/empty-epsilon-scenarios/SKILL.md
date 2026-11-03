@@ -14,6 +14,7 @@ EmptyEpsilon scenarios are Lua files in the game's `scripts/` folder. The engine
 2. **A standalone scenario**: plain EE Lua. You can still require the framework for its helpers (stations, objectives, timers, AI director), or write without it.
 3. **Debugging an existing scenario**: get the `LUA-Error` line and traceback from the log, then check `references/api_notes.md` section 4 first. Most ECS-era crashes are a method called on an entity that lacks the component.
 4. **Extending the AI director** (new actions, different prompts): `references/framework.md` sections 3–4, plus the Python in `director/`.
+6. **Adding a story mission / arc** (a modular multi-phase story arc layered on top of the sandbox): read `references/missions_api.md`. The MISSIONS engine uses phase machines; the Witness arc (`ee/ragtag/missions/witness.lua`) is the reference implementation.
 
 ## Writing a scenario
 
@@ -66,6 +67,8 @@ Test as far as the environment allows, and tell the user what was and wasn't ver
 - `references/api_notes.md`: verified behaviours and gotchas. Read before writing any EE code.
 - `references/api_signatures.md`: every API function with arguments, generated from engine source. Grep it.
 - `references/framework.md`: RT, VERSE and DIR libraries, events, mailbox protocol, adding director actions.
+- `references/jobs_api.md`: job board system, economy, faction filtering, reputation.
+- `references/missions_api.md`: MISSIONS phase-machine engine for story arcs; Witness arc as reference.
 - `CLAUDE.md` and `CONTRIBUTING.md` at the repo root: layout, contracts, scenario numbering, commands.
 - `scenarios/_template/scenario_99_template.lua`: tested skeleton for a new scenario.
 - `scenarios/longhaul/plan.md`: plans for Long Haul sessions 2–5; `scenarios/longhaul/bible.md`: its story bible.
