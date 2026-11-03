@@ -185,6 +185,17 @@ Danger levels: 0=safe, 1=risky, 2=dangerous, 3=deadly, 4=extremely deadly.
 
 **GM adjustment**: +100 / −100 per button press. Faction list shows live standing; detail sub-menu self-refreshes after each press.
 
+**Job offer reduction by standing** — applied per station based on its faction's rep:
+
+| Standing | Offers shown |
+|---|---|
+| ≥ 0 | Full (`n_slots`) |
+| −1 to −200 | `n_slots − 1` + nag message |
+| −201 to −400 | `n_slots − 2` + nag message |
+| < −400 | 0 — nag message only |
+
+Logic lives in `_offerMissions()` in `_engine.lua`. Slot storage is unaffected; only the displayed count is clamped. Recovery is immediate when standing crosses back above a threshold.
+
 **Proximity spawn effects** (from CLAUDE.md):
 - Corsairs >+20: 50% longer spawn cooldowns
 - Corsairs <−20: 30% shorter cooldowns (hunt you)
