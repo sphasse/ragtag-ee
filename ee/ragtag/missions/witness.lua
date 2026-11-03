@@ -168,6 +168,8 @@ function M.resolve(st)
     if st.broadcast_done then return end
     st.broadcast_done = true
     _removePodUI()
+    RUMORS.removeCategory("WITNESS_BACKGROUND")
+    RUMORS.removeCategory("WITNESS_HOOK")
 
     local reward, msg
     if st.kael_alive and not st.complied then
@@ -194,7 +196,7 @@ function M.resolve(st)
     globalMessage("The Witness -- arc complete. " .. msg, 15)
 end
 
--- ── on_cancel: clean up spawned entities and UI ───────────────────────────
+-- ── on_cancel: clean up spawned entities, UI, and injected rumors ────────
 
 function M.on_cancel(st)
     local mira = RT.find("Mira's Luck")
@@ -204,6 +206,7 @@ function M.on_cancel(st)
     st.corsair_names     = {}
     st.concord_names     = {}
     _removePodUI()
+    RUMORS.removeCategory("WITNESS_HOOK")
 end
 
 -- ── Phases ─────────────────────────────────────────────────────────────────
@@ -239,6 +242,12 @@ M.phases.offer = {
             end)
         end)
 
+        -- Seed one-shot hook rumors so any NPC the crew hailes can point them to Port Vesper.
+        -- These burn off on delivery (once=true) and are cleared when the crew accepts.
+        RUMORS.add({ text = "Heard someone near Port Vesper is looking for an independent crew. Urgent cargo, won't go through Concord channels. Could be worth your time.", priority = 5, category = "WITNESS_HOOK", once = true })
+        RUMORS.add({ text = "A contact docked at Port Vesper has been asking around for a fast ship with no affiliation. Something sensitive. Not the kind of job you post on a board.", priority = 5, category = "WITNESS_HOOK", once = true })
+        RUMORS.add({ text = "Freighter crew said a woman near Port Vesper is sitting on a job she can't advertise. Independent crews only. She's been waiting a while.", priority = 5, category = "WITNESS_HOOK", once = true })
+
         -- Delayed hail: 3 s to avoid comms collision if player is already in a dialog.
         st.offer_hail_at = getScenarioTime() + 3
         globalMessage("Witness arc starting -- incoming hail in 3 seconds...", 3)
@@ -262,6 +271,7 @@ M.phases.transit = {
         st.pod_drain_on  = true
         _addPodButtons(st)
         _updatePanels(st)
+        RUMORS.removeCategory("WITNESS_HOOK")  -- player has the job; clear the hook rumors
         RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. Destination: Dustmote Salvage.", "#A0C0FF")
         RT.shipLog("[Engineering] Pod drawing 5 energy/sec. Keep energy above 50% to maintain stability.", "#FFAA00")
         RT.setObjective("Reach Dustmote Salvage", true)
@@ -612,3 +622,22 @@ M.phases.broadcast = {
 -- ── Register ────────────────────────────────────────────────────────────────
 
 MISSIONS.register(M)
+
+-- Inject background lore rumors about Concord accounting irregularities.
+-- These cycle through the normal rumor pool (priority 1, recycled) as long as
+-- the witness arc hasn't been completed. Removed in M.resolve when arc is done.
+local _BACKGROUND_RUMORS = {
+    "Heard Concord supply shipments to the Border don't match the manifests. Auditors found a discrepancy but nobody's saying how big.",
+    "Logistics officer on Lumen got reassigned overnight. No explanation, no forwarding post. Just gone.",
+    "Someone's cooking the books on Concord fleet contracts. Millions unaccounted for. Inspector started asking questions and got transferred.",
+    "Freighter captain said Concord's requisition numbers don't add up. Ten ships ordered, eight delivered, full payment cleared. Who got paid for the missing two?",
+    "Dockmaster said a Concord logistics officer, name of Voss, put in for extended leave last month. Hasn't been seen since.",
+    "Concord Waypoint Galen's fuel reserves are 30% under logged capacity. Somebody's been skimming for years.",
+    "Administrator on Lumen retired early. Rumor is they found something in his files and offered him a quiet exit.",
+    "Heard Concord's internal audit division got disbanded. New policy: contractors handle reviews now. That's not suspicious at all.",
+    "Freighter crew said they delivered construction materials to a Concord station that doesn't exist on the charts. Payment cleared, though.",
+    "Someone leaked partial Concord budget files to the independent net. Numbers don't match official reports by 40 million credits. Files disappeared an hour later.",
+}
+for _, text in ipairs(_BACKGROUND_RUMORS) do
+    RUMORS.add({ text = text, priority = 1, category = "WITNESS_BACKGROUND" })
+end

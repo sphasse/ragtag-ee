@@ -123,17 +123,6 @@ RUMORS.pool = {
     "Sentinel Fleet Yard used to build warships. Now they retrofit freighters. Times change.",
     "Waypoint Galen has the longest bar in the Drift. Crew from six stations drink there.",
 
-    -- Concord accounting scandal hints (~10)
-    "Heard Concord supply shipments to the Border don't match the manifests. Auditors found a discrepancy but nobody's saying how big.",
-    "Logistics officer on Lumen got reassigned overnight. No explanation, no forwarding post. Just gone.",
-    "Someone's cooking the books on Concord fleet contracts. Millions unaccounted for. Inspector started asking questions and got transferred.",
-    "Freighter captain said Concord's requisition numbers don't add up. Ten ships ordered, eight delivered, full payment cleared. Who got paid for the missing two?",
-    "Dockmaster said a Concord logistics officer, name of Voss, put in for extended leave last month. Hasn't been seen since.",
-    "Concord Waypoint Galen's fuel reserves are 30% under logged capacity. Somebody's been skimming for years.",
-    "Administrator on Lumen retired early. Rumor is they found something in his files and offered him a quiet exit.",
-    "Heard Concord's internal audit division got disbanded. New policy: contractors handle reviews now. That's not suspicious at all.",
-    "Freighter crew said they delivered construction materials to a Concord station that doesn't exist on the charts. Payment cleared, though.",
-    "Someone leaked partial Concord budget files to the independent net. Numbers don't match official reports by 40 million credits. Files disappeared an hour later.",
 }
 
 -- ─── Injected rumors ──────────────────────────────────────────────────────────
@@ -286,7 +275,9 @@ function RUMORS.get(callsign, source_faction)
         for _, r in ipairs(high) do
             if r.priority == best then tier[#tier + 1] = r end
         end
-        return tier[math.random(#tier)].text
+        local chosen = tier[math.random(#tier)]
+        if chosen.once then RUMORS.remove(chosen.id) end
+        return chosen.text
     end
 
     -- Fall through to background pool with cooldown
