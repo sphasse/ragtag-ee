@@ -682,16 +682,16 @@ local function _repDrift(source, faction)
     local rep = RT.getReputation(faction)
     local cs  = source:getCallSign()
     if faction == "Concord" then
-        if     rep >  25 then return '"Your record here is noted, ' .. cs .. '. We appreciate crews that keep their word."'
-        elseif rep >  10 then return '"Welcome, ' .. cs .. '. You\'re known here."'
-        elseif rep < -25 then return '"This channel is monitored, ' .. cs .. '. State your business and go."'
-        elseif rep < -10 then return '"We\'re watching your transponder, ' .. cs .. '. Keep this brief."'
+        if     rep >  1000 then return '"Your record here is noted, ' .. cs .. '. We appreciate crews that keep their word."'
+        elseif rep >   250 then return '"Welcome, ' .. cs .. '. You\'re known here."'
+        elseif rep < -1000 then return '"This channel is monitored, ' .. cs .. '. State your business and go."'
+        elseif rep <  -250 then return '"We\'re watching your transponder, ' .. cs .. '. Keep this brief."'
         end
     elseif faction == "Independent" then
-        if     rep >  25 then return '"You\'ve made some friends out here, ' .. cs .. '. That matters."'
-        elseif rep >  10 then return '"Word\'s gotten around. Good word, in your case."'
-        elseif rep < -25 then return '"You\'re not exactly popular right now. What do you need?"'
-        elseif rep < -10 then return '"Heard a few things about your crew lately. Not all of them good."'
+        if     rep >  1000 then return '"You\'ve made some friends out here, ' .. cs .. '. That matters."'
+        elseif rep >   250 then return '"Word\'s gotten around. Good word, in your case."'
+        elseif rep < -1000 then return '"You\'re not exactly popular right now. What do you need?"'
+        elseif rep <  -250 then return '"Heard a few things about your crew lately. Not all of them good."'
         end
     end
     return nil
