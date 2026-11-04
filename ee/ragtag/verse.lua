@@ -120,9 +120,6 @@ end
 
 
 
-
-
-
 VERSE.SALVAGE_TIERS = {
     [0] = {pods = {3, 5}, value = {5,  10}, spread = 1.5},
     [1] = {pods = {4, 5}, value = {7,  12}, spread = 2.0},
@@ -564,15 +561,8 @@ function VERSE.transportComms(source, target, rec)
         addCommsReply("Back", function(s2, t2) VERSE.transportComms(s2, t2, rec) end)
     end)
     addCommsReply("Heard any news?", function(s, t)
-        -- Deliver a rumor with cooldown, or ping the director for dynamic content
-        local rumor_text = nil
-        if RUMORS and RUMORS.get then
-            rumor_text = RUMORS.get(s:getCallSign(), t:getFaction())
-        elseif VERSE.RUMORS and #VERSE.RUMORS > 0 then
-            rumor_text = VERSE.RUMORS[math.floor(random(1, #VERSE.RUMORS + 0.999))]
-        else
-            rumor_text = "Not much worth repeating, friend."
-        end
+        local rumor_text = (RUMORS and RUMORS.get and RUMORS.get(s:getCallSign(), t:getFaction()))
+            or "Not much worth repeating, friend."
         setCommsMessage("\"" .. rumor_text .. "\"")
         if DIR and DIR.online then
             DIR.emit("npc_hailed", {callsign = t:getCallSign(), faction = t:getFaction(), topic = "news",
@@ -804,8 +794,7 @@ end
 -- Public entry points
 --------------------------------------------------------------------------------
 
--- opts.session: session number (salvage is re-rolled per session)
--- opts.transports: false to skip traffic (testing)
+-- opts.session: session number
 function VERSE.build(opts)
     opts = opts or {}
     VERSE.session = opts.session or 1
