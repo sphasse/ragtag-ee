@@ -184,6 +184,8 @@ WORLD.register(_P)
 2. Add `require("ragtag/missions/<arc>.lua")` to `ee/ragtag/missions.lua`.
 3. Run `python tools/check.py`.
 
+**Load-order trap**: if your arc calls a framework global at module level (outside any function body) — e.g. `RUMORS.add({...})` to inject background rumors — that global must be `require()`d in `missions.lua` *before* your arc module. `require()` is idempotent, so adding it again is always safe. A nil-index at load time throws, aborts every later `require()` in `missions.lua`, and prevents the scenario from starting at all — the error only appears in the EE log. The existing `require("ragtag/rumors.lua")` at the top of `missions.lua` covers RUMORS; for any other global, add its require before your arc.
+
 **CRITICAL**: use `MISSIONS.phase(id, "name")` to transition — **NOT**
 `MISSIONS.goto()`. `goto` is a reserved keyword in Lua 5.4 and causes a
 syntax error.
@@ -213,3 +215,4 @@ syntax error.
   `director/generated/world.md`, and `docs/verse_map.svg`. Never hand-edit.
 - **Jobs clean up**: every contract type handles complete, fail, and timeout.
   Orphaned NPC ships and beacons are a session reliability bug.
+- **Own your loader's transitive deps**: if a sub-module calls a framework global at module level, that global's `require()` must appear in the loader *before* the sub-module. A nil-index at load time silently aborts the entire scenario. `require()` is idempotent — adding it again never hurts.

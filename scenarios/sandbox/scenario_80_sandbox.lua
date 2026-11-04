@@ -442,23 +442,14 @@ function addSessionGMFunctions()
         end
     end)
 
-    addGMFunction("Credits +10", function()
-        if RT.valid(RT.player) then
-            RT.addCredits(10, "GM reward")
-        end
-    end)
-
-    addGMFunction("Credits -10", function()
-        if RT.valid(RT.player) then
-            RT.addCredits(-10, "GM penalty")
-        end
-    end)
-
     -- World Plugins submenu (forward-declared so zone menus can reference back)
     local showWorldPluginsMenu
+    local showDefendersMenu
+    local showProximityMenu
     local showSpawnZonesMenu
     local showSalvageMenu
     local showTrafficMenu
+    local showJobsMenu
 
     -- Ordered zone list with short display names for GM buttons.
     local _ZONE_ORDER = {
@@ -492,9 +483,30 @@ function addSessionGMFunctions()
         end
     end
 
-    showSpawnZonesMenu = function()
+    showDefendersMenu = function()
         clearGMFunctions()
         addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
+        local def_on = WORLD.isEnabled("defenders")
+        addGMFunction("Defenders: " .. (def_on and "ON" or "OFF"), function()
+            if def_on then WORLD.disable("defenders") else WORLD.enable("defenders") end
+            showDefendersMenu()
+        end)
+    end
+
+    showProximityMenu = function()
+        clearGMFunctions()
+        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
+        local prox_on = WORLD.isEnabled("proximity")
+        addGMFunction("Proximity: " .. (prox_on and "ON" or "OFF"), function()
+            if prox_on then WORLD.disable("proximity") else WORLD.enable("proximity") end
+            showProximityMenu()
+        end)
+        addGMFunction("Spawn Zones...", function() showSpawnZonesMenu() end)
+    end
+
+    showSpawnZonesMenu = function()
+        clearGMFunctions()
+        addGMFunction("< Back to Proximity", function() showProximityMenu() end)
         for _, zn in ipairs(_ZONE_ORDER) do
             local label     = _ZONE_LABEL[zn] or zn
             local mode_idx  = PROX.getZoneMode(zn)
@@ -562,42 +574,48 @@ function addSessionGMFunctions()
             addSessionGMFunctions()
         end)
 
-        local def_on = WORLD.isEnabled("defenders")
-        addGMFunction("Defenders: " .. (def_on and "ON" or "OFF"), function()
-            if def_on then WORLD.disable("defenders") else WORLD.enable("defenders") end
-            showWorldPluginsMenu()
-        end)
-
-        local prox_on = WORLD.isEnabled("proximity")
-        addGMFunction("Proximity: " .. (prox_on and "ON" or "OFF"), function()
-            if prox_on then WORLD.disable("proximity") else WORLD.enable("proximity") end
-            showWorldPluginsMenu()
-        end)
-
-        addGMFunction("Spawn Zones...", function() showSpawnZonesMenu() end)
-        addGMFunction("Salvage...",     function() showSalvageMenu()    end)
-        addGMFunction("Traffic...",     function() showTrafficMenu()    end)
+        addGMFunction("Station Defenders...", function() showDefendersMenu()  end)
+        addGMFunction("Proximity Spawns...", function() showProximityMenu()  end)
+        addGMFunction("Salvage...",          function() showSalvageMenu()    end)
+        addGMFunction("Traffic...",          function() showTrafficMenu()    end)
     end
     addGMFunction("World Plugins...", showWorldPluginsMenu)
 
-    addGMFunction("Work Cooldown: " .. (JOBS.config.work_cooldown_enabled and "ON" or "OFF"), function()
-        JOBS.config.work_cooldown_enabled = not JOBS.config.work_cooldown_enabled
-        clearGMFunctions()
-        addSessionGMFunctions()
-    end)
+    local _DISTANCE_MODES = {"short", "medium", "long"}
+    local _DISTANCE_NAMES = {short = "Short", medium = "Medium", long = "Long"}
 
-    local distance_labels = {short = "SHORT", medium = "MEDIUM", long = "LONG"}
-    addGMFunction("Job Distance: " .. (distance_labels[JOBS.config.mission_distance_mode] or "MEDIUM"), function()
-        if JOBS.config.mission_distance_mode == "short" then
-            JOBS.config.mission_distance_mode = "medium"
-        elseif JOBS.config.mission_distance_mode == "medium" then
-            JOBS.config.mission_distance_mode = "long"
-        else
-            JOBS.config.mission_distance_mode = "short"
-        end
+    showJobsMenu = function()
         clearGMFunctions()
-        addSessionGMFunctions()
-    end)
+        addGMFunction("< Back to Main", function()
+            clearGMFunctions()
+            addSessionGMFunctions()
+        end)
+
+        local cool_on = JOBS.config.work_cooldown_enabled
+        addGMFunction("Work Cooldown: " .. (cool_on and "ON" or "OFF"), function()
+            JOBS.config.work_cooldown_enabled = not JOBS.config.work_cooldown_enabled
+            showJobsMenu()
+        end)
+
+        local cur_dist = JOBS.config.mission_distance_mode
+        for _, mode in ipairs(_DISTANCE_MODES) do
+            local cap_mode = mode
+            addGMFunction("Distance: " .. _DISTANCE_NAMES[mode] .. (mode == cur_dist and " [*]" or ""), function()
+                JOBS.config.mission_distance_mode = cap_mode
+                showJobsMenu()
+            end)
+        end
+
+        addGMFunction("Credits +50", function()
+            if RT.valid(RT.player) then RT.addCredits(50, "GM reward") end
+            showJobsMenu()
+        end)
+        addGMFunction("Credits -50", function()
+            if RT.valid(RT.player) then RT.addCredits(-50, "GM penalty") end
+            showJobsMenu()
+        end)
+    end
+    addGMFunction("Jobs...", showJobsMenu)
 
     MISSIONS.addGMButton(function()
         clearGMFunctions()

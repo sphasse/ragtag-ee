@@ -38,6 +38,15 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 
 ## 3. Environments
 - `require("file.lua")` runs the file with the *scenario's* environment, so globals defined in required files are scenario globals. Paths are relative to `scripts/`.
+- **`require()` is idempotent**: the first call runs the file and caches the result in `package.loaded`; every subsequent call returns the cache immediately. It is always safe to `require` something that may already be loaded.
+- **A `require()` failure throws and stops all subsequent requires in the same file.** When a module fails to load (Lua error at load time), every later `require()` in the caller also never runs. This means a failed sub-module can silently abort loading the scenario entirely — the player ship never spawns, the universe is empty, and the error only appears in the log.
+- **Module-level code runs at require time.** Any statement outside a function body executes when the file is first required. If that code calls a global (`RUMORS.add(...)`, `WORLD.register(...)`) that hasn't been loaded yet, it raises a nil-index error and aborts the whole require chain. Rule: **never call a framework global at module level unless the caller guarantees it is loaded first.** The safe pattern: each loader file (`missions.lua`, `jobs.lua`, `world.lua`) must `require()` every global its sub-modules need before requiring those sub-modules. `require()` is idempotent, so double-requiring is free.
+  ```lua
+  -- missions.lua: RUMORS must come before witness.lua, which calls RUMORS.add() at load time
+  require("ragtag/rumors.lua")
+  require("ragtag/missions/_engine.lua")
+  require("ragtag/missions/witness.lua")
+  ```
 - Comms callbacks: `entity:setCommsFunction(function(comms_source, comms_target) ... end)`. Use the parameters. The old `comms_source`/`comms_target` globals exist only inside the callback and are not visible in required files. Reply callbacks get the same two parameters: `addCommsReply("Text", function(source, target) ... end)`.
 - HTTP `/exec.lua` (enabled with `httpserver=8080` in `options.ini`, or as a command-line argument) runs posted code in a **separate environment built from the base API**. It can call any API function and see every entity, but it **cannot see scenario globals or functions**. Its return value must be a string (the handler converts with `run<string>`); use `return "ok"` for writes. `/get.lua` and `/set.lua` currently return "TODO".
 - The only shared channel between scenario and HTTP environments, besides the entities themselves, is `getScriptStorage()`.

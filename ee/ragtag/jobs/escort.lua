@@ -326,9 +326,9 @@ function M.spawn(m)
     convoy:setPosition(ox + math.cos(dock_angle) * 800, oy + math.sin(dock_angle) * 800)
     convoy:setImpulseMaxSpeed(125, 40)
     convoy:setWarpSpeed(0)
-    local sf = convoy:getShieldMax(0)
-    local sr = convoy:getShieldMax(1)
-    if sf > 0 then convoy:setShields(sf, sr) end
+    convoy:setHullMax(100)
+    convoy:setHull(100)
+    convoy:setShieldsMax(0)
     convoy:orderIdle()
     RT.register(convoy)
     DIR.registerKill(convoy)
@@ -518,12 +518,12 @@ function M.update(m, entry, ctx)
             if not m._ambush1 and prog >= 0.33 then
                 _spawnInterceptors(m, cx, cy)
                 m._ambush1 = true
-                RT.shipLog("[Escort] Corsair intercept at " .. JOBS.gridRef(cx, cy) .. "!", "#FF8080")
+                RT.shipLog("[Escort] Looks like someone is trying to intercept us!", "#FF8080")
                 DIR.emit("escort_ambush", {wave=1, convoy=m.convoy_cs}, "normal")
             elseif m._ambush1 and not m._ambush2 and prog >= 0.67 then
                 _spawnInterceptors(m, cx, cy)
                 m._ambush2 = true
-                RT.shipLog("[Escort] Second intercept wave inbound!", "#FF8080")
+                RT.shipLog("[Escort] Another intercept wave is inbound!", "#FF8080")
                 DIR.emit("escort_ambush", {wave=2, convoy=m.convoy_cs}, "normal")
             end
         end
