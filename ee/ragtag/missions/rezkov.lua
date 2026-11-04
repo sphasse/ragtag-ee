@@ -83,10 +83,11 @@ local function _spawnWaypoint(st)
         st.nebulas[#st.nebulas + 1] = n
     end
 
-    local wp = SpaceStation():setTemplate("Small Station"):setFaction("Unknown")
+    local wp = CpuShip():setTemplate("Defense platform"):setFaction("Unknown")
     wp:setCallSign("Rezkov's Waypoint")
     wp:setPosition(_RWX, _RWY)
     wp:setCanBeDestroyed(false)
+    wp:orderIdle()
     wp:setCommsFunction(function(src, tgt)
         local phase = MISSIONS._cur_phase["rezkov"]
         local art = MISSIONS._state["rezkov"]
