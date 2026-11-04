@@ -351,7 +351,7 @@ function _P.gmMenu(addButton, showSelf)
     local cur_d = TRAFF.getDensity()
     for i, name in ipairs(TRAFF.DENSITY_NAMES) do
         local cap_i = i
-        addButton("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
+        addButton((i == cur_d and "* " or "") .. "Density: " .. (#name > 4 and name:sub(1,3) or name), function()
             TRAFF.setDensity(cap_i)
             showSelf()
         end)

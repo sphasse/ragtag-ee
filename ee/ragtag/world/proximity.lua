@@ -661,7 +661,7 @@ function _P.gmMenu(addButton, showSelf)
             for i, mode_name in ipairs(PROX.MODE_NAMES) do
                 local cap_i  = i
                 local cap_zn = zone_name
-                addGMFunction(label .. ": " .. mode_name .. (i == cur_idx and " [*]" or ""), function()
+                addGMFunction((i == cur_idx and "* " or "") .. mode_name, function()
                     PROX.setZoneMode(cap_zn, cap_i)
                     showZoneDetailMenu(cap_zn)
                 end)

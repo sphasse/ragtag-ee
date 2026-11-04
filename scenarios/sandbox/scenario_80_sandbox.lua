@@ -468,7 +468,7 @@ function addSessionGMFunctions()
         local cur_dist = JOBS.config.mission_distance_mode
         for _, mode in ipairs(_DISTANCE_MODES) do
             local cap_mode = mode
-            addGMFunction("Distance: " .. _DISTANCE_NAMES[mode] .. (mode == cur_dist and " [*]" or ""), function()
+            addGMFunction((mode == cur_dist and "* " or "") .. "Dist: " .. _DISTANCE_NAMES[mode], function()
                 JOBS.config.mission_distance_mode = cap_mode
                 showJobsMenu()
             end)
@@ -517,12 +517,13 @@ function addSessionGMFunctions()
             local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires)
             local cap_id = u.id
             local label
+            local n = u.gm_name or u.name
             if owned then
-                label = "[*] " .. u.name
+                label = "* " .. n
             elseif locked then
-                label = u.name .. " [locked]"
+                label = n .. " lk"
             else
-                label = u.name .. " (" .. u.cost .. "cr)"
+                label = n .. " " .. u.cost .. "c"
             end
             addGMFunction(label, function()
                 if owned then

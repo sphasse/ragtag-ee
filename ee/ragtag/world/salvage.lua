@@ -336,7 +336,7 @@ function _P.gmMenu(addButton, showSelf)
     local cur_d = SALV.getDensity()
     for i, name in ipairs(SALV.DENSITY_NAMES) do
         local cap_i = i
-        addButton("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
+        addButton((i == cur_d and "* " or "") .. "Density: " .. (#name > 4 and name:sub(1,3) or name), function()
             SALV.setDensity(cap_i)
             showSelf()
         end)
@@ -344,7 +344,7 @@ function _P.gmMenu(addButton, showSelf)
     local cur_r = SALV.getReward()
     for i, name in ipairs(SALV.REWARD_NAMES) do
         local cap_i = i
-        addButton("Reward: " .. name .. (i == cur_r and " [*]" or ""), function()
+        addButton((i == cur_r and "* " or "") .. "Reward: " .. (#name > 4 and name:sub(1,3) or name), function()
             SALV.setReward(cap_i)
             showSelf()
         end)
