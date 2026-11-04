@@ -106,8 +106,8 @@ local function _spawnWaypoint(st)
                     addCommsReply("Understood.", function(s3, t3) end)
                     return
                 end
-                RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (-75, -52), Arbiter Line. Hack data terminal on station exterior. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
-                RT.setObjective("Hack Concord Data Terminal at Waypoint Galen", true)
+                RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (-75, -52), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
+                RT.setObjective("Hack front shield generator at Waypoint Galen to 100%", true)
                 RT.flag("rezkov_m1_done", true)
                 MISSIONS.phase("rezkov", "m2_active")
                 setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock, breach their data relay -- the terminal is docked to the station exterior. Get me ninety days of traffic records on this storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. No time limit. Take your other work -- just do not forget this one."')
@@ -181,7 +181,7 @@ local function _spawnHackTerminal(st)
         end
     end
 
-    RT.shipLog("[Scan] Concord Data Terminal relay detected on Waypoint Galen exterior. Hack the station to access it.", "#A0C0FF")
+    RT.shipLog("[Scan] Concord Data Terminal relay detected on Waypoint Galen exterior. Hack the station's front shield generator to 100% to access it.", "#A0C0FF")
 end
 
 local _HACK_SYSTEMS = {
@@ -203,7 +203,7 @@ local function _checkHack(st, now)
         end
     end
 
-    if max_hack >= 0.75 then
+    if max_hack >= 1.0 then
         st.hack_done = true
         if RT.valid(st.hack_target) then st.hack_target:setCanBeDestroyed(true) end
         RT.shipLog("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")
@@ -587,7 +587,7 @@ M.phases.m2_active = {
         st.hack_done = false
         _spawnWaypoint(st)
         _spawnHackTerminal(st)
-        RT.setObjective("Hack the Concord Data Terminal near Waypoint Galen", true)
+        RT.setObjective("Hack front shield generator at Waypoint Galen to 100%", true)
     end,
 
     update = function(st, delta, now)
