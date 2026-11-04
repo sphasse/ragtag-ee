@@ -275,22 +275,6 @@ local function _updateTransports(now)
     end
 end
 
--- Every few minutes a freighter somewhere loses a crate.
-local function _updateAmbient(now)
-    if now < VERSE.next_ambient then return end
-    VERSE.next_ambient = now + VERSE.rng_live.float(300, 480)
-    for i = #VERSE.ambient_pods, 1, -1 do
-        if not RT.valid(VERSE.ambient_pods[i]) then table.remove(VERSE.ambient_pods, i) end
-    end
-    if #VERSE.ambient_pods >= 6 or #VERSE.transports == 0 then return end
-    local rec = VERSE.rng_live.pick(VERSE.transports)
-    if not RT.valid(rec.ship) or rec.ship:getDockedWith() then return end
-    local x, y = rec.ship:getPosition()
-    local dx, dy = vectorFromAngle(rec.ship:getHeading() + 180, 1500, true)
-    local pod = SALV.spawnPod(x + dx, y + dy, VERSE.rng_live.int(5, 10), SALV.POD_KINDS[1], 0)
-    pod:setCallSign("Lost crate")
-    table.insert(VERSE.ambient_pods, pod)
-end
 
 local function _routeCount(route, density_idx)
     return math.max(1, math.floor(route.count * _DENSITY_MULT[density_idx] + 0.5))
@@ -312,8 +296,6 @@ local function _killAll()
     end
     VERSE.transports    = {}
     VERSE.respawn_queue = {}
-    VERSE.ambient_pods  = {}
-    VERSE.next_ambient  = getScenarioTime() + 300
 end
 
 -- ─── Plugin lifecycle ─────────────────────────────────────────────────────────
@@ -341,7 +323,6 @@ function _P.update(state, delta, now)
     if now >= state.next_check then
         state.next_check = now + 2
         _updateTransports(now)
-        _updateAmbient(now)
     end
 end
 

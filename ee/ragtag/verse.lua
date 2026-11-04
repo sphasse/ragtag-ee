@@ -148,8 +148,6 @@ VERSE.discovered_this_session = {}
 VERSE.region = nil
 VERSE.last_region_check = -10
 VERSE.respawn_queue = {}
-VERSE.ambient_pods = {}
-VERSE.next_ambient = 300
 VERSE.session = 1
 
 local function buildStars()
@@ -361,6 +359,7 @@ local function buildWrecks(rng)
         end
     end
 end
+
 
 
 --------------------------------------------------------------------------------

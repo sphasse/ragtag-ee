@@ -183,12 +183,33 @@ local function _updateWrecks()
     end
 end
 
+-- ─── Ambient freight drops ────────────────────────────────────────────────────
+
+-- Every few minutes a freighter loses a crate — a minor salvage opportunity.
+local function _updateAmbient(state, now)
+    if now < state.next_ambient then return end
+    state.next_ambient = now + VERSE.rng_live.float(300, 480)
+    for i = #state.ambient_pods, 1, -1 do
+        if not RT.valid(state.ambient_pods[i]) then table.remove(state.ambient_pods, i) end
+    end
+    if #state.ambient_pods >= 6 or #VERSE.transports == 0 then return end
+    local rec = VERSE.rng_live.pick(VERSE.transports)
+    if not RT.valid(rec.ship) or rec.ship:getDockedWith() then return end
+    local x, y = rec.ship:getPosition()
+    local dx, dy = vectorFromAngle(rec.ship:getHeading() + 180, 1500, true)
+    local pod = _spawnPod(x + dx, y + dy, VERSE.rng_live.int(5, 10), _POD_KINDS[1], 0)
+    pod:setCallSign("Lost crate")
+    table.insert(state.ambient_pods, pod)
+end
+
 -- ─── Plugin lifecycle ─────────────────────────────────────────────────────────
 
 function _P.init(state)
     state.clusters       = {}
     state.next_check     = 0
     state.next_wreck_check = 0
+    state.ambient_pods   = {}
+    state.next_ambient   = 300
     state.density_idx    = WORLD.get("salvage", "density", 2)
     state.reward_idx     = WORLD.get("salvage", "reward",  2)
     state.pod_debt       = 0   -- fractional respawn debt from pod pickups
@@ -212,6 +233,7 @@ function _P.update(state, delta, now)
     if now >= state.next_wreck_check then
         state.next_wreck_check = now + 2
         _updateWrecks()
+        _updateAmbient(state, now)
     end
 
     if now < state.next_check then return end
@@ -290,7 +312,8 @@ end
 function _P.cleanup(state)
     -- Leave pods in the world; just clear tracking.
     -- Re-enabling resets state entirely and respawns the full set.
-    state.clusters = {}
+    state.clusters     = {}
+    state.ambient_pods = {}
 end
 
 WORLD.register(_P)
@@ -306,6 +329,3 @@ function SALV.setDensity(idx) WORLD.set("salvage", "density", math.max(1, math.m
 function SALV.getReward()     return WORLD.get("salvage", "reward",  2)                       end
 function SALV.setReward(idx)  WORLD.set("salvage", "reward",  math.max(1, math.min(3, idx))) end
 
--- Pod primitives exposed for other plugins (e.g. traffic ambient crate drops).
-SALV.POD_KINDS = _POD_KINDS
-SALV.spawnPod  = _spawnPod
