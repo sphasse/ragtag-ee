@@ -274,7 +274,7 @@ M.phases.transit = {
         RUMORS.removeCategory("WITNESS_HOOK")  -- player has the job; clear the hook rumors
         RT.shipLog("[Stasis] Pod aboard -- Kael Voss in stasis. Destination: Dustmote Salvage.", "#A0C0FF")
         RT.shipLog("[Engineering] Pod drawing 5 energy/sec. Keep energy above 50% to maintain stability.", "#FFAA00")
-        RT.setObjective("Reach Dustmote Salvage", true)
+        RT.setObjective("Reach Dustmote", true)
     end,
 
     update = function(st, delta, now)
@@ -506,7 +506,7 @@ M.phases.shroud_run = {
 M.phases.halcyon = {
     enter = function(st)
         st.phase_entered = getScenarioTime()
-        RT.setObjective("Dock at Halcyon Rest", true)
+        RT.setObjective("Dock: Halcyon Rest", true)
 
         local hx, hy = VERSE.at("Halcyon Rest", 8, 6)
         local buoy   = CpuShip():setTemplate("Flavia"):setFaction("Independent")

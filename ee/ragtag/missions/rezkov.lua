@@ -92,8 +92,8 @@ local function _spawnWaypoint(st)
         local phase = MISSIONS._cur_phase["rezkov"]
         local art = MISSIONS._state["rezkov"]
 
-        -- M1: initial meeting
-        if phase == "m1_navigate" and not RT.flag("rezkov_m1_done") then
+        -- Comms are phase-driven so GM can jump to any phase cleanly.
+        if phase == "m1_navigate" then
             if not src:isDocked(tgt) then
                 setCommsMessage('"Approach and dock. We do not do business at a distance."')
                 addCommsReply("Back", function() end)
@@ -108,7 +108,7 @@ local function _spawnWaypoint(st)
                     return
                 end
                 RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (-75, -52), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
-                RT.setObjective("Hack front shield generator at Waypoint Galen to 100%", true)
+                RT.setObjective("Hack front shield", true)
                 RT.flag("rezkov_m1_done", true)
                 MISSIONS.phase("rezkov", "m2_active")
                 setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock, breach their data relay -- the terminal is docked to the station exterior. Get me ninety days of traffic records on this storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. No time limit. Take your other work -- just do not forget this one."')
@@ -119,23 +119,18 @@ local function _spawnWaypoint(st)
                 addCommsReply("Back", function() end)
             end)
             return
-        end
-
-        -- M2: Rezkov remembers them
-        if RT.flag("rezkov_m1_done") then
-            local phase2 = MISSIONS._cur_phase["rezkov"]
-            if phase2 == "m2_active" then
-                setCommsMessage('"Waypoint Galen is not far. I am still waiting."')
-            elseif phase2 == "m2_deliver" then
-                setCommsMessage('"The job is done. Take the card to Thresh at Dustmote Salvage."')
-            else
-                setCommsMessage('"I will have more work. Keep flying."')
-            end
+        elseif phase == "m2_active" then
+            setCommsMessage('"Waypoint Galen is not far. I am still waiting."')
             addCommsReply("Understood.", function() end)
-            return
+        elseif phase == "m2_deliver" then
+            setCommsMessage('"The job is done. Take the card to Thresh at Dustmote Salvage."')
+            addCommsReply("Understood.", function() end)
+        elseif phase ~= nil then
+            setCommsMessage('"I will have more work. Keep flying."')
+            addCommsReply("Understood.", function() end)
+        else
+            setCommsMessage("[Rezkov's Waypoint] No response on this frequency.")
         end
-
-        setCommsMessage("[Rezkov's Waypoint] No response on this frequency.")
     end)
     RT.register(wp)
     st.waypoint = wp
@@ -200,7 +195,7 @@ local function _checkHack(st, now)
         RT.after(4, function()
             RT.shipLog("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
             RT.shipLog("[Mission] Deliver the storage card to Thresh at Dustmote Salvage.", "#A0C0FF")
-            RT.setObjective("Deliver storage card to Thresh at Dustmote Salvage", true)
+            RT.setObjective("Card to Thresh: Dustmote", true)
             MISSIONS.phase("rezkov", "m2_deliver")
         end, "rezkov_hack_msg2")
     end
@@ -307,12 +302,12 @@ local function _dustmoteHook(src, tgt, info)
         addCommsReply("Heard you were looking for an independent operator.", function(s2, t2)
             setCommsMessage('"There is someone who wants to meet you. Goes by Thresh -- local contact for a business associate. Word travels in the Drift, and your name has been mentioned.\n\nInterested in hearing more?"')
             addCommsReply("Sure, what\'s the job?", function(s3, t3)
-                setCommsMessage('"The associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHead bearing 20 from here until you hit a nebula cluster. What you are looking for is near there.\n\nMind what you say when you get there. He remembers everything."')
+                setCommsMessage('"The associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHead out from here at bearing 20 and you\'ll find what you are looking for in a nebula cloud.\n\nMind what you say when you get there. He remembers everything."')
                 addCommsReply("We\'ll head out.", function(s4, t4)
                     setCommsMessage('"Good. He will be expecting you."\n\nThresh turns back to work.')
                     addCommsReply("Understood.", function() end)
-                    RT.shipLog("[Navigation] Bearing 20. Find the nebula cluster. The Waypoint is inside.", "#A0C0FF")
-                    RT.setObjective("Follow the directions to the meeting point", true)
+                    RT.shipLog("[Navigation] Bearing 20. Find the nebula cloud.", "#A0C0FF")
+                    RT.setObjective("Find the waypoint", true)
                     RT.flag("rezkov_hook", true)
                     MISSIONS.phase("rezkov", "m1_navigate")
                 end)
@@ -364,7 +359,7 @@ local function _dustmoteHook(src, tgt, info)
                 addCommsReply("Understood.", function(s4, t4)
                     setCommsMessage("Thresh disappears into the back.")
                     RT.shipLog("[Rezkov Arc] M3: Freight run, Hob's Landing to Saint Brennan's Mission. 400cr on delivery.", "#A0C0FF")
-                    RT.setObjective("Pick up freight at Hob's Landing", true)
+                    RT.setObjective("Pick up at Hob's Landing", true)
                     RT.flag("rezkov_m3_accepted", true)
                 end)
             end)
@@ -385,7 +380,7 @@ local function _dustmoteHook(src, tgt, info)
                 addCommsReply("On it.", function(s4, t4)
                     setCommsMessage("Thresh nods. The comms close.")
                     RT.shipLog("[Rezkov Arc] M4: Destroy Concord Monitor 7, bearing 040, 8U from Dustmote. 450cr.", "#A0C0FF")
-                    RT.setObjective("Destroy Concord Monitor 7 near Dustmote", true)
+                    RT.setObjective("Destroy Monitor 7", true)
                     RT.flag("rezkov_m4_accepted", true)
                     if st then _spawnDrone(st) end
                 end)
@@ -407,7 +402,7 @@ local function _dustmoteHook(src, tgt, info)
                 addCommsReply("Understood.", function(s4, t4)
                     setCommsMessage("Thresh nods. The comms close.")
                     RT.shipLog("[Rezkov Arc] M5: Board CWS Meridian near Dustmote. Disable, board, choose: wipe files or take passenger. 600cr.", "#A0C0FF")
-                    RT.setObjective("Find and disable CWS Meridian near Dustmote", true)
+                    RT.setObjective("Disable CWS Meridian", true)
                     RT.flag("rezkov_m5_accepted", true)
                     if st then _spawnMeridian(st) end
                 end)
@@ -432,7 +427,7 @@ local function _hobsLandingHook(src, tgt, info)
         addCommsReply("Loading now.", function(s3, t3)
             setCommsMessage("The dockhand waves you toward the loading bay.")
             RT.shipLog("[Rezkov Arc] Consignment loaded. Destination: Saint Brennan's Mission.", "#A0C0FF")
-            RT.setObjective("Deliver consignment to Saint Brennan's Mission", true)
+            RT.setObjective("Deliver consignment", true)
             RT.flag("rezkov_m3_cargo", true)
         end)
     end)
@@ -567,8 +562,8 @@ M.phases.m1_navigate = {
     enter = function(st)
         RUMORS.removeCategory("REZKOV_HOOK")
         _spawnWaypoint(st)
-        RT.shipLog("[Navigation] Bearing 20. Find the nebula cluster. The Waypoint is inside.", "#A0C0FF")
-        RT.setObjective("Navigate to the meeting point", true)
+        RT.shipLog("[Navigation] Bearing 20. Find the nebula cloud.", "#A0C0FF")
+        RT.setObjective("Find the waypoint", true)
     end,
 }
 
@@ -577,7 +572,7 @@ M.phases.m2_active = {
         st.hack_done = false
         _spawnWaypoint(st)
         _spawnHackTerminal(st)
-        RT.setObjective("Hack front shield generator at Waypoint Galen to 100%", true)
+        RT.setObjective("Hack front shield", true)
     end,
 
     update = function(st, delta, now)
@@ -606,9 +601,9 @@ M.phases.m2_deliver = {
 M.phases.m3_active = {
     enter = function(st)
         if RT.flag("rezkov_m3_cargo") and not RT.flag("rezkov_m3_done") then
-            RT.setObjective("Deliver consignment to Saint Brennan's Mission", true)
+            RT.setObjective("Deliver consignment", true)
         elseif RT.flag("rezkov_m3_accepted") and not RT.flag("rezkov_m3_cargo") then
-            RT.setObjective("Pick up freight at Hob's Landing", true)
+            RT.setObjective("Pick up at Hob's Landing", true)
         end
     end,
 }
@@ -617,7 +612,7 @@ M.phases.m4_active = {
     enter = function(st)
         if RT.flag("rezkov_m4_accepted") and not RT.flag("rezkov_m4_done") then
             _spawnDrone(st)
-            RT.setObjective("Destroy Concord Monitor 7 near Dustmote", true)
+            RT.setObjective("Destroy Monitor 7", true)
         end
     end,
 
@@ -639,7 +634,7 @@ M.phases.m5_active = {
     enter = function(st)
         if RT.flag("rezkov_m5_accepted") and not RT.flag("rezkov_arc_done") then
             _spawnMeridian(st)
-            RT.setObjective("Find and disable CWS Meridian near Dustmote", true)
+            RT.setObjective("Disable CWS Meridian", true)
         end
     end,
 

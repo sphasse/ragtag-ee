@@ -211,7 +211,7 @@ M.phases.transit = {
                 JOBS.gridRef(ax, ay) ..
                 ". Their docking records terminal is on the outer hull. Concord patrols the Arbiter Line -- expect shake-downs.", "#A0C0FF")
         end
-        RT.setObjective("Reach Concord Station Arbiter", true)
+        RT.setObjective("Reach Stn. Arbiter", true)
     end,
 
     update = function(st, delta, now)
@@ -336,7 +336,7 @@ M.phases.extracted = {
         end)
 
         RT.hail(relay, "Encrypted relay from Marta Yuen. Open comms when you're clear of the area.", "Marta Yuen [relay]")
-        RT.setObjective("Respond to Marta Yuen", true)
+        RT.setObjective("Respond to Yuen", true)
     end,
 }
 
@@ -350,7 +350,7 @@ M.phases.deliver = {
             RT.shipLog("[Whistleblower] Tamsin Hollow at grid " ..
                 JOBS.gridRef(tx, ty) .. ". Marta's payment is waiting there.", "#A0C0FF")
         end
-        RT.setObjective("Dock at Tamsin Hollow", true)
+        RT.setObjective("Dock: Tamsin Hollow", true)
 
         RT.addStationHook("Tamsin Hollow", function(source, target)
             if not RT.isPlayer(source) then return end
