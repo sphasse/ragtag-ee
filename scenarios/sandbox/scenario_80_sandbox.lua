@@ -395,6 +395,8 @@ function addSessionGMFunctions()
     end)
 
     -- Reputation adjustment submenu
+    local showReputationFactionList  -- forward declaration (mutual recursion)
+
     local function showFactionDetail(faction)
         clearGMFunctions()
         addGMFunction("< Back to Factions", showReputationFactionList)
@@ -411,7 +413,7 @@ function addSessionGMFunctions()
         end
     end
 
-    local function showReputationFactionList()
+    showReputationFactionList = function()
         clearGMFunctions()
         addGMFunction("< Back to Main", function()
             clearGMFunctions()
