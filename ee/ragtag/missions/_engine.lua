@@ -195,6 +195,63 @@ end
 
 -- ── GM interface ──────────────────────────────────────────────────────────────
 
+-- Build a human-readable criteria status string for the GM popup.
+function MISSIONS._criteriaText(id)
+    local M = MISSIONS._registry[id]
+    local t = M and M.triggers
+    if not t then return "(no trigger conditions defined)" end
+
+    local lines = {"=== " .. M.name .. " -- Trigger Conditions ===\n"}
+
+    if t.rep_min then
+        for fac, min_val in pairs(t.rep_min) do
+            local cur = (RT.getReputation and RT.getReputation(fac)) or 0
+            local met = cur >= min_val
+            lines[#lines+1] = string.format("  %s %s rep >= %+d  (now: %+d)",
+                met and "[MET]" or "[ ? ]", fac, min_val, cur)
+        end
+    end
+
+    if t.rep_max then
+        for fac, max_val in pairs(t.rep_max) do
+            local cur = (RT.getReputation and RT.getReputation(fac)) or 0
+            local met = cur <= max_val
+            lines[#lines+1] = string.format("  %s %s rep <= %+d  (now: %+d)",
+                met and "[MET]" or "[ ? ]", fac, max_val, cur)
+        end
+    end
+
+    if t.upgrades_min then
+        local spent = _upgradeSpend()
+        local met   = spent >= t.upgrades_min
+        lines[#lines+1] = string.format("  %s Upgrade investment >= %dcr  (now: %dcr)",
+            met and "[MET]" or "[ ? ]", t.upgrades_min, spent)
+    end
+
+    if t.not_flagged then
+        for _, flag in ipairs(t.not_flagged) do
+            local val = RT.flag and RT.flag(flag)
+            local met = not val
+            local val_str = val and tostring(val) or "not set"
+            lines[#lines+1] = string.format("  %s Flag '%s' not set  (now: %s)",
+                met and "[MET]" or "[ ? ]", flag, val_str)
+        end
+    end
+
+    if t.custom then
+        local ok, result = pcall(t.custom, MISSIONS._state[id] or {})
+        local met = ok and result
+        lines[#lines+1] = string.format("  %s Custom condition", met and "[MET]" or "[ ? ]")
+    end
+
+    local overall = MISSIONS._checkTriggers(id)
+    local status  = MISSIONS._status[id]
+    lines[#lines+1] = string.format("\nResult: %s  |  Status: %s",
+        overall and "ALL MET" or "not yet met", status)
+
+    return table.concat(lines, "\n")
+end
+
 -- Add the single top-level "Missions..." button to the GM menu.
 -- backToMainFn: rebuilds the main GM screen (clearGMFunctions + addSessionGMFunctions).
 function MISSIONS.addGMButton(backToMainFn)
@@ -244,6 +301,12 @@ function MISSIONS._showDetail(id, backToMainFn)
 
     local status_lbl = status .. (phase and (" / " .. phase) or "")
     addGMFunction(M.name .. ": " .. status_lbl, function() end)
+
+    if M.triggers then
+        addGMFunction("Mission criteria", function()
+            addGMMessage(MISSIONS._criteriaText(id))
+        end)
+    end
 
     if status == "inactive" or status == "triggered" then
         addGMFunction("Start " .. M.name, function()
