@@ -287,7 +287,7 @@ local function _updateAmbient(now)
     if not RT.valid(rec.ship) or rec.ship:getDockedWith() then return end
     local x, y = rec.ship:getPosition()
     local dx, dy = vectorFromAngle(rec.ship:getHeading() + 180, 1500, true)
-    local pod = VERSE.spawnPod(x + dx, y + dy, VERSE.rng_live.int(5, 10), VERSE.POD_KINDS[1], 0)
+    local pod = SALV.spawnPod(x + dx, y + dy, VERSE.rng_live.int(5, 10), SALV.POD_KINDS[1], 0)
     pod:setCallSign("Lost crate")
     table.insert(VERSE.ambient_pods, pod)
 end

@@ -33,13 +33,88 @@ local _PODS_PER_RESPAWN = 4
 -- How often (seconds) the plugin checks for collection and reconciles settings.
 local _CHECK_INTERVAL = 30
 
+-- ─── Pod and cluster primitives ───────────────────────────────────────────────
+
+local _POD_KINDS = {
+    {kind = "credits", weight = 75, label = "Cargo pod"},
+    {kind = "missiles", weight = 10, label = "Munitions crate"},
+    {kind = "hull", weight = 10, label = "Hull patch kit"},
+    {kind = "data", weight = 5, label = "Encrypted data chip"},
+}
+
+local function _pickKind(rng)
+    local roll = rng.int(1, 100)
+    local acc = 0
+    for _, k in ipairs(_POD_KINDS) do
+        acc = acc + k.weight
+        if roll <= acc then return k end
+    end
+    return _POD_KINDS[1]
+end
+
+local function _spawnPod(x, y, value, kind_rec, tier)
+    local art = Artifact():setPosition(x, y):allowPickup(true)
+    local label = kind_rec.label
+    art:setCallSign(label)
+    local scanned
+    if kind_rec.kind == "credits" then
+        scanned = string.format("%s. Salvage value roughly %d credits.", label, value)
+    elseif kind_rec.kind == "missiles" then
+        scanned = "Military munitions crate. Compatible with your launchers."
+    elseif kind_rec.kind == "hull" then
+        scanned = "Emergency hull patch kit, still sealed."
+    else
+        scanned = "Encrypted data chip. Someone will pay well to read it, or to make sure nobody does."
+    end
+    art:setDescriptions("Small object", scanned)
+    art:setScanningParameters(1, 1)
+    art:onPickUp(function(obj, player)
+        if kind_rec.kind == "credits" then
+            RT.addCredits(value, "salvage", player)
+        elseif kind_rec.kind == "missiles" then
+            for _, w in ipairs({"Homing", "HVLI"}) do
+                player:setWeaponStorage(w, math.min(player:getWeaponStorageMax(w), player:getWeaponStorage(w) + (w == "Homing" and 2 or 3)))
+            end
+            player:addToShipLog("Salvage: munitions crate. Missiles restocked.", "#E0C060")
+        elseif kind_rec.kind == "hull" then
+            player:setHull(math.min(player:getHullMax(), player:getHull() + 25))
+            player:addToShipLog("Salvage: hull patch kit applied (+25 hull).", "#E0C060")
+        else
+            RT.addCredits(value * 2, "data chip", player)
+        end
+        if DIR then
+            DIR.emit("pickup", {label = label, kind = kind_rec.kind, value = value, tier = tier,
+                region = VERSE.region and VERSE.region.name or "open space"}, tier >= 2 and "normal" or "low")
+        end
+    end)
+    return art
+end
+
+-- value_mult scales credit values (0.5/1.0/2.0 for low/medium/high reward).
+-- Returns a list of spawned artifact objects so callers can track them.
+local function _spawnClusterRaw(cx, cy, tier, rng, value_mult)
+    value_mult = value_mult or 1.0
+    local t    = VERSE.SALVAGE_TIERS[tier]
+    local U    = VERSE.U
+    local n    = rng.int(t.pods[1], t.pods[2])
+    local arts = {}
+    for i = 1, n do
+        local a      = rng.float(0, 360)
+        local d      = rng.float(0.2, t.spread) * U
+        local dx, dy = vectorFromAngle(a, d, true)
+        local val    = math.max(1, math.floor(rng.int(t.value[1], t.value[2]) * value_mult + 0.5))
+        arts[#arts + 1] = _spawnPod(cx + dx, cy + dy, val, _pickKind(rng), tier)
+    end
+    return arts
+end
+
 -- ─── Internal helpers ─────────────────────────────────────────────────────────
 
 -- Spawn one cluster, store as a cluster record, and append to state.clusters.
 -- Returns the record.
 local function _spawnCluster(state, cx, cy, tier)
     local reward_idx = WORLD.get("salvage", "reward", 2)
-    local arts       = VERSE.spawnCluster(cx, cy, tier, VERSE.rng_live, _REWARD_MULT[reward_idx])
+    local arts       = _spawnClusterRaw(cx, cy, tier, VERSE.rng_live, _REWARD_MULT[reward_idx])
     local cl         = {pods = arts, tier = tier, alive = #arts > 0}
     state.clusters[#state.clusters + 1] = cl
     return cl
@@ -101,7 +176,7 @@ local function _updateWrecks()
         if not w.looted and RT.valid(w.ship) and RT.dist(p, w.ship) < 15000 and w.ship:isFullyScannedBy(p) then
             w.looted = true
             local x, y = w.ship:getPosition()
-            VERSE.spawnCluster(x, y, math.min(3, w.tier + 1), VERSE.rng_live)
+            _spawnClusterRaw(x, y, math.min(3, w.tier + 1), VERSE.rng_live)
             p:addToShipLog("Science: salvage located around " .. w.ship:getCallSign() .. ".", "#80C0FF")
             if DIR then DIR.emit("wreck_scanned", {wreck = w.ship:getCallSign(), tier = w.tier}, "low") end
         end
@@ -230,3 +305,7 @@ function SALV.getDensity()    return WORLD.get("salvage", "density", 2)         
 function SALV.setDensity(idx) WORLD.set("salvage", "density", math.max(1, math.min(3, idx))) end
 function SALV.getReward()     return WORLD.get("salvage", "reward",  2)                       end
 function SALV.setReward(idx)  WORLD.set("salvage", "reward",  math.max(1, math.min(3, idx))) end
+
+-- Pod primitives exposed for other plugins (e.g. traffic ambient crate drops).
+SALV.POD_KINDS = _POD_KINDS
+SALV.spawnPod  = _spawnPod
