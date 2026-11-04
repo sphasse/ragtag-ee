@@ -98,30 +98,23 @@ local function _spawnWaypoint(st)
                 return
             end
             setCommsMessage('"You found it.\n\nI am Orlan Rezkov. Reputation got you to my door. What you do after the door opens -- that is what matters.\n\nI need something from a Concord station. Not a fleet base, nothing dramatic. Concord Waypoint Galen on the Arbiter Line. I want the traffic log -- ninety days of docking records. I need to know if someone in my organization is talking.\n\nI will tell you this: your name does not raise flags with their patrols. Keep it that way until the job is finished."')
-            addCommsReply("Who are you?", function(s2, t2)
-                setCommsMessage('"A businessman. I move things, arrange things. Sometimes I need people who can do what my people cannot do.\n\nReputation is the currency out here. You have earned some. Now you can spend it."')
-                addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
-            end)
-            addCommsReply("What exactly do we do?", function(s2, t2)
+            addCommsReply("We're up for the challenge.", function(s2, t2)
                 local concord_rep = RT.getReputation("Concord") or 0
                 if concord_rep < 0 then
                     setCommsMessage('"Not yet. The patrols are watching you. When your name stops raising flags, come back."')
                     addCommsReply("Understood.", function(s3, t3) end)
                     return
                 end
+                RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (-75, -52), Arbiter Line. Hack data terminal on station exterior. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
+                RT.setObjective("Hack Concord Data Terminal at Waypoint Galen", true)
+                RT.flag("rezkov_m1_done", true)
+                MISSIONS.phase("rezkov", "m2_active")
                 setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock, breach their data relay -- the terminal is docked to the station exterior. Get me ninety days of traffic records on this storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. No time limit. Take your other work -- just do not forget this one."')
-                addCommsReply("We will do it.", function(s3, t3)
-                    RT.shipLog("[Rezkov] Job accepted: hack Concord data terminal at Waypoint Galen. Deliver card to Thresh at Dustmote. 600cr.", "#A0C0FF")
-                    RT.setObjective("Hack Concord Data Terminal at Waypoint Galen", true)
-                    RT.flag("rezkov_m1_done", true)
-                    MISSIONS.phase("rezkov", "m2_active")
-                    setCommsMessage('"Good. I will be watching."')
-                    addCommsReply("Understood.", function() end)
-                end)
-                addCommsReply("Not interested.", function(s3, t3)
-                    setCommsMessage('"Disappointing. The door stays open. For now."')
-                    addCommsReply("Back", function() end)
-                end)
+                addCommsReply("Understood.", function() end)
+            end)
+            addCommsReply("Not our kind of work.", function(s2, t2)
+                setCommsMessage('"The door stays open. Come back when you change your mind."')
+                addCommsReply("Back", function() end)
             end)
             return
         end
