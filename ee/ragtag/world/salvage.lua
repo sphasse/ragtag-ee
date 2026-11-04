@@ -27,6 +27,13 @@ local _REWARD_NAMES  = {"Low", "Medium", "High"}
 local _REWARD_MULT   = {0.5, 1.0, 2.0}
 local _DENSITY_MULT  = {0.5, 1.0, 2.0}
 
+local _SALVAGE_TIERS = {
+    [0] = {pods = {3, 5}, value = {5,  10}, spread = 1.5},
+    [1] = {pods = {4, 5}, value = {7,  12}, spread = 2.0},
+    [2] = {pods = {4, 6}, value = {9,  15}, spread = 2.5},
+    [3] = {pods = {5, 7}, value = {13, 20}, spread = 3.0},
+}
+
 -- How many pods must be collected before one new cluster is spawned.
 local _PODS_PER_RESPAWN = 4
 
@@ -94,7 +101,7 @@ end
 -- Returns a list of spawned artifact objects so callers can track them.
 local function _spawnClusterRaw(cx, cy, tier, rng, value_mult)
     value_mult = value_mult or 1.0
-    local t    = VERSE.SALVAGE_TIERS[tier]
+    local t    = _SALVAGE_TIERS[tier]
     local U    = VERSE.U
     local n    = rng.int(t.pods[1], t.pods[2])
     local arts = {}

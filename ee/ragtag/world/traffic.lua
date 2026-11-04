@@ -23,6 +23,14 @@ local _DENSITY_MULT  = {0.5, 1.0, 2.0}
 
 local _TYPES = {"Personnel", "Goods", "Garbage", "Equipment", "Fuel"}
 
+local _CARGO = {
+    Personnel = "passengers and their worldly goods",
+    Goods     = "trade goods",
+    Garbage   = "scrap metal for the smelters",
+    Equipment = "machine parts and tools",
+    Fuel      = "fuel cells",
+}
+
 local _YARDS = {
     "Rim Works Collective, Ashgrave",
     "Vesper Industrial, Port Vesper",
@@ -79,7 +87,7 @@ local function _transportComms(source, target, rec)
         setCommsMessage("\"" .. target:getCallSign() .. " here. Go ahead, neighbour.\"")
     end
     addCommsReply("Where are you headed?", function(s, t)
-        setCommsMessage(string.format("\"Bound for %s with a hold full of %s.\"", dest, VERSE.CARGO[rec.kind]))
+        setCommsMessage(string.format("\"Bound for %s with a hold full of %s.\"", dest, _CARGO[rec.kind]))
         addCommsReply("Back", function(s2, t2) _transportComms(s2, t2, rec) end)
     end)
     addCommsReply("Heard any news?", function(s, t)
@@ -155,7 +163,7 @@ local function _spawnTransport(route, rng, near_station)
     local yard = rng.pick(_YARDS)
     local age  = rng.int(8, 45)
     local cap  = rng.pick(_CAPTAINS)
-    local scan2 = string.format("Currently hauling %s. Captain %s — %s", VERSE.CARGO[kind], cap.name, cap.bio)
+    local scan2 = string.format("Currently hauling %s. Captain %s — %s", _CARGO[kind], cap.name, cap.bio)
     if #scan2 > 200 then scan2 = string.sub(scan2, 1, 197) .. "..." end
     s:setDescriptions(
         string.format("%s. %s, %d years in service.", tmpl, yard, age),

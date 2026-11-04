@@ -120,22 +120,6 @@ end
 
 
 
-VERSE.SALVAGE_TIERS = {
-    [0] = {pods = {3, 5}, value = {5,  10}, spread = 1.5},
-    [1] = {pods = {4, 5}, value = {7,  12}, spread = 2.0},
-    [2] = {pods = {4, 6}, value = {9,  15}, spread = 2.5},
-    [3] = {pods = {5, 7}, value = {13, 20}, spread = 3.0},
-}
-
-
-VERSE.CARGO = {
-    Personnel = "passengers and their worldly goods",
-    Goods = "trade goods",
-    Garbage = "scrap metal for the smelters",
-    Equipment = "machine parts and tools",
-    Fuel = "fuel cells",
-}
-
 
 --------------------------------------------------------------------------------
 -- Build
