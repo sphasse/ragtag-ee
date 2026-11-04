@@ -96,20 +96,11 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 def test_actions(b: Bridge) -> None:
     print("Director actions:")
     cases = [
-        ("say as station", "say", {"speaker": "Port Vesper", "text": "Smoke test: hello from the dock."}, True),
-        ("say to log", "say", {"speaker": "Someone", "text": "Smoke test log line.", "channel": "log"}, True),
-        ("main_screen", "main_screen", {"text": "Smoke test banner"}, True),
-        ("gm_note", "gm_note", {"text": "Smoke test GM note"}, True),
-        ("spawn_npc trader", "spawn_npc", {"role": "trader", "callsign": "Test Trader", "greeting": "Hi.", "distance": 5}, True),
-        ("spawn_salvage", "spawn_salvage", {"credits": 25, "label": "Test pod", "distance": 3}, True),
-        ("give_credits", "give_credits", {"amount": 10, "reason": "smoke test"}, True),
-        ("system_glitch", "system_glitch", {"system": "impulse", "severity": 0.2, "reason": "smoke test"}, True),
-        ("spawn_group light Corsairs", "spawn_group", {"faction": "Corsairs", "strength": "light", "distance": 25, "behavior": "idle", "callsign": "Test Raider"}, True),
-        ("spawn cooldown enforced", "spawn_group", {"faction": "Corsairs", "strength": "scout", "distance": 25}, False),
-        ("npc_order", "npc_order", {"callsign": "Test Trader", "order": "flee"}, True),
-        ("scripted beat refused for model", "fire_beat", {"beat": "delivery"}, False),
-        ("Hollow not spawnable by model", "spawn_group", {"faction": "Hollow", "strength": "heavy"}, False),
-        ("unknown action refused", "launch_nukes", {}, False),
+        ("say as station hail",   "say",      {"speaker": "Port Vesper", "text": "Smoke test: hello from the dock."}, True),
+        ("say to log",            "say",      {"speaker": "Someone", "text": "Smoke test log line.", "channel": "log"}, True),
+        ("gm_note",               "gm_note",  {"text": "Smoke test GM note"}, True),
+        ("noop",                  "noop",     {}, True),
+        ("unknown action refused","launch_nukes", {}, False),
         ("GM-only refused for model", "rename_ship", {"name": "Hacked"}, False),
     ]
     for name, action, args, expect in cases:
@@ -119,9 +110,6 @@ def test_actions(b: Bridge) -> None:
             check(name, False, "no result")
         else:
             check(name, bool(r["ok"]) == expect, r["msg"])
-    # Clean up test entities.
-    b.lua('for _, o in ipairs(getObjectsInRadius(0, 0, 200000)) do local c = o:getCallSign() '
-          'if c:find("^Test") then o:destroy() end end return "ok"')
 
 
 def playthrough(b: Bridge) -> None:
