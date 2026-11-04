@@ -309,7 +309,7 @@ local function _dustmoteHook(src, tgt, info)
 
     -- M1 hook phase: The Fixer makes contact
     if phase == "hook" and not RT.flag("rezkov_declined") then
-        addCommsReply("Any work available? (asking around)", function(s2, t2)
+        addCommsReply("Heard you were looking for an independent operator.", function(s2, t2)
             setCommsMessage('"There is someone who wants to meet you. Goes by Thresh -- local contact for a business associate. Word travels in the Drift, and your name has been mentioned.\n\nInterested in hearing more?"')
             addCommsReply("Sure, what\'s the job?", function(s3, t3)
                 setCommsMessage('"The associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nDirections:\n\nFrom Dustmote Salvage, hold bearing 165 for 20 units. Then bearing 185 for 15 units. Then bearing 100 for 8 units. When you can see nebula, you are close.\n\nThe Waypoint is inside. Mind what you say when you get there. He remembers everything."')
