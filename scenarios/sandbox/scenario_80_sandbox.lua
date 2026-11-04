@@ -450,6 +450,8 @@ function addSessionGMFunctions()
     local showSalvageMenu
     local showTrafficMenu
     local showJobsMenu
+    local showUpgradesMenu
+    local showShipUpgradesMenu
 
     -- Ordered zone list with short display names for GM buttons.
     local _ZONE_ORDER = {
@@ -616,6 +618,74 @@ function addSessionGMFunctions()
         end)
     end
     addGMFunction("Jobs...", showJobsMenu)
+
+    -- Upgrades submenu
+    local function _revokeUpgrade(id)
+        local new_list = {}
+        for _, uid in ipairs(RT.campaign.upgrades) do
+            if uid ~= id then new_list[#new_list + 1] = uid end
+        end
+        RT.campaign.upgrades = new_list
+        RT.forEachPlayer(function(p)
+            local x, y  = p:getPosition()
+            local rot   = p:getRotation()
+            local cs    = p:getCallSign()
+            local fac   = p:getFaction()
+            p:setTemplate(RT.PLAYER_TEMPLATE)
+            p:setCallSign(cs)
+            p:setFaction(fac)
+            p:setPosition(x, y)
+            p:setRotation(rot)
+            for _, uid in ipairs(RT.campaign.upgrades) do RT.applyUpgrade(p, uid) end
+        end)
+        RT.saveCampaign()
+        local u = RT.upgradeById(id)
+        if u then RT.shipLog("Upgrade removed: " .. u.name, "#FF8080") end
+    end
+
+    showShipUpgradesMenu = function(ship_cs)
+        clearGMFunctions()
+        addGMFunction("< Back to Ships", function() showUpgradesMenu() end)
+        for _, u in ipairs(RT.UPGRADES) do
+            local owned  = RT.hasUpgrade(u.id)
+            local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires)
+            local cap_id = u.id
+            local label
+            if owned then
+                label = "[*] " .. u.name
+            elseif locked then
+                label = u.name .. " [locked]"
+            else
+                label = u.name .. " (" .. u.cost .. "cr)"
+            end
+            addGMFunction(label, function()
+                if owned then
+                    _revokeUpgrade(cap_id)
+                elseif not locked then
+                    RT.grantUpgrade(cap_id)
+                end
+                showShipUpgradesMenu(ship_cs)
+            end)
+        end
+    end
+
+    showUpgradesMenu = function()
+        clearGMFunctions()
+        addGMFunction("< Back to Main", function()
+            clearGMFunctions()
+            addSessionGMFunctions()
+        end)
+        local count = 0
+        RT.forEachPlayer(function(p)
+            count = count + 1
+            local cs = p:getCallSign()
+            addGMFunction(cs, function() showShipUpgradesMenu(cs) end)
+        end)
+        if count == 0 then
+            addGMFunction("(no active ships)", function() end)
+        end
+    end
+    addGMFunction("Ship Upgrades...", showUpgradesMenu)
 
     MISSIONS.addGMButton(function()
         clearGMFunctions()
