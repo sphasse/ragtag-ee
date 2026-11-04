@@ -108,7 +108,7 @@ local function _spawnWaypoint(st)
                     return
                 end
                 RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (-75, -52), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
-                RT.setObjective("Hack front shield", true)
+                RT.setObjective("Hack Waypoint Galen", true)
                 RT.flag("rezkov_m1_done", true)
                 MISSIONS.phase("rezkov", "m2_active")
                 setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock, breach their data relay -- the terminal is docked to the station exterior. Get me ninety days of traffic records on this storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. No time limit. Take your other work -- just do not forget this one."')
@@ -195,7 +195,7 @@ local function _checkHack(st, now)
         RT.after(4, function()
             RT.shipLog("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
             RT.shipLog("[Mission] Deliver the storage card to Thresh at Dustmote Salvage.", "#A0C0FF")
-            RT.setObjective("Card to Thresh: Dustmote", true)
+            RT.setObjective("Card to Thresh @ Dustmote", true)
             MISSIONS.phase("rezkov", "m2_deliver")
         end, "rezkov_hack_msg2")
     end
@@ -572,7 +572,7 @@ M.phases.m2_active = {
         st.hack_done = false
         _spawnWaypoint(st)
         _spawnHackTerminal(st)
-        RT.setObjective("Hack front shield", true)
+        RT.setObjective("Hack Waypoint Galen", true)
     end,
 
     update = function(st, delta, now)
