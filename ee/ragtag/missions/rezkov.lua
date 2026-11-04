@@ -184,26 +184,15 @@ local function _spawnHackTerminal(st)
     RT.shipLog("[Scan] Concord Data Terminal relay detected on Waypoint Galen exterior. Hack the station's front shield generator to 100% to access it.", "#A0C0FF")
 end
 
-local _HACK_SYSTEMS = {
-    "reactor","beamweapons","missilesystem","maneuver",
-    "impulse","warp","jumpdrive","frontshield","rearshield",
-}
-
 local function _checkHack(st, now)
     if st.hack_done then return end
     local target = st.galen or st.hack_target
     if not RT.valid(target) then return end
 
-    local max_hack = 0
-    for _, sys in ipairs(_HACK_SYSTEMS) do
-        local ok, has = pcall(function() return target:hasSystem(sys) end)
-        if ok and has then
-            local ok2, lvl = pcall(function() return target:getSystemHackedLevel(sys) end)
-            if ok2 and lvl and lvl > max_hack then max_hack = lvl end
-        end
-    end
+    local ok, lvl = pcall(function() return target:getSystemHackedLevel("frontshield") end)
+    local hack_lvl = (ok and lvl) and lvl or 0
 
-    if max_hack >= 1.0 then
+    if hack_lvl >= 1.0 then
         st.hack_done = true
         if RT.valid(st.hack_target) then st.hack_target:setCanBeDestroyed(true) end
         RT.shipLog("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")
