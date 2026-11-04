@@ -285,7 +285,7 @@ local function buildGarrisons()
                 s:setCommsFunction(function() setCommsMessage("A burst of compressed tone. Then nothing.") end)
                 s:setDescriptions("No transponder.", "Hull configuration matches no registry. Emissions are... rhythmic.")
             elseif g.fac == "Concord" then
-                s:setCommsFunction(VERSE.concordPatrolComms)
+                s:setCommsFunction(concordPatrolComms)
             elseif g.fac == "Corsairs" then
                 s:setCommsFunction(function(source, target)
                     setCommsMessage("\"Corsair space, little freighter. Your cargo or your hull - we're easy either way.\"")
@@ -299,7 +299,7 @@ local function buildGarrisons()
     return n
 end
 
-function VERSE.concordPatrolComms(source, target)
+local function concordPatrolComms(source, target)
     if RT.flag("wanted") then
         setCommsMessage("\"" .. source:getCallSign() .. ", your transponder is flagged. Keep your distance and keep moving.\"")
     else
