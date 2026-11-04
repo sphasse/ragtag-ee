@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 FACTIONS = ["Corsairs", "Independent", "Concord", "Unknown"]
-SYSTEMS = ["reactor", "beams", "missiles", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield"]
 
 
 @dataclass
@@ -47,78 +46,10 @@ _add(Action("say", "Speak to the crew as a named character. If the speaker is a 
     "text": Arg("str", True, max_len=500, help="what they say; 1-3 short sentences"),
     "channel": Arg("enum", choices=["hail", "log"], help="default hail"),
 }))
-_add(Action("main_screen", "Short banner on every main screen. Use rarely, for big moments.", {
-    "text": Arg("str", True, max_len=120),
-}))
 _add(Action("gm_note", "Private message to the human game master explaining what you are doing or suggesting something.", {
     "text": Arg("str", True, max_len=400),
 }))
-_add(Action("spawn_group", "Spawn a group of ships. Hostile factions attack by default. Subject to a hostile budget and cooldown.", {
-    "faction": Arg("enum", True, choices=FACTIONS),
-    "strength": Arg("enum", True, choices=["scout", "light", "medium", "heavy"], help="scout=1 ship, light=2, medium=3, heavy=4"),
-    "near": Arg("str", max_len=40, help="'player' (default) or a callsign"),
-    "distance": Arg("float", lo=6, hi=30, help="units from anchor, default 12"),
-    "side": Arg("enum", choices=["ahead", "behind", "any"]),
-    "behavior": Arg("enum", choices=["attack", "patrol", "idle", "flee", "follow"]),
-    "callsign": Arg("str", max_len=24, help="optional name for the leader"),
-}))
-_add(Action("spawn_npc", "Spawn one non-hostile NPC ship the crew can hail. When hailed, you will get an npc_hailed event and should answer with 'say' using its callsign as speaker.", {
-    "role": Arg("enum", True, choices=["trader", "patrol", "derelict", "stranger"]),
-    "faction": Arg("enum", choices=FACTIONS),
-    "callsign": Arg("str", max_len=24),
-    "near": Arg("str", max_len=40),
-    "distance": Arg("float", lo=3, hi=25),
-    "side": Arg("enum", choices=["ahead", "behind", "any"]),
-    "greeting": Arg("str", max_len=300, help="first line shown when the crew hails them"),
-    "description": Arg("str", max_len=300, help="what Science sees on a scan"),
-}))
-_add(Action("spawn_salvage", "Place a pick-up-able cargo pod worth a few credits.", {
-    "near": Arg("str", max_len=40),
-    "distance": Arg("float", lo=2, hi=20),
-    "side": Arg("enum", choices=["ahead", "behind", "any"]),
-    "credits": Arg("int", lo=0, hi=150),
-    "label": Arg("str", max_len=40),
-    "description": Arg("str", max_len=200),
-}))
-_add(Action("give_credits", "Pay or fine the crew. Positive amounts are capped per session.", {
-    "amount": Arg("int", True, lo=-300, hi=300),
-    "reason": Arg("str", max_len=60),
-}))
-_add(Action("system_glitch", "Damage one ship system a little so Engineering has a problem to solve. Has a cooldown. Justify it in-fiction.", {
-    "system": Arg("enum", True, choices=SYSTEMS),
-    "severity": Arg("float", lo=0.1, hi=0.5),
-    "reason": Arg("str", max_len=120, help="shown in the ship's log"),
-}))
-_add(Action("fire_beat", "Trigger one of the scenario's story beats that is marked ai=true and not yet fired.", {
-    "beat": Arg("str", True, max_len=40),
-}))
-_add(Action("npc_order", "Give an order to an NPC you spawned (or one the scenario lets you control).", {
-    "callsign": Arg("str", True, max_len=40),
-    "order": Arg("enum", True, choices=["attack", "flee", "idle", "follow", "patrol", "dock"]),
-    "target": Arg("str", max_len=40, help="station callsign for dock"),
-}))
 _add(Action("noop", "Do nothing this time.", {}))
-_add(Action("create_mission", "Create a director-driven delivery or escort mission. The crew must fly from the origin to the destination and dock there. Events fire automatically at 1/3 and 2/3 of the route. Pay is awarded on docking. Use sparingly: one or two active at a time.", {
-    "from_cs":         Arg("str",   True,  max_len=40,  help="callsign of the origin station or NPC"),
-    "to_cs":           Arg("str",   True,  max_len=40,  help="callsign of the destination station or NPC"),
-    "cargo":           Arg("str",   False, max_len=80,  help="what is being transported, e.g. 'medical supplies'"),
-    "reward":          Arg("int",   False, lo=50, hi=500, help="credits paid on completion, default 120"),
-    "intro":           Arg("str",   False, max_len=400, help="first thing the origin character says to kick off the job"),
-    "speaker":         Arg("str",   False, max_len=40,  help="who speaks the intro; defaults to from_cs"),
-    "event_1":         Arg("str",   False, max_len=400, help="message at ~1/3 of the route (optional)"),
-    "event_1_speaker": Arg("str",   False, max_len=40,  help="speaker for event_1; defaults to from_cs"),
-    "event_2":         Arg("str",   False, max_len=400, help="message at ~2/3 of the route (optional)"),
-    "event_2_speaker": Arg("str",   False, max_len=40,  help="speaker for event_2; defaults to from_cs"),
-}))
-_add(Action("say_sequence", "Queue several lines from one speaker at timed intervals. Use this for any encounter that needs more than one NPC line — taunts, negotiations, reveals. One LLM call covers the whole interaction; no further calls needed.", {
-    "speaker": Arg("str", True, max_len=40, help="character name or ship/station callsign"),
-    "lines": Arg("list", True, max_len=8, help='[{"text":"...","delay":5}, ...] — first line fires immediately; delay is seconds after the previous line'),
-}))
-_add(Action("comms_tree", "Pre-load a reply tree onto a director NPC so the crew gets instant answers when they hail. Use right after spawning the NPC. No LLM round-trip at hail time.", {
-    "callsign": Arg("str", True, max_len=24, help="callsign of the NPC"),
-    "opening": Arg("str", True, max_len=300, help="what the NPC says when the crew opens comms"),
-    "options": Arg("list", True, max_len=4, help='[{"label":"What do you want?","reply":"Credits, like everyone."}] — up to 4 crew choices and NPC responses'),
-}))
 
 # GM-only: the console can send these, the model cannot.
 _add(Action("set_objective", "Set the crew's displayed objective.", {"text": Arg("str", True, max_len=160)}, llm_allowed=False))

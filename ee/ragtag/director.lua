@@ -670,26 +670,4 @@ function DIR.addGMFunctions()
     end)
 end
 
--- NPC order helper shared by spawn_group and npc_order actions.
-function DIR.orderGroup(callsigns, behavior)
-    local leader = nil
-    for i, cs in ipairs(callsigns) do
-        local s = RT.find(cs)
-        if RT.valid(s) then
-            if behavior == "attack" and RT.valid(RT.player) then
-                s:orderAttack(RT.player)
-            elseif behavior == "patrol" then
-                s:orderRoaming()
-            elseif behavior == "flee" then
-                s:orderRetreat()
-            elseif behavior == "follow" and RT.valid(RT.player) then
-                s:orderDefendTarget(RT.player)
-            else
-                if leader ~= nil then s:orderFlyFormation(leader, (i - 1) * 300, 300) else s:orderIdle() end
-            end
-            if leader == nil then leader = s end
-        end
-    end
-end
-
 require("ragtag/director/actions/index.lua")
