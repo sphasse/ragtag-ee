@@ -45,6 +45,7 @@ the cooldown so quest hooks always reach the player; `once=true` rumors
 self-remove after first delivery.
 
 **WORLD plugins** run every frame and manage their own state. Current plugins:
+`rumors` (information economy: rumor pool, injected quest hooks, delivery cooldowns),
 `proximity` (zone-based faction patrols with per-zone intensity),
 `defenders` (loitering escorts at Concord/Independent stations),
 `salvage` (dynamic debris clusters with density/reward settings), and

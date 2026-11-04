@@ -255,6 +255,7 @@ RUMORS.no_news = {
 -- Priority >= 2 rumors bypass the cooldown so quest hooks always cut through.
 -- Background cycling (priority 1) is subject to the per-source cooldown.
 function RUMORS.get(callsign, source_faction)
+    if WORLD and not WORLD.isEnabled("rumors") then return nil end
     -- Collect injected rumors matching the source faction, priority >= 2
     local high = {}
     for _, r in ipairs(RUMORS._injected) do

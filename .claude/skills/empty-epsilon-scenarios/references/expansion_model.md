@@ -67,6 +67,7 @@ toggled on/off by the GM at runtime. Current plugins:
 
 | id | Purpose |
 |---|---|
+| `rumors` | Information economy: background rumor pool, injected quest hooks, delivery cooldowns |
 | `defenders` | One MT52 Hornet loiters at each Concord/Independent station; respawns |
 | `proximity` | Zone-based faction patrols; per-zone intensity (None/Low/Medium/High) |
 | `salvage` | Dynamic debris clusters; density (Low/Medium/High) and reward settings |

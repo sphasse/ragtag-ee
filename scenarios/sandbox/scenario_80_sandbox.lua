@@ -26,7 +26,6 @@ require("ragtag/director.lua")
 require("ragtag/jobs.lua")
 require("ragtag/missions.lua")
 require("ragtag/world.lua")
-require("ragtag/rumors.lua")
 require("ragtag/ship_templates.lua")  -- custom playership templates; must load before init
 
 local SESSION_ID = "sandbox"
@@ -57,7 +56,7 @@ local S = {
 -- Rumors and wreck logs
 --------------------------------------------------------------------------------
 
-local RUMORS = {}
+local WreckLog = {}
 
 -- Wreck story fragments, keyed by callsign.
 local _WRECK_LOGS = {
@@ -87,7 +86,7 @@ local _WRECK_LOGS = {
 
 local _wrecks_logged = {}  -- callsign -> true
 
-function RUMORS.checkWrecks()
+function WreckLog.checkWrecks()
     if not RT.valid(RT.player) then return end
     for _, entry in ipairs(VERSE.wrecks) do
         local s = entry.ship
@@ -444,6 +443,7 @@ function addSessionGMFunctions()
 
     -- World Plugins submenu (forward-declared so zone menus can reference back)
     local showWorldPluginsMenu
+    local showRumorsMenu
     local showDefendersMenu
     local showProximityMenu
     local showSpawnZonesMenu
@@ -483,6 +483,20 @@ function addSessionGMFunctions()
                 showZoneDetailMenu(cap_zn)
             end)
         end
+    end
+
+    showRumorsMenu = function()
+        clearGMFunctions()
+        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
+        local rum_on = WORLD.isEnabled("rumors")
+        addGMFunction("Rumors: " .. (rum_on and "ON" or "OFF"), function()
+            if rum_on then WORLD.disable("rumors") else WORLD.enable("rumors") end
+            showRumorsMenu()
+        end)
+        addGMFunction("Clear injected", function()
+            RUMORS._injected = {}
+            showRumorsMenu()
+        end)
     end
 
     showDefendersMenu = function()
@@ -576,6 +590,7 @@ function addSessionGMFunctions()
             addSessionGMFunctions()
         end)
 
+        addGMFunction("Rumors...",           function() showRumorsMenu()     end)
         addGMFunction("Station Defenders...", function() showDefendersMenu()  end)
         addGMFunction("Proximity Spawns...", function() showProximityMenu()  end)
         addGMFunction("Salvage...",          function() showSalvageMenu()    end)
@@ -781,6 +796,6 @@ function update(delta)
     JOBS.update()
     MISSIONS.update(delta)
     WORLD.update(delta)
-    RUMORS.checkWrecks()
+    WreckLog.checkWrecks()
 
 end
