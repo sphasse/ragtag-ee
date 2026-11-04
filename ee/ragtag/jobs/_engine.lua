@@ -339,6 +339,10 @@ function JOBS.update()
                 if mod and mod.update then
                     local result = mod.update(m, entry, {now=now, jobs=JOBS})
                     if result == "remove" then
+                        if m.origin_faction then
+                            RT.addReputation(m.origin_faction, -m.reward, "failed: " .. m.short)
+                        end
+                        if mod.cleanup then pcall(mod.cleanup, m) end
                         JOBS.untrack(m.id)
                         table.remove(JOBS._active, i)
                         JOBS.updateObj()
