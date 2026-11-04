@@ -676,6 +676,27 @@ function RT.addStationHook(callsign, fn)
     if info then table.insert(info.hooks, fn) end
 end
 
+-- Returns a one-line reputation-flavored aside appended to the station greeting,
+-- or nil when standing is neutral. Only Concord and Independent have voiced drift.
+local function _repDrift(source, faction)
+    local rep = RT.getReputation(faction)
+    local cs  = source:getCallSign()
+    if faction == "Concord" then
+        if     rep >  25 then return '"Your record here is noted, ' .. cs .. '. We appreciate crews that keep their word."'
+        elseif rep >  10 then return '"Welcome, ' .. cs .. '. You\'re known here."'
+        elseif rep < -25 then return '"This channel is monitored, ' .. cs .. '. State your business and go."'
+        elseif rep < -10 then return '"We\'re watching your transponder, ' .. cs .. '. Keep this brief."'
+        end
+    elseif faction == "Independent" then
+        if     rep >  25 then return '"You\'ve made some friends out here, ' .. cs .. '. That matters."'
+        elseif rep >  10 then return '"Word\'s gotten around. Good word, in your case."'
+        elseif rep < -25 then return '"You\'re not exactly popular right now. What do you need?"'
+        elseif rep < -10 then return '"Heard a few things about your crew lately. Not all of them good."'
+        end
+    end
+    return nil
+end
+
 function RT.stationComms(source, target)
     local info = RT.stations[target:getCallSign()] or {flavor = "", hooks = {}}
     if source:isEnemy(target) then
@@ -683,6 +704,8 @@ function RT.stationComms(source, target)
         return
     end
     local msg = info.flavor ~= "" and info.flavor or ("This is " .. target:getCallSign() .. ". State your business.")
+    local drift = _repDrift(source, target:getFaction())
+    if drift then msg = msg .. "\n\n" .. drift end
     if source:isDocked(target) then
         msg = msg .. "\n\nYou're docked. Balance: " .. RT.credits(source) .. " credits."
     end

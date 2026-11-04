@@ -357,7 +357,7 @@ end
 
 function M.update(m, entry, ctx)
     -- Cargo pod destroyed before pickup → mission lost.
-    if m.cargo_obj and not RT.valid(m.cargo_obj) then
+    if m.cargo_obj and not RT.valid(m.cargo_obj) and not m._found then
         RT.shipLog("[Salvage] Cargo destroyed — contract lost.", "#FF8080")
         _cleanCluster(m)
         return "remove"
@@ -401,7 +401,6 @@ function M.update(m, entry, ctx)
                     drop:setDescriptions("Standard Salvage", label):setCallSign(label)
                     drop:onPickUp(function(self, player)
                         player:setReputationPoints(player:getReputationPoints() + math.random(25, 50))
-                        RT.shipLog("[Salvage] Standard debris recovered — small bonus.", "#FFFF80")
                     end)
                 end
             end
