@@ -41,7 +41,8 @@ function M.init_state()
     return {
         waypoint    = nil,   -- Rezkov's Waypoint entity
         nebulas     = {},    -- nebula cluster entities
-        hack_target = nil,   -- CpuShip terminal near Waypoint Galen
+        hack_target = nil,   -- CpuShip terminal near Waypoint Galen (atmosphere/cleanup only)
+        galen       = nil,   -- Waypoint Galen SpaceStation (actual hack detection target)
         hack_done   = false,
         drone       = nil,   -- M4 monitoring drone
         meridian    = nil,   -- M5 CWS Meridian
@@ -171,7 +172,16 @@ local function _spawnHackTerminal(st)
     end)
     RT.named["Concord Data Terminal"] = s
     st.hack_target = s
-    RT.shipLog("[Scan] Concord Data Terminal detected docked to Waypoint Galen. That is likely what Rezkov wants.", "#A0C0FF")
+
+    -- Find Waypoint Galen (the actual station the player docks at and hacks).
+    for _, obj in ipairs(getObjectsInRadius(-75000, -52000, 3000)) do
+        if isObjectType(obj, "SpaceStation") then
+            st.galen = obj
+            break
+        end
+    end
+
+    RT.shipLog("[Scan] Concord Data Terminal relay detected on Waypoint Galen exterior. Hack the station to access it.", "#A0C0FF")
 end
 
 local _HACK_SYSTEMS = {
@@ -180,20 +190,22 @@ local _HACK_SYSTEMS = {
 }
 
 local function _checkHack(st, now)
-    if st.hack_done or not RT.valid(st.hack_target) then return end
+    if st.hack_done then return end
+    local target = st.galen or st.hack_target
+    if not RT.valid(target) then return end
 
     local max_hack = 0
     for _, sys in ipairs(_HACK_SYSTEMS) do
-        local ok, has = pcall(function() return st.hack_target:hasSystem(sys) end)
+        local ok, has = pcall(function() return target:hasSystem(sys) end)
         if ok and has then
-            local ok2, lvl = pcall(function() return st.hack_target:getSystemHackedLevel(sys) end)
+            local ok2, lvl = pcall(function() return target:getSystemHackedLevel(sys) end)
             if ok2 and lvl and lvl > max_hack then max_hack = lvl end
         end
     end
 
     if max_hack >= 0.75 then
         st.hack_done = true
-        st.hack_target:setCanBeDestroyed(true)
+        if RT.valid(st.hack_target) then st.hack_target:setCanBeDestroyed(true) end
         RT.shipLog("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")
         RT.after(4, function()
             RT.shipLog("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
@@ -498,8 +510,11 @@ M.gm_actions = {
         globalMessage("[GM] Rezkov Arc: skipped to M3 (mule).", 4)
     end},
     {label = "Complete hack", fn = function(st)
-        if not st.hack_done and RT.valid(st.hack_target) then
-            st.hack_target:setSystemHackedLevel("reactor", 0.9)
+        if not st.hack_done then
+            local target = st.galen or st.hack_target
+            if RT.valid(target) then
+                target:setSystemHackedLevel("frontshield", 0.9)
+            end
         end
     end},
     {label = "Complete drone", fn = function(st)
