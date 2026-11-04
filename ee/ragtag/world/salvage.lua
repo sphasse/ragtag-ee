@@ -92,11 +92,28 @@ local function _refresh(state)
     end
 end
 
+-- ─── Wreck scanning ───────────────────────────────────────────────────────────
+
+local function _updateWrecks()
+    local p = RT.player
+    if not RT.valid(p) then return end
+    for _, w in ipairs(VERSE.wrecks) do
+        if not w.looted and RT.valid(w.ship) and RT.dist(p, w.ship) < 15000 and w.ship:isFullyScannedBy(p) then
+            w.looted = true
+            local x, y = w.ship:getPosition()
+            VERSE.spawnCluster(x, y, math.min(3, w.tier + 1), VERSE.rng_live)
+            p:addToShipLog("Science: salvage located around " .. w.ship:getCallSign() .. ".", "#80C0FF")
+            if DIR then DIR.emit("wreck_scanned", {wreck = w.ship:getCallSign(), tier = w.tier}, "low") end
+        end
+    end
+end
+
 -- ─── Plugin lifecycle ─────────────────────────────────────────────────────────
 
 function _P.init(state)
     state.clusters       = {}
     state.next_check     = 0
+    state.next_wreck_check = 0
     state.density_idx    = WORLD.get("salvage", "density", 2)
     state.reward_idx     = WORLD.get("salvage", "reward",  2)
     state.pod_debt       = 0   -- fractional respawn debt from pod pickups
@@ -117,6 +134,11 @@ function _P.init(state)
 end
 
 function _P.update(state, delta, now)
+    if now >= state.next_wreck_check then
+        state.next_wreck_check = now + 2
+        _updateWrecks()
+    end
+
     if now < state.next_check then return end
     state.next_check = now + _CHECK_INTERVAL
 
