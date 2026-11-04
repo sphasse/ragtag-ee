@@ -74,6 +74,40 @@ function WORLD.disable(id)
     WORLD._enabled[id] = false
 end
 
+-- Build the "World Plugins..." GM menu entry and its per-plugin submenus.
+-- Call once from the scenario's addSessionGMFunctions, passing a callback
+-- that re-enters the main GM menu (used by the Back button in the plugin list).
+-- Only plugins that define P.gmMenu(addButton, showSelf) appear in the list.
+function WORLD.addGMButton(showParent)
+    local function showWorldMenu()
+        clearGMFunctions()
+        addGMFunction("< Back to Main", showParent)
+        for _, id in ipairs(WORLD._order) do
+            local P = WORLD._registry[id]
+            if P.gmMenu then
+                local cap_id = id
+                addGMFunction(P.name .. "...", function()
+                    WORLD.showPluginMenu(cap_id, showWorldMenu)
+                end)
+            end
+        end
+    end
+    addGMFunction("World Plugins...", showWorldMenu)
+end
+
+-- Render one plugin's submenu page (clear + back button + call P.gmMenu).
+-- showWorldMenu is the callback that re-enters the World Plugins list.
+function WORLD.showPluginMenu(id, showWorldMenu)
+    local P = WORLD._registry[id]
+    if not P or not P.gmMenu then return end
+    clearGMFunctions()
+    addGMFunction("< Back to World", showWorldMenu)
+    local function showSelf()
+        WORLD.showPluginMenu(id, showWorldMenu)
+    end
+    P.gmMenu(addGMFunction, showSelf)
+end
+
 -- Called every frame from the scenario update().
 function WORLD.update(delta)
     if not RT.anyPlayerAlive() then return end

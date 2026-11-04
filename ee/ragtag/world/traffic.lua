@@ -340,6 +340,24 @@ end
 
 WORLD.register(_P)
 
+-- ─── GM menu ──────────────────────────────────────────────────────────────────
+
+function _P.gmMenu(addButton, showSelf)
+    local on = WORLD.isEnabled("traffic")
+    addButton(_P.name .. ": " .. (on and "ON" or "OFF"), function()
+        if on then WORLD.disable("traffic") else WORLD.enable("traffic") end
+        showSelf()
+    end)
+    local cur_d = TRAFF.getDensity()
+    for i, name in ipairs(TRAFF.DENSITY_NAMES) do
+        local cap_i = i
+        addButton("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
+            TRAFF.setDensity(cap_i)
+            showSelf()
+        end)
+    end
+end
+
 -- ─── TRAFF shims (for GM menu and scenario scripts) ──────────────────────────
 
 TRAFF = TRAFF or {}

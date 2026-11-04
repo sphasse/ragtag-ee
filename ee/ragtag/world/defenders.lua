@@ -171,6 +171,14 @@ end
 
 -- ── Plugin interface ─────────────────────────────────────────────────────────
 
+function _P.gmMenu(addButton, showSelf)
+    local on = WORLD.isEnabled("defenders")
+    addButton(_P.name .. ": " .. (on and "ON" or "OFF"), function()
+        if on then WORLD.disable("defenders") else WORLD.enable("defenders") end
+        showSelf()
+    end)
+end
+
 function _P.init(state)
     state.slots      = {}
     state.used_names = {}

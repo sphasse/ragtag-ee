@@ -612,6 +612,66 @@ function _P.cleanup(state)
     end
 end
 
+-- ── GM menu ───────────────────────────────────────────────────────────────────
+
+local _ZONE_ORDER = {
+    "the Concord Core", "the Arbiter Line",
+    "the Shroud", "Halcyon Rest", "the Gauntlet", "Blackwater Reach",
+    "the Boneyard", "the Maw",
+}
+local _ZONE_LABEL = {
+    ["the Concord Core"]  = "Concord Core",
+    ["the Arbiter Line"]  = "Arbiter Line",
+    ["the Shroud"]        = "The Shroud",
+    ["Halcyon Rest"]      = "Halcyon Rest",
+    ["the Gauntlet"]      = "The Gauntlet",
+    ["Blackwater Reach"]  = "Blackwater Reach",
+    ["the Boneyard"]      = "The Boneyard",
+    ["the Maw"]           = "The Maw",
+}
+
+function _P.gmMenu(addButton, showSelf)
+    local on = WORLD.isEnabled("proximity")
+    addButton(_P.name .. ": " .. (on and "ON" or "OFF"), function()
+        if on then WORLD.disable("proximity") else WORLD.enable("proximity") end
+        showSelf()
+    end)
+    addButton("Spawn Zones...", function()
+        local showZoneListMenu
+        local showZoneDetailMenu
+
+        showZoneListMenu = function()
+            clearGMFunctions()
+            addGMFunction("< Back to Proximity", showSelf)
+            for _, zn in ipairs(_ZONE_ORDER) do
+                local label     = _ZONE_LABEL[zn] or zn
+                local mode_idx  = PROX.getZoneMode(zn)
+                local cap_zn    = zn
+                addGMFunction(label .. ": " .. (PROX.MODE_NAMES[mode_idx] or "?"), function()
+                    showZoneDetailMenu(cap_zn)
+                end)
+            end
+        end
+
+        showZoneDetailMenu = function(zone_name)
+            clearGMFunctions()
+            addGMFunction("< Back to Zones", showZoneListMenu)
+            local label   = _ZONE_LABEL[zone_name] or zone_name
+            local cur_idx = PROX.getZoneMode(zone_name)
+            for i, mode_name in ipairs(PROX.MODE_NAMES) do
+                local cap_i  = i
+                local cap_zn = zone_name
+                addGMFunction(label .. ": " .. mode_name .. (i == cur_idx and " [*]" or ""), function()
+                    PROX.setZoneMode(cap_zn, cap_i)
+                    showZoneDetailMenu(cap_zn)
+                end)
+            end
+        end
+
+        showZoneListMenu()
+    end)
+end
+
 -- ── PROX shims (GM-menu and scenario compatibility) ───────────────────────────
 -- Scenario code reads PROX.MODE_NAMES and calls PROX.getZoneMode /
 -- PROX.setZoneMode for per-zone spawn control.

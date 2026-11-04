@@ -42,14 +42,10 @@ local S = {
     phase = "start",           -- start, exploring, docked, ending
     session_num = 1,           -- which sandbox session this is
     time_exploring = 0,        -- time spent not docked
-    encounters_spawned = 0,
-    last_opportunity_time = 0,
     visited_regions = {},      -- track where crew has been
     docked_at = nil,
     ending = false,
     vesper_first_hail = false, -- track first hail to Port Vesper for welcome message
-    -- JOBS.config.work_cooldown_enabled and .mission_distance_mode replaced work_cooldown_enabled / mission_distance_mode
-    -- JOBS.config.jobboard_locked replaced witness_active for the job board
 }
 
 --------------------------------------------------------------------------------
@@ -84,9 +80,14 @@ local _WRECK_LOGS = {
     ["Seventh Son"]      = 'Automated log, Seventh Son. Navigation: position unknown. Course: unknown. Drift duration: 47 days. Hull: intact. Crew: [null].',
 }
 
-local _wrecks_logged = {}  -- callsign -> true
+local _wrecks_logged = {}       -- callsign -> true
+local _next_wreck_log_check = 0 -- rate-limit: check every 2 seconds
 
 function WreckLog.checkWrecks()
+    local now = getScenarioTime()
+    if now < _next_wreck_log_check then return end
+    _next_wreck_log_check = now + 2
+
     if not RT.valid(RT.player) then return end
     for _, entry in ipairs(VERSE.wrecks) do
         local s = entry.ship
@@ -99,7 +100,6 @@ function WreckLog.checkWrecks()
                     local log = _WRECK_LOGS[cs] or
                         ('Automated beacon, ' .. cs .. '. Crew status: no response.')
                     RT.shipLog("[Scan] " .. cs .. ": " .. log, "#C0A0A0")
-                    DIR.emit("wreck_scanned", {name=cs, tier=entry.tier}, "low")
                 end
             end
         end
@@ -257,14 +257,13 @@ function init()
 
     DIR.addStateProvider(function()
         local job_descs = {}
-        for _, entry in ipairs(_active) do
+        for _, entry in ipairs(JOBS._active) do
             job_descs[#job_descs+1] = entry.mission.short .. " (" .. entry.mission.type .. ")"
         end
         return {
             phase = S.phase,
             session_num = S.session_num,
             time_exploring = math.floor(S.time_exploring),
-            encounters = S.encounters_spawned,
             region = getCurrentRegion(),
             visited = table.concat(getVisitedRegionsList(), ", "),
             active_jobs = table.concat(job_descs, "; "),
@@ -441,162 +440,14 @@ function addSessionGMFunctions()
         end
     end)
 
-    -- World Plugins submenu (forward-declared so zone menus can reference back)
-    local showWorldPluginsMenu
-    local showRumorsMenu
-    local showDefendersMenu
-    local showProximityMenu
-    local showSpawnZonesMenu
-    local showSalvageMenu
-    local showTrafficMenu
     local showJobsMenu
     local showUpgradesMenu
     local showShipUpgradesMenu
 
-    -- Ordered zone list with short display names for GM buttons.
-    local _ZONE_ORDER = {
-        "the Concord Core", "the Arbiter Line",
-        "the Shroud", "Halcyon Rest", "the Gauntlet", "Blackwater Reach",
-        "the Boneyard", "the Maw",
-    }
-    local _ZONE_LABEL = {
-        ["the Concord Core"]  = "Concord Core",
-        ["the Arbiter Line"]  = "Arbiter Line",
-        ["the Shroud"]        = "The Shroud",
-        ["Halcyon Rest"]      = "Halcyon Rest",
-        ["the Gauntlet"]      = "The Gauntlet",
-        ["Blackwater Reach"]  = "Blackwater Reach",
-        ["the Boneyard"]      = "The Boneyard",
-        ["the Maw"]           = "The Maw",
-    }
-
-    local function showZoneDetailMenu(zone_name)
+    WORLD.addGMButton(function()
         clearGMFunctions()
-        addGMFunction("< Back to Zones", function() showSpawnZonesMenu() end)
-        local label   = _ZONE_LABEL[zone_name] or zone_name
-        local cur_idx = PROX.getZoneMode(zone_name)
-        for i, mode_name in ipairs(PROX.MODE_NAMES) do
-            local cap_i  = i
-            local cap_zn = zone_name
-            addGMFunction(label .. ": " .. mode_name .. (i == cur_idx and " [*]" or ""), function()
-                PROX.setZoneMode(cap_zn, cap_i)
-                showZoneDetailMenu(cap_zn)
-            end)
-        end
-    end
-
-    showRumorsMenu = function()
-        clearGMFunctions()
-        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
-        local rum_on = WORLD.isEnabled("rumors")
-        addGMFunction("Rumors: " .. (rum_on and "ON" or "OFF"), function()
-            if rum_on then WORLD.disable("rumors") else WORLD.enable("rumors") end
-            showRumorsMenu()
-        end)
-        addGMFunction("Clear injected", function()
-            RUMORS._injected = {}
-            showRumorsMenu()
-        end)
-    end
-
-    showDefendersMenu = function()
-        clearGMFunctions()
-        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
-        local def_on = WORLD.isEnabled("defenders")
-        addGMFunction("Defenders: " .. (def_on and "ON" or "OFF"), function()
-            if def_on then WORLD.disable("defenders") else WORLD.enable("defenders") end
-            showDefendersMenu()
-        end)
-    end
-
-    showProximityMenu = function()
-        clearGMFunctions()
-        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
-        local prox_on = WORLD.isEnabled("proximity")
-        addGMFunction("Proximity: " .. (prox_on and "ON" or "OFF"), function()
-            if prox_on then WORLD.disable("proximity") else WORLD.enable("proximity") end
-            showProximityMenu()
-        end)
-        addGMFunction("Spawn Zones...", function() showSpawnZonesMenu() end)
-    end
-
-    showSpawnZonesMenu = function()
-        clearGMFunctions()
-        addGMFunction("< Back to Proximity", function() showProximityMenu() end)
-        for _, zn in ipairs(_ZONE_ORDER) do
-            local label     = _ZONE_LABEL[zn] or zn
-            local mode_idx  = PROX.getZoneMode(zn)
-            local mode_name = PROX.MODE_NAMES[mode_idx] or "?"
-            local cap_zn    = zn
-            addGMFunction(label .. ": " .. mode_name, function()
-                showZoneDetailMenu(cap_zn)
-            end)
-        end
-    end
-
-    showSalvageMenu = function()
-        clearGMFunctions()
-        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
-
-        local salv_on = WORLD.isEnabled("salvage")
-        addGMFunction("Salvage: " .. (salv_on and "ON" or "OFF"), function()
-            if salv_on then WORLD.disable("salvage") else WORLD.enable("salvage") end
-            showSalvageMenu()
-        end)
-
-        local cur_d = SALV.getDensity()
-        for i, name in ipairs(SALV.DENSITY_NAMES) do
-            local cap_i = i
-            addGMFunction("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
-                SALV.setDensity(cap_i)
-                showSalvageMenu()
-            end)
-        end
-
-        local cur_r = SALV.getReward()
-        for i, name in ipairs(SALV.REWARD_NAMES) do
-            local cap_i = i
-            addGMFunction("Reward: " .. name .. (i == cur_r and " [*]" or ""), function()
-                SALV.setReward(cap_i)
-                showSalvageMenu()
-            end)
-        end
-    end
-
-    showTrafficMenu = function()
-        clearGMFunctions()
-        addGMFunction("< Back to World", function() showWorldPluginsMenu() end)
-
-        local traf_on = WORLD.isEnabled("traffic")
-        addGMFunction("Traffic: " .. (traf_on and "ON" or "OFF"), function()
-            if traf_on then WORLD.disable("traffic") else WORLD.enable("traffic") end
-            showTrafficMenu()
-        end)
-
-        local cur_d = TRAFF.getDensity()
-        for i, name in ipairs(TRAFF.DENSITY_NAMES) do
-            local cap_i = i
-            addGMFunction("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
-                TRAFF.setDensity(cap_i)
-                showTrafficMenu()
-            end)
-        end
-    end
-
-    showWorldPluginsMenu = function()
-        clearGMFunctions()
-        addGMFunction("< Back to Main", function()
-            clearGMFunctions()
-            addSessionGMFunctions()
-        end)
-
-        addGMFunction("Rumors...",           function() showRumorsMenu()     end)
-        addGMFunction("Station Defenders...", function() showDefendersMenu()  end)
-        addGMFunction("Proximity Spawns...", function() showProximityMenu()  end)
-        addGMFunction("Salvage...",          function() showSalvageMenu()    end)
-        addGMFunction("Traffic...",          function() showTrafficMenu()    end)
-    end
-    addGMFunction("World Plugins...", showWorldPluginsMenu)
+        addSessionGMFunctions()
+    end)
 
     local _DISTANCE_MODES = {"short", "medium", "long"}
     local _DISTANCE_NAMES = {short = "Short", medium = "Medium", long = "Long"}
@@ -725,7 +576,6 @@ function finishSession(outcome, note)
         note = note,
         credits = RT.credits(),
         time_exploring = S.time_exploring,
-        encounters = S.encounters_spawned,
         visited = getVisitedRegionsList(),
         flags = RT.campaign.flags
     }, "high")
@@ -779,7 +629,6 @@ function update(delta)
             -- Just undocked
             DIR.fireBeat("first_undock", "script")
             S.phase = "exploring"
-            S.undocked_at = now
             S.docked_at = nil
         end
     elseif S.phase == "exploring" then

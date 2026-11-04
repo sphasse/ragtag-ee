@@ -325,6 +325,32 @@ end
 
 WORLD.register(_P)
 
+-- ─── GM menu ──────────────────────────────────────────────────────────────────
+
+function _P.gmMenu(addButton, showSelf)
+    local on = WORLD.isEnabled("salvage")
+    addButton(_P.name .. ": " .. (on and "ON" or "OFF"), function()
+        if on then WORLD.disable("salvage") else WORLD.enable("salvage") end
+        showSelf()
+    end)
+    local cur_d = SALV.getDensity()
+    for i, name in ipairs(SALV.DENSITY_NAMES) do
+        local cap_i = i
+        addButton("Density: " .. name .. (i == cur_d and " [*]" or ""), function()
+            SALV.setDensity(cap_i)
+            showSelf()
+        end)
+    end
+    local cur_r = SALV.getReward()
+    for i, name in ipairs(SALV.REWARD_NAMES) do
+        local cap_i = i
+        addButton("Reward: " .. name .. (i == cur_r and " [*]" or ""), function()
+            SALV.setReward(cap_i)
+            showSelf()
+        end)
+    end
+end
+
 -- ─── SALV shims (for GM menu and scenario scripts) ───────────────────────────
 
 SALV = SALV or {}
