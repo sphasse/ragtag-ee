@@ -201,7 +201,7 @@ function MISSIONS.addGMButton(backToMainFn)
     local label = "Missions..."
     for _, id in ipairs(MISSIONS._order) do
         if MISSIONS._status[id] == "triggered" then
-            label = "Missions [READY]..."
+            label = "Missions..."
             break
         end
     end
