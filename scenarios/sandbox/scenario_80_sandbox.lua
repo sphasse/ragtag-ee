@@ -24,8 +24,8 @@ require("ragtag/core.lua")
 require("ragtag/verse.lua")
 require("ragtag/director.lua")
 require("ragtag/jobs.lua")
-require("ragtag/missions.lua")
 require("ragtag/world.lua")
+require("ragtag/missions.lua")
 require("ragtag/ship_templates.lua")  -- custom playership templates; must load before init
 
 local SESSION_ID = "sandbox"
