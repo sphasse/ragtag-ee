@@ -309,6 +309,31 @@ end
 -- Reputation system
 --------------------------------------------------------------------------------
 
+-- Threshold table for rep-change notifications.
+-- Concord has inspection-specific entries; _default covers job-access thresholds for all factions.
+local _REP_THRESHOLDS = {
+    Concord = {
+        { 500, "Concord will now wave you through inspections without stopping.",
+                "Concord will now conduct inspections again." },
+        { 200, "Concord now accepts cargo declarations without proof.",
+                "Concord no longer accepts cargo declarations without proof." },
+        {   0, "Concord patrols give benefit of doubt on ignored hails.",
+                "Concord patrols will now issue warrants for ignored inspections." },
+        {-200, "More work becoming available at Concord ports.",
+                "Very few jobs available at Concord ports." },
+        {-400, "Concord ports may offer limited work again.",
+                "Concord ports will no longer offer work." },
+    },
+    _default = {
+        {   0, "Full job access restored at this faction's ports.",
+                "Fewer jobs will be offered at this faction's ports." },
+        {-200, "More work becoming available at this faction's ports.",
+                "Very limited jobs available at this faction's ports." },
+        {-400, "Some jobs may return at this faction's ports.",
+                "This faction will no longer offer work." },
+    },
+}
+
 -- Modify reputation with a faction. Unbounded.
 function RT.addReputation(faction, amount, reason)
     if not RT.campaign or not RT.campaign.reputation then return end
@@ -320,10 +345,31 @@ function RT.addReputation(faction, amount, reason)
     local new_rep = old_rep + amount
     RT.campaign.reputation[faction] = new_rep
 
-    if amount ~= 0 and reason then
+    if amount ~= 0 then
+        -- Line 1: what changed and why
         local sign = amount > 0 and "+" or ""
-        RT.shipLog(string.format("[Reputation] %s %s%d (%s). Standing: %d",
-            faction, sign, amount, reason, new_rep), amount > 0 and "#80C0FF" or "#FF8080")
+        local why  = reason and (" — " .. reason) or ""
+        RT.shipLog(string.format("[Rep] %s %s%d%s", faction, sign, amount, why),
+                   amount > 0 and "#80C0FF" or "#FF8080")
+
+        -- Line 2: current standings for the three main factions
+        local rtbl = RT.campaign.reputation
+        local function _s(f)
+            local r = rtbl[f] or 0
+            return f .. ": " .. (r >= 0 and "+" or "") .. r
+        end
+        RT.shipLog("[Rep] " .. _s("Independent") .. " | " .. _s("Concord") .. " | " .. _s("Corsairs"), "#888888")
+
+        -- Line 3 (optional): threshold-crossing notification
+        local thresholds = _REP_THRESHOLDS[faction] or _REP_THRESHOLDS._default
+        for _, t in ipairs(thresholds) do
+            local val, msg_up, msg_down = t[1], t[2], t[3]
+            if old_rep < val and new_rep >= val then
+                RT.shipLog("[Rep] " .. msg_up, "#80FF80")
+            elseif old_rep >= val and new_rep < val then
+                RT.shipLog("[Rep] " .. msg_down, "#FF8040")
+            end
+        end
     end
 
     RT.saveCampaign()
