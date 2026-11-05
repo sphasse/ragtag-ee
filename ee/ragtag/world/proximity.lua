@@ -401,7 +401,33 @@ local function _processGroup(st, group, now, player)
             end
         end
 
-        if group.shakedown_state == "pending" and
+        -- Pursuit and escape: keep ships on the player; resolve if player gets 10U clear
+        if group.shakedown_state == "pending" and player then
+            local px2, py2 = player:getPosition()
+            local min_dist = math.huge
+            for _, cs in ipairs(group.ships) do
+                local s = RT.named[cs]
+                if RT.valid(s) then
+                    local ssx, ssy = s:getPosition()
+                    local dx, dy = ssx - px2, ssy - py2
+                    local dist = math.sqrt(dx * dx + dy * dy)
+                    if dist < min_dist then min_dist = dist end
+                end
+            end
+            if min_dist > 10 * U then
+                RT.addReputation("Concord", -100, "evaded Concord inspection")
+                RT.shipLog("[Concord] Vessel fled inspection. Concord standing reduced.", "#FF8040")
+                group.shakedown_done    = true
+                group.shakedown_hostile = false
+            else
+                for _, cs in ipairs(group.ships) do
+                    local s = RT.named[cs]
+                    if RT.valid(s) then s:orderFlyTowards(px2, py2) end
+                end
+            end
+        end
+
+        if group.shakedown_state == "pending" and not group.shakedown_done and
            now - group.shakedown_start > _cfg("shakedown_timeout") then
             local rep = RT.getReputation("Concord") or 0
             if rep < 0 then
