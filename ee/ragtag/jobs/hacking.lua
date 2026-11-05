@@ -354,7 +354,7 @@ function M.spawn(m)
     -- "Automated war drone protocols" explains the aggression narratively.
     local s = CpuShip():setTemplate("Defense platform"):setFaction("Relic")
     s:setCallSign(name):setTypeName("Comms Relay")
-    s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
+    s:setPosition(m.wx, m.wy):orderStandGround():setImpulseMaxSpeed(0):setRotationMaxSpeed(0):setSpin(8)
     s:setCanBeDestroyed(false)
     s:setSystemHealth("reactor", 1.0)
     -- Six 30° beams at 5U range; 30° gaps between arcs create windows for Helm.
@@ -369,12 +369,10 @@ function M.spawn(m)
     s:setCommsFunction(function(src, tgt)
         setCommsMessage("Automated relay. No response.")
     end)
-    m.target_cs       = name
-    m.short           = "Hack " .. name
-    m.obj             = "Hack " .. name
-    m._spawned        = true
-    m._relay_angle    = math.random(0, 359)
-    m._relay_last_t   = nil
+    m.target_cs = name
+    m.short     = "Hack " .. name
+    m.obj       = "Hack " .. name
+    m._spawned  = true
 end
 
 function M.acceptLog(m)
@@ -393,14 +391,6 @@ function M.update(m, entry, ctx)
         RT.shipLog("[Hack] Relay destroyed before extraction -- contract lost.", "#FF8080")
         return "remove"
     end
-
-    -- Rotate the platform continuously at 8 deg/sec (one revolution per 45s).
-    -- Beams fire automatically as arcs sweep past hostiles; probes are caught the same way.
-    if not m._relay_last_t then m._relay_last_t = ctx.now end
-    local dt = ctx.now - m._relay_last_t
-    m._relay_last_t = ctx.now
-    m._relay_angle  = (m._relay_angle + 8 * dt) % 360
-    target:setRotation(m._relay_angle)
 
     -- Check any system hacked to threshold.
     local max_hack, hacked_sys = 0, nil
