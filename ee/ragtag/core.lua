@@ -349,7 +349,7 @@ function RT.addReputation(faction, amount, reason)
         -- Line 1: what changed and why
         local sign = amount > 0 and "+" or ""
         local why  = reason and (" — " .. reason) or ""
-        RT.shipLog(string.format("[Rep] %s %s%d%s", faction, sign, amount, why),
+        RT.shipLog(string.format("%s reputation %s%d%s", faction, sign, amount, why),
                    amount > 0 and "#80C0FF" or "#FF8080")
 
         -- Line 2: current standings for the three main factions
@@ -358,7 +358,7 @@ function RT.addReputation(faction, amount, reason)
             local r = rtbl[f] or 0
             return f .. ": " .. (r >= 0 and "+" or "") .. r
         end
-        RT.shipLog("[Rep] " .. _s("Independent") .. " | " .. _s("Concord") .. " | " .. _s("Corsairs"), "#888888")
+        RT.shipLog("Current reputation: " .. _s("Independent") .. " | " .. _s("Concord") .. " | " .. _s("Corsairs"), "#888888")
 
         -- Line 3 (optional): threshold-crossing notification
         local thresholds = _REP_THRESHOLDS[faction] or _REP_THRESHOLDS._default
