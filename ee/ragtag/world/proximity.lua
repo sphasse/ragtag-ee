@@ -123,8 +123,41 @@ local function _firstPlayer()
     end
 end
 
+local _STALL_RESPONSES = {
+    "Copy that. Initiating compliance procedures... still initiating.",
+    "Transponder's been glitching since the last jump. Tech filed a ticket. We're in the queue.",
+    "One moment, I need to find the manifest. It's definitely on this ship.",
+    "Our compliance officer is currently indisposed. This may take a moment.",
+    "We just did an inspection two sectors back. They gave us a sticker and everything.",
+    "Could you repeat that? Our comms filter flagged your signal as potential spam.",
+    "We're flagged as a pre-Compact heritage registry. Different documentation requirements. Very old forms.",
+    "The captain is on a call with Concord Command right now. Can we reschedule?",
+    "We switched cargo management systems last port and the data migration isn't quite done.",
+    "Our cargo hold is sealed under a separate Concord court order. We'd need a counter-order to open it.",
+    "Per regulation 7-Delta, we require that inspection request in writing before we can proceed.",
+    "We're carrying live animals. The documentation is extensive and emotionally complex.",
+    "According to the Compact of -- [static] -- section -- [static] -- we have the right to -- [static].",
+    "Oh, is THIS the Concord checkpoint? We thought this was the scenic bypass.",
+    "Your scanner might be miscalibrated. Our readings look fine from here. Have you tried restarting it?",
+    "We're actually undercover. Can't say more than that. You understand.",
+    "The manifest says 'miscellaneous.' What additional information do you require?",
+    "We're running a little behind -- medical cargo. Medical-adjacent. It's for a doctor. A friend of a doctor.",
+    "One moment -- our ship's lawyer is currently waking up.",
+    "We have no idea what's in those containers either, honestly. That's what the inspection will tell us both.",
+    "We're observing a registered religious fast that prohibits stopping between jumps. We can schedule something for next week.",
+    "We were already inspected by a patrol called the Quiet Authority forty minutes ago. Can you check with them?",
+    "Copy that. We're pulling over right now. Our pilot is just finishing a very important sandwich.",
+    "Ah yes, the inspection. We've been expecting you. Please hold while we absolutely do not panic.",
+    "Have you considered that perhaps YOUR ship is the one that needs inspecting?",
+    "Our entire crew is currently testifying in an unrelated matter via remote link. We'll be right with you.",
+    "We're under a non-disclosure agreement regarding the nature of this cargo. Ironically, it's with Concord.",
+    "The hold is sealed. The seals are certified. The certifications are filed. The filing office is closed. It's a whole thing.",
+    "Understood. We are cooperating fully. This is what full cooperation looks like.",
+    "I'm going to be completely transparent with you -- and that's going to take some time.",
+}
+
 local function _makeShakedownComms(group)
-    return function(src, tgt)
+    local function _showMain()
         if group.shakedown_done then
             setCommsMessage('"Move along, freighter."')
             return
@@ -161,6 +194,32 @@ local function _makeShakedownComms(group)
             end
         end)
 
+        local _CONCORD_PATIENCE = {
+            "Your cooperation is noted. Stand by.",
+            "We are still waiting, freighter.",
+            "Final extension. Submit immediately.",
+        }
+        if group.stall_count < 3 then
+            local warn = group.stall_count >= 2 and " (they seem impatient)" or ""
+            addCommsReply("Stall for time" .. warn, function(src2, tgt2)
+                group.stall_count     = group.stall_count + 1
+                group.shakedown_start = getScenarioTime()
+                local line = _STALL_RESPONSES[math.random(#_STALL_RESPONSES)]
+                local reaction = _CONCORD_PATIENCE[group.stall_count]
+                setCommsMessage('"' .. line .. '"\n\n[Concord]: "' .. reaction .. '"')
+                addCommsReply("Acknowledged.", _showMain)
+            end)
+        else
+            addCommsReply("Stall for time (out of patience...)", function(src2, tgt2)
+                RT.campaign.credits = (RT.campaign.credits or 0) - 100
+                RT.addReputation("Concord", 100, "paid citation after stalling")
+                RT.shipLog("Concord: out of patience. 100 cr citation.", "#FF8040")
+                setCommsMessage('"Enough. 100 cr citation for obstruction. Move along."')
+                group.shakedown_done    = true
+                group.shakedown_hostile = false
+            end)
+        end
+
         addCommsReply("I don't answer to Concord here.", function(src2, tgt2)
             setCommsMessage('"Wrong answer."')
             RT.campaign.flags = RT.campaign.flags or {}
@@ -177,6 +236,8 @@ local function _makeShakedownComms(group)
             group.shakedown_hostile = true
         end)
     end
+
+    return function(src, tgt) _showMain() end
 end
 
 -- ── Spawn ────────────────────────────────────────────────────────────────────
@@ -321,6 +382,7 @@ local function _spawnGroup(st, region_name, px, py)
         shakedown_state    = is_shakedown and "approaching" or nil,
         shakedown_start    = nil,
         shakedown_resolve_at = nil,
+        stall_count        = 0,
     }
 
     if is_shakedown then
