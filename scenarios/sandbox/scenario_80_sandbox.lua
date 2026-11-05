@@ -153,7 +153,8 @@ function init()
 
     VERSE.build({session = S.session_num})
     -- Sandbox uses the whole universe; only explicitly require the starting location
-    VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest"})
+    VERSE.requirePlaces({"Port Vesper", "Dustmote Salvage", "Halcyon Rest",
+                         "Saint Brennan's Mission", "Concord Waypoint Galen"})
     -- Spawn the primary ship at Port Vesper. Additional ships join via the
     -- in-game "Create player ship" selection screen; onNewPlayerShip handles them.
     RT.PLAYER_TEMPLATE = "Light Freighter"
@@ -250,6 +251,36 @@ function init()
             RT.addStationHook(d.cs, JOBS.stationHook)
         end
     end
+
+    -- Saint Brennan's Mission: donation to children's fund → +100 Independent rep
+    RT.addStationHook("Saint Brennan's Mission", function(source, target)
+        if not source:isDocked(target) then return end
+        addCommsReply("Donate $100 to St. Brennan's Children's Fund", function(s, t)
+            if RT.credits(s) < 100 then
+                setCommsMessage('"Thank you for the thought. Come back when you can spare a bit."')
+            else
+                RT.addCredits(-100, "donated to St. Brennan's Children's Fund", s)
+                RT.addReputation("Independent", 100, "donated to St. Brennan's Children's Fund")
+                setCommsMessage('"Your generosity won\'t be forgotten. These children -- they need people like you."')
+            end
+            addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+        end)
+    end)
+
+    -- Concord Waypoint Galen (named after the physician): donation to medical relief → +50 Independent rep
+    RT.addStationHook("Concord Waypoint Galen", function(source, target)
+        if not source:isDocked(target) then return end
+        addCommsReply("Donate $100 to the Galen Medical Relief Fund", function(s, t)
+            if RT.credits(s) < 100 then
+                setCommsMessage('"Appreciated, but we need funds, not promises. Return when you have the credits."')
+            else
+                RT.addCredits(-100, "donated to the Galen Medical Relief Fund", s)
+                RT.addReputation("Independent", 50, "donated to the Galen Medical Relief Fund")
+                setCommsMessage('"Every contribution helps. The fund will put your credits to good use."')
+            end
+            addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+        end)
+    end)
 
     RT.addCampaignGMFunctions()
     addSessionGMFunctions()

@@ -293,6 +293,7 @@ local function _spawnGroup(st, region_name, px, py)
     local now    = getScenarioTime()
     local wanted = RT.campaign.flags and RT.campaign.flags.wanted
     local is_shakedown = (zone.comms == "shakedown") and not wanted
+        and (RT.getReputation("Concord") or 0) >= -500
 
     local ship_names = {}
     local _name_pool  = _PATROL_NAMES[zone.faction]

@@ -323,6 +323,8 @@ local _REP_THRESHOLDS = {
                 "Very few jobs available at Concord ports." },
         {-400, "Concord ports may offer limited work again.",
                 "Concord ports will no longer offer work." },
+        {-500, "Concord inspection protocols restored.",
+                "Concord patrols will now attack on sight." },
     },
     _default = {
         {   0, "Full job access restored at this faction's ports.",
