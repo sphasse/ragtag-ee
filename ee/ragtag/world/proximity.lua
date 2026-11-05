@@ -123,12 +123,6 @@ local function _firstPlayer()
     end
 end
 
-local function _concordFine()
-    local credits = (RT.campaign and RT.campaign.credits) or 0
-    if credits < 50 then return 0 end
-    return math.max(25, math.floor(credits * 0.5 / 5 + 0.5) * 5)
-end
-
 local function _makeShakedownComms(group)
     return function(src, tgt)
         if group.shakedown_done then
@@ -137,7 +131,7 @@ local function _makeShakedownComms(group)
         end
 
         local rep = RT.getReputation("Concord") or 0
-        if rep > 20 then
+        if rep >= 500 then
             setCommsMessage('"Records check out. Safe travels."')
             group.shakedown_done    = true
             group.shakedown_hostile = false
@@ -153,23 +147,17 @@ local function _makeShakedownComms(group)
         end)
 
         addCommsReply("Declare clean cargo", function(src2, tgt2)
-            if rep >= 10 then
+            if rep >= 200 then
                 setCommsMessage('"Records check out. Move along."')
                 group.shakedown_done    = true
                 group.shakedown_hostile = false
             else
-                local fine = _concordFine()
-                if fine == 0 then
-                    setCommsMessage('"Watch yourself out here."')
-                    group.shakedown_done    = true
-                    group.shakedown_hostile = false
-                else
-                    RT.campaign.credits = RT.campaign.credits - fine
-                    RT.shipLog("Concord citation: " .. fine .. " cr.", "#FF8040")
-                    setCommsMessage('"Suspicious filing. ' .. fine .. ' cr citation. Move along."')
-                    group.shakedown_done    = true
-                    group.shakedown_hostile = false
-                end
+                RT.campaign.credits = (RT.campaign.credits or 0) - 100
+                RT.addReputation("Concord", 100, "paid Concord citation")
+                RT.shipLog("Concord citation: 100 cr. Concord standing improved.", "#8888FF")
+                setCommsMessage('"Suspicious filing. 100 cr citation. Move along."')
+                group.shakedown_done    = true
+                group.shakedown_hostile = false
             end
         end)
 
@@ -306,7 +294,7 @@ local function _spawnGroup(st, region_name, px, py)
                 if RT.valid(s) then s:orderFlyTowards(ppx, ppy) end
             end
         end
-        RT.shipLog("[Concord] Patrol requesting transponder check. Open comms to respond.", "#8888FF")
+        RT.shipLog("[Concord] Patrol detected in sector.", "#8888FF")
     else
         if player then
             for _, cs in ipairs(ship_names) do
@@ -318,6 +306,7 @@ local function _spawnGroup(st, region_name, px, py)
 
     local group = {
         ships              = ship_names,
+        jammer             = nil,
         cell_key           = _cellKey(px, py),
         region_name        = region_name,
         spawn_x            = sx,
@@ -329,8 +318,8 @@ local function _spawnGroup(st, region_name, px, py)
         is_shakedown       = is_shakedown,
         shakedown_done     = false,
         shakedown_hostile  = false,
-        shakedown_state    = is_shakedown and "pending" or nil,
-        shakedown_start    = is_shakedown and now or nil,
+        shakedown_state    = is_shakedown and "approaching" or nil,
+        shakedown_start    = nil,
         shakedown_resolve_at = nil,
     }
 
@@ -362,6 +351,7 @@ local function _processGroup(st, group, now, player)
         if RT.valid(RT.named[cs]) then any_alive = true; break end
     end
     if not any_alive then
+        if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
         if not group.recalled then
             RT.shipLog("[" .. group.region_name .. "] Area clear.", "#80FF80")
             DIR.emit("prox_cleared", {region = group.region_name}, "normal")
@@ -374,10 +364,43 @@ local function _processGroup(st, group, now, player)
             local s = RT.named[cs]
             if RT.valid(s) then s:destroy() end
         end
+        if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
         return true
     end
 
     if group.is_shakedown and not group.shakedown_done then
+        -- Approach interception: deploy jammer and hail when within 5U and outside station exclusions
+        if group.shakedown_state == "approaching" and player then
+            local px2, py2 = player:getPosition()
+            local near_station = false
+            for _, ex in ipairs(st.exclusions) do
+                local dx, dy = px2 - ex.x, py2 - ex.y
+                if math.sqrt(dx * dx + dy * dy) < ex.r then
+                    near_station = true; break
+                end
+            end
+            if not near_station then
+                for _, cs in ipairs(group.ships) do
+                    local s = RT.named[cs]
+                    if RT.valid(s) then
+                        local ssx, ssy = s:getPosition()
+                        local dx, dy = ssx - px2, ssy - py2
+                        if math.sqrt(dx * dx + dy * dy) < 5 * U then
+                            local jammer = WarpJammer()
+                            jammer:setPosition(px2, py2)
+                            jammer:setRange(1 * U)
+                            group.jammer          = jammer
+                            group.shakedown_state = "pending"
+                            group.shakedown_start = now
+                            RT.hail(s, '"Concord patrol. All stop. Standby for transponder inspection."')
+                            RT.shipLog("[Concord] Standby for inspection. Respond on comms.", "#8888FF")
+                            break
+                        end
+                    end
+                end
+            end
+        end
+
         if group.shakedown_state == "pending" and
            now - group.shakedown_start > _cfg("shakedown_timeout") then
             local rep = RT.getReputation("Concord") or 0
@@ -399,13 +422,9 @@ local function _processGroup(st, group, now, player)
 
         elseif group.shakedown_state == "scanning" and
                group.shakedown_resolve_at and now > group.shakedown_resolve_at then
-            local fine = _concordFine()
-            if fine > 0 then
-                RT.campaign.credits = RT.campaign.credits - fine
-                RT.shipLog("Concord inspection: " .. fine .. " cr fine.", "#FF8040")
-            else
-                RT.shipLog("[Concord] Scan complete. Move along.", "#8888FF")
-            end
+            RT.campaign.credits = (RT.campaign.credits or 0) - 100
+            RT.addReputation("Concord", 100, "paid Concord inspection fine")
+            RT.shipLog("Concord inspection: 100 cr fine. Concord standing improved.", "#8888FF")
             group.shakedown_done    = true
             group.shakedown_hostile = false
         end
@@ -417,6 +436,10 @@ local function _processGroup(st, group, now, player)
         for _, cs in ipairs(group.ships) do
             local s = RT.named[cs]
             if RT.valid(s) then s:orderFlyTowards(group.spawn_x, group.spawn_y) end
+        end
+        if group.jammer and RT.valid(group.jammer) then
+            group.jammer:destroy()
+            group.jammer = nil
         end
     end
 
@@ -478,6 +501,7 @@ local function _processGroup(st, group, now, player)
                 local s = RT.named[cs]
                 if RT.valid(s) then s:destroy() end
             end
+            if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
             return true
         end
     end
@@ -609,6 +633,7 @@ function _P.cleanup(state)
             local s = RT.named[cs]
             if RT.valid(s) then s:destroy() end
         end
+        if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
     end
 end
 
