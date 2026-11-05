@@ -64,7 +64,7 @@ Hail any station and ask "Any work available?" — the station offers two missio
 |---|---|---|
 | **Delivery** | 50–130 cr | +reward with origin faction on complete; −reward on fail/expire |
 | **Salvage** | 60–155 cr | Same; urgent salvage pays 1.5× |
-| **Hacking** | 85–215 cr | Rep-neutral (relay hack is undetected); beacon fires on anyone within 4U |
+| **Hacking** | 85–215 cr | Rep-neutral (relay hack is undetected); rotating defence platform at 5U range |
 | **Destroy** | 100–250 cr | −200 Corsairs on kill; +reward with origin on complete |
 | **Boarding** | 115–285 cr | −100 Corsairs on disable; +reward with origin on complete |
 | **Escort** | 90–230 cr | +reward with origin on complete; Corsair intercepts at 33% and 67% of route |
@@ -73,7 +73,7 @@ Time limits scale with distance — short-range delivery might be 3–5 minutes,
 
 Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction. Reputation is unbounded — it accumulates across sessions with no cap. Job availability thins as standing drops, and stations stop offering work entirely below −400. See **[docs/REPUTATION.md](../../docs/REPUTATION.md)** for the full thresholds and mechanics.
 
-**Hacking specifics:** The target is a stationary Concord comms relay beacon. It has four overlapping laser mounts covering 360° with a 4U range — Engineering must keep shields up while Science hacks any system to 75%. The beacon also jams scan probes within 5U. Hack from outside 4U to stay out of the fire. Mission is rep-neutral since the hack is undetected.
+**Hacking specifics:** The target is a comms relay running automated war-drone defence protocols. It is a rotating Defence Platform with six 30° beam mounts at 5U range, slowly spinning (one revolution every 45 seconds). There are 30° gaps between beams — Helm needs to find and hold those windows while Engineering manages shields and Science hacks any system to 75%. Weapons can grind down the platform's shields to reduce incoming damage. The hack is undetected, so the mission is rep-neutral. Scan probes are destroyed naturally when a beam arc sweeps over them.
 
 ### Combat
 - **Corsairs** ambush in the Gauntlet and Blackwater

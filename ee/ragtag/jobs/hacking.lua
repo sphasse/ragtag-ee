@@ -327,7 +327,7 @@ function M.generate(opts)
         short          = arch.short_offer,
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
-                         .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
+                         .. "\n\nThe relay runs automated war-drone defence protocols: six beam mounts on a slow rotating platform, 5U range. Find the gaps between sweeps. Hack any system to 75% to breach the datastore.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
@@ -350,27 +350,31 @@ end
 function M.spawn(m)
     if m._spawned then return end
     local name = _beaconName()
-    local s = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
+    -- Relic faction: auto-hostile to player (no orderAttack needed).
+    -- "Automated war drone protocols" explains the aggression narratively.
+    local s = CpuShip():setTemplate("Defense platform"):setFaction("Relic")
     s:setCallSign(name):setTypeName("Comms Relay")
     s:setPosition(m.wx, m.wy):orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
-    s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
     s:setCanBeDestroyed(false)
     s:setSystemHealth("reactor", 1.0)
-    s:setSystemHealth("beamweapons", 1.0)
-    -- Four overlapping 120° mounts at 90° intervals → full 360° coverage at 4U.
-    s:setBeamWeapon(0, 120,   0, 4000, 6, 4)
-    s:setBeamWeapon(1, 120,  90, 4000, 6, 4)
-    s:setBeamWeapon(2, 120, 180, 4000, 6, 4)
-    s:setBeamWeapon(3, 120, 270, 4000, 6, 4)
+    -- Six 30° beams at 5U range; 30° gaps between arcs create windows for Helm.
+    s:setBeamWeapon(0, 30,   0, 5000, 1.5, 20)
+    s:setBeamWeapon(1, 30,  60, 5000, 1.5, 20)
+    s:setBeamWeapon(2, 30, 120, 5000, 1.5, 20)
+    s:setBeamWeapon(3, 30, 180, 5000, 1.5, 20)
+    s:setBeamWeapon(4, 30, 240, 5000, 1.5, 20)
+    s:setBeamWeapon(5, 30, 300, 5000, 1.5, 20)
     s:setSystemHackedLevel("reactor", 0.0)
     RT.named[name] = s
     s:setCommsFunction(function(src, tgt)
         setCommsMessage("Automated relay. No response.")
     end)
-    m.target_cs = name
-    m.short     = "Hack " .. name
-    m.obj       = "Hack " .. name
-    m._spawned  = true
+    m.target_cs       = name
+    m.short           = "Hack " .. name
+    m.obj             = "Hack " .. name
+    m._spawned        = true
+    m._relay_angle    = math.random(0, 359)
+    m._relay_last_t   = nil
 end
 
 function M.acceptLog(m)
@@ -390,34 +394,13 @@ function M.update(m, entry, ctx)
         return "remove"
     end
 
-    -- Every 2s: aim beams at nearest player within 4U; jam probes within 5U.
-    m._last_jam_check = m._last_jam_check or 0
-    if ctx.now - m._last_jam_check > 2 then
-        m._last_jam_check = ctx.now
-
-        local beam_target, beam_dist = nil, math.huge
-        for _, p in ipairs(RT.players) do
-            if RT.valid(p) then
-                local d = RT.dist(target, p)
-                if d < 4000 and d < beam_dist then
-                    beam_target = p; beam_dist = d
-                end
-            end
-        end
-        if beam_target then
-            target:orderAttack(beam_target)
-        else
-            target:orderIdle()
-        end
-
-        local rx, ry = target:getPosition()
-        for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
-            if RT.valid(obj) and obj ~= target and isObjectType(obj, "ScanProbe") then
-                obj:destroy()
-                RT.shipLog("[Relay] Jamming field neutralised a probe.", "#FF8080")
-            end
-        end
-    end
+    -- Rotate the platform continuously at 8 deg/sec (one revolution per 45s).
+    -- Beams fire automatically as arcs sweep past hostiles; probes are caught the same way.
+    if not m._relay_last_t then m._relay_last_t = ctx.now end
+    local dt = ctx.now - m._relay_last_t
+    m._relay_last_t = ctx.now
+    m._relay_angle  = (m._relay_angle + 8 * dt) % 360
+    target:setRotation(m._relay_angle)
 
     -- Check any system hacked to threshold.
     local max_hack, hacked_sys = 0, nil
