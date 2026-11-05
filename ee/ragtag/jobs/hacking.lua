@@ -275,6 +275,7 @@ M.type_mult = 1.4
 
 function M.prepareOpts(ctx)
     if not ctx.valid(ctx.station_e) then return nil end
+    if JOBS.stationFaction(ctx.station_cs) == "Concord" then return nil end
     local rx, ry = ctx.station_e:getPosition()
     local wx, wy, dist, region = ctx.spawnInVerse(rx, ry)
     if not wx then return nil end

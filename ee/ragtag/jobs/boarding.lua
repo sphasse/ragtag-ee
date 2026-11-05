@@ -341,7 +341,7 @@ function M.generate(opts)
         short           = arch.short_offer,
         obj             = "Locate and disable target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg
-                          .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying.",
+                          .. "\n\nTarget propulsion with beam weapons (Weapons station → system target: impulse) to disable without destroying. Once disabled, dock with the ship to board.",
         complete_msg    = arch.recv_msg,
         target_template = templates[math.random(#templates)],
         target_dest     = target_dest,
@@ -383,6 +383,7 @@ function M.spawn(m)
     local mr = s:getShieldMax(1)
     if mf > 0 then s:setShields(mf, mr) end
     s:setScanningParameters(1, 1)
+    s.components.docking_bay = {external_dock_classes = {"Frigate"}}
     if dest_station and RT.valid(dest_station) then
         local dx, dy = dest_station:getPosition()
         s:orderFlyTowards(dx, dy)
@@ -439,35 +440,30 @@ function M.update(m, entry, ctx)
             RT.addReputation("Corsairs", -100, "boarded " .. m.target_cs)
             target:setCanBeDestroyed(false)
             target:orderIdle()
-            target:setImpulseMaxSpeed(5)
+            -- Static physics stops the ship and makes it appear as a dockable target.
+            if target.components.physics then target.components.physics.type = "static" end
             target:setCommsFunction(function(src, tgt)
-                local tx, ty = tgt:getPosition()
-                local sx, sy = src:getPosition()
-                local dx, dy = tx - sx, ty - sy
-                local dist = math.sqrt(dx * dx + dy * dy)
-                if dist > 250 then
-                    setCommsMessage(string.format(
-                        '"%s" is drifting — no response on any channel.\n\nRange: %.2fU. Close to within 0.25U to pull alongside.',
-                        m.target_cs, dist / 1000))
-                else
-                    setCommsMessage(string.format(
-                        '"%s" is alongside — crew standing by.\n\nSend the boarding party?',
-                        m.target_cs))
-                    addCommsReply("Send boarding party", function(s2, t2)
-                        m._boarded = true
-                        m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                        RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
-                        JOBS.updateObj()
-                        setCommsMessage(string.format('"Take it. Just let us go."\n\n%s secured.', m.cargo))
-                    end)
-                end
+                setCommsMessage(string.format('[%s] Engines offline. Drifting. No response.', m.target_cs))
+                addCommsReply("Understood.", function() setCommsMessage("Channel closes.") end)
             end)
-            m.obj = "Board " .. m.target_cs
-            RT.shipLog("[Target] " .. m.target_cs .. " disabled. Close to 0.25U and hail to board.", "#FFCC80")
+            m.obj = "Dock with " .. m.target_cs
+            RT.shipLog("[Target] " .. m.target_cs .. " disabled. Dock with the ship to board.", "#FFCC80")
             JOBS.updateObj()
         end
     end
-    -- Phase 2: _boarded is set via the comms reply above; nothing to poll here.
+
+    -- Phase 2: watch for the player to dock with the disabled target.
+    if m._disabled and not m._boarded then
+        for _, p in ipairs(RT.players) do
+            if RT.valid(p) and p:isDocked(target) then
+                m._boarded = true
+                m.obj = "Return " .. m.cargo .. " to " .. m.origin
+                RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
+                JOBS.updateObj()
+                break
+            end
+        end
+    end
     return nil
 end
 

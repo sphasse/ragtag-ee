@@ -334,10 +334,19 @@ function MISSIONS._showDetail(id, backToMainFn)
         if M.gm_actions then
             for _, action in ipairs(M.gm_actions) do
                 local a = action
-                addGMFunction(a.label, function()
-                    pcall(a.fn, st)
-                    MISSIONS._showDetail(id, backToMainFn)
-                end)
+                local show = true
+                if a.phases then
+                    show = false
+                    for _, p in ipairs(a.phases) do
+                        if p == phase then show = true; break end
+                    end
+                end
+                if show then
+                    addGMFunction(a.label, function()
+                        pcall(a.fn, st)
+                        MISSIONS._showDetail(id, backToMainFn)
+                    end)
+                end
             end
         end
 

@@ -41,14 +41,12 @@ function M.init_state()
     return {
         waypoint    = nil,   -- Rezkov's Waypoint entity
         nebulas     = {},    -- nebula cluster entities
-        hack_target = nil,   -- CpuShip terminal near Waypoint Galen (atmosphere/cleanup only)
-        galen       = nil,   -- Waypoint Galen SpaceStation (actual hack detection target)
+        galen       = nil,   -- Waypoint Galen SpaceStation (hack detection target)
         hack_done   = false,
         drone       = nil,   -- M4 monitoring drone
         meridian    = nil,   -- M5 CWS Meridian
         m5_disabled = false,
         m5_boarded  = false,
-        _last_jam   = 0,
     }
 end
 
@@ -57,6 +55,10 @@ end
 -- Rezkov's Waypoint: between Dustmote (104,-36) and Boneyard (36,-96)
 local _RWX = 115000  -- verse ~(115, -72)
 local _RWY = -72000
+
+-- Concord Monitor 7: 8U at bearing 040 from Dustmote (104000, -36000)
+local _DRONE_X = math.floor(104000 + 8000 * math.sin(math.rad(40)))
+local _DRONE_Y = math.floor(-36000 + 8000 * math.cos(math.rad(40)))
 
 -- Nebula cluster surrounding the waypoint (irregular arrangement, world units)
 local _NEBULA_POS = {
@@ -70,8 +72,7 @@ local _NEBULA_POS = {
 }
 
 -- Concord Waypoint Galen: verse (-75, -52). Terminal spawns slightly NE.
-local _TERMINAL_X = -72000
-local _TERMINAL_Y = -54000
+
 
 -- ── Spawn helpers ────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ local function _spawnWaypoint(st)
     end
 
     local wp = CpuShip():setTemplate("Defense platform"):setFaction("Unknown")
-    wp:setCallSign("Rezkov's Waypoint")
+    wp:setCallSign("Rezkov's station")
     wp:setPosition(_RWX, _RWY)
     wp:setCanBeDestroyed(false)
     wp:orderIdle()
@@ -96,7 +97,7 @@ local function _spawnWaypoint(st)
         if phase == "m1_navigate" then
             if not src:isDocked(tgt) then
                 setCommsMessage('"Approach and dock. We do not do business at a distance."')
-                addCommsReply("Back", function() end)
+                addCommsReply("Back", function() setCommsMessage("The channel closes.") end)
                 return
             end
             setCommsMessage('"You found it.\n\nI am Orlan Rezkov. Reputation got you to my door. What you do after the door opens -- that is what matters.\n\nI need something from a Concord station. Not a fleet base, nothing dramatic. Concord Waypoint Galen on the Arbiter Line. I want the traffic log -- ninety days of docking records. I need to know if someone in my organization is talking.\n\nI will tell you this: your name does not raise flags with their patrols. Keep it that way until the job is finished."')
@@ -104,32 +105,32 @@ local function _spawnWaypoint(st)
                 local concord_rep = RT.getReputation("Concord") or 0
                 if concord_rep < 0 then
                     setCommsMessage('"Not yet. The patrols are watching you. When your name stops raising flags, come back."')
-                    addCommsReply("Understood.", function(s3, t3) end)
+                    addCommsReply("Understood.", function(s3, t3) setCommsMessage("The channel closes.") end)
                     return
                 end
-                RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (-75, -52), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
+                RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (grid " .. JOBS.gridRef(-75000, -52000) .. "), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
                 RT.setObjective("Hack Waypoint Galen", true)
                 RT.flag("rezkov_m1_done", true)
                 MISSIONS.phase("rezkov", "m2_active")
-                setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock, breach their data relay -- the terminal is docked to the station exterior. Get me ninety days of traffic records on this storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. No time limit. Take your other work -- just do not forget this one."')
-                addCommsReply("Understood.", function() end)
+                setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock, breach their data relay -- the terminal is docked to the station exterior. Get me ninety days of traffic records on this storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. Make your way over there but do not make it look suspicious. Pick up some jobs along the way to get you closer."')
+                addCommsReply("Understood.", function() setCommsMessage("Rezkov ends the channel.") end)
             end)
             addCommsReply("Not our kind of work.", function(s2, t2)
                 setCommsMessage('"The door stays open. Come back when you change your mind."')
-                addCommsReply("Back", function() end)
+                addCommsReply("Back", function() setCommsMessage("Rezkov ends the channel.") end)
             end)
             return
         elseif phase == "m2_active" then
             setCommsMessage('"Waypoint Galen is not far. I am still waiting."')
-            addCommsReply("Understood.", function() end)
+            addCommsReply("Understood.", function() setCommsMessage("Rezkov ends the channel.") end)
         elseif phase == "m2_deliver" then
             setCommsMessage('"The job is done. Take the card to Thresh at Dustmote Salvage."')
-            addCommsReply("Understood.", function() end)
+            addCommsReply("Understood.", function() setCommsMessage("Rezkov ends the channel.") end)
         elseif phase ~= nil then
             setCommsMessage('"I will have more work. Keep flying."')
-            addCommsReply("Understood.", function() end)
+            addCommsReply("Understood.", function() setCommsMessage("Rezkov ends the channel.") end)
         else
-            setCommsMessage("[Rezkov's Waypoint] No response on this frequency.")
+            setCommsMessage("[Rezkov's station] No response on this frequency.")
         end
     end)
     RT.register(wp)
@@ -146,55 +147,33 @@ local function _despawnWaypoint(st)
         st.waypoint:destroy()
     end
     st.waypoint = nil
-    RT.named["Rezkov's Waypoint"] = nil
+    RT.named["Rezkov's station"] = nil
 end
 
 local function _spawnHackTerminal(st)
-    if RT.valid(st.hack_target) then return end
-    local s = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
-    s:setCallSign("Concord Data Terminal"):setTypeName("Station Relay")
-    s:setPosition(_TERMINAL_X, _TERMINAL_Y)
-    s:orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
-    s:setHullMax(50):setHull(50):setShieldsMax(0):setShields(0)
-    s:setCanBeDestroyed(false)
-    s:setSystemHealth("reactor", 1.0)
-    s:setSystemHackedLevel("reactor", 0.0)
-    s:setBeamWeapon(0, 120,   0, 4000, 6, 4)
-    s:setBeamWeapon(1, 120,  90, 4000, 6, 4)
-    s:setBeamWeapon(2, 120, 180, 4000, 6, 4)
-    s:setBeamWeapon(3, 120, 270, 4000, 6, 4)
-    s:setCommsFunction(function(src, tgt)
-        setCommsMessage("[Concord Data Terminal] Automated relay. Encrypted. No authorized access.")
-    end)
-    RT.named["Concord Data Terminal"] = s
-    st.hack_target = s
-
-    -- Find Waypoint Galen (the actual station the player docks at and hacks).
+    if st.galen then return end
     for _, obj in ipairs(getObjectsInRadius(-75000, -52000, 3000)) do
         if isObjectType(obj, "SpaceStation") then
             st.galen = obj
             break
         end
     end
-
-    RT.shipLog("[Scan] Concord Data Terminal relay detected on Waypoint Galen exterior. Hack the station's front shield generator to 100% to access it.", "#A0C0FF")
+    RT.shipLog("[Scan] Concord Waypoint Galen on sensors. Hack the station's front shield generator to 100% to access the traffic log.", "#A0C0FF")
 end
 
 local function _checkHack(st, now)
     if st.hack_done then return end
-    local target = st.galen or st.hack_target
-    if not RT.valid(target) then return end
+    if not RT.valid(st.galen) then return end
 
-    local ok, lvl = pcall(function() return target:getSystemHackedLevel("frontshield") end)
+    local ok, lvl = pcall(function() return st.galen:getSystemHackedLevel("frontshield") end)
     local hack_lvl = (ok and lvl) and lvl or 0
 
     if hack_lvl >= 1.0 then
         st.hack_done = true
-        if RT.valid(st.hack_target) then st.hack_target:setCanBeDestroyed(true) end
         RT.shipLog("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")
         RT.after(4, function()
             RT.shipLog("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
-            RT.shipLog("[Mission] Deliver the storage card to Thresh at Dustmote Salvage.", "#A0C0FF")
+            RT.shipLog("[Mission] Deliver the storage card to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#A0C0FF")
             RT.setObjective("Card to Thresh @ Dustmote", true)
             MISSIONS.phase("rezkov", "m2_deliver")
         end, "rezkov_hack_msg2")
@@ -203,12 +182,9 @@ end
 
 local function _spawnDrone(st)
     if RT.valid(st.drone) then return end
-    -- Bearing 040 from Dustmote (104, -36) verse = world (104000, -36000), 8U out
-    local dx = 104000 + 8000 * math.sin(math.rad(40))
-    local dy = -36000 + 8000 * math.cos(math.rad(40))
     local drone = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
     drone:setCallSign("Concord Monitor 7"):setTypeName("Monitoring Drone")
-    drone:setPosition(dx, dy)
+    drone:setPosition(_DRONE_X, _DRONE_Y)
     drone:orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
     drone:setHullMax(100):setHull(100):setShieldsMax(0):setShields(0)
     drone:setWeaponTubeCount(0)
@@ -218,7 +194,7 @@ local function _spawnDrone(st)
     end)
     RT.named["Concord Monitor 7"] = drone
     st.drone = drone
-    RT.shipLog("[Scan] Concord Monitor 7 detected in Dustmote salvage field. Bearing 040, 8 units.", "#FFAA00")
+    RT.shipLog("[Scan] Concord Monitor 7 detected in Dustmote salvage field. Grid " .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. ".", "#FFAA00")
 end
 
 local function _spawnMeridian(st)
@@ -302,24 +278,25 @@ local function _dustmoteHook(src, tgt, info)
         addCommsReply("Heard you were looking for an independent operator.", function(s2, t2)
             setCommsMessage('"There is someone who wants to meet you. Goes by Thresh -- local contact for a business associate. Word travels in the Drift, and your name has been mentioned.\n\nInterested in hearing more?"')
             addCommsReply("Sure, what\'s the job?", function(s3, t3)
-                setCommsMessage('"The associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHead out from here at bearing 20 and you\'ll find what you are looking for in a nebula cloud.\n\nMind what you say when you get there. He remembers everything."')
+                setCommsMessage('"The associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHe has a station out in the nebula field -- grid ' .. JOBS.gridRef(115000, -72000) .. '. Name on approach is Orlan.\n\nMind what you say when you get there. He remembers everything."')
                 addCommsReply("We\'ll head out.", function(s4, t4)
-                    setCommsMessage('"Good. He will be expecting you."\n\nThresh turns back to work.')
-                    addCommsReply("Understood.", function() end)
-                    RT.shipLog("[Navigation] Bearing 20. Find the nebula cloud.", "#A0C0FF")
+                    RT.shipLog("[Navigation] Rendezvous: Orlan's station, grid " .. JOBS.gridRef(115000, -72000) .. ". Nebula field.", "#A0C0FF")
                     RT.setObjective("Find the waypoint", true)
                     RT.flag("rezkov_hook", true)
                     MISSIONS.phase("rezkov", "m1_navigate")
+                    setCommsMessage('"Good. He will be expecting you."\n\nThresh turns back to work.')
+                    addCommsReply("Understood.", function() setCommsMessage("Thresh turns back to work.") end)
                 end)
                 addCommsReply("Not right now.", function(s4, t4)
                     setCommsMessage('"The offer stays open. Thresh is usually around."')
-                    addCommsReply("Back", function() end)
+                    addCommsReply("Back", function() setCommsMessage("Thresh nods.") end)
                 end)
             end)
             addCommsReply("Not interested.", function(s3, t3)
                 setCommsMessage('"Suit yourself."')
-                addCommsReply("Back", function(s4, t4)
+                addCommsReply("Back", function()
                     RT.flag("rezkov_declined", true)
+                    setCommsMessage("Thresh shrugs and goes back to work.")
                 end)
             end)
         end)
@@ -331,26 +308,31 @@ local function _dustmoteHook(src, tgt, info)
         addCommsReply("Delivery for Thresh.", function(s2, t2)
             setCommsMessage('"Thresh takes the card and disappears into the back.\n\n...\n\n"Good work. The boss will reach out when he has work. Keep flying."\n\n600 credits transferred."')
             addCommsReply("Understood.", function(s3, t3)
-                setCommsMessage("Credits cleared. Thresh nods and walks away.")
                 RT.addCredits(600, "Rezkov Arc M2: data delivery")
-                RT.shipLog("[Rezkov Arc] M2 complete. 600cr received. Rezkov's Waypoint has gone dark.", "#80FF80")
+                RT.shipLog("[Rezkov Arc] M2 complete. 600cr received. Rezkov's station has gone dark.", "#80FF80")
                 RT.flag("rezkov_m2_done", true)
-                if st then
-                    if RT.valid(st.hack_target) then
-                        st.hack_target:setCanBeDestroyed(true)
-                        st.hack_target:destroy()
-                        st.hack_target = nil
-                        RT.named["Concord Data Terminal"] = nil
-                    end
-                    _despawnWaypoint(st)
-                end
+                if st then _despawnWaypoint(st) end
                 MISSIONS.phase("rezkov", "m3_active")
+                setCommsMessage('"The boss has another job. Simple freight run. Hob\'s Landing to Saint Brennan\'s Mission. Standard cargo -- medical supplies, aid equipment.\n\nNothing complicated. But he wants you on it personally.\n\n400 credits on delivery."')
+                addCommsReply("We\'ll take it.", function(s4, t4)
+                    setCommsMessage('"Hob\'s Landing is expecting you. Pick up the consignment and get it to Saint Brennan\'s. Do not let anyone open the crates."')
+                    addCommsReply("Understood.", function(s5, t5)
+                        setCommsMessage("Thresh disappears into the back.")
+                        RT.shipLog("[Rezkov Arc] M3: Freight run, Hob's Landing (grid " .. JOBS.gridRef(86000, 44000) .. ") to Saint Brennan's Mission (grid " .. JOBS.gridRef(72000, -62000) .. "). 400cr on delivery.", "#A0C0FF")
+                        RT.setObjective("Pick up at Hob's Landing", true)
+                        RT.flag("rezkov_m3_accepted", true)
+                    end)
+                end)
+                addCommsReply("Not right now.", function(s4, t4)
+                    setCommsMessage('"The offer stays open."')
+                    addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
+                end)
             end)
         end)
         return
     end
 
-    -- M3 offer: The Mule delivery job
+    -- M3 offer: shown on re-hail if crew said "not right now" after M2 delivery
     if phase == "m3_active" and RT.flag("rezkov_m2_done") and not RT.flag("rezkov_m3_accepted") then
         addCommsReply("Thresh -- any word from Rezkov?", function(s2, t2)
             setCommsMessage('"The boss has another job. Simple freight run. Hob\'s Landing to Saint Brennan\'s Mission. Standard cargo -- medical supplies, aid equipment.\n\nNothing complicated. But he wants you on it personally.\n\n400 credits on delivery."')
@@ -358,14 +340,14 @@ local function _dustmoteHook(src, tgt, info)
                 setCommsMessage('"Hob\'s Landing is expecting you. Pick up the consignment and get it to Saint Brennan\'s. Do not let anyone open the crates."')
                 addCommsReply("Understood.", function(s4, t4)
                     setCommsMessage("Thresh disappears into the back.")
-                    RT.shipLog("[Rezkov Arc] M3: Freight run, Hob's Landing to Saint Brennan's Mission. 400cr on delivery.", "#A0C0FF")
+                    RT.shipLog("[Rezkov Arc] M3: Freight run, Hob's Landing (grid " .. JOBS.gridRef(86000, 44000) .. ") to Saint Brennan's Mission (grid " .. JOBS.gridRef(72000, -62000) .. "). 400cr on delivery.", "#A0C0FF")
                     RT.setObjective("Pick up at Hob's Landing", true)
                     RT.flag("rezkov_m3_accepted", true)
                 end)
             end)
             addCommsReply("Not right now.", function(s3, t3)
                 setCommsMessage('"The offer stays open."')
-                addCommsReply("Back", function() end)
+                addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
             end)
         end)
         return
@@ -374,12 +356,12 @@ local function _dustmoteHook(src, tgt, info)
     -- M4 offer: Clean Sweep
     if phase == "m4_active" and RT.flag("rezkov_m3_done") and not RT.flag("rezkov_m4_accepted") then
         addCommsReply("Thresh -- any word from Rezkov?", function(s2, t2)
-            setCommsMessage('"Concord planted a monitoring drone in the salvage field. Bearing 040 from here, about 8 units out. Automated scanner -- been logging everything that comes through.\n\nHe wants it gone. 450 credits. Concord will notice when it goes dark, so get clear before they come looking."')
+            setCommsMessage('"Concord planted a monitoring drone in the salvage field. Concord Monitor 7, grid ' .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. '. Automated scanner -- been logging everything that comes through.\n\nHe wants it gone. 450 credits. Concord will notice when it goes dark, so get clear before they come looking."')
             addCommsReply("We\'ll handle it.", function(s3, t3)
-                setCommsMessage('"Bearing 040, 8 units from here. Can\'t miss it."')
+                setCommsMessage('"Concord Monitor 7, grid ' .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. '. Can\'t miss it."')
                 addCommsReply("On it.", function(s4, t4)
                     setCommsMessage("Thresh nods. The comms close.")
-                    RT.shipLog("[Rezkov Arc] M4: Destroy Concord Monitor 7, bearing 040, 8U from Dustmote. 450cr.", "#A0C0FF")
+                    RT.shipLog("[Rezkov Arc] M4: Destroy Concord Monitor 7, grid " .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. ". 450cr.", "#A0C0FF")
                     RT.setObjective("Destroy Monitor 7", true)
                     RT.flag("rezkov_m4_accepted", true)
                     if st then _spawnDrone(st) end
@@ -387,7 +369,7 @@ local function _dustmoteHook(src, tgt, info)
             end)
             addCommsReply("Not right now.", function(s3, t3)
                 setCommsMessage('"The offer stays open."')
-                addCommsReply("Back", function() end)
+                addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
             end)
         end)
         return
@@ -401,7 +383,7 @@ local function _dustmoteHook(src, tgt, info)
                 setCommsMessage('"The Meridian is running a loop through the Dustmote shipping lane. Find her, disable her, board her. No killing."')
                 addCommsReply("Understood.", function(s4, t4)
                     setCommsMessage("Thresh nods. The comms close.")
-                    RT.shipLog("[Rezkov Arc] M5: Board CWS Meridian near Dustmote. Disable, board, choose: wipe files or take passenger. 600cr.", "#A0C0FF")
+                    RT.shipLog("[Rezkov Arc] M5: Board CWS Meridian near Dustmote (grid " .. JOBS.gridRef(104000, -36000) .. "). Disable, board, choose: wipe files or take passenger. 600cr.", "#A0C0FF")
                     RT.setObjective("Disable CWS Meridian", true)
                     RT.flag("rezkov_m5_accepted", true)
                     if st then _spawnMeridian(st) end
@@ -409,7 +391,7 @@ local function _dustmoteHook(src, tgt, info)
             end)
             addCommsReply("Not right now.", function(s3, t3)
                 setCommsMessage('"The offer stays open."')
-                addCommsReply("Back", function() end)
+                addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
             end)
         end)
         return
@@ -426,7 +408,7 @@ local function _hobsLandingHook(src, tgt, info)
         setCommsMessage('"Right, we have it set aside. Twelve crates, sealed. Medical supplies and aid equipment for Saint Brennan\'s Mission. Consignment tag is on the manifest.\n\nHave a smooth run."')
         addCommsReply("Loading now.", function(s3, t3)
             setCommsMessage("The dockhand waves you toward the loading bay.")
-            RT.shipLog("[Rezkov Arc] Consignment loaded. Destination: Saint Brennan's Mission.", "#A0C0FF")
+            RT.shipLog("[Rezkov Arc] Consignment loaded. Destination: Saint Brennan's Mission (grid " .. JOBS.gridRef(72000, -62000) .. ").", "#A0C0FF")
             RT.setObjective("Deliver consignment", true)
             RT.flag("rezkov_m3_cargo", true)
         end)
@@ -460,12 +442,6 @@ end
 
 function M.on_cancel(st)
     _despawnWaypoint(st)
-    if RT.valid(st.hack_target) then
-        st.hack_target:setCanBeDestroyed(true)
-        st.hack_target:destroy()
-        st.hack_target = nil
-        RT.named["Concord Data Terminal"] = nil
-    end
     if RT.valid(st.drone) then
         st.drone:destroy()
         st.drone = nil
@@ -494,15 +470,14 @@ M.gm_actions = {
         MISSIONS.phase("rezkov", "m3_active")
         globalMessage("[GM] Rezkov Arc: skipped to M3 (mule).", 4)
     end},
-    {label = "Complete hack", fn = function(st)
-        if not st.hack_done then
-            local target = st.galen or st.hack_target
-            if RT.valid(target) then
-                target:setSystemHackedLevel("frontshield", 0.9)
-            end
+    {label = "Complete hack", phases = {"m2_active"},
+     fn = function(st)
+        if not st.hack_done and RT.valid(st.galen) then
+            st.galen:setSystemHackedLevel("frontshield", 1.0)
         end
     end},
-    {label = "Complete drone", fn = function(st)
+    {label = "Complete drone", phases = {"m4_active"},
+     fn = function(st)
         if RT.valid(st.drone) then
             st.drone:setCanBeDestroyed(true)
             st.drone:destroy()
@@ -562,7 +537,7 @@ M.phases.m1_navigate = {
     enter = function(st)
         RUMORS.removeCategory("REZKOV_HOOK")
         _spawnWaypoint(st)
-        RT.shipLog("[Navigation] Bearing 20. Find the nebula cloud.", "#A0C0FF")
+        RT.shipLog("[Navigation] Rendezvous: Orlan's station, grid " .. JOBS.gridRef(115000, -72000) .. ". Nebula field.", "#A0C0FF")
         RT.setObjective("Find the waypoint", true)
     end,
 }
@@ -577,19 +552,6 @@ M.phases.m2_active = {
 
     update = function(st, delta, now)
         _checkHack(st, now)
-
-        -- Jam scan probes near terminal every 2s
-        if now - st._last_jam > 2 then
-            st._last_jam = now
-            if RT.valid(st.hack_target) then
-                local rx, ry = st.hack_target:getPosition()
-                for _, obj in ipairs(getObjectsInRadius(rx, ry, 5000)) do
-                    if RT.valid(obj) and isObjectType(obj, "ScanProbe") then
-                        obj:destroy()
-                    end
-                end
-            end
-        end
     end,
 }
 
