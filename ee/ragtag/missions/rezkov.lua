@@ -206,6 +206,7 @@ local function _spawnMeridian(st)
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setPosition(mx, my)
     meridian:orderFlyTowards(mx + 20000, my + 5000)
+    meridian.components.docking_bay = {}
     RT.register(meridian)
     st.meridian = meridian
     RT.shipLog("[Intel] CWS Meridian is in the sector, running a patrol loop near Dustmote. Standard Concord investigator configuration.", "#FFAA00")
@@ -219,51 +220,49 @@ local function _checkMeridianDisabled(st)
         st.m5_disabled = true
         st.meridian:setCanBeDestroyed(false)
         st.meridian:orderIdle()
-        st.meridian:setImpulseMaxSpeed(5)
-        RT.shipLog("[CWS Meridian] Ship disabled. Close to 0.25U and hail to board.", "#FFCC80")
+        st.meridian:setFaction("Independent")
         st.meridian:setCommsFunction(function(src, tgt)
-            local tx, ty = tgt:getPosition()
-            local sx, sy = src:getPosition()
-            local d = math.sqrt((tx-sx)^2 + (ty-sy)^2)
-            if d > 250 then
-                setCommsMessage(string.format(
-                    '"CWS Meridian -- standing by. Close to %.2fU to 0.25U before we talk."',
-                    d / 1000))
-            elseif not st.m5_boarded then
-                st.m5_boarded = true
-                setCommsMessage('"Commander Vael, CWS Meridian. You have my ship disabled. I assume this is not a coincidence.\n\nI know what you were hired to do. And I know who hired you. I have been investigating Rezkov\'s network for eight months.\n\nI am going to give you a choice: wipe my investigation files -- Rezkov\'s people go free, and so does the person in his organization who has been feeding me information -- or bring me to whoever sent you, and I will make a deal. The source stays protected either way.\n\nWhat is it going to be?"')
-                addCommsReply("Wipe the files.", function(s2, t2)
-                    setCommsMessage('"Understood. Doing this under duress is noted in my personal log. The investigation is dead.\n\nGet off my ship."')
-                    addCommsReply("Done.", function(s3, t3)
-                        RT.addCredits(600, "Rezkov Arc M5: investigation wiped")
-                        RT.addReputation("Concord", -30, "Rezkov Arc: boarded Concord vessel, wiped investigation")
-                        RT.shipLog("[Rezkov Arc] Done. Investigation wiped. The source inside Rezkov's network is still at large. 600cr. Concord -30.", "#80FF80")
-                        RT.flag("rezkov_arc_done", "files_wiped")
-                        RT.note("Boarded CWS Meridian (Cmdr Vael), wiped Concord investigation into Rezkov. Unknown informant protected.")
-                        if RT.valid(st.meridian) then
-                            st.meridian:setFaction("Independent")
-                            st.meridian:orderIdle()
-                        end
-                        MISSIONS.phase("rezkov", "done")
-                    end)
-                end)
-                addCommsReply("We will bring you to Rezkov.", function(s2, t2)
-                    setCommsMessage('"Pragmatic. I can work with pragmatic.\n\nI will be cooperative. Tell him I want to negotiate."')
-                    addCommsReply("We will get you there.", function(s3, t3)
-                        RT.addCredits(600, "Rezkov Arc M5: investigator delivered")
-                        RT.addReputation("Concord", -50, "Rezkov Arc: delivered Concord investigator to crime lord")
-                        RT.shipLog("[Rezkov Arc] Done. Vael in transit to Rezkov's people. 600cr. Concord -50. The source inside Rezkov's network is still at large.", "#80FF80")
-                        RT.flag("rezkov_arc_done", "investigator_delivered")
-                        RT.note("Delivered CWS Meridian commander Vael to Rezkov's contact. Unknown informant still active inside Rezkov's organization.")
-                        if RT.valid(st.meridian) then
-                            local ok, _ = pcall(function() st.meridian:orderFollowTarget(RT.player) end)
-                        end
-                        MISSIONS.phase("rezkov", "done")
-                    end)
-                end)
-            end
+            setCommsMessage('"CWS Meridian -- engines disabled. We surrender. Close to within 1U and request docking."')
+            addCommsReply("Understood. Stand by.", function() setCommsMessage("Channel open.") end)
         end)
+        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and request docking to board.", "#FFCC80")
+        RT.setObjective("Board CWS Meridian", true)
     end
+end
+
+local function _setupVaelComms(st)
+    st.m5_boarded = true
+    RT.shipLog("[CWS Meridian] Docked. Hail Commander Vael.", "#FFCC80")
+    RT.setObjective("Speak with Commander Vael", true)
+    st.meridian:setCommsFunction(function(src, tgt)
+        setCommsMessage('"Commander Vael, CWS Meridian. You have my ship disabled. I assume this is not a coincidence.\n\nI know what you were hired to do. And I know who hired you. I have been investigating Rezkov\'s network for eight months.\n\nI am going to give you a choice: wipe my investigation files -- Rezkov\'s people go free, and so does the person in his organization who has been feeding me information -- or bring me to whoever sent you, and I will make a deal. The source stays protected either way.\n\nWhat is it going to be?"')
+        addCommsReply("Wipe the files.", function(s2, t2)
+            setCommsMessage('"Understood. Doing this under duress is noted in my personal log. The investigation is dead.\n\nGet off my ship."')
+            addCommsReply("Done.", function(s3, t3)
+                RT.addCredits(600, "Rezkov Arc M5: investigation wiped")
+                RT.addReputation("Concord", -30, "Rezkov Arc: boarded Concord vessel, wiped investigation")
+                RT.shipLog("[Rezkov Arc] Done. Investigation wiped. The source inside Rezkov's network is still at large. 600cr. Concord -30.", "#80FF80")
+                RT.flag("rezkov_arc_done", "files_wiped")
+                RT.note("Boarded CWS Meridian (Cmdr Vael), wiped Concord investigation into Rezkov. Unknown informant protected.")
+                if RT.valid(st.meridian) then st.meridian:orderIdle() end
+                MISSIONS.phase("rezkov", "done")
+            end)
+        end)
+        addCommsReply("We will bring you to Rezkov.", function(s2, t2)
+            setCommsMessage('"Pragmatic. I can work with pragmatic.\n\nI will be cooperative. Tell him I want to negotiate."')
+            addCommsReply("We will get you there.", function(s3, t3)
+                RT.addCredits(600, "Rezkov Arc M5: investigator delivered")
+                RT.addReputation("Concord", -50, "Rezkov Arc: delivered Concord investigator to crime lord")
+                RT.shipLog("[Rezkov Arc] Done. Vael in transit to Rezkov's people. 600cr. Concord -50. The source inside Rezkov's network is still at large.", "#80FF80")
+                RT.flag("rezkov_arc_done", "investigator_delivered")
+                RT.note("Delivered CWS Meridian commander Vael to Rezkov's contact. Unknown informant still active inside Rezkov's organization.")
+                if RT.valid(st.meridian) then
+                    pcall(function() st.meridian:orderFollowTarget(RT.player) end)
+                end
+                MISSIONS.phase("rezkov", "done")
+            end)
+        end)
+    end)
 end
 
 -- ── Station hooks ─────────────────────────────────────────────────────────
@@ -610,6 +609,14 @@ M.phases.m5_active = {
             return
         end
         _checkMeridianDisabled(st)
+        if st.m5_disabled and not st.m5_boarded and RT.valid(st.meridian) then
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) and p:isDocked(st.meridian) then
+                    _setupVaelComms(st)
+                    break
+                end
+            end
+        end
     end,
 }
 
