@@ -700,8 +700,16 @@ function _P.update(state, delta, now)
             if (zone_ships[name] or 0) >= zone_cap then goto skip end
 
             -- Per-zone cooldown (zone.cooldown shortened by mode frequency).
+            -- Corsair rep scales patrol aggressiveness: -200 → 30% shorter, -400 → 50% shorter.
             local last = state.region_cd[name] or -99999
-            if now - last < zone.cooldown / mode.freq then goto skip end
+            local effective_cooldown = zone.cooldown
+            if zone.faction == "Corsairs" then
+                local crep = RT.getReputation("Corsairs") or 0
+                if     crep <= -400 then effective_cooldown = effective_cooldown * 0.5
+                elseif crep <= -200 then effective_cooldown = effective_cooldown * 0.7
+                end
+            end
+            if now - last < effective_cooldown / mode.freq then goto skip end
 
             -- Per-zone density: don't pile on if enough hostiles already nearby.
             if _nearbyHostiles(px, py) >= mode.density then goto skip end

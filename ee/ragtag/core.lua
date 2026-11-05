@@ -326,6 +326,14 @@ local _REP_THRESHOLDS = {
         {-500, "Concord inspection protocols restored.",
                 "Concord patrols will now attack on sight." },
     },
+    Corsairs = {
+        {   0, "Full job access restored at Corsair-adjacent ports.",
+                "Fewer jobs offered at Corsair-adjacent ports." },
+        {-200, "Corsair patrol pressure easing — longer intercept intervals.",
+                "Corsair patrols becoming more aggressive in their territory." },
+        {-400, "Some work returning at Corsair-adjacent ports.",
+                "Corsairs are now actively targeting your ship." },
+    },
     _default = {
         {   0, "Full job access restored at this faction's ports.",
                 "Fewer jobs will be offered at this faction's ports." },

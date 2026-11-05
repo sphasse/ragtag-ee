@@ -110,7 +110,13 @@ Both factions use the same job-access thresholds:
 | −200 | More work becoming available | Very limited jobs available |
 | −400 | Some jobs may return | This faction will no longer offer work |
 
-Corsairs have no patrol shake-down. Their spawn zones and ship strength are determined by geography (see **Danger levels** in the GM guide); reputation affects job access at Corsair-adjacent ports only.
+Corsairs have no patrol shake-down. Their spawn zones and ship strength are determined by geography (see **Danger levels** in the GM guide). Reputation also scales patrol frequency in Corsair zones:
+
+| Rep range | Effect on spawn cooldown |
+|---|---|
+| Above −200 | Standard cooldown |
+| −200 to −400 | 30% shorter — more friction |
+| Below −400 | 50% shorter — actively hunting |
 
 ### Donation opportunities
 
@@ -119,7 +125,7 @@ Two stations offer a way to rebuild Independent standing outside of jobs:
 | Station | Faction | Location | Donation | Rep gained |
 |---|---|---|---|---|
 | Saint Brennan's Mission | Independent | Border, x=72 y=−62 | $100 | +100 Independent |
-| Concord Waypoint Galen | Concord | Arbiter Line, x=−75 y=−52 | $100 | +50 Independent |
+| Concord Waypoint Galen | Concord | Arbiter Line, x=−75 y=−52 | $100 | +50 Concord |
 
 Requires docking. No limit on number of donations per session.
 

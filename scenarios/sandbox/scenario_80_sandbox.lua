@@ -275,7 +275,7 @@ function init()
                 setCommsMessage('"Appreciated, but we need funds, not promises. Return when you have the credits."')
             else
                 RT.addCredits(-100, "donated to the Galen Medical Relief Fund", s)
-                RT.addReputation("Independent", 50, "donated to the Galen Medical Relief Fund")
+                RT.addReputation("Concord", 50, "donated to the Galen Medical Relief Fund")
                 setCommsMessage('"Every contribution helps. The fund will put your credits to good use."')
             end
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
