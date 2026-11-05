@@ -70,14 +70,23 @@ local _RELIC_GROUPS = {
     heavy  = {"Stalker R7", "Stalker Q7"},
 }
 
+-- Single Atlantis X23 destroyer for every strength tier — one very capable enforcer per spawn.
+local _CONCORD_GROUPS = {
+    scout  = {"Atlantis X23"},
+    light  = {"Atlantis X23"},
+    medium = {"Atlantis X23"},
+    heavy  = {"Atlantis X23"},
+}
+
 -- Zone definitions: VERSE region name -> patrol config.
 -- comms = "shakedown"  -> Concord inspection before engaging
 -- comms = "none"       -> silent attack on sight (Relic, Hollow)
 -- comms = nil          -> default faction taunt
+-- max_active           -> per-zone override for concurrent ships (default: mode.max_active)
 PROX = PROX or {}
 PROX.zones = {
-    ["the Concord Core"]  = {faction = "Concord",  comms = "shakedown", cooldown = 300},
-    ["the Arbiter Line"]  = {faction = "Concord",  comms = "shakedown", cooldown = 360},
+    ["the Concord Core"]  = {faction = "Concord",  comms = "shakedown", cooldown = 600, groups = _CONCORD_GROUPS, max_active = 1},
+    ["the Arbiter Line"]  = {faction = "Concord",  comms = "shakedown", cooldown = 720, groups = _CONCORD_GROUPS, max_active = 1},
     ["the Shroud"]        = {faction = "Corsairs",                       cooldown = 240},
     ["Halcyon Rest"]      = {faction = "Corsairs",                       cooldown = 240},
     ["the Gauntlet"]      = {faction = "Corsairs",                       cooldown = 180},
@@ -685,8 +694,9 @@ function _P.update(state, delta, now)
             if mode.freq == 0 then goto skip end
             if zone.faction == "Concord" and wanted then goto skip end
 
-            -- Per-zone active ship cap.
-            if (zone_ships[name] or 0) >= mode.max_active then goto skip end
+            -- Per-zone active ship cap (zone.max_active overrides mode default).
+            local zone_cap = zone.max_active or mode.max_active
+            if (zone_ships[name] or 0) >= zone_cap then goto skip end
 
             -- Per-zone cooldown (zone.cooldown shortened by mode frequency).
             local last = state.region_cd[name] or -99999
