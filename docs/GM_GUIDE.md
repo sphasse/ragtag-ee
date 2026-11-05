@@ -184,28 +184,11 @@ Wrap with a Director prompt: *"Give a brief out-of-character session summary —
 
 ### Reputation effects
 
-**How reputation changes:**
+See **[docs/REPUTATION.md](REPUTATION.md)** for the full mechanics reference — reward formula, all thresholds, Concord shake-down flow, and donation opportunities at Saint Brennan's Mission and Concord Waypoint Galen.
 
-| Action | Faction affected | Change |
-|---|---|---|
-| Complete a mission | Origin station's faction | +mission reward (50–300) |
-| Fail or let a mission expire | Origin station's faction | −2× mission reward |
-| Destroy any faction ship | That ship's faction | −200 |
-| Board and disable a ship | Corsairs | −100 |
-| Hack a Concord relay | Concord | No change (undetected) |
-| Tail a ship | — | No change |
+**Quick summary:** Rep is unbounded. Changes log to Relay immediately with current standings. Destroying a ship costs −200 rep with that faction; failed or expired jobs cost −(reward amount). Concord attacks on sight below −500 rep; job boards thin out below 0 and go dark below −400.
 
-Rep is capped at −100 to +100. One ship kill is usually enough to reach −100 with that faction; running missions is the main recovery path.
-
-**What reputation does:**
-
-| Faction | High rep (>+20) | Low rep (<−20) |
-|---|---|---|
-| Corsairs | Patrols leave you alone (longer spawn cooldown) | Shorter cooldown — they hunt you |
-| Concord | Shake-downs dismissed, no fine | Skip shake-down, immediate attack |
-| Independent | Full station access | No current effect |
-
-> **Note for GMs:** The rep change is logged in-game on the Relay console immediately when it fires. Watch for the crew noticing their first big reputation swing — it's a good moment to play up the consequences in Director dialogue.
+> **Note for GMs:** Watch the Relay console for threshold-crossing alerts — good moments to lean in with Director flavour.
 
 ### Danger levels
 
