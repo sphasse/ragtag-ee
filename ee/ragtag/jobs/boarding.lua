@@ -444,11 +444,11 @@ function M.update(m, entry, ctx)
             target:setFaction("Independent")
             local cs = m.target_cs
             target:setCommsFunction(function(src, tgt)
-                setCommsMessage(string.format('[%s] Engines are gone. We surrender. Ready for boarding party.', cs))
+                setCommsMessage(string.format('[%s] Engines are gone. We surrender. Close to within 1U and request docking to board.', cs))
                 addCommsReply("Understood. Stand by.", function() setCommsMessage("Channel open.") end)
             end)
             m.obj = "Dock with " .. m.target_cs
-            RT.shipLog("[Target] " .. m.target_cs .. " disabled. Dock with the ship to board.", "#FFCC80")
+            RT.shipLog("[Target] " .. m.target_cs .. " disabled. Close to within 1U and request docking to board.", "#FFCC80")
             JOBS.updateObj()
         end
     end
