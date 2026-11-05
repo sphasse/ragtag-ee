@@ -440,14 +440,18 @@ function M.update(m, entry, ctx)
             RT.addReputation("Corsairs", -100, "boarded " .. m.target_cs)
             target:setCanBeDestroyed(false)
             target:orderIdle()
-            -- Static physics stops the ship and makes it appear as a dockable target.
+            -- Static physics stops the ship and makes EE treat it as a dockable target.
             if target.components.physics then target.components.physics.type = "static" end
+            local cs = m.target_cs
             target:setCommsFunction(function(src, tgt)
-                setCommsMessage(string.format('[%s] Engines offline. Drifting. No response.', m.target_cs))
-                addCommsReply("Understood.", function() setCommsMessage("Channel closes.") end)
+                setCommsMessage(string.format('[%s] Engines offline. Drifting.', cs))
+                addCommsReply("Initiate docking approach.", function(s2, t2)
+                    src:commandDock(tgt)
+                    setCommsMessage("Docking approach initiated.")
+                end)
             end)
             m.obj = "Dock with " .. m.target_cs
-            RT.shipLog("[Target] " .. m.target_cs .. " disabled. Dock with the ship to board.", "#FFCC80")
+            RT.shipLog("[Target] " .. m.target_cs .. " disabled. Hail the ship and request docking to board.", "#FFCC80")
             JOBS.updateObj()
         end
     end
