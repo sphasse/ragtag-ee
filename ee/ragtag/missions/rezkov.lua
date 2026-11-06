@@ -419,8 +419,9 @@ M.gm_actions = {
     -- ── Skip ──────────────────────────────────────────────────────────────
     {label = "→ Inactive", fn = function(st)
         _gmClearFlags(st)
+        RT.flag("rezkov_declined", true)   -- suppresses re-trigger and Dustmote hook
         MISSIONS.phase("rezkov", "hook")
-        globalMessage("[GM] Rezkov Arc: reset to Inactive.", 4)
+        globalMessage("[GM] Rezkov Arc: suppressed. Will not trigger even if criteria are met.", 4)
     end},
     {label = "→ Rumors", fn = function(st)
         _gmClearFlags(st)
