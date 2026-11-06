@@ -368,19 +368,100 @@ end
 
 -- ── GM actions ────────────────────────────────────────────────────────────
 
+local function _gmStateLabel()
+    local phase = MISSIONS._cur_phase["rezkov"]
+    if not phase or phase == "init" then
+        return RT.flag("rezkov_declined") and "Inactive (declined)" or "Inactive"
+    elseif phase == "hook"                                  then return "Rumors"
+    elseif phase == "m1_navigate"                          then return "Meeting"
+    elseif phase == "m2_active" or phase == "m2_deliver"   then return "Hacking"
+    elseif phase == "m3_active" or phase == "m3_deliver"   then return "Intercept"
+    elseif phase == "done" then
+        return "Complete (" .. tostring(RT.flag("rezkov_arc_done")) .. ")"
+    end
+    return "Unknown (" .. tostring(phase) .. ")"
+end
+
+local function _gmClearFlags(st)
+    _despawnWaypoint(st)
+    if RT.valid(st.meridian) then
+        st.meridian:setCanBeDestroyed(true)
+        st.meridian:destroy()
+        st.meridian = nil
+        RT.named["CWS Meridian"] = nil
+    end
+    for _, k in ipairs({"hook","declined","m1_done","m2_done",
+                         "m3_accepted","m3_data","arc_done"}) do
+        RT.flag("rezkov_" .. k, nil)
+    end
+    RUMORS.removeCategory("REZKOV_HOOK")
+end
+
 M.gm_actions = {
-    {label = "Skip to M2", fn = function(st)
+    -- ── Info ──────────────────────────────────────────────────────────────
+    {label = "Mission criteria", fn = function(st)
+        local rep_i  = RT.getReputation("Independent") or 0
+        local rep_c  = RT.getReputation("Concord") or 0
+        local cost_map = {}
+        for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
+        local inv = 0
+        for _, id in ipairs((RT.campaign and RT.campaign.upgrades) or {}) do
+            inv = inv + (cost_map[id] or 0)
+        end
+        local function ok(v) return v and "[OK]" or "[X]" end
+        globalMessage(string.format(
+            "Rezkov Arc triggers when:\n%s Independent rep >= 500  (now %d)\n%s Upgrade investment >= 600cr  (now %dcr)\n%s Concord rep >= 0  (now %d)",
+            ok(rep_i >= 500), rep_i, ok(inv >= 600), inv, ok(rep_c >= 0), rep_c), 8)
+    end},
+    {label = "State", fn = function(st)
+        globalMessage("Rezkov Arc: " .. _gmStateLabel(), 5)
+    end},
+    -- ── Skip ──────────────────────────────────────────────────────────────
+    {label = "→ Inactive", fn = function(st)
+        _gmClearFlags(st)
+        MISSIONS.phase("rezkov", "hook")
+        globalMessage("[GM] Rezkov Arc: reset to Inactive.", 4)
+    end},
+    {label = "→ Rumors", fn = function(st)
+        _gmClearFlags(st)
+        MISSIONS.phase("rezkov", "hook")
+        globalMessage("[GM] Rezkov Arc: → Rumors.", 4)
+    end},
+    {label = "→ Meeting", fn = function(st)
+        _gmClearFlags(st)
+        RT.flag("rezkov_hook", true)
+        MISSIONS.phase("rezkov", "m1_navigate")
+        globalMessage("[GM] Rezkov Arc: → Meeting.", 4)
+    end},
+    {label = "→ Hacking", fn = function(st)
+        _gmClearFlags(st)
+        RT.flag("rezkov_hook", true)
         RT.flag("rezkov_m1_done", true)
         MISSIONS.phase("rezkov", "m2_active")
-        globalMessage("[GM] Rezkov Arc: skipped to M2 (hack).", 4)
+        globalMessage("[GM] Rezkov Arc: → Hacking.", 4)
     end},
-    {label = "Skip to M3", fn = function(st)
+    {label = "→ Intercept", fn = function(st)
+        _gmClearFlags(st)
+        RT.flag("rezkov_hook", true)
         RT.flag("rezkov_m1_done", true)
         RT.flag("rezkov_m2_done", true)
         RT.flag("rezkov_m3_accepted", true)
         MISSIONS.phase("rezkov", "m3_active")
-        globalMessage("[GM] Rezkov Arc: skipped to M3 (intercept).", 4)
+        globalMessage("[GM] Rezkov Arc: → Intercept.", 4)
     end},
+    {label = "→ Complete", fn = function(st)
+        _despawnWaypoint(st)
+        if RT.valid(st.meridian) then
+            st.meridian:setCanBeDestroyed(true)
+            st.meridian:destroy()
+            st.meridian = nil
+            RT.named["CWS Meridian"] = nil
+        end
+        RT.flag("rezkov_arc_done", "gm_skip")
+        MISSIONS.phase("rezkov", "done")
+        globalMessage("[GM] Rezkov Arc: → Complete.", 4)
+    end},
+    -- ── Phase helpers ─────────────────────────────────────────────────────
     {label = "Complete hack", phases = {"m2_active"},
      fn = function(st)
         if not st.hack_done and RT.valid(st.galen) then
