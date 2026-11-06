@@ -16,10 +16,12 @@
 local M = {}
 M.id          = "rezkov"
 M.name        = "Rezkov Arc"
-M.repeatable  = false
-M.locks_jobs  = false
-M.auto_start  = true
-M.start_phase = "init"
+M.repeatable         = false
+M.locks_jobs         = false
+M.auto_start         = true
+M.start_phase        = "init"
+M.no_criteria_button = true   -- custom criteria button in gm_actions
+M.no_auto_cancel     = true   -- navigation handled by gm_actions
 
 M.triggers = {
     rep_min      = {Independent = 500},
@@ -506,6 +508,7 @@ M.phases.init = {
 }
 
 M.phases.hook = {
+    no_skip = true,
     enter = function(st)
         RUMORS.add({text = "Heard there is a contact at Dustmote Salvage asking for independent crews. Someone with money, looking for a discreet run.", priority = 5, category = "REZKOV_HOOK"})
         RUMORS.add({text = "Word is someone has been spreading credits around Dustmote Salvage. Looking for a crew that knows how to keep quiet.", priority = 5, category = "REZKOV_HOOK"})
@@ -517,6 +520,7 @@ M.phases.hook = {
 }
 
 M.phases.m1_navigate = {
+    no_skip = true,
     enter = function(st)
         RUMORS.removeCategory("REZKOV_HOOK")
         _spawnWaypoint(st)
@@ -526,6 +530,7 @@ M.phases.m1_navigate = {
 }
 
 M.phases.m2_active = {
+    no_skip = true,
     enter = function(st)
         st.hack_done = false
         _spawnWaypoint(st)
@@ -539,11 +544,13 @@ M.phases.m2_active = {
 }
 
 M.phases.m2_deliver = {
+    no_skip = true,
     -- The Dustmote hook handles the delivery interaction.
     -- This phase persists until the hook fires _despawnWaypoint and transitions to m3_active.
 }
 
 M.phases.m3_active = {
+    no_skip = true,
     enter = function(st)
         -- Spawn Meridian immediately — she's already burning whether the crew accepts or not
         _spawnMeridian(st)
@@ -595,6 +602,7 @@ M.phases.m3_active = {
 }
 
 M.phases.m3_deliver = {
+    no_skip = true,
     -- Dustmote hook handles the data delivery interaction.
 }
 

@@ -302,7 +302,7 @@ function MISSIONS._showDetail(id, backToMainFn)
     local status_lbl = status .. (phase and (" / " .. phase) or "")
     addGMFunction(M.name .. ": " .. status_lbl, function() end)
 
-    if M.triggers then
+    if M.triggers and not M.no_criteria_button then
         addGMFunction("Mission criteria", function()
             addGMMessage(MISSIONS._criteriaText(id))
         end)
@@ -350,10 +350,12 @@ function MISSIONS._showDetail(id, backToMainFn)
             end
         end
 
-        addGMFunction("Cancel " .. M.name, function()
-            MISSIONS.cancel(id)
-            globalMessage(M.name .. " -- arc cancelled.", 5)
-            MISSIONS._showDetail(id, backToMainFn)
-        end)
+        if not M.no_auto_cancel then
+            addGMFunction("Cancel " .. M.name, function()
+                MISSIONS.cancel(id)
+                globalMessage(M.name .. " -- arc cancelled.", 5)
+                MISSIONS._showDetail(id, backToMainFn)
+            end)
+        end
     end
 end
