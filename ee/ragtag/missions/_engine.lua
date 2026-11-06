@@ -249,6 +249,13 @@ function MISSIONS._criteriaText(id)
     lines[#lines+1] = string.format("\nResult: %s  |  Status: %s",
         overall and "ALL MET" or "not yet met", status)
 
+    if M.gm_state_fn then
+        local ok, lbl = pcall(M.gm_state_fn)
+        if ok and lbl then
+            lines[#lines+1] = "State:  " .. lbl
+        end
+    end
+
     return table.concat(lines, "\n")
 end
 

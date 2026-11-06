@@ -386,6 +386,8 @@ local function _gmStateLabel()
     return "Unknown (" .. tostring(phase) .. ")"
 end
 
+M.gm_state_fn = _gmStateLabel
+
 local function _gmClearFlags(st)
     _despawnWaypoint(st)
     if RT.valid(st.meridian) then
