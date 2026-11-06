@@ -20,7 +20,6 @@ M.repeatable         = false
 M.locks_jobs         = false
 M.auto_start         = true
 M.start_phase        = "init"
-M.no_criteria_button = true   -- custom criteria button in gm_actions
 M.no_auto_cancel     = true   -- navigation handled by gm_actions
 
 M.triggers = {
@@ -401,23 +400,7 @@ end
 
 M.gm_actions = {
     -- ── Info ──────────────────────────────────────────────────────────────
-    {label = "Mission criteria", fn = function(st)
-        local rep_i  = RT.getReputation("Independent") or 0
-        local rep_c  = RT.getReputation("Concord") or 0
-        local cost_map = {}
-        for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
-        local inv = 0
-        for _, id in ipairs((RT.campaign and RT.campaign.upgrades) or {}) do
-            inv = inv + (cost_map[id] or 0)
-        end
-        local function ok(v) return v and "[OK]" or "[X]" end
-        globalMessage(string.format(
-            "Rezkov Arc triggers when:\n%s Independent rep >= 500  (now %d)\n%s Upgrade investment >= 600cr  (now %dcr)\n%s Concord rep >= 0  (now %d)",
-            ok(rep_i >= 500), rep_i, ok(inv >= 600), inv, ok(rep_c >= 0), rep_c), 8)
-    end},
-    {label = "State", fn = function(st)
-        globalMessage("Rezkov Arc: " .. _gmStateLabel(), 5)
-    end},
+    {label = function(st) return "State: " .. _gmStateLabel() end, fn = function(st) end},
     -- ── Skip ──────────────────────────────────────────────────────────────
     {label = "→ Inactive", fn = function(st)
         _gmClearFlags(st)

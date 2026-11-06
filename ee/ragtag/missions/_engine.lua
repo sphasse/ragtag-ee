@@ -274,12 +274,7 @@ function MISSIONS._showList(backToMainFn)
         local M      = MISSIONS._registry[id]
         local status = MISSIONS._status[id]
         local phase  = MISSIONS._cur_phase[id]
-        local lbl
-        if     status == "active"    then lbl = M.name .. " [" .. (phase or "?") .. "]"
-        elseif status == "triggered" then lbl = M.name .. " [READY]"
-        elseif status == "done"      then lbl = M.name .. " [done]"
-        else                              lbl = M.name .. " [inactive]"
-        end
+        local lbl = M.name
         local mid = id
         addGMFunction(lbl, function()
             MISSIONS._showDetail(mid, backToMainFn)
@@ -299,8 +294,6 @@ function MISSIONS._showDetail(id, backToMainFn)
         MISSIONS._showList(backToMainFn)
     end)
 
-    local status_lbl = status .. (phase and (" / " .. phase) or "")
-    addGMFunction(M.name .. ": " .. status_lbl, function() end)
 
     if M.triggers and not M.no_criteria_button then
         addGMFunction("Mission criteria", function()
@@ -342,7 +335,8 @@ function MISSIONS._showDetail(id, backToMainFn)
                     end
                 end
                 if show then
-                    addGMFunction(a.label, function()
+                    local lbl = type(a.label) == "function" and a.label(st) or a.label
+                    addGMFunction(lbl, function()
                         pcall(a.fn, st)
                         MISSIONS._showDetail(id, backToMainFn)
                     end)
