@@ -13,6 +13,8 @@
 --   m3_data           data card seized from CWS Meridian
 --   arc_done          arc complete (value = outcome string)
 
+local _hook_registered = false   -- guard against double-registration on GM restart
+
 local M = {}
 M.id          = "rezkov"
 M.name        = "Rezkov Arc"
@@ -373,7 +375,8 @@ local function _gmStateLabel()
     local phase = MISSIONS._cur_phase["rezkov"]
     if not phase or phase == "init" then
         return RT.flag("rezkov_declined") and "Inactive (declined)" or "Inactive"
-    elseif phase == "hook"                                  then return "Rumors"
+    elseif phase == "hook" then
+        return RT.flag("rezkov_declined") and "Inactive (declined)" or "Rumors"
     elseif phase == "m1_navigate"                          then return "Meeting"
     elseif phase == "m2_active" or phase == "m2_deliver"   then return "Hacking"
     elseif phase == "m3_active" or phase == "m3_deliver"   then return "Intercept"
@@ -388,9 +391,13 @@ local function _gmClearFlags(st)
     if RT.valid(st.meridian) then
         st.meridian:setCanBeDestroyed(true)
         st.meridian:destroy()
-        st.meridian = nil
         RT.named["CWS Meridian"] = nil
     end
+    st.meridian    = nil
+    st.hack_done   = false
+    st.galen       = nil
+    st.m3_disabled = false
+    st.m3_boarded  = false
     for _, k in ipairs({"hook","declined","m1_done","m2_done",
                          "m3_accepted","m3_data","arc_done"}) do
         RT.flag("rezkov_" .. k, nil)
@@ -400,7 +407,7 @@ end
 
 M.gm_actions = {
     -- ── Info ──────────────────────────────────────────────────────────────
-    {label = function(st) return "State: " .. _gmStateLabel() end, fn = function(st) end},
+    {label = function(st) return "State: " .. _gmStateLabel() end, done_ok = true, fn = function(st) end},
     -- ── Skip ──────────────────────────────────────────────────────────────
     {label = "→ Inactive", fn = function(st)
         _gmClearFlags(st)
@@ -436,16 +443,15 @@ M.gm_actions = {
         globalMessage("[GM] Rezkov Arc: → Intercept.", 4)
     end},
     {label = "→ Complete", fn = function(st)
-        _despawnWaypoint(st)
-        if RT.valid(st.meridian) then
-            st.meridian:setCanBeDestroyed(true)
-            st.meridian:destroy()
-            st.meridian = nil
-            RT.named["CWS Meridian"] = nil
-        end
+        _gmClearFlags(st)
         RT.flag("rezkov_arc_done", "gm_skip")
         MISSIONS.phase("rezkov", "done")
         globalMessage("[GM] Rezkov Arc: → Complete.", 4)
+    end},
+    {label = "→ Restart", phases = {"done"}, fn = function(st)
+        _gmClearFlags(st)
+        MISSIONS.start("rezkov")
+        globalMessage("[GM] Rezkov Arc: restarted.", 4)
     end},
     -- ── Phase helpers ─────────────────────────────────────────────────────
     {label = "Complete hack", phases = {"m2_active"},
@@ -470,8 +476,10 @@ M.phases = {}
 M.phases.init = {
     no_skip = true,
     enter = function(st)
-        -- Register station hook once per session (safe: each session starts fresh)
-        RT.addStationHook("Dustmote Salvage", _dustmoteHook)
+        if not _hook_registered then
+            RT.addStationHook("Dustmote Salvage", _dustmoteHook)
+            _hook_registered = true
+        end
 
         -- Route to the appropriate phase based on saved flags
         if RT.flag("rezkov_arc_done") then
@@ -493,6 +501,7 @@ M.phases.init = {
 M.phases.hook = {
     no_skip = true,
     enter = function(st)
+        if RT.flag("rezkov_declined") then return end
         RUMORS.add({text = "Heard there is a contact at Dustmote Salvage asking for independent crews. Someone with money, looking for a discreet run.", priority = 5, category = "REZKOV_HOOK"})
         RUMORS.add({text = "Word is someone has been spreading credits around Dustmote Salvage. Looking for a crew that knows how to keep quiet.", priority = 5, category = "REZKOV_HOOK"})
         RUMORS.add({text = "If you haven\'t been to Dustmote lately, there might be work. Someone there is looking for independent operators.", priority = 5, category = "REZKOV_HOOK"})

@@ -352,4 +352,24 @@ function MISSIONS._showDetail(id, backToMainFn)
             end)
         end
     end
+
+    -- When done: show actions marked done_ok=true or phases={"done"}.
+    if status == "done" and M.gm_actions then
+        for _, action in ipairs(M.gm_actions) do
+            local a = action
+            local show = a.done_ok
+            if not show and a.phases then
+                for _, p in ipairs(a.phases) do
+                    if p == "done" then show = true; break end
+                end
+            end
+            if show then
+                local lbl = type(a.label) == "function" and a.label(st) or a.label
+                addGMFunction(lbl, function()
+                    pcall(a.fn, st)
+                    MISSIONS._showDetail(id, backToMainFn)
+                end)
+            end
+        end
+    end
 end
