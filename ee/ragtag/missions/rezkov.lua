@@ -278,7 +278,7 @@ local function _dustmoteHook(src, tgt, info)
             addCommsReply("Not interested.", function(s3, t3)
                 setCommsMessage('"Suit yourself."')
                 addCommsReply("Back", function()
-                    RT.flag("rezkov_declined", true)
+                    RT.flag("rezkov_declined", "player_declined")
                     setCommsMessage("Thresh shrugs and goes back to work.")
                 end)
             end)
@@ -376,7 +376,11 @@ local function _gmStateLabel()
     if not phase or phase == "init" then
         return RT.flag("rezkov_declined") and "Inactive (declined)" or "Inactive"
     elseif phase == "hook" then
-        return RT.flag("rezkov_declined") and "Inactive (declined)" or "Rumors"
+        local d = RT.flag("rezkov_declined")
+        if d == "gm_inactivated" then return "Inactive (gm_inactivated)"
+        elseif d then                  return "Inactive (declined)"
+        end
+        return "Rumors"
     elseif phase == "m1_navigate"                          then return "Meeting"
     elseif phase == "m2_active" or phase == "m2_deliver"   then return "Hacking"
     elseif phase == "m3_active" or phase == "m3_deliver"   then return "Intercept"
@@ -413,7 +417,7 @@ M.gm_actions = {
     -- ── Skip ──────────────────────────────────────────────────────────────
     {label = "→ Inactive", fn = function(st)
         _gmClearFlags(st)
-        RT.flag("rezkov_declined", true)   -- suppresses re-trigger and Dustmote hook
+        RT.flag("rezkov_declined", "gm_inactivated")
         MISSIONS.phase("rezkov", "hook")
         globalMessage("[GM] Rezkov Arc: suppressed. Will not trigger even if criteria are met.", 4)
     end},
