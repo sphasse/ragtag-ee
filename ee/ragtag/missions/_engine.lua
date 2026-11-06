@@ -295,7 +295,7 @@ function MISSIONS._showDetail(id, backToMainFn)
     if not M then return end
 
     clearGMFunctions()
-    addGMFunction("< Back to Missions", function()
+    addGMFunction("← Missions", function()
         MISSIONS._showList(backToMainFn)
     end)
 
