@@ -136,7 +136,7 @@ local function _spawnWaypoint(st)
 end
 
 local function _despawnWaypoint(st)
-    for _, n in ipairs(st.nebulas) do
+    for _, n in ipairs(st.nebulas or {}) do
         if n and n:isValid() then n:destroy() end
     end
     st.nebulas = {}
@@ -450,8 +450,10 @@ M.gm_actions = {
         MISSIONS.phase("rezkov", "done")
         globalMessage("[GM] Rezkov Arc: → Complete.", 4)
     end},
-    {label = "→ Restart", phases = {"done"}, fn = function(st)
-        _gmClearFlags(st)
+    {label = "→ Restart", phases = {"done"}, fn = function(_)
+        local cur = MISSIONS._state["rezkov"]
+        if cur then _gmClearFlags(cur) end
+        MISSIONS._status["rezkov"] = "inactive"  -- guarantee start() proceeds
         MISSIONS.start("rezkov")
         globalMessage("[GM] Rezkov Arc: restarted.", 4)
     end},
