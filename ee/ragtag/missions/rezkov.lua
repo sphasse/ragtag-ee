@@ -1,21 +1,17 @@
 -- ee/ragtag/missions/rezkov.lua
--- The Rezkov Arc: five missions for the sandbox campaign.
+-- The Rezkov Arc: three missions for the sandbox campaign.
 --
 -- Trigger: Independent rep >= +500 AND upgrade investment >= 600cr AND Concord rep >= 0 on first contact
--- Structure: hook -> m1_navigate -> m2_active -> m2_deliver -> m3_active -> m4_active -> m5_active -> done
+-- Structure: hook -> m1_navigate -> m2_active -> m2_deliver -> m3_active -> m3_deliver -> done
 --
 -- RT.flag keys used (prefix "rezkov_"):
 --   hook              rumor phase active
 --   declined          player declined The Fixer (arc ends permanently)
 --   m1_done           player met Rezkov and accepted M2
 --   m2_done           hack + data delivery complete
---   m3_accepted       The Mule delivery accepted
---   m3_cargo          cargo picked up at Hob's Landing
---   m3_done           The Mule delivery complete
---   m4_accepted       Clean Sweep drone destroy accepted
---   m4_done           drone destroyed
---   m5_accepted       The Reckoning boarding accepted
---   arc_done          all five missions complete (value = outcome string)
+--   m3_accepted       intercept accepted
+--   m3_data           data card seized from CWS Meridian
+--   arc_done          arc complete (value = outcome string)
 
 local M = {}
 M.id          = "rezkov"
@@ -34,7 +30,7 @@ M.triggers = {
 M.phase_order = {
     "init", "hook", "m1_navigate",
     "m2_active", "m2_deliver",
-    "m3_active", "m4_active", "m5_active",
+    "m3_active", "m3_deliver",
 }
 
 function M.init_state()
@@ -43,10 +39,9 @@ function M.init_state()
         nebulas     = {},    -- nebula cluster entities
         galen       = nil,   -- Waypoint Galen SpaceStation (hack detection target)
         hack_done   = false,
-        drone       = nil,   -- M4 monitoring drone
-        meridian    = nil,   -- M5 CWS Meridian
-        m5_disabled = false,
-        m5_boarded  = false,
+        meridian    = nil,   -- M3 CWS Meridian
+        m3_disabled = false,
+        m3_boarded  = false,
     }
 end
 
@@ -56,9 +51,9 @@ end
 local _RWX = 115000  -- verse ~(115, -72)
 local _RWY = -72000
 
--- Concord Monitor 7: 8U at bearing 040 from Dustmote (104000, -36000)
-local _DRONE_X = math.floor(104000 + 8000 * math.sin(math.rad(40)))
-local _DRONE_Y = math.floor(-36000 + 8000 * math.cos(math.rad(40)))
+-- CWS Meridian start: monitoring position between Dustmote (104,-36) and Rezkov's station
+local _MX = 110000   -- verse ~(110, -55)
+local _MY = -55000
 
 -- Nebula cluster surrounding the waypoint (irregular arrangement, world units)
 local _NEBULA_POS = {
@@ -112,7 +107,7 @@ local function _spawnWaypoint(st)
                 RT.setObjective("Hack Waypoint Galen", true)
                 RT.flag("rezkov_m1_done", true)
                 MISSIONS.phase("rezkov", "m2_active")
-                setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock, breach their data relay -- the terminal is docked to the station exterior. Get me ninety days of traffic records on this storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. Make your way over there but do not make it look suspicious. Pick up some jobs along the way to get you closer."')
+                setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock with the station and hack their front shield generators to 100% to download the traffic log to the storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. Make your way over there but do not make it look suspicious. Pick up some jobs along the way to get you closer."')
                 addCommsReply("Understood.", function() setCommsMessage("Rezkov ends the channel.") end)
             end)
             addCommsReply("Not our kind of work.", function(s2, t2)
@@ -158,7 +153,6 @@ local function _spawnHackTerminal(st)
             break
         end
     end
-    RT.shipLog("[Scan] Concord Waypoint Galen on sensors. Hack the station's front shield generator to 100% to access the traffic log.", "#A0C0FF")
 end
 
 local function _checkHack(st, now)
@@ -180,44 +174,28 @@ local function _checkHack(st, now)
     end
 end
 
-local function _spawnDrone(st)
-    if RT.valid(st.drone) then return end
-    local drone = CpuShip():setTemplate("ANT 615"):setFaction("Concord")
-    drone:setCallSign("Concord Monitor 7"):setTypeName("Monitoring Drone")
-    drone:setPosition(_DRONE_X, _DRONE_Y)
-    drone:orderIdle():setImpulseMaxSpeed(0):setRotationMaxSpeed(0)
-    drone:setHullMax(100):setHull(100):setShieldsMax(0):setShields(0)
-    drone:setWeaponTubeCount(0)
-    drone:setBeamWeapon(0, 0, 0, 0, 0, 0)
-    drone:setCommsFunction(function(src, tgt)
-        setCommsMessage("[Concord Monitor 7] Automated surveillance platform. No comms interface.")
-    end)
-    RT.named["Concord Monitor 7"] = drone
-    st.drone = drone
-    RT.shipLog("[Scan] Concord Monitor 7 detected in Dustmote salvage field. Grid " .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. ".", "#FFAA00")
-end
-
 local function _spawnMeridian(st)
     if RT.valid(st.meridian) then return end
-    -- 15U from Dustmote at bearing 220 (SW)
-    local mx = 104000 + 15000 * math.sin(math.rad(220))
-    local my = -36000 + 15000 * math.cos(math.rad(220))
     local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Concord")
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
-    meridian:setPosition(mx, my)
-    meridian:orderFlyTowards(mx + 20000, my + 5000)
-    meridian.components.docking_bay = {}
+    meridian:setPosition(_MX, _MY)
+    -- Fast impulse burn toward Waypoint Galen (Arbiter Line) — catchable by warp but requires urgency
+    meridian:setImpulseMaxSpeed(500):orderFlyTowards(-75000, -52000)
+    pcall(function() meridian.components.docking_bay = {external_dock_classes = {"Frigate"}} end)
     RT.register(meridian)
     st.meridian = meridian
-    RT.shipLog("[Intel] CWS Meridian is in the sector, running a patrol loop near Dustmote. Standard Concord investigator configuration.", "#FFAA00")
+    RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. " burning for Concord space. Disable and board before she reaches the Arbiter Line.", "#FFAA00")
 end
 
 local function _checkMeridianDisabled(st)
-    if not RT.valid(st.meridian) or st.m5_disabled then return end
-    local ok1, hull = pcall(function() return st.meridian:getHull() end)
-    local ok2, hmax = pcall(function() return st.meridian:getHullMax() end)
-    if ok1 and ok2 and hmax > 0 and hull / hmax < 0.25 then
-        st.m5_disabled = true
+    if not RT.valid(st.meridian) or st.m3_disabled then return end
+    local ok1, hull     = pcall(function() return st.meridian:getHull() end)
+    local ok2, hmax     = pcall(function() return st.meridian:getHullMax() end)
+    local ok3, impulse_h = pcall(function() return st.meridian:getSystemHealth("impulse") end)
+    local hull_low    = ok1 and ok2 and hmax > 0 and hull / hmax < 0.25
+    local impulse_low = ok3 and impulse_h and impulse_h < 0.3
+    if hull_low or impulse_low then
+        st.m3_disabled = true
         st.meridian:setCanBeDestroyed(false)
         st.meridian:orderIdle()
         st.meridian:setFaction("Independent")
@@ -225,41 +203,44 @@ local function _checkMeridianDisabled(st)
             setCommsMessage('"CWS Meridian -- engines disabled. We surrender. Close to within 1U and request docking."')
             addCommsReply("Understood. Stand by.", function() setCommsMessage("Channel open.") end)
         end)
-        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and request docking to board.", "#FFCC80")
+        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
         RT.setObjective("Board CWS Meridian", true)
     end
 end
 
-local function _setupVaelComms(st)
-    st.m5_boarded = true
-    RT.shipLog("[CWS Meridian] Docked. Hail Commander Vael.", "#FFCC80")
-    RT.setObjective("Speak with Commander Vael", true)
+local function _setupKaelComms(st)
+    st.m3_boarded = true
+    RT.shipLog("[CWS Meridian] Docked. Hail Commander Kael.", "#FFCC80")
+    RT.setObjective("Speak with Commander Kael", true)
     st.meridian:setCommsFunction(function(src, tgt)
-        setCommsMessage('"Commander Vael, CWS Meridian. You have my ship disabled. I assume this is not a coincidence.\n\nI know what you were hired to do. And I know who hired you. I have been investigating Rezkov\'s network for eight months.\n\nI am going to give you a choice: wipe my investigation files -- Rezkov\'s people go free, and so does the person in his organization who has been feeding me information -- or bring me to whoever sent you, and I will make a deal. The source stays protected either way.\n\nWhat is it going to be?"')
-        addCommsReply("Wipe the files.", function(s2, t2)
-            setCommsMessage('"Understood. Doing this under duress is noted in my personal log. The investigation is dead.\n\nGet off my ship."')
-            addCommsReply("Done.", function(s3, t3)
-                RT.addCredits(600, "Rezkov Arc M5: investigation wiped")
-                RT.addReputation("Concord", -30, "Rezkov Arc: boarded Concord vessel, wiped investigation")
-                RT.shipLog("[Rezkov Arc] Done. Investigation wiped. The source inside Rezkov's network is still at large. 600cr. Concord -30.", "#80FF80")
-                RT.flag("rezkov_arc_done", "files_wiped")
-                RT.note("Boarded CWS Meridian (Cmdr Vael), wiped Concord investigation into Rezkov. Unknown informant protected.")
-                if RT.valid(st.meridian) then st.meridian:orderIdle() end
+        setCommsMessage('"CWS Meridian -- engines disabled. I\'ll be direct.\n\nI\'m Commander Kael, Concord Intelligence. I\'ve been monitoring traffic out of Dustmote for three months. I have comms intercepts, cargo manifests, ship registrations -- yours is in the file. So is Rezkov\'s.\n\nYou have a choice. Stand down and let us proceed to Concord space. The Concord will remember that you cooperated. Or take the data and run -- but know this won\'t be the last time you see me."')
+        addCommsReply("Let the Concord go.", function(s2, t2)
+            setCommsMessage('"Wise. The Concord will remember."')
+            addCommsReply("Understood.", function(s3, t3)
+                RT.addReputation("Independent", -1000, "Rezkov Arc: cooperated with Concord against Rezkov")
+                RT.addReputation("Concord", 500, "Rezkov Arc: cooperated with Concord investigator")
+                RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation. Independent -1000. Concord +500.", "#FF8080")
+                RT.flag("rezkov_arc_done", "concord_won")
+                RT.note("Let CWS Meridian commander Kael proceed with Rezkov investigation data. Concord file intact.")
+                if RT.valid(st.meridian) then
+                    st.meridian:setFaction("Concord")
+                    st.meridian:setImpulseMaxSpeed(500):orderFlyTowards(-75000, -52000)
+                end
                 MISSIONS.phase("rezkov", "done")
             end)
         end)
-        addCommsReply("We will bring you to Rezkov.", function(s2, t2)
-            setCommsMessage('"Pragmatic. I can work with pragmatic.\n\nI will be cooperative. Tell him I want to negotiate."')
-            addCommsReply("We will get you there.", function(s3, t3)
-                RT.addCredits(600, "Rezkov Arc M5: investigator delivered")
-                RT.addReputation("Concord", -50, "Rezkov Arc: delivered Concord investigator to crime lord")
-                RT.shipLog("[Rezkov Arc] Done. Vael in transit to Rezkov's people. 600cr. Concord -50. The source inside Rezkov's network is still at large.", "#80FF80")
-                RT.flag("rezkov_arc_done", "investigator_delivered")
-                RT.note("Delivered CWS Meridian commander Vael to Rezkov's contact. Unknown informant still active inside Rezkov's organization.")
+        addCommsReply("Take the data.", function(s2, t2)
+            setCommsMessage('"Take it then.\n\nThis won\'t be the last time you see me, Magpie."')
+            addCommsReply("We\'re taking the data.", function(s3, t3)
+                RT.addReputation("Concord", -1000, "Rezkov Arc: seized Concord investigation data")
+                RT.shipLog("[Rezkov Arc] Data seized. Concord -1000. Deliver the data card to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
+                RT.flag("rezkov_m3_data", true)
+                RT.setObjective("Deliver data to Thresh @ Dustmote", true)
                 if RT.valid(st.meridian) then
-                    pcall(function() st.meridian:orderFollowTarget(RT.player) end)
+                    st.meridian:setFaction("Independent")
+                    st.meridian:orderIdle()
                 end
-                MISSIONS.phase("rezkov", "done")
+                MISSIONS.phase("rezkov", "m3_deliver")
             end)
         end)
     end)
@@ -277,9 +258,9 @@ local function _dustmoteHook(src, tgt, info)
         addCommsReply("Heard you were looking for an independent operator.", function(s2, t2)
             setCommsMessage('"There is someone who wants to meet you. Goes by Thresh -- local contact for a business associate. Word travels in the Drift, and your name has been mentioned.\n\nInterested in hearing more?"')
             addCommsReply("Sure, what\'s the job?", function(s3, t3)
-                setCommsMessage('"The associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHe has a station out in the nebula field -- grid ' .. JOBS.gridRef(115000, -72000) .. '. Name on approach is Orlan.\n\nMind what you say when you get there. He remembers everything."')
+                setCommsMessage('"The associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHead out at bearing 15. You\'ll hit a nebula cloud. You\'ll find what you are looking for there.\n\nMind what you say when you get there. He remembers everything."')
                 addCommsReply("We\'ll head out.", function(s4, t4)
-                    RT.shipLog("[Navigation] Rendezvous: Orlan's station, grid " .. JOBS.gridRef(115000, -72000) .. ". Nebula field.", "#A0C0FF")
+                    RT.shipLog("[Navigation] Bearing 15. Nebula field. Find the contact.", "#A0C0FF")
                     RT.setObjective("Find the waypoint", true)
                     RT.flag("rezkov_hook", true)
                     MISSIONS.phase("rezkov", "m1_navigate")
@@ -305,25 +286,25 @@ local function _dustmoteHook(src, tgt, info)
     -- M2 delivery: bring data card to Thresh
     if phase == "m2_deliver" then
         addCommsReply("Delivery for Thresh.", function(s2, t2)
-            setCommsMessage('"Thresh takes the card and disappears into the back.\n\n...\n\n"Good work. The boss will reach out when he has work. Keep flying."\n\n600 credits transferred."')
+            setCommsMessage('"Thresh takes the card and disappears into the back.\n\n..."')
             addCommsReply("Understood.", function(s3, t3)
                 RT.addCredits(600, "Rezkov Arc M2: data delivery")
                 RT.shipLog("[Rezkov Arc] M2 complete. 600cr received. Rezkov's station has gone dark.", "#80FF80")
                 RT.flag("rezkov_m2_done", true)
                 if st then _despawnWaypoint(st) end
                 MISSIONS.phase("rezkov", "m3_active")
-                setCommsMessage('"The boss has another job. Simple freight run. Hob\'s Landing to Saint Brennan\'s Mission. Standard cargo -- medical supplies, aid equipment.\n\nNothing complicated. But he wants you on it personally.\n\n400 credits on delivery."')
-                addCommsReply("We\'ll take it.", function(s4, t4)
-                    setCommsMessage('"Hob\'s Landing is expecting you. Pick up the consignment and get it to Saint Brennan\'s. Do not let anyone open the crates."')
+                setCommsMessage('"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ". Move fast."')
+                addCommsReply("We\'re on it.", function(s4, t4)
+                    RT.flag("rezkov_m3_accepted", true)
+                    RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian. Last spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", burning for the Arbiter Line. Disable and board before she gets there.", "#A0C0FF")
+                    RT.setObjective("Disable and board CWS Meridian", true)
+                    setCommsMessage('"Grid " .. JOBS.gridRef(_MX, _MY) .. ". Move fast. She\'s burning hard."')
                     addCommsReply("Understood.", function(s5, t5)
                         setCommsMessage("Thresh disappears into the back.")
-                        RT.shipLog("[Rezkov Arc] M3: Freight run, Hob's Landing (grid " .. JOBS.gridRef(86000, 44000) .. ") to Saint Brennan's Mission (grid " .. JOBS.gridRef(72000, -62000) .. "). 400cr on delivery.", "#A0C0FF")
-                        RT.setObjective("Pick up at Hob's Landing", true)
-                        RT.flag("rezkov_m3_accepted", true)
                     end)
                 end)
                 addCommsReply("Not right now.", function(s4, t4)
-                    setCommsMessage('"The offer stays open."')
+                    setCommsMessage('"She\'s not waiting. The offer closes when that ship hits Concord space."')
                     addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
                 end)
             end)
@@ -331,106 +312,41 @@ local function _dustmoteHook(src, tgt, info)
         return
     end
 
-    -- M3 offer: shown on re-hail if crew said "not right now" after M2 delivery
+    -- M3 re-offer: shown on re-hail if crew said "not right now" after M2 delivery
     if phase == "m3_active" and RT.flag("rezkov_m2_done") and not RT.flag("rezkov_m3_accepted") then
-        addCommsReply("Thresh -- any word from Rezkov?", function(s2, t2)
-            setCommsMessage('"The boss has another job. Simple freight run. Hob\'s Landing to Saint Brennan\'s Mission. Standard cargo -- medical supplies, aid equipment.\n\nNothing complicated. But he wants you on it personally.\n\n400 credits on delivery."')
-            addCommsReply("We\'ll take it.", function(s3, t3)
-                setCommsMessage('"Hob\'s Landing is expecting you. Pick up the consignment and get it to Saint Brennan\'s. Do not let anyone open the crates."')
-                addCommsReply("Understood.", function(s4, t4)
-                    setCommsMessage("Thresh disappears into the back.")
-                    RT.shipLog("[Rezkov Arc] M3: Freight run, Hob's Landing (grid " .. JOBS.gridRef(86000, 44000) .. ") to Saint Brennan's Mission (grid " .. JOBS.gridRef(72000, -62000) .. "). 400cr on delivery.", "#A0C0FF")
-                    RT.setObjective("Pick up at Hob's Landing", true)
-                    RT.flag("rezkov_m3_accepted", true)
-                end)
+        addCommsReply("Thresh -- that Concord ship.", function(s2, t2)
+            setCommsMessage('"She\'s still running. Last grid " .. JOBS.gridRef(_MX, _MY) .. ". You need to move."')
+            addCommsReply("We\'re on it.", function(s3, t3)
+                RT.flag("rezkov_m3_accepted", true)
+                RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian before she reaches the Arbiter Line. Disable and board.", "#A0C0FF")
+                RT.setObjective("Disable and board CWS Meridian", true)
+                setCommsMessage('"Move."')
+                addCommsReply("Understood.", function(s4, t4) setCommsMessage("Thresh disappears.") end)
             end)
-            addCommsReply("Not right now.", function(s3, t3)
-                setCommsMessage('"The offer stays open."')
-                addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
+            addCommsReply("Not yet.", function(s3, t3)
+                setCommsMessage('"Clock\'s running."')
+                addCommsReply("Back", function() setCommsMessage("Thresh nods.") end)
             end)
         end)
         return
     end
 
-    -- M4 offer: Clean Sweep
-    if phase == "m4_active" and RT.flag("rezkov_m3_done") and not RT.flag("rezkov_m4_accepted") then
-        addCommsReply("Thresh -- any word from Rezkov?", function(s2, t2)
-            setCommsMessage('"Concord planted a monitoring drone in the salvage field. Concord Monitor 7, grid ' .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. '. Automated scanner -- been logging everything that comes through.\n\nHe wants it gone. 450 credits. Concord will notice when it goes dark, so get clear before they come looking."')
-            addCommsReply("We\'ll handle it.", function(s3, t3)
-                setCommsMessage('"Concord Monitor 7, grid ' .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. '. Can\'t miss it."')
-                addCommsReply("On it.", function(s4, t4)
-                    setCommsMessage("Thresh nods. The comms close.")
-                    RT.shipLog("[Rezkov Arc] M4: Destroy Concord Monitor 7, grid " .. JOBS.gridRef(_DRONE_X, _DRONE_Y) .. ". 450cr.", "#A0C0FF")
-                    RT.setObjective("Destroy Monitor 7", true)
-                    RT.flag("rezkov_m4_accepted", true)
-                    if st then _spawnDrone(st) end
-                end)
-            end)
-            addCommsReply("Not right now.", function(s3, t3)
-                setCommsMessage('"The offer stays open."')
-                addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
-            end)
-        end)
-        return
-    end
-
-    -- M5 offer: The Reckoning
-    if phase == "m5_active" and RT.flag("rezkov_m4_done") and not RT.flag("rezkov_m5_accepted") then
-        addCommsReply("Thresh -- any word from Rezkov?", function(s2, t2)
-            setCommsMessage('"There is a Concord investigator ship in the sector. CWS Meridian. She has been asking questions about operations in Dustmote.\n\nRezkov wants her boarded. Disable the ship, board it. Then: wipe her investigation files, or bring her back as a passenger. The boss has a use for cooperative Concord officers.\n\n600 credits. The choice is yours when you are aboard."')
-            addCommsReply("We\'ll do it.", function(s3, t3)
-                setCommsMessage('"The Meridian is running a loop through the Dustmote shipping lane. Find her, disable her, board her. No killing."')
-                addCommsReply("Understood.", function(s4, t4)
-                    setCommsMessage("Thresh nods. The comms close.")
-                    RT.shipLog("[Rezkov Arc] M5: Board CWS Meridian near Dustmote (grid " .. JOBS.gridRef(104000, -36000) .. "). Disable, board, choose: wipe files or take passenger. 600cr.", "#A0C0FF")
-                    RT.setObjective("Disable CWS Meridian", true)
-                    RT.flag("rezkov_m5_accepted", true)
-                    if st then _spawnMeridian(st) end
-                end)
-            end)
-            addCommsReply("Not right now.", function(s3, t3)
-                setCommsMessage('"The offer stays open."')
-                addCommsReply("Back", function() setCommsMessage("Thresh shrugs.") end)
+    -- M3 data delivery: return seized Concord data to Thresh
+    if phase == "m3_deliver" and RT.flag("rezkov_m3_data") and not RT.flag("rezkov_arc_done") then
+        addCommsReply("Thresh -- we have the data from the Meridian.", function(s2, t2)
+            setCommsMessage('"Thresh takes the drive and scans it.\n\n\"Good. This is everything.\"\n\nHe leans back.\n\n\"We barely got out of that. I\'m going to lay low for a while -- I suggest you do the same. But you\'ve proved yourselves. More work is headed your way.\""')
+            addCommsReply("Understood.", function(s3, t3)
+                RT.addReputation("Independent", 200, "Rezkov Arc: delivered seized Concord data")
+                RT.shipLog("[Rezkov Arc] Done. Data delivered to Thresh. Independent +200.", "#80FF80")
+                RT.flag("rezkov_arc_done", "data_delivered")
+                RT.note("Delivered seized CWS Meridian investigation data to Thresh. Rezkov's network protected. Kael's threat noted.")
+                MISSIONS.phase("rezkov", "done")
             end)
         end)
         return
     end
 end
 
-local function _hobsLandingHook(src, tgt, info)
-    if not src:isDocked(tgt) then return end
-    local phase = MISSIONS._cur_phase["rezkov"]
-    if phase ~= "m3_active" then return end
-    if not RT.flag("rezkov_m3_accepted") or RT.flag("rezkov_m3_cargo") then return end
-
-    addCommsReply("Pick up a consignment for Thresh.", function(s2, t2)
-        setCommsMessage('"Right, we have it set aside. Twelve crates, sealed. Medical supplies and aid equipment for Saint Brennan\'s Mission. Consignment tag is on the manifest.\n\nHave a smooth run."')
-        addCommsReply("Loading now.", function(s3, t3)
-            setCommsMessage("The dockhand waves you toward the loading bay.")
-            RT.shipLog("[Rezkov Arc] Consignment loaded. Destination: Saint Brennan's Mission (grid " .. JOBS.gridRef(72000, -62000) .. ").", "#A0C0FF")
-            RT.setObjective("Deliver consignment", true)
-            RT.flag("rezkov_m3_cargo", true)
-        end)
-    end)
-end
-
-local function _saintBrennansHook(src, tgt, info)
-    if not src:isDocked(tgt) then return end
-    local phase = MISSIONS._cur_phase["rezkov"]
-    if phase ~= "m3_active" then return end
-    if not RT.flag("rezkov_m3_cargo") or RT.flag("rezkov_m3_done") then return end
-
-    addCommsReply("Delivery for the Mission -- freight from Hob's Landing.", function(s2, t2)
-        setCommsMessage('"We have been waiting on these. Set them down in Bay 3.\n\nThank you for bringing this out here. Saint Brennan\'s depends on runs like this."')
-        addCommsReply("Cargo is unloaded.", function(s3, t3)
-            setCommsMessage("The Mission worker thanks you and signs off the manifest.")
-            RT.addCredits(400, "Rezkov Arc M3: freight delivered")
-            RT.shipLog("[Rezkov Arc] M3 complete. Consignment delivered. 400cr.", "#80FF80")
-            RT.flag("rezkov_m3_done", true)
-            MISSIONS.phase("rezkov", "m4_active")
-        end)
-    end)
-end
 
 -- ── Resolve and cancel ────────────────────────────────────────────────────
 
@@ -441,11 +357,6 @@ end
 
 function M.on_cancel(st)
     _despawnWaypoint(st)
-    if RT.valid(st.drone) then
-        st.drone:destroy()
-        st.drone = nil
-        RT.named["Concord Monitor 7"] = nil
-    end
     if RT.valid(st.meridian) then
         st.meridian:setCanBeDestroyed(true)
         st.meridian:destroy()
@@ -466,8 +377,9 @@ M.gm_actions = {
     {label = "Skip to M3", fn = function(st)
         RT.flag("rezkov_m1_done", true)
         RT.flag("rezkov_m2_done", true)
+        RT.flag("rezkov_m3_accepted", true)
         MISSIONS.phase("rezkov", "m3_active")
-        globalMessage("[GM] Rezkov Arc: skipped to M3 (mule).", 4)
+        globalMessage("[GM] Rezkov Arc: skipped to M3 (intercept).", 4)
     end},
     {label = "Complete hack", phases = {"m2_active"},
      fn = function(st)
@@ -475,13 +387,11 @@ M.gm_actions = {
             st.galen:setSystemHackedLevel("frontshield", 1.0)
         end
     end},
-    {label = "Complete drone", phases = {"m4_active"},
+    {label = "Disable Meridian", phases = {"m3_active"},
      fn = function(st)
-        if RT.valid(st.drone) then
-            st.drone:setCanBeDestroyed(true)
-            st.drone:destroy()
-            st.drone = nil
-            RT.named["Concord Monitor 7"] = nil
+        if RT.valid(st.meridian) then
+            local ok, hmax = pcall(function() return st.meridian:getHullMax() end)
+            if ok and hmax then st.meridian:setHull(hmax * 0.1) end
         end
     end},
 }
@@ -493,23 +403,15 @@ M.phases = {}
 M.phases.init = {
     no_skip = true,
     enter = function(st)
-        -- Register station hooks once per session (safe: each session starts fresh)
-        RT.addStationHook("Dustmote Salvage",       _dustmoteHook)
-        RT.addStationHook("Hob's Landing",          _hobsLandingHook)
-        RT.addStationHook("Saint Brennan's Mission", _saintBrennansHook)
+        -- Register station hook once per session (safe: each session starts fresh)
+        RT.addStationHook("Dustmote Salvage", _dustmoteHook)
 
         -- Route to the appropriate phase based on saved flags
-        if RT.flag("rezkov_m5_accepted") then
-            MISSIONS.phase("rezkov", "m5_active")
-        elseif RT.flag("rezkov_m4_done") then
-            MISSIONS.phase("rezkov", "m5_active")
-        elseif RT.flag("rezkov_m4_accepted") then
-            MISSIONS.phase("rezkov", "m4_active")
-        elseif RT.flag("rezkov_m3_done") then
-            MISSIONS.phase("rezkov", "m4_active")
-        elseif RT.flag("rezkov_m3_accepted") then
-            MISSIONS.phase("rezkov", "m3_active")
-        elseif RT.flag("rezkov_m2_done") then
+        if RT.flag("rezkov_arc_done") then
+            MISSIONS.phase("rezkov", "done")
+        elseif RT.flag("rezkov_m3_data") then
+            MISSIONS.phase("rezkov", "m3_deliver")
+        elseif RT.flag("rezkov_m3_accepted") or RT.flag("rezkov_m2_done") then
             MISSIONS.phase("rezkov", "m3_active")
         elseif RT.flag("rezkov_m1_done") then
             MISSIONS.phase("rezkov", "m2_active")
@@ -536,7 +438,7 @@ M.phases.m1_navigate = {
     enter = function(st)
         RUMORS.removeCategory("REZKOV_HOOK")
         _spawnWaypoint(st)
-        RT.shipLog("[Navigation] Rendezvous: Orlan's station, grid " .. JOBS.gridRef(115000, -72000) .. ". Nebula field.", "#A0C0FF")
+        RT.shipLog("[Navigation] Bearing 15. Nebula field. Find the contact.", "#A0C0FF")
         RT.setObjective("Find the waypoint", true)
     end,
 }
@@ -561,63 +463,43 @@ M.phases.m2_deliver = {
 
 M.phases.m3_active = {
     enter = function(st)
-        if RT.flag("rezkov_m3_cargo") and not RT.flag("rezkov_m3_done") then
-            RT.setObjective("Deliver consignment", true)
-        elseif RT.flag("rezkov_m3_accepted") and not RT.flag("rezkov_m3_cargo") then
-            RT.setObjective("Pick up at Hob's Landing", true)
-        end
-    end,
-}
-
-M.phases.m4_active = {
-    enter = function(st)
-        if RT.flag("rezkov_m4_accepted") and not RT.flag("rezkov_m4_done") then
-            _spawnDrone(st)
-            RT.setObjective("Destroy Monitor 7", true)
+        -- Spawn Meridian immediately — she's already burning whether the crew accepts or not
+        _spawnMeridian(st)
+        if RT.flag("rezkov_m3_accepted") then
+            RT.setObjective("Disable and board CWS Meridian", true)
         end
     end,
 
     update = function(st, delta, now)
-        if not RT.flag("rezkov_m4_accepted") or RT.flag("rezkov_m4_done") then return end
-        if st.drone and not RT.valid(st.drone) then
-            RT.addCredits(450, "Rezkov Arc M4: drone destroyed")
-            RT.addReputation("Concord", -50, "Rezkov Arc: destroyed Concord monitoring drone")
-            RT.shipLog("[Rezkov Arc] M4 complete. Concord Monitor 7 destroyed. 450cr. Concord -50. Get clear of Dustmote.", "#80FF80")
-            RT.flag("rezkov_m4_done", true)
-            st.drone = nil
-            RT.named["Concord Monitor 7"] = nil
-            MISSIONS.phase("rezkov", "m5_active")
-        end
-    end,
-}
+        if RT.flag("rezkov_arc_done") then return end
 
-M.phases.m5_active = {
-    enter = function(st)
-        if RT.flag("rezkov_m5_accepted") and not RT.flag("rezkov_arc_done") then
-            _spawnMeridian(st)
-            RT.setObjective("Disable CWS Meridian", true)
-        end
-    end,
-
-    update = function(st, delta, now)
-        if not RT.flag("rezkov_m5_accepted") or RT.flag("rezkov_arc_done") then return end
-        if st.meridian and not RT.valid(st.meridian) and not st.m5_disabled then
-            -- Meridian was destroyed before boarding
-            RT.shipLog("[Rezkov Arc] CWS Meridian destroyed. That was not what Rezkov wanted.", "#FF8080")
+        -- Meridian destroyed before boarding
+        if st.meridian and not RT.valid(st.meridian) and not st.m3_disabled then
+            RT.addReputation("Concord", -1000, "Rezkov Arc: destroyed Concord investigation vessel")
+            RT.addReputation("Independent", 200, "Rezkov Arc: destroyed Concord investigation vessel")
+            RT.shipLog("[Rezkov Arc] CWS Meridian destroyed. All data lost. Concord -1000. Independent +200.", "#FF8080")
             RT.flag("rezkov_arc_done", "meridian_destroyed")
             MISSIONS.phase("rezkov", "done")
             return
         end
+
+        if not RT.flag("rezkov_m3_accepted") then return end
+
         _checkMeridianDisabled(st)
-        if st.m5_disabled and not st.m5_boarded and RT.valid(st.meridian) then
+
+        if st.m3_disabled and not st.m3_boarded and RT.valid(st.meridian) then
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) and p:isDocked(st.meridian) then
-                    _setupVaelComms(st)
+                    _setupKaelComms(st)
                     break
                 end
             end
         end
     end,
+}
+
+M.phases.m3_deliver = {
+    -- Dustmote hook handles the data delivery interaction.
 }
 
 MISSIONS.register(M)

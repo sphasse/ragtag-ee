@@ -53,8 +53,16 @@ Every reputation change logs three lines to the Relay console:
 | Board and disable a ship | Corsairs | −100 |
 | Concord fine paid (shake-down) | Concord | +100 |
 | Evade Concord inspection (flee 10U) | Concord | −100 |
+| Destroy Concord warp jammer | Concord | −75 |
+| Refuse Concord inspection | Concord | −100 + warrant |
 | Donate $100 at Saint Brennan's Mission | Independent | +100 |
-| Donate $100 at Concord Waypoint Galen | Independent | +50 |
+| Donate $100 at Concord Waypoint Galen | Concord | +50 |
+| Rezkov Arc M3: destroy CWS Meridian | Concord | −1000 |
+| Rezkov Arc M3: destroy CWS Meridian | Independent | +200 |
+| Rezkov Arc M3: let Concord go with data | Independent | −1000 |
+| Rezkov Arc M3: let Concord go with data | Concord | +500 |
+| Rezkov Arc M3: seize data from Meridian | Concord | −1000 |
+| Rezkov Arc M3: deliver seized data to Thresh | Independent | +200 |
 
 **Mission reward formula** (affects how much rep moves per job):
 

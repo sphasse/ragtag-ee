@@ -34,8 +34,7 @@ _P.defaults = {
     station_exclusion_u = 20,    -- no spawns within this radius of any station
     station_despawn_u   = 15,    -- despawn any patrol within this radius of a friendly station
     recall_timeout      = 120,   -- seconds before a recalled group despawns
-    shakedown_timeout   = 45,    -- seconds before an unresponded shake-down auto-resolves
-    shakedown_scan_secs = 30,    -- delay after player submits to inspection
+    shakedown_timeout   = 45,    -- seconds before an ignored shake-down auto-resolves
     concord_despawn     = 120,   -- seconds after peaceful Concord resolution before ships vanish
     default_zone_mode   = 3,     -- starting mode for each zone (1=None 2=Low 3=Medium 4=High)
 }
@@ -166,87 +165,81 @@ local _STALL_RESPONSES = {
 }
 
 local function _makeShakedownComms(group)
-    local function _showMain()
+    return function(src, tgt)
         if group.shakedown_done then
-            setCommsMessage('"Move along, freighter."')
+            setCommsMessage('"Move along."')
             return
         end
 
-        local rep = RT.getReputation("Concord") or 0
+        local rep    = RT.getReputation("Concord") or 0
+        local player = _firstPlayer()
+        local fine   = 100
+
         if rep >= 500 then
-            setCommsMessage('"Records check out. Safe travels."')
             group.shakedown_done    = true
             group.shakedown_hostile = false
-            return
-        end
+            setCommsMessage('"' .. tgt:getCallSign() .. ' — your record is known out here. The Concord values operators who keep their word. Safe travels."')
+            addCommsReply("Acknowledged.", function() setCommsMessage("The channel closes.") end)
 
-        setCommsMessage('"Freighter, transponder check. State your business."')
-
-        addCommsReply("Submit to inspection", function(src2, tgt2)
-            group.shakedown_state      = "scanning"
-            group.shakedown_resolve_at = getScenarioTime() + _cfg("shakedown_scan_secs")
-            setCommsMessage('"Stand by. Scanning."')
-        end)
-
-        addCommsReply("Declare clean cargo", function(src2, tgt2)
-            if rep >= 200 then
-                setCommsMessage('"Records check out. Move along."')
-                group.shakedown_done    = true
-                group.shakedown_hostile = false
-            else
-                RT.campaign.credits = (RT.campaign.credits or 0) - 100
-                RT.addReputation("Concord", 100, "paid Concord citation")
-                RT.shipLog("Concord citation: 100 cr. Concord standing improved.", "#8888FF")
-                setCommsMessage('"Suspicious filing. 100 cr citation. Move along."')
-                group.shakedown_done    = true
-                group.shakedown_hostile = false
-            end
-        end)
-
-        local _CONCORD_PATIENCE = {
-            "Your cooperation is noted. Stand by.",
-            "We are still waiting, freighter.",
-            "Final extension. Submit immediately.",
-        }
-        if group.stall_count < 3 then
-            local warn = group.stall_count >= 2 and " (they seem impatient)" or ""
-            addCommsReply("Stall for time" .. warn, function(src2, tgt2)
-                group.stall_count     = group.stall_count + 1
-                group.shakedown_start = getScenarioTime()
-                local line = _STALL_RESPONSES[math.random(#_STALL_RESPONSES)]
-                local reaction = _CONCORD_PATIENCE[group.stall_count]
-                setCommsMessage('"' .. line .. '"\n\n[Concord]: "' .. reaction .. '"')
-                addCommsReply("Acknowledged.", _showMain)
-            end)
-        else
-            addCommsReply("Stall for time (out of patience...)", function(src2, tgt2)
-                RT.campaign.credits = (RT.campaign.credits or 0) - 100
-                RT.addReputation("Concord", 100, "paid citation after stalling")
-                RT.shipLog("Concord: out of patience. 100 cr citation.", "#FF8040")
-                setCommsMessage('"Enough. 100 cr citation for obstruction. Move along."')
-                group.shakedown_done    = true
-                group.shakedown_hostile = false
-            end)
-        end
-
-        addCommsReply("I don't answer to Concord here.", function(src2, tgt2)
-            setCommsMessage('"Wrong answer."')
-            RT.campaign.flags = RT.campaign.flags or {}
-            RT.campaign.flags.wanted = true
-            RT.shipLog("Concord patrol: warrant issued.", "#FF4444")
-            local player = _firstPlayer()
-            if player then
-                for _, cs in ipairs(group.ships) do
-                    local s = RT.named[cs]
-                    if RT.valid(s) then s:orderAttack(player) end
-                end
-            end
+        elseif rep >= 200 then
             group.shakedown_done    = true
-            group.shakedown_hostile = true
-        end)
-    end
+            group.shakedown_hostile = false
+            setCommsMessage('"Records are clean. Carry on."')
+            addCommsReply("Acknowledged.", function() setCommsMessage("The channel closes.") end)
 
-    return function(src, tgt) _showMain() end
+        elseif rep >= 0 then
+            group.shakedown_done    = true
+            group.shakedown_hostile = false
+            setCommsMessage('"Nothing flagged today. Move along."')
+            addCommsReply("Acknowledged.", function() setCommsMessage("The channel closes.") end)
+
+        else
+            setCommsMessage('"Your record raises some flags. Inspection fee: ' .. fine .. ' credits."')
+
+            addCommsReply("Pay the fee (" .. fine .. " cr).", function(s2, t2)
+                RT.addCredits(-fine, "Concord inspection fee", player)
+                RT.addReputation("Concord", 100, "paid Concord inspection fee")
+                RT.shipLog("[Concord] Inspection fee: -" .. fine .. "cr. Standing improved.", "#8888FF")
+                group.shakedown_done    = true
+                group.shakedown_hostile = false
+                setCommsMessage('"Fee received. Move along."')
+                addCommsReply("Acknowledged.", function() setCommsMessage("The channel closes.") end)
+            end)
+
+            addCommsReply("Stall for time.", function(s2, t2)
+                local line = _STALL_RESPONSES[math.random(#_STALL_RESPONSES)]
+                setCommsMessage('"' .. line .. '"\n\n[Concord]: "We\'ve heard that before. ' .. fine .. ' credits. Last chance."')
+                addCommsReply("Pay the fee (" .. fine .. " cr).", function(s3, t3)
+                    RT.addCredits(-fine, "Concord inspection fee", player)
+                    RT.addReputation("Concord", 100, "paid Concord inspection fee after stalling")
+                    RT.shipLog("[Concord] Inspection fee: -" .. fine .. "cr. Standing improved.", "#8888FF")
+                    group.shakedown_done    = true
+                    group.shakedown_hostile = false
+                    setCommsMessage('"Fee received. Move along."')
+                    addCommsReply("Acknowledged.", function() setCommsMessage("The channel closes.") end)
+                end)
+                addCommsReply("Refuse.", function(s3, t3)
+                    RT.campaign.flags = RT.campaign.flags or {}
+                    RT.campaign.flags.wanted = true
+                    RT.addReputation("Concord", -100, "refused Concord inspection")
+                    RT.shipLog("[Concord] Warrant issued for refusing inspection.", "#FF4444")
+                    group.shakedown_done    = true
+                    group.shakedown_hostile = true
+                    setCommsMessage('"Wrong answer."')
+                end)
+            end)
+
+            addCommsReply("Refuse to pay.", function(s2, t2)
+                RT.campaign.flags = RT.campaign.flags or {}
+                RT.campaign.flags.wanted = true
+                RT.addReputation("Concord", -100, "refused Concord inspection")
+                RT.shipLog("[Concord] Warrant issued for refusing inspection.", "#FF4444")
+                group.shakedown_done    = true
+                group.shakedown_hostile = true
+                setCommsMessage('"Wrong answer."')
+            end)
+        end
+    end
 end
 
 -- ── Spawn ────────────────────────────────────────────────────────────────────
@@ -391,8 +384,6 @@ local function _spawnGroup(st, region_name, px, py)
         shakedown_hostile  = false,
         shakedown_state    = is_shakedown and "approaching" or nil,
         shakedown_start    = nil,
-        shakedown_resolve_at = nil,
-        stall_count        = 0,
     }
 
     if is_shakedown then
@@ -458,9 +449,23 @@ local function _processGroup(st, group, now, player)
                         local ssx, ssy = s:getPosition()
                         local dx, dy = ssx - px2, ssy - py2
                         if math.sqrt(dx * dx + dy * dy) < 5 * U then
+                            -- Lead placement: if player is warping, drop jammer 0.5U ahead.
+                            local jx, jy = px2, py2
+                            local ok_v, vx, vy = pcall(function() return player:getVelocity() end)
+                            if ok_v and vx then
+                                local spd = math.sqrt(vx * vx + vy * vy)
+                                if spd > 500 then   -- well above impulse max (~50 wu/s)
+                                    jx = px2 + (vx / spd) * 0.5 * U
+                                    jy = py2 + (vy / spd) * 0.5 * U
+                                end
+                            end
                             local jammer = WarpJammer()
-                            jammer:setPosition(px2, py2)
+                            jammer:setPosition(jx, jy)
                             jammer:setRange(1 * U)
+                            jammer:setFaction("Concord")
+                            jammer:setDescriptions("Concord WarpJammer",
+                                "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
+                            pcall(function() jammer:setHull(100):setHullMax(100) end)
                             group.jammer          = jammer
                             group.shakedown_state = "pending"
                             group.shakedown_start = now
@@ -499,13 +504,24 @@ local function _processGroup(st, group, now, player)
             end
         end
 
+        -- Jammer destroyed by crew during active inspection: rep penalty, free to go.
+        if group.shakedown_state == "pending" and not group.shakedown_done and
+           group.jammer and not RT.valid(group.jammer) then
+            RT.addReputation("Concord", -75, "destroyed Concord warp jammer")
+            RT.shipLog("[Concord] Jammer destroyed. Concord standing reduced.", "#FF8040")
+            group.shakedown_done    = true
+            group.shakedown_hostile = false
+        end
+
+        -- Timeout: crew ignored the inspection hail entirely.
         if group.shakedown_state == "pending" and not group.shakedown_done and
            now - group.shakedown_start > _cfg("shakedown_timeout") then
             local rep = RT.getReputation("Concord") or 0
             if rep < 0 then
                 RT.campaign.flags = RT.campaign.flags or {}
                 RT.campaign.flags.wanted = true
-                RT.shipLog("Concord patrol: no response -- warrant issued.", "#FF4444")
+                RT.addReputation("Concord", -100, "ignored Concord inspection")
+                RT.shipLog("[Concord] No response — warrant issued.", "#FF4444")
                 if player then
                     for _, cs in ipairs(group.ships) do
                         local s = RT.named[cs]
@@ -517,14 +533,6 @@ local function _processGroup(st, group, now, player)
                 RT.shipLog("[Concord] No response. Patrol moving on.", "#8888FF")
             end
             group.shakedown_done = true
-
-        elseif group.shakedown_state == "scanning" and
-               group.shakedown_resolve_at and now > group.shakedown_resolve_at then
-            RT.campaign.credits = (RT.campaign.credits or 0) - 100
-            RT.addReputation("Concord", 100, "paid Concord inspection fine")
-            RT.shipLog("Concord inspection: 100 cr fine. Concord standing improved.", "#8888FF")
-            group.shakedown_done    = true
-            group.shakedown_hostile = false
         end
     end
 

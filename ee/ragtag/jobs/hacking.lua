@@ -327,7 +327,8 @@ function M.generate(opts)
         short          = arch.short_offer,
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
-                         .. "\n\nHack any of the relay's systems to 75% to breach its datastore.",
+                         .. "\n\nHack any of the relay's systems to 75% to breach its datastore."
+                         .. "\n\nWARNING: this relay has active automated defenses. Approach with caution.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
@@ -354,16 +355,16 @@ function M.spawn(m)
     -- "Automated war drone protocols" explains the aggression narratively.
     local s = CpuShip():setTemplate("Defense platform"):setFaction("Relic")
     s:setCallSign(name):setTypeName("Comms Relay")
-    s:setPosition(m.wx, m.wy):orderStandGround():setImpulseMaxSpeed(0):setRotationMaxSpeed(0):setSpin(8)
+    s:setPosition(m.wx, m.wy):orderStandGround():setImpulseMaxSpeed(0):setRotationMaxSpeed(0):setSpin(4)
     s:setCanBeDestroyed(false)
     s:setSystemHealth("reactor", 1.0)
     -- Six 30° beams at 5U range; 30° gaps between arcs create windows for Helm.
-    s:setBeamWeapon(0, 30,   0, 5000, 1.5, 20)
-    s:setBeamWeapon(1, 30,  60, 5000, 1.5, 20)
-    s:setBeamWeapon(2, 30, 120, 5000, 1.5, 20)
-    s:setBeamWeapon(3, 30, 180, 5000, 1.5, 20)
-    s:setBeamWeapon(4, 30, 240, 5000, 1.5, 20)
-    s:setBeamWeapon(5, 30, 300, 5000, 1.5, 20)
+    s:setBeamWeapon(0, 30,   0, 5000, 1.5, 10)
+    s:setBeamWeapon(1, 30,  60, 5000, 1.5, 10)
+    s:setBeamWeapon(2, 30, 120, 5000, 1.5, 10)
+    s:setBeamWeapon(3, 30, 180, 5000, 1.5, 10)
+    s:setBeamWeapon(4, 30, 240, 5000, 1.5, 10)
+    s:setBeamWeapon(5, 30, 300, 5000, 1.5, 10)
     s:setSystemHackedLevel("reactor", 0.0)
     RT.named[name] = s
     s:setCommsFunction(function(src, tgt)
@@ -376,7 +377,7 @@ function M.spawn(m)
 end
 
 function M.acceptLog(m)
-    return string.format("Contract: %s. %dm to complete. Target: %s at grid %s.",
+    return string.format("Contract: %s. %dm to complete. Target: %s at grid %s. WARNING: relay has active defenses — approach with caution.",
         m.short, math.floor(m._time_limit / 60),
         m.target_cs or "unknown", JOBS.gridRef(m.wx, m.wy))
 end

@@ -377,12 +377,15 @@ function VERSE.updateRegion()
     if not RT.valid(p) then return end
     local x, y = p:getPosition()
     local r = VERSE.regionAt(x, y)
-    if r == VERSE.region then return end
-    VERSE.region = r
-    local label = "Location: " .. r.name
+
+    -- Always refresh label so the grid coordinate stays current.
+    local label = "Location: " .. r.name .. "  " .. JOBS.gridRef(x, y)
     p:addCustomInfo("helms", "rt_region", label, 1)
     p:addCustomInfo("relay", "rt_region_r", label, 1)
     p:addCustomInfo("operations", "rt_region_o", label, 1)
+
+    if r == VERSE.region then return end
+    VERSE.region = r
     if r == VERSE.OPEN_SPACE then return end
 
     local first_ever = not isDiscovered(r.name)
