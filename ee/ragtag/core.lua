@@ -490,6 +490,12 @@ function RT.flag(name, value)
     return value
 end
 
+-- Explicitly clear a flag (RT.flag(name, nil) is a read, not a clear).
+function RT.clearFlag(name)
+    RT.campaign.flags[name] = nil
+    RT.saveCampaign()
+end
+
 function RT.note(text)
     table.insert(RT.campaign.notes, RT.cleanText(text, 200))
     while #RT.campaign.notes > 40 do table.remove(RT.campaign.notes, 1) end

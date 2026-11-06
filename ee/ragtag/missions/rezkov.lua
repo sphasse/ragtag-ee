@@ -402,7 +402,7 @@ local function _gmClearFlags(st)
     st.m3_boarded  = false
     for _, k in ipairs({"hook","declined","m1_done","m2_done",
                          "m3_accepted","m3_data","arc_done"}) do
-        RT.flag("rezkov_" .. k, nil)
+        RT.clearFlag("rezkov_" .. k)
     end
     RUMORS.removeCategory("REZKOV_HOOK")
 end
@@ -450,7 +450,7 @@ M.gm_actions = {
         MISSIONS.phase("rezkov", "done")
         globalMessage("[GM] Rezkov Arc: → Complete.", 4)
     end},
-    {label = "→ Restart", phases = {"done"}, fn = function(_)
+    {label = "Restart arc", phases = {"done"}, fn = function(_)
         local cur = MISSIONS._state["rezkov"]
         if cur then _gmClearFlags(cur) end
         MISSIONS._status["rezkov"] = "inactive"  -- guarantee start() proceeds
