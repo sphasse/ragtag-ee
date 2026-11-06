@@ -422,12 +422,12 @@ end
 -- Register a ship for automatic reputation tracking on kill
 function RT.trackShipForReputation(ship)
     if not ship or not RT.valid(ship) then return end
-    local faction = ship:getFaction()
+    local faction  = ship:getFaction()
     -- Only track ships from factions we care about (not player ships, not derelict)
     if faction == RT.PLAYER_FACTION or faction == "Derelict" or faction == "Unknown" then return end
-
+    local callsign = ship:getCallSign()   -- capture before entity is destroyed
     RT.onKill(ship, function()
-        RT.addReputation(faction, -200, "destroyed " .. ship:getCallSign())
+        RT.addReputation(faction, -200, "destroyed " .. callsign)
     end)
 end
 
