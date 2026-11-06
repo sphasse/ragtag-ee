@@ -143,23 +143,33 @@ function JOBS.maxTier()
 end
 
 -- ── Type selection ────────────────────────────────────────────────────────────
+-- Weights shift with tier so higher-investment ships see more variety and fewer
+-- plain delivery/salvage offers. Falls back to mod.weight for unlisted types.
+local _TIER_WEIGHTS = {
+    [0] = {delivery=15, salvage=7},
+    [1] = {delivery=10, salvage=6, hacking=4},
+    [2] = {delivery=5,  salvage=4, hacking=5, destroy=5, boarding=5},
+}
+
 -- Weighted random draw from registered types whose tier_min <= maxTier().
 function JOBS.pickType()
     local mt = JOBS.maxTier()
+    local tw = _TIER_WEIGHTS[mt] or {}
     local pool, total = {}, 0
     for _, mod in pairs(JOBS._registry) do
         if (mod.tier_min or 0) <= mt then
-            pool[#pool + 1] = mod
-            total = total + (mod.weight or 1)
+            local w = tw[mod.type] or mod.weight or 1
+            pool[#pool + 1] = {mod=mod, w=w}
+            total = total + w
         end
     end
     if #pool == 0 then return "delivery" end
     local r = math.random() * total
-    for _, mod in ipairs(pool) do
-        r = r - (mod.weight or 1)
-        if r <= 0 then return mod.type end
+    for _, e in ipairs(pool) do
+        r = r - e.w
+        if r <= 0 then return e.mod.type end
     end
-    return pool[#pool].type
+    return pool[#pool].mod.type
 end
 
 -- ── Verse/spawn helpers ───────────────────────────────────────────────────────
