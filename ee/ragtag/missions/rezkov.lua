@@ -565,6 +565,20 @@ M.phases.m3_active = {
             return
         end
 
+        -- Meridian reached Waypoint Galen — data delivered to Concord
+        if RT.valid(st.meridian) and not st.m3_disabled then
+            local mx, my = st.meridian:getPosition()
+            local dx, dy = mx - (-75000), my - (-52000)
+            if dx * dx + dy * dy < 10000 * 10000 then
+                RT.addReputation("Concord", -1000, "Rezkov Arc: Concord investigation data reached Concord space")
+                RT.addReputation("Independent", -500, "Rezkov Arc: Concord investigation completed, Rezkov network compromised")
+                RT.shipLog("[Rezkov Arc] CWS Meridian reached the Arbiter Line. Data delivered. Concord -1000. Independent -500.", "#FF8080")
+                RT.flag("rezkov_arc_done", "meridian_escaped")
+                MISSIONS.phase("rezkov", "done")
+                return
+            end
+        end
+
         if not RT.flag("rezkov_m3_accepted") then return end
 
         _checkMeridianDisabled(st)

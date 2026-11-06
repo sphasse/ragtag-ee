@@ -63,6 +63,8 @@ Every reputation change logs three lines to the Relay console:
 | Rezkov Arc M3: let Concord go with data | Concord | +500 |
 | Rezkov Arc M3: seize data from Meridian | Concord | −1000 |
 | Rezkov Arc M3: deliver seized data to Thresh | Independent | +200 |
+| Rezkov Arc M3: Meridian reaches Concord space | Concord | −1000 |
+| Rezkov Arc M3: Meridian reaches Concord space | Independent | −500 |
 
 **Mission reward formula** (affects how much rep moves per job):
 
