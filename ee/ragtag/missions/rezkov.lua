@@ -13,7 +13,19 @@
 --   m3_data           data card seized from CWS Meridian
 --   arc_done          arc complete (value = outcome string)
 
-local _hook_registered = false   -- guard against double-registration on GM restart
+local _hook_registered   = false  -- guard against double-registration on GM restart
+local _concord_ops_fac   = nil    -- created lazily at M3 spawn; persists for session
+
+-- Concord Ops: Concord Intelligence operating off-manifest. Hostile to Independent
+-- so the player can target the Meridian without making all Concord hostile.
+local function _concordOps()
+    if _concord_ops_fac then return _concord_ops_fac end
+    _concord_ops_fac = FactionInfo():setName("Concord Ops"):setLocaleName("Concord Ops")
+    _concord_ops_fac:setGMColor(100, 150, 255)
+    _concord_ops_fac:setDescription("Concord Intelligence. Not flying standard colors.")
+    _concord_ops_fac:setEnemy(getFactionInfo("Independent"))
+    return _concord_ops_fac
+end
 
 local M = {}
 M.id          = "rezkov"
@@ -179,9 +191,10 @@ end
 
 local function _spawnMeridian(st)
     if RT.valid(st.meridian) then return end
-    -- Corsairs faction so the player (Independent) can target her with weapons.
-    -- The docking bay is added only after she's disabled so early docking is blocked.
-    local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Corsairs")
+    _concordOps()  -- ensure faction exists before assigning
+    -- Concord Ops faction: hostile to Independent so the player can target her.
+    -- Boarding is triggered by proximity (1.5U) after she's disabled, not by docking.
+    local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Concord Ops")
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setPosition(_MX, _MY)
     -- Fast impulse burn toward Waypoint Galen (Arbiter Line) — catchable by warp but requires urgency
@@ -209,20 +222,20 @@ local function _checkMeridianDisabled(st)
         st.meridian:setCanBeDestroyed(false)
         st.meridian:orderIdle()
         st.meridian:setFaction("Independent")
-        pcall(function() st.meridian.components.docking_bay = {external_dock_classes = {"Frigate"}} end)
         st.meridian:setCommsFunction(function(src, tgt)
-            setCommsMessage('"CWS Meridian -- engines disabled. We surrender. Close to within 1U and request docking."')
-            addCommsReply("Understood. Stand by.", function() setCommsMessage("Channel open.") end)
+            setCommsMessage('"CWS Meridian -- engines are down. We\'re not going anywhere."')
+            addCommsReply("Understood.", function() setCommsMessage('"Meridian out."') end)
         end)
-        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
+        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U to board.", "#FFCC80")
         RT.setObjective("Board CWS Meridian", true)
     end
 end
 
 local function _setupKaelComms(st)
     st.m3_boarded = true
-    RT.shipLog("[CWS Meridian] Docked. Hail Commander Kael.", "#FFCC80")
     RT.setObjective("Speak with Commander Kael", true)
+    -- Set commsFunction first so the reply is ready when the player opens the channel.
+    -- RT.hail pushes the notification; the player hails back (not docked) to get the dialogue.
     st.meridian:setCommsFunction(function(src, tgt)
         setCommsMessage('"CWS Meridian -- engines disabled. I\'ll be direct.\n\nI\'m Commander Kael, Concord Intelligence. I\'ve been monitoring traffic out of Dustmote for three months. I have comms intercepts, cargo manifests, ship registrations -- yours is in the file. So is Rezkov\'s.\n\nYou have a choice. Stand down and let us proceed to Concord space. The Concord will remember that you cooperated. Or take the data and run -- but know this won\'t be the last time you see me."')
         addCommsReply("Let the Concord go.", function(s2, t2)
@@ -255,6 +268,7 @@ local function _setupKaelComms(st)
             end)
         end)
     end)
+    RT.hail(st.meridian, "CWS Meridian. Commander Kael, Concord Intelligence. I need to speak with your crew. Open a channel.", "Commander Kael")
 end
 
 -- ── Station hooks ─────────────────────────────────────────────────────────
@@ -599,10 +613,15 @@ M.phases.m3_active = {
         _checkMeridianDisabled(st)
 
         if st.m3_disabled and not st.m3_boarded and RT.valid(st.meridian) then
+            local mx, my = st.meridian:getPosition()
             for _, p in ipairs(RT.players) do
-                if RT.valid(p) and p:isDocked(st.meridian) then
-                    _setupKaelComms(st)
-                    break
+                if RT.valid(p) then
+                    local px, py = p:getPosition()
+                    local dx, dy = px - mx, py - my
+                    if dx*dx + dy*dy < 1500*1500 then
+                        _setupKaelComms(st)
+                        break
+                    end
                 end
             end
         end
