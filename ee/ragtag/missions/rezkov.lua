@@ -179,12 +179,19 @@ end
 
 local function _spawnMeridian(st)
     if RT.valid(st.meridian) then return end
-    local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Concord")
+    -- Corsairs faction so the player (Independent) can target her with weapons.
+    -- The docking bay is added only after she's disabled so early docking is blocked.
+    local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Corsairs")
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setPosition(_MX, _MY)
     -- Fast impulse burn toward Waypoint Galen (Arbiter Line) — catchable by warp but requires urgency
     meridian:setImpulseMaxSpeed(500):orderFlyTowards(-75000, -52000)
-    pcall(function() meridian.components.docking_bay = {external_dock_classes = {"Frigate"}} end)
+    meridian:setCommsFunction(function(src, tgt)
+        setCommsMessage('"CWS Meridian. We have your ship on record — registration, manifests, comms intercepts going back three months. Stand down and let us proceed.\n\nCooperate now and the Concord will remember that when it matters. Fight us and we file everything. Let\'s make a deal before this gets worse for everyone."')
+        addCommsReply("Not happening.", function()
+            setCommsMessage('"Your choice. The charges will be waiting when you dock anywhere in Concord space."')
+        end)
+    end)
     RT.register(meridian)
     st.meridian = meridian
     RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. " burning for Concord space. Disable and board before she reaches the Arbiter Line.", "#FFAA00")
@@ -202,6 +209,7 @@ local function _checkMeridianDisabled(st)
         st.meridian:setCanBeDestroyed(false)
         st.meridian:orderIdle()
         st.meridian:setFaction("Independent")
+        pcall(function() st.meridian.components.docking_bay = {external_dock_classes = {"Frigate"}} end)
         st.meridian:setCommsFunction(function(src, tgt)
             setCommsMessage('"CWS Meridian -- engines disabled. We surrender. Close to within 1U and request docking."')
             addCommsReply("Understood. Stand by.", function() setCommsMessage("Channel open.") end)
