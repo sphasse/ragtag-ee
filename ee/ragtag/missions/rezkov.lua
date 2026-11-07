@@ -193,9 +193,9 @@ local function _spawnMeridian(st)
     if RT.valid(st.meridian) then return end
     _concordOps()  -- ensure faction exists before assigning
     -- Concord Ops faction: hostile to Independent so the player can target her.
-    -- Boarding is triggered by proximity (1.5U) after she's disabled, not by docking.
     local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Concord Ops")
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
+    meridian:setWeaponStorage("Nuke", 0):setWeaponStorageMax("Nuke", 0)
     meridian:setPosition(_MX, _MY)
     -- Fast impulse burn toward Waypoint Galen (Arbiter Line) — catchable by warp but requires urgency
     meridian:setImpulseMaxSpeed(500):orderFlyTowards(-75000, -52000)
@@ -235,8 +235,6 @@ end
 local function _setupKaelComms(st)
     st.m3_boarded = true
     RT.setObjective("Speak with Commander Kael", true)
-    -- Set commsFunction first so the reply is ready when the player opens the channel.
-    -- RT.hail pushes the notification; the player hails back (not docked) to get the dialogue.
     st.meridian:setCommsFunction(function(src, tgt)
         setCommsMessage('"CWS Meridian -- engines disabled. I\'ll be direct.\n\nI\'m Commander Kael, Concord Intelligence. I\'ve been monitoring traffic out of Dustmote for three months. I have comms intercepts, cargo manifests, ship registrations -- yours is in the file. So is Rezkov\'s.\n\nYou have a choice. Stand down and let us proceed to Concord space. The Concord will remember that you cooperated. Or take the data and run -- but know this won\'t be the last time you see me."')
         addCommsReply("Let the Concord go.", function(s2, t2)
@@ -268,7 +266,7 @@ local function _setupKaelComms(st)
             end)
         end)
     end)
-    RT.hail(st.meridian, "CWS Meridian. Commander Kael, Concord Intelligence. I need to speak with your crew. Open a channel.", "Commander Kael")
+    RT.shipLog("[CWS Meridian] Docked. Hail Commander Kael.", "#FFCC80")
 end
 
 -- ── Station hooks ─────────────────────────────────────────────────────────
