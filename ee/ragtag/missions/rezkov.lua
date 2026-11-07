@@ -222,11 +222,12 @@ local function _checkMeridianDisabled(st)
         st.meridian:setCanBeDestroyed(false)
         st.meridian:orderIdle()
         st.meridian:setFaction("Independent")
+        pcall(function() st.meridian.components.docking_bay = {external_dock_classes = {"Frigate"}} end)
         st.meridian:setCommsFunction(function(src, tgt)
-            setCommsMessage('"CWS Meridian -- engines are down. We\'re not going anywhere."')
+            setCommsMessage('"CWS Meridian -- engines are down. We\'re not going anywhere. Close to within 1U and dock to board."')
             addCommsReply("Understood.", function() setCommsMessage('"Meridian out."') end)
         end)
-        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U to board.", "#FFCC80")
+        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
         RT.setObjective("Board CWS Meridian", true)
     end
 end
@@ -245,7 +246,6 @@ local function _setupKaelComms(st)
                 RT.addReputation("Concord", 500, "Rezkov Arc: cooperated with Concord investigator")
                 RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation. Independent -1000. Concord +500.", "#FF8080")
                 RT.flag("rezkov_arc_done", "concord_won")
-                RT.note("Let CWS Meridian commander Kael proceed with Rezkov investigation data. Concord file intact.")
                 if RT.valid(st.meridian) then
                     st.meridian:setFaction("Concord")
                     st.meridian:setImpulseMaxSpeed(500):orderFlyTowards(-75000, -52000)
@@ -364,7 +364,6 @@ local function _dustmoteHook(src, tgt, info)
                 RT.addReputation("Independent", 200, "Rezkov Arc: delivered seized Concord data")
                 RT.shipLog("[Rezkov Arc] Done. Data delivered to Thresh. Independent +200.", "#80FF80")
                 RT.flag("rezkov_arc_done", "data_delivered")
-                RT.note("Delivered seized CWS Meridian investigation data to Thresh. Rezkov's network protected. Kael's threat noted.")
                 MISSIONS.phase("rezkov", "done")
             end)
         end)
@@ -613,15 +612,10 @@ M.phases.m3_active = {
         _checkMeridianDisabled(st)
 
         if st.m3_disabled and not st.m3_boarded and RT.valid(st.meridian) then
-            local mx, my = st.meridian:getPosition()
             for _, p in ipairs(RT.players) do
-                if RT.valid(p) then
-                    local px, py = p:getPosition()
-                    local dx, dy = px - mx, py - my
-                    if dx*dx + dy*dy < 1500*1500 then
-                        _setupKaelComms(st)
-                        break
-                    end
+                if RT.valid(p) and p:isDocked(st.meridian) then
+                    _setupKaelComms(st)
+                    break
                 end
             end
         end
