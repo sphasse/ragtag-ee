@@ -276,7 +276,7 @@ function M.generate(opts)
         reward         = reward,
         short          = arch.short_offer,
         obj            = "Escort convoy to " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")",
-        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nUndock when you're ready to begin.",
+        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nHail the convoy when you're ready to begin.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,
@@ -334,12 +334,34 @@ function M.spawn(m)
     DIR.registerKill(convoy)
     local mission_ref = m
     convoy:setCommsFunction(function(src, tgt)
-        print(string.format("[ESCORT-DIAG] convoy comms opened: waiting=%s", tostring(mission_ref._convoy_waiting)))
-        if mission_ref._convoy_waiting then
-            setCommsMessage('"Standing by at the dock. Ready to depart on your mark."')
-        else
-            setCommsMessage('"We\'re underway to ' .. mission_ref.dest .. '. Thank you for the escort."')
+        if mission_ref._convoy_arrived then
+            setCommsMessage('"We\'ve docked at ' .. mission_ref.dest .. '. Thank you for the escort."')
+            return
         end
+        setCommsMessage('"Standing by for orders, Captain."')
+        addCommsReply("Proceed to " .. mission_ref.dest, function(s2, t2)
+            local dest_e = RT.find(mission_ref.dest)
+            if RT.valid(dest_e) then
+                mission_ref._convoy_waiting = false
+                tgt:orderFlyTowards(mission_ref.dx, mission_ref.dy)
+                RT.shipLog("[Escort] " .. mission_ref.convoy_cs .. " is underway to " .. mission_ref.dest .. ".", "#60CCFF")
+                setCommsMessage('"Copy. Setting course for ' .. mission_ref.dest .. '. Stay close."')
+            else
+                setCommsMessage('"Cannot plot course — destination not found."')
+            end
+        end)
+        addCommsReply("Retreat to " .. mission_ref.origin, function(s2, t2)
+            tgt:orderFlyTowards(mission_ref.ox, mission_ref.oy)
+            setCommsMessage('"Copy. Returning to ' .. mission_ref.origin .. '."')
+        end)
+        addCommsReply("Hold position", function(s2, t2)
+            tgt:orderIdle()
+            setCommsMessage('"Copy. Holding position."')
+        end)
+        addCommsReply("Form up on me", function(s2, t2)
+            tgt:orderDefendTarget(src)
+            setCommsMessage('"Copy. Forming up on you."')
+        end)
     end)
     m.convoy_cs = convoy_name
     print(string.format("[ESCORT-DIAG] spawn complete: convoy=%s pos=(%.0f,%.0f) dx=%.0f dy=%.0f spawned=%s",
@@ -392,10 +414,14 @@ function M.spawn(m)
                 local cv2 = RT.find(cname)
                 if RT.valid(cv2) then
                     tgt:orderDefendTarget(cv2)
-                    setCommsMessage('"Copy. Forming up."')
+                    setCommsMessage('"Copy. Forming up on convoy."')
                 else
                     setCommsMessage('"Unable to locate convoy."')
                 end
+            end)
+            addCommsReply("Form up on me", function(s2, t2)
+                tgt:orderDefendTarget(src)
+                setCommsMessage('"Copy. On your wing."')
             end)
         end)
         fighters[i] = fname
@@ -408,7 +434,7 @@ function M.acceptLog(m)
     local f1 = (m.fighter_cs and m.fighter_cs[1]) or "Escort-1"
     local f2 = (m.fighter_cs and m.fighter_cs[2]) or "Escort-2"
     return string.format(
-        "[Escort] %s is standing by at %s dock. Destination: %s (%s). You command the escort fleet — %s and %s are standing by. Undock when ready to begin.",
+        "[Escort] %s is standing by at %s dock. Destination: %s (%s). You command the escort fleet — %s and %s are standing by. Hail the convoy to begin.",
         m.convoy_cs or "Convoy", m.origin, m.dest, JOBS.gridRef(m.dx, m.dy), f1, f2)
 end
 
@@ -426,35 +452,8 @@ function M.update(m, entry, ctx)
         return nil
     end
 
-    -- Wait at origin until the player undocks, then release the convoy.
+    -- Wait for player to order the convoy via comms before releasing it.
     if m._convoy_waiting then
-        local origin_e = RT.find(m.origin)
-        local origin_valid = RT.valid(origin_e)
-        local player_count = 0
-        local player_left = true
-        RT.forEachPlayer(function(p)
-            player_count = player_count + 1
-            local docked = p:getDockedWith()
-            local docked_cs = (docked and docked ~= false and RT.valid(docked)) and docked:getCallSign() or "nil"
-            print(string.format("[ESCORT-DIAG] player %d: getDockedWith=%s origin_valid=%s origin=%s",
-                player_count, tostring(docked_cs), tostring(origin_valid), tostring(m.origin)))
-            if docked and origin_valid and docked == origin_e then
-                player_left = false
-            end
-        end)
-        -- Throttle: print waiting status every ~10s
-        if not m._diag_next or ctx.now >= m._diag_next then
-            m._diag_next = ctx.now + 10
-            print(string.format("[ESCORT-DIAG] waiting: players=%d player_left=%s convoy_cs=%s dx=%.0f dy=%.0f",
-                player_count, tostring(player_left), tostring(m.convoy_cs), m.dx or -1, m.dy or -1))
-        end
-        if player_left then
-            m._convoy_waiting = false
-            print(string.format("[ESCORT-DIAG] releasing convoy %s -> orderFlyTowards(%.0f, %.0f)",
-                m.convoy_cs, m.dx, m.dy))
-            convoy:orderFlyTowards(m.dx, m.dy)
-            RT.shipLog("[Escort] " .. m.convoy_cs .. " is underway. Escort them to " .. m.dest .. ".", "#60CCFF")
-        end
         return nil
     end
 
