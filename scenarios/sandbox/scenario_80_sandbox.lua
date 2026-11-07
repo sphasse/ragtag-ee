@@ -198,7 +198,9 @@ function init()
         end
     end)
 
-    -- Custom Port Vesper comms: welcome message on first hail, standard message after
+    -- Custom Port Vesper comms: welcome message on first hail, standard message after.
+    -- Sets info.flavor dynamically so RT.stationComms handles all reply logic (rumors,
+    -- restock, mission board, etc.) — avoids the stale-menu bug of a fully custom function.
     local vesper = RT.find("Port Vesper")
     if RT.valid(vesper) then
         vesper:setCommsFunction(function(source, target)
@@ -206,41 +208,15 @@ function init()
                 setCommsMessage("Static. Then a click. They've cut the channel.")
                 return
             end
-
-            local msg
+            local info = RT.stations["Port Vesper"] or {}
             if not S.vesper_first_hail then
-                -- First hail: welcome message
                 S.vesper_first_hail = true
                 local session_text = S.session_num == 1 and "Welcome to the Drift, independents." or "Back again, I see."
-                msg = session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe."
+                info.flavor = session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe."
             else
-                -- Subsequent hails: standard docking message
-                msg = "Port Vesper traffic control. Mind the dock clamps, they bite."
+                info.flavor = "Port Vesper traffic control. Mind the dock clamps, they bite."
             end
-
-            if source:isDocked(target) then
-                msg = msg .. "\n\nYou're docked. Balance: " .. RT.credits(source) .. " credits."
-            end
-            setCommsMessage(msg)
-
-            -- Run standard station hooks (mission board, upgrades, etc.)
-            local info = RT.stations["Port Vesper"]
-            if info then
-                for _, hook in ipairs(info.hooks) do
-                    local ok, err = pcall(hook, source, target, info)
-                    if not ok then print("[RT] station hook failed: " .. tostring(err)) end
-                end
-
-                if source:isDocked(target) then
-                    if info.shop then
-                        addCommsReply("Shipwright: browse upgrades", function(s, t)
-                            RT.shipwrightMenu(s, t)
-                        end)
-                    end
-                end
-            end
-
-            addCommsReply("Back", function() end)
+            RT.stationComms(source, target)
         end)
     end
 
