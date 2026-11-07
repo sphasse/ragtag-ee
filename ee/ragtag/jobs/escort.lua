@@ -330,6 +330,11 @@ function M.spawn(m)
     convoy:setHull(100)
     convoy:setShieldsMax(0)
     convoy:orderIdle()
+    -- Override Flavia's small corvette mesh with a large transport freighter visual.
+    -- Stats stay the same; only the 3D model and radar trace change.
+    convoy:setModel("transport_4_4")
+    convoy:setRadarTrace("transport.png")
+    convoy:setRadarTraceScale(2)
     RT.register(convoy)
     DIR.registerKill(convoy)
     local mission_ref = m
