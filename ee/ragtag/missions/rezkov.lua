@@ -438,7 +438,8 @@ local function _gmStateLabel()
         return "Rumors"
     elseif phase == "m1_navigate"                          then return "Meeting"
     elseif phase == "m2_active" or phase == "m2_deliver"   then return "Hacking"
-    elseif phase == "m3_active" or phase == "m3_deliver"   then return "Intercept"
+    elseif phase == "m3_active"                             then return "Intercept"
+    elseif phase == "m3_deliver"                            then return "Data Run"
     elseif phase == "done" then
         return "Complete (" .. tostring(RT.flag("rezkov_arc_done")) .. ")"
     end
