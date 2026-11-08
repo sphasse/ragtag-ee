@@ -191,22 +191,21 @@ end
 
 local function _spawnMeridian(st)
     if RT.valid(st.meridian) then return end
-    _concordOps()  -- ensure faction exists before assigning
-    -- Concord Ops faction: hostile to Independent so the player can target her.
-    local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Concord Ops")
+    _concordOps()  -- ensure Concord Ops faction exists for later switch
+    -- Spawn as Concord (neutral to Independent) so she doesn't pick fights with traffic.
+    -- She switches to Concord Ops (hostile) only when a player closes to weapons range.
+    local meridian = CpuShip():setTemplate("Concord Enforcer"):setFaction("Concord")
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setWeaponStorage("Nuke", 0):setWeaponStorageMax("Nuke", 0)
     meridian:setPosition(_MX, _MY)
     -- Fast impulse burn toward Concord Station Arbiter — catchable by warp but requires urgency
     meridian:setImpulseMaxSpeed(500):orderFlyTowards(-21000, -27000)
-    meridian:setCommsFunction(function(src, tgt)
-        setCommsMessage('"CWS Meridian. We have your ship on record — registration, manifests, comms intercepts going back three months. Stand down and let us proceed.\n\nCooperate now and the Concord will remember that when it matters. Fight us and we file everything. Let\'s make a deal before this gets worse for everyone."')
-        addCommsReply("Not happening.", function()
-            setCommsMessage('"Your choice. The charges will be waiting when you dock anywhere in Concord space."')
-        end)
+    meridian:setCommsScript(""):setCommsFunction(function(src, tgt)
+        setCommsMessage('"CWS Meridian. This is a restricted Concord vessel. Stand clear."')
     end)
     RT.register(meridian)
     st.meridian = meridian
+    st.m3_hostile = false
     RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")
 end
 
@@ -232,7 +231,7 @@ local function _checkMeridianDisabled(st)
             st.meridian.components.docking_bay = {external_dock_classes = {"Frigate"}}
         end)
         print(string.format("[RZKOV] docking_bay set: ok=%s err=%s", tostring(ok_dock), tostring(dock_err)))
-        st.meridian:setCommsFunction(function(src, tgt)
+        st.meridian:setCommsScript(""):setCommsFunction(function(src, tgt)
             print(string.format("[RZKOV] disabled-comms opened: src=%s tgt_valid=%s faction=%s",
                 tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
                 tostring(RT.valid(tgt) and tgt:getFaction())))
@@ -253,7 +252,7 @@ local function _setupKaelComms(st)
         tostring(st.m3_boarded), tostring(RT.valid(st.meridian))))
     st.m3_boarded = true
     RT.setObjective("Speak with Commander Kael", true)
-    st.meridian:setCommsFunction(function(src, tgt)
+    st.meridian:setCommsScript(""):setCommsFunction(function(src, tgt)
         print(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
             tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
             tostring(RT.valid(tgt) and tgt:getFaction())))
@@ -633,6 +632,30 @@ M.phases.m3_active = {
         end
 
         if not RT.flag("rezkov_m3_accepted") then return end
+
+        -- Switch Meridian to hostile faction when player closes to weapons range (~5U).
+        -- While Concord she is neutral and ignores all traffic; Concord Ops makes her targetable.
+        if not st.m3_hostile and not st.m3_disabled and RT.valid(st.meridian) then
+            local mx, my = st.meridian:getPosition()
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) then
+                    local px, py = p:getPosition()
+                    local dx, dy = px - mx, py - my
+                    if dx * dx + dy * dy < 5000 * 5000 then
+                        st.m3_hostile = true
+                        st.meridian:setFaction("Concord Ops")
+                        st.meridian:setCommsScript(""):setCommsFunction(function(src, tgt)
+                            setCommsMessage('"CWS Meridian. We have your ship on record — registration, manifests, comms intercepts going back three months. Stand down and let us proceed.\n\nCooperate now and the Concord will remember that when it matters. Fight us and we file everything. Let\'s make a deal before this gets worse for everyone."')
+                            addCommsReply("Not happening.", function()
+                                setCommsMessage('"Your choice. The charges will be waiting when you dock anywhere in Concord space."')
+                            end)
+                        end)
+                        print("[RZKOV] Meridian switched to Concord Ops — player within 5U")
+                        break
+                    end
+                end
+            end
+        end
 
         _checkMeridianDisabled(st)
 
