@@ -210,7 +210,7 @@ local function _spawnMeridian(st)
     meridian:setPosition(_MX, _MY)
     -- Moderate speed: faster than player impulse so warp is needed to intercept, but slow enough
     -- that the player can get sustained beam fire once alongside.
-    meridian:setImpulseMaxSpeed(50):orderFlyTowards(-21000, -27000)
+    meridian:setImpulseMaxSpeed(300):orderFlyTowards(-21000, -27000)
     meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
         setCommsMessage('"CWS Meridian. This is a restricted Concord vessel. Stand clear."')
     end))
