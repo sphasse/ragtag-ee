@@ -208,8 +208,9 @@ local function _spawnMeridian(st)
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setWeaponStorage("Nuke", 0):setWeaponStorageMax("Nuke", 0)
     meridian:setPosition(_MX, _MY)
-    -- Fast impulse burn toward Concord Station Arbiter — catchable by warp but requires urgency
-    meridian:setImpulseMaxSpeed(500):orderFlyTowards(-21000, -27000)
+    -- Moderate speed: faster than player impulse so warp is needed to intercept, but slow enough
+    -- that the player can get sustained beam fire once alongside.
+    meridian:setImpulseMaxSpeed(80):orderFlyTowards(-21000, -27000)
     meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
         setCommsMessage('"CWS Meridian. This is a restricted Concord vessel. Stand clear."')
     end))
@@ -664,6 +665,7 @@ M.phases.m3_active = {
                     if dx * dx + dy * dy < 5000 * 5000 then
                         st.m3_hostile = true
                         st.meridian:setFaction("Concord Ops")
+                        st.meridian:orderAttack(p)
                         st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
                             setCommsMessage('"CWS Meridian. We have your ship on record — registration, manifests, comms intercepts going back three months. Stand down and let us proceed.\n\nCooperate now and the Concord will remember that when it matters. Fight us and we file everything. Let\'s make a deal before this gets worse for everyone."')
                             addCommsReply("Not happening.", function()
