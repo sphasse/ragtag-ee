@@ -197,8 +197,8 @@ local function _spawnMeridian(st)
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setWeaponStorage("Nuke", 0):setWeaponStorageMax("Nuke", 0)
     meridian:setPosition(_MX, _MY)
-    -- Fast impulse burn toward Waypoint Galen (Arbiter Line) — catchable by warp but requires urgency
-    meridian:setImpulseMaxSpeed(500):orderFlyTowards(-75000, -52000)
+    -- Fast impulse burn toward Concord Station Arbiter — catchable by warp but requires urgency
+    meridian:setImpulseMaxSpeed(500):orderFlyTowards(-21000, -27000)
     meridian:setCommsFunction(function(src, tgt)
         setCommsMessage('"CWS Meridian. We have your ship on record — registration, manifests, comms intercepts going back three months. Stand down and let us proceed.\n\nCooperate now and the Concord will remember that when it matters. Fight us and we file everything. Let\'s make a deal before this gets worse for everyone."')
         addCommsReply("Not happening.", function()
@@ -207,7 +207,7 @@ local function _spawnMeridian(st)
     end)
     RT.register(meridian)
     st.meridian = meridian
-    RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Waypoint Galen. Disable and board before she reaches the Arbiter Line.", "#FFAA00")
+    RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")
 end
 
 local function _checkMeridianDisabled(st)
@@ -217,43 +217,66 @@ local function _checkMeridianDisabled(st)
     local ok3, impulse_h = pcall(function() return st.meridian:getSystemHealth("impulse") end)
     local hull_low    = ok1 and ok2 and hmax > 0 and hull / hmax < 0.25
     local impulse_low = ok3 and impulse_h and impulse_h < 0.3
+    print(string.format("[RZKOV] _checkMeridianDisabled: hull=%s/%s hull_low=%s impulse_h=%s impulse_low=%s",
+        tostring(ok1 and hull), tostring(ok2 and hmax), tostring(hull_low),
+        tostring(ok3 and impulse_h), tostring(impulse_low)))
     if hull_low or impulse_low then
         st.m3_disabled = true
         st.meridian:setCanBeDestroyed(false)
         st.meridian:orderIdle()
         st.meridian:setFaction("Independent")
-        pcall(function() st.meridian.components.docking_bay = {external_dock_classes = {"Frigate"}} end)
-        st.meridian:setCommsFunction(function(src, tgt)
-            setCommsMessage('"CWS Meridian -- engines are down. We\'re not going anywhere. Close to within 1U and dock to board."')
-            addCommsReply("Understood.", function() setCommsMessage('"Meridian out."') end)
+        local ok_dock, dock_err = pcall(function()
+            st.meridian.components.docking_bay = {external_dock_classes = {"Frigate"}}
         end)
+        print(string.format("[RZKOV] docking_bay set: ok=%s err=%s", tostring(ok_dock), tostring(dock_err)))
+        st.meridian:setCommsFunction(function(src, tgt)
+            print(string.format("[RZKOV] disabled-comms opened: src=%s tgt_valid=%s faction=%s",
+                tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
+                tostring(RT.valid(tgt) and tgt:getFaction())))
+            setCommsMessage('"CWS Meridian -- engines are down. We\'re not going anywhere. Close to within 1U and dock to board."')
+            addCommsReply("Understood.", function()
+                print("[RZKOV] disabled-comms: Understood clicked")
+                setCommsMessage('"Meridian out."')
+            end)
+        end)
+        print("[RZKOV] Meridian disabled — faction=Independent, commsFunction set, m3_disabled=true")
         RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
         RT.setObjective("Board CWS Meridian", true)
     end
 end
 
 local function _setupKaelComms(st)
+    print(string.format("[RZKOV] _setupKaelComms: called — m3_boarded was %s, meridian_valid=%s",
+        tostring(st.m3_boarded), tostring(RT.valid(st.meridian))))
     st.m3_boarded = true
     RT.setObjective("Speak with Commander Kael", true)
     st.meridian:setCommsFunction(function(src, tgt)
+        print(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
+            tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
+            tostring(RT.valid(tgt) and tgt:getFaction())))
         setCommsMessage('"CWS Meridian -- engines disabled. I\'ll be direct.\n\nI\'m Commander Kael, Concord Intelligence. I\'ve been monitoring traffic out of Dustmote for three months. I have comms intercepts, cargo manifests, ship registrations -- yours is in the file. So is Rezkov\'s.\n\nYou have a choice. Stand down and let us proceed to Concord space. The Concord will remember that you cooperated. Or take the data and run -- but know this won\'t be the last time you see me."')
         addCommsReply("Let the Concord go.", function(s2, t2)
+            print("[RZKOV] kael-comms: 'Let the Concord go' clicked")
             setCommsMessage('"Wise. The Concord will remember."')
             addCommsReply("Understood.", function(s3, t3)
+                print("[RZKOV] kael-comms: 'Understood' (let go) clicked")
                 RT.addReputation("Independent", -1000, "Rezkov Arc: cooperated with Concord against Rezkov")
                 RT.addReputation("Concord", 500, "Rezkov Arc: cooperated with Concord investigator")
                 RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation. Independent -1000. Concord +500.", "#FF8080")
                 RT.flag("rezkov_arc_done", "concord_won")
                 if RT.valid(st.meridian) then
                     st.meridian:setFaction("Concord")
-                    st.meridian:setImpulseMaxSpeed(500):orderFlyTowards(-75000, -52000)
+                    st.meridian:setImpulseMaxSpeed(500):orderFlyTowards(-21000, -27000)
                 end
+                setCommsMessage('"Meridian out."')
                 MISSIONS.phase("rezkov", "done")
             end)
         end)
         addCommsReply("Take the data.", function(s2, t2)
+            print("[RZKOV] kael-comms: 'Take the data' clicked")
             setCommsMessage('"Take it then.\n\nThis won\'t be the last time you see me, Magpie."')
             addCommsReply("We\'re taking the data.", function(s3, t3)
+                print("[RZKOV] kael-comms: 'We're taking the data' clicked")
                 RT.addReputation("Concord", -1000, "Rezkov Arc: seized Concord investigation data")
                 RT.shipLog("[Rezkov Arc] Data seized. Concord -1000. Deliver the data card to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
                 RT.flag("rezkov_m3_data", true)
@@ -262,6 +285,7 @@ local function _setupKaelComms(st)
                     st.meridian:setFaction("Independent")
                     st.meridian:orderIdle()
                 end
+                setCommsMessage('"Meridian out."')
                 MISSIONS.phase("rezkov", "m3_deliver")
             end)
         end)
@@ -316,12 +340,12 @@ local function _dustmoteHook(src, tgt, info)
                 RT.flag("rezkov_m2_done", true)
                 if st then _despawnWaypoint(st) end
                 MISSIONS.phase("rezkov", "m3_active")
-                setCommsMessage('"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed toward Waypoint Galen. Move fast."')
+                setCommsMessage('"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed toward Concord Station Arbiter. Move fast."')
                 addCommsReply("We\'re on it.", function(s4, t4)
                     RT.flag("rezkov_m3_accepted", true)
                     RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian. Last spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", burning for the Arbiter Line. Disable and board before she gets there.", "#A0C0FF")
                     RT.setObjective("Disable and board CWS Meridian", true)
-                    setCommsMessage('"Grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed for Waypoint Galen. Move fast. She\'s burning hard."')
+                    setCommsMessage('"Grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed for Concord Station Arbiter. Move fast. She\'s burning hard."')
                     addCommsReply("Understood.", function(s5, t5)
                         setCommsMessage("Thresh disappears into the back.")
                     end)
@@ -338,7 +362,7 @@ local function _dustmoteHook(src, tgt, info)
     -- M3 re-offer: shown on re-hail if crew said "not right now" after M2 delivery
     if phase == "m3_active" and RT.flag("rezkov_m2_done") and not RT.flag("rezkov_m3_accepted") then
         addCommsReply("Thresh -- that Concord ship.", function(s2, t2)
-            setCommsMessage('"She\'s still running. Last grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed for Waypoint Galen. You need to move."')
+            setCommsMessage('"She\'s still running. Last grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed for Concord Station Arbiter. You need to move."')
             addCommsReply("We\'re on it.", function(s3, t3)
                 RT.flag("rezkov_m3_accepted", true)
                 RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian before she reaches the Arbiter Line. Disable and board.", "#A0C0FF")
@@ -591,10 +615,10 @@ M.phases.m3_active = {
             return
         end
 
-        -- Meridian reached Waypoint Galen — data delivered to Concord
+        -- Meridian reached Concord Station Arbiter — data delivered to Concord
         if RT.valid(st.meridian) and not st.m3_disabled then
             local mx, my = st.meridian:getPosition()
-            local dx, dy = mx - (-75000), my - (-52000)
+            local dx, dy = mx - (-21000), my - (-27000)
             if dx * dx + dy * dy < 10000 * 10000 then
                 RT.addReputation("Concord", -1000, "Rezkov Arc: Concord investigation data reached Concord space")
                 RT.addReputation("Independent", -500, "Rezkov Arc: Concord investigation completed, Rezkov network compromised")
@@ -609,9 +633,26 @@ M.phases.m3_active = {
 
         _checkMeridianDisabled(st)
 
+        -- Periodic state dump for comms debugging
+        if not st._diag_next or now >= st._diag_next then
+            st._diag_next = now + 10
+            local docked_with = "none"
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) and RT.valid(st.meridian) and p:isDocked(st.meridian) then
+                    docked_with = p:getCallSign()
+                end
+            end
+            print(string.format("[RZKOV] m3 state: disabled=%s boarded=%s meridian_valid=%s faction=%s docked_with=%s",
+                tostring(st.m3_disabled), tostring(st.m3_boarded),
+                tostring(RT.valid(st.meridian)),
+                tostring(RT.valid(st.meridian) and st.meridian:getFaction()),
+                docked_with))
+        end
+
         if st.m3_disabled and not st.m3_boarded and RT.valid(st.meridian) then
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) and p:isDocked(st.meridian) then
+                    print(string.format("[RZKOV] docking detected: player=%s — calling _setupKaelComms", p:getCallSign()))
                     _setupKaelComms(st)
                     break
                 end
