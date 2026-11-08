@@ -224,6 +224,8 @@ local function _checkMeridianDisabled(st)
     if hull_low or impulse_low then
         st.m3_disabled = true
         st.meridian:setCanBeDestroyed(false)
+        st.meridian:setImpulseMaxSpeed(0)   -- bleed off the 500u/s transit speed immediately
+        st.meridian:setWarpSpeed(0)
         st.meridian:orderIdle()
         st.meridian:setFaction("Independent")
         local ok_dock, dock_err = pcall(function()
