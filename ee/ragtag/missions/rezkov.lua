@@ -204,7 +204,9 @@ local function _spawnMeridian(st)
     _concordOps()  -- ensure Concord Ops faction exists for later switch
     -- Spawn as Concord (neutral to Independent) so she doesn't pick fights with traffic.
     -- She switches to Concord Ops (hostile) only when a player closes to weapons range.
-    local meridian = CpuShip():setTemplate("Phobos T3"):setFaction("Concord")
+    -- Register as "Unknown" so RT.trackShipForReputation skips auto-tracking; the arc manages
+    -- all Meridian rep manually. Switch to Concord immediately after.
+    local meridian = CpuShip():setTemplate("Phobos T3"):setFaction("Unknown")
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setWeaponStorage("Nuke", 0):setWeaponStorageMax("Nuke", 0)
     meridian:setPosition(_MX, _MY)
@@ -215,6 +217,7 @@ local function _spawnMeridian(st)
         setCommsMessage('"CWS Meridian. This is a restricted Concord vessel. Stand clear."')
     end))
     RT.register(meridian)
+    meridian:setFaction("Concord")
     st.meridian = meridian
     st.m3_hostile = false
     RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")
