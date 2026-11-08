@@ -357,7 +357,7 @@ local function _dustmoteHook(src, tgt, info)
                 RT.flag("rezkov_m2_done", true)
                 if st then _despawnWaypoint(st) end
                 MISSIONS.phase("rezkov", "m3_active")
-                setCommsMessage('"Thresh comes back. His jaw is set.\n\n"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed toward Concord Station Arbiter. Move fast."')
+                setCommsMessage('"Thresh comes back. His jaw is set.\n\n"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now. If she makes it there we\'re all humped.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed toward Concord Station Arbiter. Move fast."')
                 addCommsReply("We\'re on it.", function(s4, t4)
                     RT.flag("rezkov_m3_accepted", true)
                     RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian. Last spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", burning for the Arbiter Line. Disable and board before she gets there.", "#A0C0FF")
