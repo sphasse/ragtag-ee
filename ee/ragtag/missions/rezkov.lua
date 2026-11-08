@@ -414,6 +414,7 @@ function M.resolve(st)
     -- Despawn Meridian 90s after arc ends (she may still be flying away on concord_won path)
     RT.after(90, function()
         if RT.valid(st.meridian) then
+            st.meridian:setFaction("Independent")  -- prevent auto faction-rep hit on despawn destroy
             st.meridian:setCanBeDestroyed(true)
             st.meridian:destroy()
             st.meridian = nil
@@ -424,6 +425,7 @@ end
 function M.on_cancel(st)
     _despawnWaypoint(st)
     if RT.valid(st.meridian) then
+        st.meridian:setFaction("Independent")
         st.meridian:setCanBeDestroyed(true)
         st.meridian:destroy()
         st.meridian = nil
