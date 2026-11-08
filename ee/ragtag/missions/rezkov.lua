@@ -395,14 +395,11 @@ local function _dustmoteHook(src, tgt, info)
     -- M3 report: tell Thresh the Meridian data was wiped
     if phase == "m3_deliver" and RT.flag("rezkov_m3_data") and not RT.flag("rezkov_arc_done") then
         addCommsReply("Thresh -- the Meridian data is wiped.", function(s2, t2)
-            setCommsMessage('"Thresh lets out a slow breath.\n\n\"Good. That ship isn\'t going anywhere useful now.\"\n\nHe leans back.\n\n\"We barely got out of that. I\'m going to lay low for a while -- I suggest you do the same. But you\'ve proved yourselves. More work is headed your way.\""')
-            addCommsReply("Understood.", function(s3, t3)
-                RT.addReputation("Independent", 200, "Rezkov Arc: reported Meridian data wipe to Thresh")
-                RT.shipLog("[Rezkov Arc] Mission complete. Independent +200.", "#80FF80")
-                RT.flag("rezkov_arc_done", "data_delivered")
-                MISSIONS.phase("rezkov", "done")
-                setCommsMessage('"Mission complete. You\'ve saved us both.\n\nConcord space is going to be tough to navigate for a while. We\'re going to lay low for a bit and we suggest you do the same."')
-            end)
+            RT.addReputation("Independent", 200, "Rezkov Arc: reported Meridian data wipe to Thresh")
+            RT.shipLog("[Rezkov Arc] Mission complete. Independent +200.", "#80FF80")
+            RT.flag("rezkov_arc_done", "data_delivered")
+            MISSIONS.phase("rezkov", "done")
+            setCommsMessage('"We barely got out of that. Concord space is going to be tough to navigate for a while. I\'m going to lay low and I suggest you do the same. But you\'ve proved yourself, more work is headed your way. Fly safe Magpie."')
         end)
         return
     end
