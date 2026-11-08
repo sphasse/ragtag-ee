@@ -351,6 +351,7 @@ M.phases.checkpoint = {
                 end)
                 addCommsReply("Full burn -- break contact!", function(s_r2, t_r2)
                     st.checkpoint_choice = "run"
+                    setCommsMessage('"All units -- pursue!"')
                     for _, n in ipairs(st.concord_names) do
                         local sc = RT.find(n)
                         if RT.valid(sc) and RT.valid(s_r) then sc:orderAttack(s_r) end
