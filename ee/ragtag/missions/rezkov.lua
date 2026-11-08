@@ -275,7 +275,7 @@ local function _setupKaelComms(st)
                 print("[RZKOV] kael-comms: 'Understood' (let go) clicked")
                 RT.addReputation("Independent", -1000, "Rezkov Arc: cooperated with Concord against Rezkov")
                 RT.addReputation("Concord", 500, "Rezkov Arc: cooperated with Concord investigator")
-                RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation. Independent -1000. Concord +500.", "#FF8080")
+                RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation.", "#FF8080")
                 RT.flag("rezkov_arc_done", "concord_won")
                 if RT.valid(st.meridian) then
                     st.meridian:setFaction("Concord")
@@ -288,7 +288,7 @@ local function _setupKaelComms(st)
         addCommsReply("Wipe the data.", function(s2, t2)
             print("[RZKOV] kael-comms: 'Wipe the data' clicked")
             RT.addReputation("Concord", -1000, "Rezkov Arc: wiped Concord investigation data")
-            RT.shipLog("[Rezkov Arc] Data wiped. Concord -1000. Let Thresh know at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
+            RT.shipLog("[Rezkov Arc] Data wiped. Let Thresh know at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
             RT.flag("rezkov_m3_data", true)
             RT.setObjective("Report to Thresh @ Dustmote", true)
             if RT.valid(st.meridian) then
@@ -396,7 +396,7 @@ local function _dustmoteHook(src, tgt, info)
     if phase == "m3_deliver" and RT.flag("rezkov_m3_data") and not RT.flag("rezkov_arc_done") then
         addCommsReply("Thresh -- the Meridian data is wiped.", function(s2, t2)
             RT.addReputation("Independent", 200, "Rezkov Arc: reported Meridian data wipe to Thresh")
-            RT.shipLog("[Rezkov Arc] Mission complete. Independent +200.", "#80FF80")
+            RT.shipLog("[Rezkov Arc] Mission complete.", "#80FF80")
             RT.flag("rezkov_arc_done", "data_delivered")
             MISSIONS.phase("rezkov", "done")
             setCommsMessage('"We barely got out of that. Concord space is going to be tough to navigate for a while. I\'m going to lay low and I suggest you do the same. But you\'ve proved yourself, more work is headed your way. Fly safe Magpie."')
@@ -632,7 +632,7 @@ M.phases.m3_active = {
         if st.meridian and not RT.valid(st.meridian) and not st.m3_disabled then
             RT.addReputation("Concord", -1000, "Rezkov Arc: destroyed Concord investigation vessel")
             RT.addReputation("Independent", 200, "Rezkov Arc: destroyed Concord investigation vessel")
-            RT.shipLog("[Rezkov Arc] CWS Meridian destroyed. All data lost. Concord -1000. Independent +200.", "#FF8080")
+            RT.shipLog("[Rezkov Arc] CWS Meridian destroyed. All data lost.", "#FF8080")
             RT.flag("rezkov_arc_done", "meridian_destroyed")
             MISSIONS.phase("rezkov", "done")
             return
@@ -645,7 +645,7 @@ M.phases.m3_active = {
             if dx * dx + dy * dy < 10000 * 10000 then
                 RT.addReputation("Concord", -1000, "Rezkov Arc: Concord investigation data reached Concord space")
                 RT.addReputation("Independent", -500, "Rezkov Arc: Concord investigation completed, Rezkov network compromised")
-                RT.shipLog("[Rezkov Arc] CWS Meridian reached the Arbiter Line. Data delivered. Concord -1000. Independent -500.", "#FF8080")
+                RT.shipLog("[Rezkov Arc] CWS Meridian reached the Arbiter Line. Data delivered to Concord.", "#FF8080")
                 RT.flag("rezkov_arc_done", "meridian_escaped")
                 MISSIONS.phase("rezkov", "done")
                 return
