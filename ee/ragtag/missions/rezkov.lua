@@ -399,7 +399,7 @@ local function _dustmoteHook(src, tgt, info)
                 RT.shipLog("[Rezkov Arc] Mission complete. Independent +200.", "#80FF80")
                 RT.flag("rezkov_arc_done", "data_delivered")
                 MISSIONS.phase("rezkov", "done")
-                setCommsMessage('"Mission complete. You\'ve saved us both.\n\nWe\'re going to lay low for a bit and we suggest you do the same."')
+                setCommsMessage('"Mission complete. You\'ve saved us both.\n\nConcord space is going to be tough to navigate for a while. We\'re going to lay low for a bit and we suggest you do the same."')
             end)
         end)
         return
