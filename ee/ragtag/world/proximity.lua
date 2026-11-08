@@ -552,8 +552,8 @@ local function _processGroup(st, group, now, player)
                             group.jammer          = jammer
                             group.shakedown_state = "pending"
                             group.shakedown_start = now
-                            RT.hail(s, '"Concord patrol. All stop. Standby for transponder inspection."')
-                            RT.shipLog("[Concord] Standby for inspection. Respond on comms.", "#8888FF")
+                            s:openCommsTo(player)
+                            RT.shipLog("[Concord] Standby for inspection. Incoming patrol comms on Relay.", "#8888FF")
                             break
                         end
                     end
