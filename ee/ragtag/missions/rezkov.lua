@@ -10,7 +10,7 @@
 --   m1_done           player met Rezkov and accepted M2
 --   m2_done           hack + data delivery complete
 --   m3_accepted       intercept accepted
---   m3_data           data card seized from CWS Meridian
+--   m3_data           data wiped from CWS Meridian
 --   arc_done          arc complete (value = outcome string)
 
 local _hook_registered   = false  -- guard against double-registration on GM restart
@@ -286,19 +286,19 @@ local function _setupKaelComms(st)
         end)
         addCommsReply("Wipe the data.", function(s2, t2)
             print("[RZKOV] kael-comms: 'Wipe the data' clicked")
+            RT.addReputation("Concord", -1000, "Rezkov Arc: wiped Concord investigation data")
+            RT.shipLog("[Rezkov Arc] Data wiped. Concord -1000. Deliver the drive to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
+            RT.flag("rezkov_m3_data", true)
+            RT.setObjective("Deliver drive to Thresh @ Dustmote", true)
+            if RT.valid(st.meridian) then
+                st.meridian:setFaction("Independent")
+                st.meridian:orderIdle()
+            end
+            MISSIONS.phase("rezkov", "m3_deliver")
             setCommsMessage('"Take it then.\n\nThis won\'t be the last time you see me, Magpie."')
             addCommsReply("We like our odds, Kael.", function(s3, t3)
                 print("[RZKOV] kael-comms: 'We like our odds Kael' clicked")
-                RT.addReputation("Concord", -1000, "Rezkov Arc: seized Concord investigation data")
-                RT.shipLog("[Rezkov Arc] Data seized. Concord -1000. Deliver the data card to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
-                RT.flag("rezkov_m3_data", true)
-                RT.setObjective("Deliver data to Thresh @ Dustmote", true)
-                if RT.valid(st.meridian) then
-                    st.meridian:setFaction("Independent")
-                    st.meridian:orderIdle()
-                end
                 setCommsMessage('"Meridian out."')
-                MISSIONS.phase("rezkov", "m3_deliver")
             end)
         end)
     end))
@@ -390,12 +390,12 @@ local function _dustmoteHook(src, tgt, info)
         return
     end
 
-    -- M3 data delivery: return seized Concord data to Thresh
+    -- M3 data delivery: return wiped Concord drive to Thresh
     if phase == "m3_deliver" and RT.flag("rezkov_m3_data") and not RT.flag("rezkov_arc_done") then
         addCommsReply("Thresh -- we have the data from the Meridian.", function(s2, t2)
             setCommsMessage('"Thresh takes the drive and scans it.\n\n\"Good. This is everything.\"\n\nHe leans back.\n\n\"We barely got out of that. I\'m going to lay low for a while -- I suggest you do the same. But you\'ve proved yourselves. More work is headed your way.\""')
             addCommsReply("Understood.", function(s3, t3)
-                RT.addReputation("Independent", 200, "Rezkov Arc: delivered seized Concord data")
+                RT.addReputation("Independent", 200, "Rezkov Arc: delivered wiped Concord drive")
                 RT.shipLog("[Rezkov Arc] Done. Data delivered to Thresh. Independent +200.", "#80FF80")
                 RT.flag("rezkov_arc_done", "data_delivered")
                 MISSIONS.phase("rezkov", "done")
