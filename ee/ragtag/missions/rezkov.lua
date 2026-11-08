@@ -333,14 +333,14 @@ local function _dustmoteHook(src, tgt, info)
     -- M2 delivery: bring data card to Thresh
     if phase == "m2_deliver" then
         addCommsReply("Delivery for Thresh.", function(s2, t2)
-            setCommsMessage('"Thresh takes the card and disappears into the back.\n\n..."')
-            addCommsReply("Understood.", function(s3, t3)
+            setCommsMessage('"Thresh takes the card and pockets it without looking at it.\n\n"Good. Payment\'s being arranged--"\n\nHis comm unit chirps. He glances at it, expression unreadable.\n\n"Urgent call. Give me a moment. Don\'t go anywhere."')
+            addCommsReply("Sure.", function(s3, t3)
                 RT.addCredits(600, "Rezkov Arc M2: data delivery")
                 RT.shipLog("[Rezkov Arc] M2 complete. 600cr received. Rezkov's station has gone dark.", "#80FF80")
                 RT.flag("rezkov_m2_done", true)
                 if st then _despawnWaypoint(st) end
                 MISSIONS.phase("rezkov", "m3_active")
-                setCommsMessage('"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed toward Concord Station Arbiter. Move fast."')
+                setCommsMessage('"Thresh comes back. His jaw is set.\n\n"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed toward Concord Station Arbiter. Move fast."')
                 addCommsReply("We\'re on it.", function(s4, t4)
                     RT.flag("rezkov_m3_accepted", true)
                     RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian. Last spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", burning for the Arbiter Line. Disable and board before she gets there.", "#A0C0FF")
