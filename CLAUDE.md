@@ -104,8 +104,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 **Reputation effects**:
 - Corsairs >+20 rep: 50% longer cooldowns (less frequent spawns)
 - Corsairs <-20 rep: 30% shorter cooldowns (hunt you)
-- Concord >+20 rep: shake-downs dismissed without fine
-- Concord <-20 rep: skip shake-down, immediate attack
+- Concord shakedown outcomes (rep thresholds): ≥500 callsign recognised (clean pass with compliment); ≥200 clean pass; ≥0 nothing flagged; ≥−200 fine offer; <−200 detention threat → Concord Ops hostile
 
 **GM control**: `PROX.config.spawn_frequency` multiplier (0.5 = half as often, 2.0 = twice as often).
 

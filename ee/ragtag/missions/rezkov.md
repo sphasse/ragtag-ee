@@ -21,8 +21,8 @@ with lasting reputation consequences.
 | `m1_navigate` | Navigate to a nav beacon and report back |
 | `m2_active` | Hack a comms relay beacon; collect data package |
 | `m2_deliver` | Deliver package to Rezkov's drop |
-| `m3_active` | CWS Meridian is en route to Concord space; intercept and board |
-| `m3_deliver` | Deliver seized data to Thresh; or let Meridian go |
+| `m3_active` | CWS Meridian is en route to Concord space; intercept and board; Kael comms offer |
+| `m3_deliver` | Report data wipe to Thresh at Dustmote |
 
 All phases have `no_skip = true` (GM must use the explicit skip buttons in `gm_actions`).
 
@@ -35,8 +35,9 @@ All phases have `no_skip = true` (GM must use the explicit skip buttons in `gm_a
 | `st.meridian` | entity | CWS Meridian ship (spawned M3) |
 | `st.galen` | entity | Concord Waypoint Galen station ref |
 | `st.hack_done` | bool | M2 hack threshold reached |
+| `st.m3_hostile` | bool | Meridian switched to Concord Ops faction |
 | `st.m3_disabled` | bool | Meridian has been disabled |
-| `st.m3_boarded` | bool | Boarding success registered |
+| `st.m3_boarded` | bool | Boarding success registered (Kael comms set up) |
 | `st.nebulas` | list | Nebulas spawned for waypoint; despawned on phase exit |
 
 ---
@@ -51,7 +52,7 @@ All phases have `no_skip = true` (GM must use the explicit skip buttons in `gm_a
 | `rezkov_m1_done` | truthy | M1 complete |
 | `rezkov_m2_done` | truthy | M2 complete |
 | `rezkov_m3_accepted` | truthy | Player accepted M3 |
-| `rezkov_m3_data` | string | Outcome choice: `"destroyed"` / `"seized"` / `"escaped"` |
+| `rezkov_m3_data` | `true` | Set when crew wipes Meridian's data; triggers m3_deliver Thresh hook |
 | `rezkov_arc_done` | truthy | Full arc finished |
 
 **Always use `RT.clearFlag(name)`** to clear these — `RT.flag(name, nil)` is a read, not a clear.
@@ -63,20 +64,22 @@ All phases have `no_skip = true` (GM must use the explicit skip buttons in `gm_a
 | Outcome | Concord | Independent |
 |---|---|---|
 | Destroy CWS Meridian | −1000 | +200 |
-| Let Concord go with data | +500 | −1000 |
-| Seize data, deliver to Thresh | −1000 | +200 |
+| Let Concord go with data (Kael comms) | +500 | −1000 |
+| Wipe data, report to Thresh | −1000 | +200 |
 | Meridian reaches Concord space (player fails) | −1000 | −500 |
 
 ---
 
 ## CWS Meridian
 
-- Spawned at mission start in M3; flies toward Concord space (`orderFlyTowards(galen)`)
-- Faction: Independent (until player within 8U → switches to Corsairs, attacks)
-- `setCanBeDestroyed(false)` while boarding in progress
-- Kill handler registered via `RT.trackShipForReputation("Concord", ship)` — callsign must be
-  captured at registration time (`local cs = ship:getCallSign()`) because components are stripped
-  at kill time
+- Template: `Phobos T3` (standard NPC frigate — not a playership-typed template)
+- Spawned at M3 start; flies toward Concord Station Arbiter at high impulse
+- **Faction lifecycle**: `Concord` (neutral on spawn) → `Concord Ops` (hostile, targetable) when
+  player closes within 5U → `Independent` (after disabled) → `Concord` again if player lets her go
+- `setCanBeDestroyed(false)` once disabled, re-enabled on destroy/arc-end
+- Despawns 90s after `M.resolve` fires (covers all outcomes)
+- **Kael comms** (after boarding): player chooses between letting Concord proceed (+500 Concord,
+  −1000 Independent) or wiping the data (−1000 Concord, arc moves to `m3_deliver`)
 
 ---
 
