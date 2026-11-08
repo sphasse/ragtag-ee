@@ -217,9 +217,10 @@ local function _checkMeridianDisabled(st)
     local ok3, impulse_h = pcall(function() return st.meridian:getSystemHealth("impulse") end)
     local hull_low    = ok1 and ok2 and hmax > 0 and hull / hmax < 0.25
     local impulse_low = ok3 and impulse_h and impulse_h < 0.3
-    print(string.format("[RZKOV] _checkMeridianDisabled: hull=%s/%s hull_low=%s impulse_h=%s impulse_low=%s",
-        tostring(ok1 and hull), tostring(ok2 and hmax), tostring(hull_low),
-        tostring(ok3 and impulse_h), tostring(impulse_low)))
+    if not ok1 or not ok2 or not ok3 then
+        print(string.format("[RZKOV] _checkMeridianDisabled ERROR: hull_ok=%s hmax_ok=%s impulse_ok=%s",
+            tostring(ok1), tostring(ok2), tostring(ok3)))
+    end
     if hull_low or impulse_low then
         st.m3_disabled = true
         st.meridian:setCanBeDestroyed(false)
