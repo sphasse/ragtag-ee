@@ -401,23 +401,81 @@ function addSessionGMFunctions()
         addGMMessage(table.concat(lines, "\n"))
     end)
 
-    -- Reputation adjustment submenu
+    -- Reputation submenu
     local showReputationFactionList  -- forward declaration (mutual recursion)
+
+    local function _repEffects(faction, rep)
+        local lines = {}
+        if faction == "Concord" then
+            local wanted = RT.campaign.flags and RT.campaign.flags.wanted
+            if wanted then
+                lines[#lines+1] = "  Action: Wanted — patrols attack on sight"
+            elseif rep < -500 then
+                lines[#lines+1] = "  Action: Shakedowns suspended (treated as wanted)"
+            elseif rep < -200 then
+                lines[#lines+1] = "  Action: Inspection — detention threat, patrol goes hostile"
+            elseif rep < 0 then
+                lines[#lines+1] = "  Action: Inspection — fine offer"
+            elseif rep < 200 then
+                lines[#lines+1] = "  Action: Inspection — nothing flagged"
+            elseif rep < 500 then
+                lines[#lines+1] = "  Action: Inspection — clean pass"
+            else
+                lines[#lines+1] = "  Action: Inspection — callsign recognized, compliment"
+            end
+        elseif faction == "Corsairs" then
+            if rep <= -400 then
+                lines[#lines+1] = "  Action: Patrols 50% more frequent (very aggressive)"
+            elseif rep <= -200 then
+                lines[#lines+1] = "  Action: Patrols 30% more frequent"
+            else
+                lines[#lines+1] = "  Action: Patrol spawn rate normal"
+            end
+        elseif faction == "Hollow" or faction == "Relic" then
+            lines[#lines+1] = "  Action: Always hostile — no rep effects"
+            return lines
+        end
+        if rep < -400 then
+            lines[#lines+1] = "  Jobs: board closed at this faction's stations"
+        elseif rep < -200 then
+            lines[#lines+1] = "  Jobs: 2 fewer offers at this faction's stations"
+        elseif rep < 0 then
+            lines[#lines+1] = "  Jobs: 1 fewer offer at this faction's stations"
+        else
+            lines[#lines+1] = "  Jobs: full board at this faction's stations"
+        end
+        return lines
+    end
+
+    local function showRepStatusPopup()
+        local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic"}
+        local msg = {"REPUTATION STATUS"}
+        for _, faction in ipairs(factions) do
+            local rep = RT.getReputation(faction) or 0
+            msg[#msg+1] = ""
+            msg[#msg+1] = string.format("%s: %+d", faction, rep)
+            for _, line in ipairs(_repEffects(faction, rep)) do
+                msg[#msg+1] = line
+            end
+        end
+        addGMMessage(table.concat(msg, "\n"))
+    end
 
     local function showFactionDetail(faction)
         clearGMFunctions()
         addGMFunction("← Back to Factions", showReputationFactionList)
         local current = RT.getReputation(faction) or 0
         addGMFunction(string.format("%s: %+d", faction, current), function() end)
-        local deltas = {100, -100}
-        for _, d in ipairs(deltas) do
-            local label = string.format("%s %+d", faction, d)
-            addGMFunction(label, function()
-                RT.addReputation(faction, d, "GM adjustment")
-                RT.saveCampaign()
-                showFactionDetail(faction)
-            end)
-        end
+        addGMFunction("↑  +50", function()
+            RT.addReputation(faction, 50, "GM adjustment")
+            RT.saveCampaign()
+            showFactionDetail(faction)
+        end)
+        addGMFunction("↓  -50", function()
+            RT.addReputation(faction, -50, "GM adjustment")
+            RT.saveCampaign()
+            showFactionDetail(faction)
+        end)
     end
 
     showReputationFactionList = function()
@@ -426,7 +484,7 @@ function addSessionGMFunctions()
             clearGMFunctions()
             addSessionGMFunctions()
         end)
-
+        addGMFunction("Rep Status", showRepStatusPopup)
         local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic"}
         for _, faction in ipairs(factions) do
             local rep = RT.getReputation(faction) or 0
@@ -436,7 +494,7 @@ function addSessionGMFunctions()
         end
     end
 
-    addGMFunction("Adjust Reputation...", showReputationFactionList)
+    addGMFunction("Reputation...", showReputationFactionList)
 
     addGMFunction("End session", function()
         if RT.valid(RT.player) then

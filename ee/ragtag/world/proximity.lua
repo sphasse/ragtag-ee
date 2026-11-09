@@ -883,13 +883,31 @@ function _P.gmMenu(addButton, showSelf)
         if on then WORLD.disable("proximity") else WORLD.enable("proximity") end
         showSelf()
     end)
+    addButton("Trigger Spawn Now", function()
+        local st = WORLD._state["proximity"]
+        if not st then return end
+        local player = _firstPlayer()
+        if not player then return end
+        local px, py = player:getPosition()
+        local best_name, best_depth = nil, 0
+        for name, region in pairs(st.regions) do
+            local depth = _depthIn(px, py, region)
+            if depth > best_depth then
+                best_name, best_depth = name, depth
+            end
+        end
+        if not best_name then return end
+        st.region_cd = {}
+        st.last_spawn = -99999
+        _spawnGroup(st, best_name, px, py)
+    end)
     addButton("Spawn Zones...", function()
         local showZoneListMenu
         local showZoneDetailMenu
 
         showZoneListMenu = function()
             clearGMFunctions()
-            addGMFunction("< Back to Proximity", showSelf)
+            addGMFunction("← Back to Proximity", showSelf)
             for _, zn in ipairs(_ZONE_ORDER) do
                 local label     = _ZONE_LABEL[zn] or zn
                 local mode_idx  = PROX.getZoneMode(zn)
@@ -902,7 +920,7 @@ function _P.gmMenu(addButton, showSelf)
 
         showZoneDetailMenu = function(zone_name)
             clearGMFunctions()
-            addGMFunction("< Back to Zones", showZoneListMenu)
+            addGMFunction("← Back to Zones", showZoneListMenu)
             local label   = _ZONE_LABEL[zone_name] or zone_name
             local cur_idx = PROX.getZoneMode(zone_name)
             for i, mode_name in ipairs(PROX.MODE_NAMES) do

@@ -12,6 +12,9 @@
 --   m3_accepted       intercept accepted
 --   m3_data           data wiped from CWS Meridian
 --   arc_done          arc complete (value = outcome string)
+--
+-- Long-term flags (no prefix, available to future arcs):
+--   kael_alive        true if Cmdr Kael survived the arc; false if Meridian was destroyed
 
 local _hook_registered   = false  -- guard against double-registration on GM restart
 
@@ -264,6 +267,7 @@ local function _setupKaelComms(st)
                 RT.addReputation("Independent", -1000, "Rezkov Arc: cooperated with Concord against Rezkov")
                 RT.addReputation("Concord", 500, "Rezkov Arc: cooperated with Concord investigator")
                 RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation.", "#FF8080")
+                RT.flag("kael_alive", true)
                 RT.flag("rezkov_arc_done", "concord_won")
                 if RT.valid(st.meridian) then
                     st.meridian:setFaction("Concord")
@@ -277,6 +281,7 @@ local function _setupKaelComms(st)
             print("[RZKOV] kael-comms: 'Wipe the data' clicked")
             RT.addReputation("Concord", -1000, "Rezkov Arc: wiped Concord investigation data")
             RT.shipLog("[Rezkov Arc] Data wiped. Let Thresh know at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
+            RT.flag("kael_alive", true)
             RT.flag("rezkov_m3_data", true)
             RT.setObjective("Report to Thresh @ Dustmote", true)
             if RT.valid(st.meridian) then
@@ -463,6 +468,7 @@ local function _gmClearFlags(st)
                          "m3_accepted","m3_data","arc_done"}) do
         RT.clearFlag("rezkov_" .. k)
     end
+    RT.clearFlag("kael_alive")
     RUMORS.removeCategory("REZKOV_HOOK")
 end
 
@@ -622,6 +628,7 @@ M.phases.m3_active = {
             RT.addReputation("Concord", -1000, "Rezkov Arc: destroyed Concord investigation vessel")
             RT.addReputation("Independent", 200, "Rezkov Arc: destroyed Concord investigation vessel")
             RT.shipLog("[Rezkov Arc] CWS Meridian destroyed. All data lost.", "#FF8080")
+            RT.flag("kael_alive", false)
             RT.flag("rezkov_arc_done", "meridian_destroyed")
             MISSIONS.phase("rezkov", "done")
             return
@@ -635,6 +642,7 @@ M.phases.m3_active = {
                 RT.addReputation("Concord", -1000, "Rezkov Arc: Concord investigation data reached Concord space")
                 RT.addReputation("Independent", -500, "Rezkov Arc: Concord investigation completed, Rezkov network compromised")
                 RT.shipLog("[Rezkov Arc] CWS Meridian reached the Arbiter Line. Data delivered to Concord.", "#FF8080")
+                RT.flag("kael_alive", true)
                 RT.flag("rezkov_arc_done", "meridian_escaped")
                 MISSIONS.phase("rezkov", "done")
                 return

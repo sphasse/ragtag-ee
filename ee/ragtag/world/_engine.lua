@@ -81,7 +81,7 @@ end
 function WORLD.addGMButton(showParent)
     local function showWorldMenu()
         clearGMFunctions()
-        addGMFunction("< Back to Main", showParent)
+        addGMFunction("← Back to Main", showParent)
         for _, id in ipairs(WORLD._order) do
             local P = WORLD._registry[id]
             if P.gmMenu then
@@ -101,7 +101,7 @@ function WORLD.showPluginMenu(id, showWorldMenu)
     local P = WORLD._registry[id]
     if not P or not P.gmMenu then return end
     clearGMFunctions()
-    addGMFunction("< Back to World", showWorldMenu)
+    addGMFunction("← Back to World", showWorldMenu)
     local function showSelf()
         WORLD.showPluginMenu(id, showWorldMenu)
     end

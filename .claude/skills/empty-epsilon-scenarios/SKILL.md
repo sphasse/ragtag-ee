@@ -14,7 +14,7 @@ EmptyEpsilon scenarios are Lua files in the game's `scripts/` folder. The engine
 2. **A standalone scenario**: plain EE Lua. You can still require the framework for its helpers (stations, objectives, timers, AI director), or write without it.
 3. **Debugging an existing scenario**: get the `LUA-Error` line and traceback from the log, then check `references/api_notes.md` section 4 first. Most ECS-era crashes are a method called on an entity that lacks the component.
 4. **Extending the AI director** (new actions, different prompts): `references/framework.md` sections 3–4, plus the Python in `director/`.
-6. **Adding a story mission / arc** (a modular multi-phase story arc layered on top of the sandbox): read `references/missions_api.md`. The MISSIONS engine uses phase machines; the Witness arc (`ee/ragtag/missions/witness.lua`) is the reference implementation.
+6. **Adding a story mission / arc** (a modular multi-phase story arc layered on top of the sandbox): use the **`sandbox-missions` skill** — it has the full contributor guide and API reference. `references/missions_api.md` is here as a fallback if you need it inline.
 7. **Adding an ambient world feature** (persistent session behaviours like station defenders, spawn systems, patrols): read `references/world_api.md`. The WORLD engine runs plugins every frame; `defenders.lua` is the reference implementation.
 8. **Unsure which expansion layer to use** (jobs, missions, or world plugins) or how they fit together: read `references/expansion_model.md` for a concise decision guide.
 
@@ -70,7 +70,7 @@ Test as far as the environment allows, and tell the user what was and wasn't ver
 - `references/api_signatures.md`: every API function with arguments, generated from engine source. Grep it.
 - `references/framework.md`: RT, VERSE and DIR libraries, events, mailbox protocol, adding director actions.
 - `references/jobs_api.md`: job board system, economy, faction filtering, reputation.
-- `references/missions_api.md`: MISSIONS phase-machine engine for story arcs; Witness arc as reference.
+- `references/missions_api.md`: MISSIONS phase-machine engine for story arcs. **Duplicated** in `.claude/skills/sandbox-missions/references/missions_api.md` — update both when this file changes.
 - `references/world_api.md`: WORLD plugin engine for ambient session features; defenders and proximity plugins documented.
 - `references/expansion_model.md`: developer overview of all three expansion layers (JOBS types, MISSIONS arcs, WORLD plugins) and when to use each.
 - `CLAUDE.md` and `CONTRIBUTING.md` at the repo root: layout, contracts, scenario numbering, commands.

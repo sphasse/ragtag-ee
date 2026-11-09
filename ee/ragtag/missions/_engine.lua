@@ -276,7 +276,7 @@ end
 
 function MISSIONS._showList(backToMainFn)
     clearGMFunctions()
-    addGMFunction("< Back to Main", backToMainFn)
+    addGMFunction("← Back to Main", backToMainFn)
     for _, id in ipairs(MISSIONS._order) do
         local M      = MISSIONS._registry[id]
         local status = MISSIONS._status[id]
