@@ -31,6 +31,7 @@ function WORLD.register(P)
     WORLD._enabled[P.id]              = (P.default_enabled ~= false)
     WORLD._config[P.id]               = {}
     WORLD._order[#WORLD._order + 1]   = P.id
+    log("[WORLD] registered plugin: " .. P.id .. " (" .. P.name .. ")")
 end
 
 -- Get a config value for a plugin (runtime override > module default > fallback).

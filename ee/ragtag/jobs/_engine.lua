@@ -128,6 +128,7 @@ function JOBS.register(mod)
     if mod.type_mult then
         JOBS.ECONOMY.type_mult[mod.type] = mod.type_mult
     end
+    log("[JOBS] registered type: " .. mod.type .. " (weight=" .. tostring(mod.weight) .. ")")
 end
 
 -- ── Tier ──────────────────────────────────────────────────────────────────────
