@@ -796,13 +796,22 @@ function _P.update(state, delta, now)
                    and not group.shakedown_hailed
                    and group.jammer and RT.valid(group.jammer) then
                     pcall(function() player2:commandImpulse(0) end)
+                    -- Track jammer 0.25U behind player every tick so it stays within
+                    -- suppression range until the player stops.
+                    local px3, py3 = player2:getPosition()
+                    local head_rad = math.rad(player2:getHeading())
+                    group.jammer:setPosition(
+                        px3 - math.sin(head_rad) * 0.25 * U,
+                        py3 + math.cos(head_rad) * 0.25 * U)
+                    if group.jammer.components.physics then
+                        group.jammer.components.physics.velocity = {0, 0}
+                    end
                     local pvx, pvy = 0, 0
                     pcall(function() pvx, pvy = player2:getVelocity() end)
                     local pspeed = math.sqrt(pvx * pvx + pvy * pvy)
                     local elapsed = now - (group.shakedown_start or now)
                     if elapsed < 10 and group.jammer_diag_next and now >= group.jammer_diag_next then
                         group.jammer_diag_next = now + 0.5
-                        local px3, py3 = player2:getPosition()
                         local jx3, jy3 = group.jammer:getPosition()
                         local phys3 = group.jammer.components.physics
                         local vel3 = phys3 and phys3.velocity
