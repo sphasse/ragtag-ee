@@ -608,6 +608,12 @@ RT.UPGRADES = {
     {id = "sensor_suite", name = "Long-range sensor suite", gm_name = "Sensors", cost = 150,
      desc = "Long-range radar 30u -> 45u.",
      apply = function(p) p:setLongRangeRadarRange(45000) end},
+    {id = "fast_probes", name = "Overcharged probe capacitors", gm_name = "Fast probes", cost = 200,
+     desc = "Scan probes fly at 3× speed.",
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(3000) end) end},
+    {id = "ludicrous_probes", name = "Ludicrous-speed probe mod", gm_name = "Ludicrous", cost = 250, requires = "fast_probes",
+     desc = "Scan probes fly at 4× speed. They've hit the plaid.",
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(4000) end) end},
     -- Second tier: what it takes to survive Blackwater, the Boneyard and, eventually, the Maw.
     {id = "reactor_overhaul", name = "Reactor overhaul", gm_name = "Reactor", cost = 200,
      desc = "+50% energy capacity.",

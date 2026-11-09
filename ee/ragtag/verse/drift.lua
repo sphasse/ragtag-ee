@@ -87,7 +87,7 @@ VERSE.extend({
 
         -- The Rim (Independent)
         {cs = "Halcyon Rest", tmpl = "Small Station", fac = "Independent", x = 42, y = -23,
-         shop = {"shield_mk2", "sensor_suite", "repair_crew", "reactor_overhaul"},
+         shop = {"shield_mk2", "sensor_suite", "repair_crew", "reactor_overhaul", "fast_probes"},
          flavor = "Halcyon Rest. Fuel, food, and no questions. Mostly.",
          desc = "A waystation clinging to the edge of the Shroud nebula."},
         {cs = "Hob's Landing", tmpl = "Medium Station", fac = "Independent", x = 86, y = 44,
@@ -95,7 +95,7 @@ VERSE.extend({
          flavor = "Hob's Landing. Dock where you like, pay what you owe, settle disputes outside.",
          desc = "The biggest town on the Rim, orbiting the dusty world Hob."},
         {cs = "Dustmote Salvage", tmpl = "Small Station", fac = "Independent", x = 104, y = -36,
-         shop = {"heavy_beams", "front_tube", "hull_plating_2"},
+         shop = {"heavy_beams", "front_tube", "hull_plating_2", "fast_probes", "ludicrous_probes"},
          flavor = "Dustmote Salvage. We buy anything. We sell everything. We ask nothing.",
          desc = "A scrapyard and black market. Half its stock fell off the back of a Concord freighter."},
         {cs = "Saint Brennan's Mission", tmpl = "Small Station", fac = "Independent", x = 72, y = -62,
