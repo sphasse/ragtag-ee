@@ -205,8 +205,6 @@ local function _makeShakedownComms(group)
         local function doGoHostile()
             group.shakedown_done    = true
             group.shakedown_hostile = true
-            RT.campaign.flags = RT.campaign.flags or {}
-            RT.campaign.flags.wanted = true
             RT.addReputation("Concord", -150, "escalated Concord inspection to hostile")
             RT.shipLog("[Concord] Warrant issued. Patrol is hostile.", "#FF4444")
             if player then
@@ -367,16 +365,22 @@ local function _spawnGroup(st, region_name, px, py)
         if math.sqrt(edx * edx + edy * edy) < ex.r then return end
     end
 
-    local now    = getScenarioTime()
-    local wanted = RT.campaign.flags and RT.campaign.flags.wanted
-    local is_shakedown = (zone.comms == "shakedown") and not wanted
-        and (RT.getReputation("Concord") or 0) >= -500
+    local now         = getScenarioTime()
+    local concord_rep = RT.getReputation("Concord") or 0
+    local is_shakedown = (zone.comms == "shakedown") and concord_rep >= -200
+
+    -- Concord patrols spawning against a hostile-rep player use the hostile
+    -- faction so they can be targeted immediately.
+    local spawn_faction = zone.faction
+    if zone.faction == "Concord" and not is_shakedown then
+        spawn_faction = "Concord Hostile"
+    end
 
     local ship_names = {}
     local _name_pool  = _PATROL_NAMES[zone.faction]
     local _used_names = {}
     for _, tmpl in ipairs(templates) do
-        local s = CpuShip():setTemplate(tmpl):setFaction(zone.faction)
+        local s = CpuShip():setTemplate(tmpl):setFaction(spawn_faction)
         s:setPosition(sx + (math.random() * 2 - 1) * 500,
                       sy + (math.random() * 2 - 1) * 500)
         if _name_pool then
@@ -435,7 +439,7 @@ local function _spawnGroup(st, region_name, px, py)
                 if zfac == "Corsairs" then
                     setCommsMessage('"Corsair space. Move along or stay forever."')
                 elseif zfac == "Concord" then
-                    setCommsMessage('"Concord patrol. You are a wanted vessel."')
+                    setCommsMessage('"Concord patrol. Your standing with Concord is hostile. Stand down."')
                 else
                     setCommsMessage('"You are in the wrong place."')
                 end
@@ -527,6 +531,23 @@ local function _processGroup(st, group, now, player)
     end
 
     if group.is_shakedown and not group.shakedown_done then
+        -- Dynamic rep watch: if rep drops below -200 while this group is on a shakedown
+        -- approach (before jammer deploy), flip them to hostile immediately.
+        if (RT.getReputation("Concord") or 0) < -200
+           and group.shakedown_state == "approaching" then
+            RT.shipLog("[Concord] Relations deteriorated. Patrol is now hostile.", "#FF4444")
+            for _, cs2 in ipairs(group.ships) do
+                local s2 = RT.named[cs2]
+                if RT.valid(s2) then
+                    s2:setFaction("Concord Hostile")
+                    if player then s2:orderAttack(player) end
+                end
+            end
+            group.is_shakedown    = false
+            group.shakedown_done  = true
+            group.shakedown_hostile = true
+        end
+
         -- Approach interception: deploy jammer and hail when within 5U and outside station exclusions
         if group.shakedown_state == "approaching" and player then
             local px2, py2 = player:getPosition()
@@ -645,8 +666,6 @@ local function _processGroup(st, group, now, player)
                         player:addCustomMessage(_st2, _hkey .. _st2, _hmsg)
                     end
                 end
-                RT.campaign.flags = RT.campaign.flags or {}
-                RT.campaign.flags.wanted = true
                 if player then
                     for _, cs in ipairs(group.ships) do
                         local s = RT.named[cs]
@@ -788,15 +807,6 @@ function _P.init(state)
 end
 
 function _P.update(state, delta, now)
-    -- Auto-clear Concord wanted status when rep recovers to >= 0.
-    -- Runs every tick (not rate-limited) so it fires as soon as rep crosses the threshold,
-    -- regardless of what caused the change (mission reward, donation, GM adjustment, etc.).
-    if RT.campaign.flags and RT.campaign.flags.wanted
-       and (RT.getReputation("Concord") or 0) >= 0 then
-        PROX.clearWantedStatus()
-        RT.shipLog("[Concord] Outstanding warrant cleared — standing restored.", "#8888FF")
-    end
-
     -- Jobboard lock suppresses new spawns; watchdog still cleans up groups.
     local spawning_ok = not (JOBS.config and JOBS.config.jobboard_locked)
 
@@ -886,11 +896,7 @@ function _P.update(state, delta, now)
             local zone     = PROX.zones[name]
             local mode_idx = state.zone_modes[name] or _cfg("default_zone_mode")
             local mode     = _SPAWN_MODES[mode_idx]
-            local wanted   = RT.campaign.flags and RT.campaign.flags.wanted
-
-            -- Zone disabled or Concord suppressed on wanted status.
             if mode.freq == 0 then goto skip end
-            if zone.faction == "Concord" and wanted then goto skip end
 
             -- Per-zone active ship cap (zone.max_active overrides mode default).
             local zone_cap = zone.max_active or mode.max_active
@@ -1041,11 +1047,9 @@ function PROX.setZoneMode(zone_name, idx)
     st.zone_modes[zone_name] = math.max(1, math.min(idx, #_SPAWN_MODES))
 end
 
--- Clear the wanted flag and despawn any active hostile Concord patrols.
--- Call this from the GM menu when manually restoring Concord standing.
+-- Despawn any active hostile Concord patrols and reset zone cooldowns.
+-- Call this from the GM menu after manually restoring Concord standing.
 function PROX.clearWantedStatus()
-    RT.clearFlag("wanted")
-    if RT.campaign.flags then RT.campaign.flags.wanted = nil end
     local st = WORLD._state["proximity"]
     if not st then return end
     local i = #st.active
