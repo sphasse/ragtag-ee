@@ -961,6 +961,30 @@ function PROX.setZoneMode(zone_name, idx)
     st.zone_modes[zone_name] = math.max(1, math.min(idx, #_SPAWN_MODES))
 end
 
+-- Clear the wanted flag and despawn any active hostile Concord patrols.
+-- Call this from the GM menu when manually restoring Concord standing.
+function PROX.clearWantedStatus()
+    RT.clearFlag("wanted")
+    if RT.campaign.flags then RT.campaign.flags.wanted = nil end
+    local st = WORLD._state["proximity"]
+    if not st then return end
+    local i = #st.active
+    while i >= 1 do
+        local g = st.active[i]
+        if g.shakedown_hostile or g.region_name == "the Concord Core" or g.region_name == "the Arbiter Line" then
+            for _, cs in ipairs(g.ships) do
+                local s = RT.named[cs]
+                if RT.valid(s) then s:destroy() end
+            end
+            if g.jammer and RT.valid(g.jammer) then g.jammer:destroy() end
+            table.remove(st.active, i)
+        end
+        i = i - 1
+    end
+    st.region_cd["the Concord Core"]  = nil
+    st.region_cd["the Arbiter Line"]  = nil
+end
+
 -- Manually add a no-spawn exclusion zone around a named station.
 function PROX.addExclusion(station_cs, radius_u)
     local st = WORLD._state["proximity"]

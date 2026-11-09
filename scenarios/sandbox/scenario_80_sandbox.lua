@@ -465,7 +465,10 @@ function addSessionGMFunctions()
         clearGMFunctions()
         addGMFunction("← Back to Factions", showReputationFactionList)
         local current = RT.getReputation(faction) or 0
-        addGMFunction(string.format("%s: %+d", faction, current), function() end)
+        local wanted  = RT.campaign.flags and RT.campaign.flags.wanted
+        local label   = string.format("%s: %+d", faction, current)
+        if faction == "Concord" and wanted then label = label .. "  ⚠ WANTED" end
+        addGMFunction(label, function() end)
         addGMFunction("↑  +50", function()
             RT.addReputation(faction, 50, "GM adjustment")
             RT.saveCampaign()
@@ -476,6 +479,13 @@ function addSessionGMFunctions()
             RT.saveCampaign()
             showFactionDetail(faction)
         end)
+        if faction == "Concord" and wanted then
+            addGMFunction("Clear Wanted Status", function()
+                PROX.clearWantedStatus()
+                RT.shipLog("[GM] Concord wanted status cleared.", "#8888FF")
+                showFactionDetail(faction)
+            end)
+        end
     end
 
     showReputationFactionList = function()
