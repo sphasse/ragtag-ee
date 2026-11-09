@@ -540,20 +540,21 @@ local function _processGroup(st, group, now, player)
                         local ssx, ssy = s:getPosition()
                         local dx, dy = ssx - px2, ssy - py2
                         if math.sqrt(dx * dx + dy * dy) < 5 * U then
-                            -- Place jammer 0.25U ahead of player's heading; repositioned every frame.
-                            -- setPosition chained to constructor so initial position is sent with
-                            -- entity creation, not as a subsequent update (prevents visual fly-out).
-                            local head_rad = math.rad(player:getHeading())
-                            local jx = px2 + math.sin(head_rad) * 0.25 * U
-                            local jy = py2 - math.cos(head_rad) * 0.25 * U
-                            local jammer = WarpJammer():setPosition(jx, jy)
-                            pcall(function() jammer:setVelocity(0, 0) end)
+                            -- Spawn jammer at player position with player's current velocity.
+                            -- It decelerates to zero over ~5 s; the player can impulse to escape
+                            -- the 1U warp-suppression field before the jammer comes to a stop.
+                            local jvx, jvy = 0, 0
+                            pcall(function() jvx, jvy = player:getVelocity() end)
+                            local jammer = WarpJammer():setPosition(px2, py2)
+                            pcall(function() jammer:setVelocity(jvx, jvy) end)
                             jammer:setRange(1 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
                                 "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
                             pcall(function() jammer:setHull(100):setHullMax(100) end)
                             group.jammer          = jammer
+                            group.jammer_vx       = jvx
+                            group.jammer_vy       = jvy
                             group.shakedown_state = "pending"
                             group.shakedown_start = now
                             s:openCommsTo(player)
@@ -596,17 +597,25 @@ local function _processGroup(st, group, now, player)
             end
         end
 
-        -- Keep jammer 0.25U ahead of player and kill impulse while inspection is unresolved.
+        -- Decelerate jammer from initial player velocity toward zero (~5 seconds to stop).
+        -- Player can use impulse to escape the 1U warp-suppression field before it stops.
         -- Jammer is cleaned up by the non-hostile despawn block below when player is free to go,
         -- or left in place for the player to exit or destroy if the patrol goes hostile.
         if group.shakedown_state == "pending" and not group.shakedown_done and
-           group.jammer and RT.valid(group.jammer) and player then
-            local px3, py3 = player:getPosition()
-            local head_rad = math.rad(player:getHeading())
-            group.jammer:setPosition(px3 + math.sin(head_rad) * 0.25 * U,
-                                     py3 - math.cos(head_rad) * 0.25 * U)
-            pcall(function() group.jammer:setVelocity(0, 0) end)
-            pcall(function() player:commandImpulse(0) end)
+           group.jammer and RT.valid(group.jammer) then
+            local vx = group.jammer_vx or 0
+            local vy = group.jammer_vy or 0
+            if vx ~= 0 or vy ~= 0 then
+                local drag = 0.5 ^ delta
+                vx = vx * drag
+                vy = vy * drag
+                if math.abs(vx) < 10 and math.abs(vy) < 10 then
+                    vx, vy = 0, 0
+                end
+                group.jammer_vx = vx
+                group.jammer_vy = vy
+                pcall(function() group.jammer:setVelocity(vx, vy) end)
+            end
         end
 
         -- Jammer destroyed by crew during active inspection: rep penalty, free to go.
