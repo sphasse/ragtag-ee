@@ -555,6 +555,11 @@ local function _processGroup(st, group, now, player)
                             group.shakedown_start = now
                             s:openCommsTo(player)
                             RT.shipLog("[Concord] Standby for inspection. Incoming patrol comms on Relay.", "#8888FF")
+                            local _msg = "CONCORD INSPECTION\nPrepare to comply with data transmission and scanning."
+                            local _key = "concord_insp_" .. math.floor(now)
+                            for _, _st in ipairs({"Helms","Weapons","Engineering","Engineering+","Science","Relay","Tactical","Operations","AltRelay"}) do
+                                player:addCustomMessage(_st, _key .. _st, _msg)
+                            end
                             break
                         end
                     end
