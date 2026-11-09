@@ -543,7 +543,7 @@ function addSessionGMFunctions()
         else
             glyph = RT.hasUpgrade(u.id) and "■" or "□"
         end
-        return glyph .. " " .. group_label .. " lvl " .. (idx + 1)
+        return glyph .. " " .. (u.gm_label or (group_label .. " lvl " .. (idx + 1)))
     end
 
     local function showShipStatusPopup()

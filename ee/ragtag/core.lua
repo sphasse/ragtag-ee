@@ -602,15 +602,15 @@ RT.UPGRADES = {
         p:setWeaponTubeDirection(0, 180)
         p:setWeaponTubeDirection(1, 0)
      end},
-    {id = "repair_crew", name = "Two more hands", gm_name = "Repair crew", cost = 150, crew = true,
+    {id = "repair_crew", name = "Two more hands", gm_name = "Repair crew", gm_label = "Repair 4 crew", cost = 150, crew = true,
      desc = "+2 repair crew (max 8).",
      available = function(p) return p:getRepairCrewCount() < 8 end,
      apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
-    {id = "repair_crew_2", name = "Three more hands", gm_name = "Repair crew 2", cost = 150, crew = true,
+    {id = "repair_crew_2", name = "Three more hands", gm_name = "Repair crew 2", gm_label = "Repair 6 crew", cost = 150, crew = true,
      requires = "repair_crew", desc = "+2 repair crew (max 8).",
      available = function(p) return p:getRepairCrewCount() < 8 end,
      apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
-    {id = "repair_crew_3", name = "Full crew complement", gm_name = "Repair crew 3", cost = 150, crew = true,
+    {id = "repair_crew_3", name = "Full crew complement", gm_name = "Repair crew 3", gm_label = "Repair 8 crew", cost = 150, crew = true,
      requires = "repair_crew_2", desc = "+2 repair crew (max 8).",
      available = function(p) return p:getRepairCrewCount() < 8 end,
      apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
