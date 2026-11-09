@@ -84,6 +84,19 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 - Scanning: `ship:setScanningParameters(complexity, depth)`, `ship:setDescriptions(unscanned_text, scanned_text)`, `ship:isFullyScannedBy(player)`.
 
 ## 6. Comms
+## 5b. Scripted ship despawn vs player kill
+
+`RT.updateKillTracking()` (called each frame in `update()`) fires kill callbacks whenever a registered ship disappears — both when the player destroys it AND when the arc calls `entity:destroy()` from script. This means a scripted despawn at arc-end will trigger the same `-200` rep callback as a genuine player kill unless you cancel it first.
+
+**Pattern: cancel tracking before any scripted despawn where the arc manages rep itself:**
+```lua
+RT.cancelKillTracking(st.my_ship)   -- remove kill callbacks; arc handles rep
+st.my_ship:setCanBeDestroyed(true)
+st.my_ship:destroy()
+```
+
+**When to use it:** Any arc that calls `RT.register()` on a ship (which auto-wires kill tracking) and then later scripts the ship's removal at arc-end, GM cancel, or story resolution. If the arc already applies the right rep consequences via `RT.addReputation`, cancel tracking on the scripted path only — leave it active so player kills still trigger the callback.
+
 - `sender:sendCommsMessage(player, text)` opens a hail and logs the text. **It returns false if the player's comms are busy**, and the message is then lost. Always check the result and fall back to `player:addToShipLog(text, color)` or retry later (`RT.hail` does the fallback).
 - Inside a comms function: `setCommsMessage(text)` once, then any number of `addCommsReply(label, fn)`. Rebuild the menu by calling your menu function again from a reply.
 - **Every `addCommsReply` callback must call `setCommsMessage` before it returns**, including terminal replies that just close the conversation. If a callback does work (phase transition, rep change, etc.) but never calls `setCommsMessage`, the channel stays open showing "???" — this is silent and easy to miss. The rule applies even when the last thing a player sees is a closing line like `"Meridian out."` — the callback for that final button still needs its own `setCommsMessage`. Exception: callbacks that immediately call a function which calls `setCommsMessage` itself (e.g. `RT.stationComms`, a local `doThreat` helper) are fine — the check is whether `setCommsMessage` will be called before the callback returns.

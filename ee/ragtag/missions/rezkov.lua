@@ -14,18 +14,6 @@
 --   arc_done          arc complete (value = outcome string)
 
 local _hook_registered   = false  -- guard against double-registration on GM restart
-local _concord_ops_fac   = nil    -- created lazily at M3 spawn; persists for session
-
--- Concord Ops: Concord Intelligence operating off-manifest. Hostile to Independent
--- so the player can target the Meridian without making all Concord hostile.
-local function _concordOps()
-    if _concord_ops_fac then return _concord_ops_fac end
-    _concord_ops_fac = FactionInfo():setName("Concord Ops"):setLocaleName("Concord Ops")
-    _concord_ops_fac:setGMColor(100, 150, 255)
-    _concord_ops_fac:setDescription("Concord Intelligence. Not flying standard colors.")
-    _concord_ops_fac:setEnemy(getFactionInfo("Independent"))
-    return _concord_ops_fac
-end
 
 local M = {}
 M.id          = "rezkov"
@@ -201,12 +189,10 @@ end
 
 local function _spawnMeridian(st)
     if RT.valid(st.meridian) then return end
-    _concordOps()  -- ensure Concord Ops faction exists for later switch
     -- Spawn as Concord (neutral to Independent) so she doesn't pick fights with traffic.
-    -- She switches to Concord Ops (hostile) only when a player closes to weapons range.
-    -- Register as "Unknown" so RT.trackShipForReputation skips auto-tracking; the arc manages
-    -- all Meridian rep manually. Switch to Concord immediately after.
-    local meridian = CpuShip():setTemplate("Phobos T3"):setFaction("Unknown")
+    -- Switches to Concord Hostile when player closes to weapons range, making her targetable.
+    -- Rep tracking is cancelled before any scripted despawn; the arc handles all rep manually.
+    local meridian = CpuShip():setTemplate("Phobos T3"):setFaction("Concord")
     meridian:setCallSign("CWS Meridian"):setTypeName("CpuShip")
     meridian:setWeaponStorage("Nuke", 0):setWeaponStorageMax("Nuke", 0)
     meridian:setPosition(_MX, _MY)
@@ -217,7 +203,6 @@ local function _spawnMeridian(st)
         setCommsMessage('"CWS Meridian. This is a restricted Concord vessel. Stand clear."')
     end))
     RT.register(meridian)
-    meridian:setFaction("Concord")
     st.meridian = meridian
     st.m3_hostile = false
     RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")
@@ -417,7 +402,7 @@ function M.resolve(st)
     -- Despawn Meridian 90s after arc ends (she may still be flying away on concord_won path)
     RT.after(90, function()
         if RT.valid(st.meridian) then
-            st.meridian:setFaction("Independent")  -- prevent auto faction-rep hit on despawn destroy
+            RT.cancelKillTracking(st.meridian)
             st.meridian:setCanBeDestroyed(true)
             st.meridian:destroy()
             st.meridian = nil
@@ -428,7 +413,7 @@ end
 function M.on_cancel(st)
     _despawnWaypoint(st)
     if RT.valid(st.meridian) then
-        st.meridian:setFaction("Independent")
+        RT.cancelKillTracking(st.meridian)
         st.meridian:setCanBeDestroyed(true)
         st.meridian:destroy()
         st.meridian = nil
@@ -464,6 +449,7 @@ M.gm_state_fn = _gmStateLabel
 local function _gmClearFlags(st)
     _despawnWaypoint(st)
     if RT.valid(st.meridian) then
+        RT.cancelKillTracking(st.meridian)
         st.meridian:setCanBeDestroyed(true)
         st.meridian:destroy()
         RT.named["CWS Meridian"] = nil
@@ -658,7 +644,7 @@ M.phases.m3_active = {
         if not RT.flag("rezkov_m3_accepted") then return end
 
         -- Switch Meridian to hostile faction when player closes to weapons range (~5U).
-        -- While Concord she is neutral and ignores all traffic; Concord Ops makes her targetable.
+        -- While Concord she is neutral and ignores all traffic; Concord Hostile makes her targetable.
         if not st.m3_hostile and not st.m3_disabled and RT.valid(st.meridian) then
             local mx, my = st.meridian:getPosition()
             for _, p in ipairs(RT.players) do
@@ -667,14 +653,14 @@ M.phases.m3_active = {
                     local dx, dy = px - mx, py - my
                     if dx * dx + dy * dy < 5000 * 5000 then
                         st.m3_hostile = true
-                        st.meridian:setFaction("Concord Ops")
+                        st.meridian:setFaction("Concord Hostile")
                         st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
                             setCommsMessage('"CWS Meridian. We have your ship on record — registration, manifests, comms intercepts going back three months. Stand down and let us proceed.\n\nCooperate now and the Concord will remember that when it matters. Fight us and we file everything. Let\'s make a deal before this gets worse for everyone."')
                             addCommsReply("Not happening.", function()
                                 setCommsMessage('"Your choice. The charges will be waiting when you dock anywhere in Concord space."')
                             end)
                         end))
-                        print("[RZKOV] Meridian switched to Concord Ops — player within 5U")
+                        print("[RZKOV] Meridian switched to Concord Hostile — player within 5U")
                         break
                     end
                 end

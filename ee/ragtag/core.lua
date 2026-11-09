@@ -419,6 +419,14 @@ function RT.updateKillTracking()
     end
 end
 
+-- Cancel kill-tracking callbacks for a ship. Call before a scripted destroy() when
+-- the arc manages its own reputation consequences, to prevent double-firing.
+function RT.cancelKillTracking(ship)
+    if not ship then return end
+    local ok, cs = pcall(function() return ship:getCallSign() end)
+    if ok and cs then RT._kill_handlers[cs] = nil end
+end
+
 -- Register a ship for automatic reputation tracking on kill
 function RT.trackShipForReputation(ship)
     if not ship or not RT.valid(ship) then return end

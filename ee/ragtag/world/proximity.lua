@@ -164,14 +164,6 @@ local _STALL_RESPONSES = {
     "I'm going to be completely transparent with you -- and that's going to take some time.",
 }
 
-local _concord_ops_initialized = false
-local function _ensureConcordOps()
-    if _concord_ops_initialized then return end
-    _concord_ops_initialized = true
-    Faction():setName("Concord Ops"):setLocaleName("Concord Ops")
-        :setEnemy("Independent"):setEnemy("Corsairs"):setEnemy("Relic"):setEnemy("Hollow")
-        :setFriend("Concord")
-end
 
 local _THREAT_MSGS = {
     "Prepare to have your ship remnants brought into custody.",
@@ -187,7 +179,7 @@ local function _makeShakedownComms(group)
     return function(src, tgt)
         if group.shakedown_done then
             if group.shakedown_hostile then
-                setCommsMessage('"Concord Ops. Your vessel is under arrest."')
+                setCommsMessage('"Concord Hostile. Your vessel is under arrest."')
             else
                 setCommsMessage('"Move along."')
             end
@@ -200,7 +192,6 @@ local function _makeShakedownComms(group)
         group._stall_count = group._stall_count or 0
 
         local function doGoHostile()
-            _ensureConcordOps()
             group.shakedown_done    = true
             group.shakedown_hostile = true
             RT.campaign.flags = RT.campaign.flags or {}
@@ -212,9 +203,9 @@ local function _makeShakedownComms(group)
                     local s = RT.named[cs]
                     if RT.valid(s) then
                         s:setCommsScript(""):setCommsFunction(function(src2, tgt2)
-                            setCommsMessage('"Concord Ops. Your vessel is under arrest."')
+                            setCommsMessage('"Concord Hostile. Your vessel is under arrest."')
                         end)
-                        s:setFaction("Concord Ops")
+                        s:setFaction("Concord Hostile")
                         s:orderAttack(player)
                     end
                 end
@@ -601,7 +592,6 @@ local function _processGroup(st, group, now, player)
            now - group.shakedown_start > _cfg("shakedown_timeout") then
             local rep = RT.getReputation("Concord") or 0
             if rep < 0 then
-                _ensureConcordOps()
                 RT.campaign.flags = RT.campaign.flags or {}
                 RT.campaign.flags.wanted = true
                 RT.addReputation("Concord", -100, "ignored Concord inspection")
@@ -611,9 +601,9 @@ local function _processGroup(st, group, now, player)
                         local s = RT.named[cs]
                         if RT.valid(s) then
                             s:setCommsScript(""):setCommsFunction(function(src2, tgt2)
-                                setCommsMessage('"Concord Ops. Your vessel is under arrest."')
+                                setCommsMessage('"Concord Hostile. Your vessel is under arrest."')
                             end)
-                            s:setFaction("Concord Ops")
+                            s:setFaction("Concord Hostile")
                             s:orderAttack(player)
                         end
                     end
@@ -710,7 +700,7 @@ local function _nearbyHostiles(px, py)
     local count = 0
     for _, obj in ipairs(getObjectsInRadius(px, py, r)) do
         local ok, fac = pcall(function() return obj:getFaction() end)
-        if ok and (fac == "Corsairs" or fac == "Relic" or fac == "Hollow" or fac == "Concord Ops") then
+        if ok and (fac == "Corsairs" or fac == "Relic" or fac == "Hollow" or fac == "Concord Hostile") then
             count = count + 1
         end
     end

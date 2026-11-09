@@ -95,6 +95,11 @@ function VERSE.setupFactions()
     local derelict = make("Derelict", 120, 120, 120,
         "Dead hulls. Nobody aboard, nothing powered.")
 
+    local concord_hostile = make("Concord Hostile", 80, 120, 220,
+        "Concord enforcement operating off-manifest. Hostile to Independent traffic.")
+    local corsair_friendly = make("Corsair Friendly", 255, 180, 80,
+        "Corsair crew running friendly colors. Not shooting at you today.")
+
     corsairs:setEnemy(ind)
     corsairs:setEnemy(concord)
     hollow:setEnemy(ind)
@@ -105,6 +110,21 @@ function VERSE.setupFactions()
     relic:setEnemy(concord)
     relic:setEnemy(corsairs)
     relic:setEnemy(hollow)
+
+    concord_hostile:setEnemy(ind)
+    concord_hostile:setEnemy(corsairs)
+    concord_hostile:setEnemy(relic)
+    concord_hostile:setEnemy(hollow)
+    concord_hostile:setEnemy(corsair_friendly)
+    concord_hostile:setFriend(concord)
+
+    corsair_friendly:setFriend(ind)
+    corsair_friendly:setFriend(corsairs)
+    corsair_friendly:setEnemy(concord)
+    corsair_friendly:setEnemy(concord_hostile)
+    corsair_friendly:setEnemy(hollow)
+    corsair_friendly:setEnemy(relic)
+
     VERSE.factions_ready = true
 end
 
