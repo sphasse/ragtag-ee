@@ -11,10 +11,6 @@
 -- Starting Credits[Modest (200)|Default]: Enough for a few repairs or one small upgrade.
 -- Starting Credits[Comfortable (500)]: Enough to buy a decent upgrade right away.
 -- Starting Credits[Well-off (1000)]: Can afford multiple upgrades immediately.
--- Setting[Danger Level]: How aggressive the universe is.
--- Danger Level[Relaxed]: Fewer hostiles, more time to explore.
--- Danger Level[Normal|Default]: Balanced encounters.
--- Danger Level[Dangerous]: More hostiles, tighter director budget for spawns.
 -- Setting[Director]: Whether the scenario talks to the external AI director.
 -- Director[On|Default]: Dynamic encounters and opportunities from the AI director.
 -- Director[Off]: Static universe with scripted random encounters only.
@@ -138,17 +134,6 @@ function init()
     S.session_num = (RT.campaign.sandbox_sessions or 0) + 1
     RT.campaign.sandbox_sessions = S.session_num
 
-    local danger = getScenarioSetting("Danger Level")
-    if danger == "Relaxed" then
-        DIR.config.max_ai_hostiles = 2
-        DIR.config.spawn_cooldown = 240  -- 4 minutes between spawns
-    elseif danger == "Dangerous" then
-        DIR.config.max_ai_hostiles = 8
-        DIR.config.spawn_cooldown = 90   -- 1.5 minutes between spawns
-    else
-        DIR.config.max_ai_hostiles = 5
-        DIR.config.spawn_cooldown = 150  -- 2.5 minutes between spawns
-    end
     DIR.enabled = getScenarioSetting("Director") ~= "Off"
 
     VERSE.build({session = S.session_num})
