@@ -547,7 +547,14 @@ local function _processGroup(st, group, now, player)
                             local jammer = WarpJammer():setPosition(
                                 px2 + math.sin(head_rad) * 0.25 * U,
                                 py2 - math.cos(head_rad) * 0.25 * U)
-                            if jammer.components.physics then jammer.components.physics.velocity = {0, 0} end
+                            -- WarpJammer()'s model data loop overwrites physics={type="static"} with
+                            -- {type="dynamic"} because shield_generator calls setRadius(), which
+                            -- seeds physics.type="dynamic". Force it back to static (kinematic in
+                            -- Box2D) so the jammer can't be pushed by collisions with the player ship.
+                            if jammer.components.physics then
+                                jammer.components.physics.type = "static"
+                                jammer.components.physics.velocity = {0, 0}
+                            end
                             jammer:setRange(1 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
@@ -566,7 +573,7 @@ local function _processGroup(st, group, now, player)
                             local vel = phys and phys.velocity
                             local vx0 = vel and vel[1] or "?"
                             local vy0 = vel and vel[2] or "?"
-                            log(string.format("[JAMMER] spawn pos=(%.0f,%.0f) phys_type=%s vel_readback=(%s,%s)",
+                            log(string.format("[JAMMER] spawn pos=(%.0f,%.0f) phys_type=%s vel_readback=(%s,%s) [type forced to static]",
                                 jx0, jy0, tostring(ptype), tostring(vx0), tostring(vy0)))
                             -- Broadcast fires immediately with jammer deploy; hail fires once stopped
                             RT.shipLog("[Concord] Standby for inspection. Incoming patrol comms on Relay.", "#8888FF")
