@@ -406,7 +406,7 @@ function addSessionGMFunctions()
 
     local function showFactionDetail(faction)
         clearGMFunctions()
-        addGMFunction("< Back to Factions", showReputationFactionList)
+        addGMFunction("← Back to Factions", showReputationFactionList)
         local current = RT.getReputation(faction) or 0
         addGMFunction(string.format("%s: %+d", faction, current), function() end)
         local deltas = {100, -100}
@@ -422,7 +422,7 @@ function addSessionGMFunctions()
 
     showReputationFactionList = function()
         clearGMFunctions()
-        addGMFunction("< Back to Main", function()
+        addGMFunction("← Back to Main", function()
             clearGMFunctions()
             addSessionGMFunctions()
         end)
@@ -463,7 +463,7 @@ function addSessionGMFunctions()
 
     showJobsMenu = function()
         clearGMFunctions()
-        addGMFunction("< Back to Main", function()
+        addGMFunction("← Back to Main", function()
             clearGMFunctions()
             addSessionGMFunctions()
         end)
@@ -495,6 +495,20 @@ function addSessionGMFunctions()
     addGMFunction("Jobs...", showJobsMenu)
 
     -- Upgrades submenu
+    local _UPGRADE_GROUPS = {
+        {label = "Hull",      ids = {"hull_plating", "hull_plating_2"}},
+        {label = "Shields",   ids = {"shield_mk2", "shield_mk3"}},
+        {label = "Beams",     ids = {"forward_beams", "beam_coils", "heavy_beams"}},
+        {label = "Weapons",   ids = {"missile_racks", "front_tube"}},
+        {label = "Impulse",   ids = {"engine_tune"}},
+        {label = "Thrusters", ids = {"combat_thrusters"}},
+        {label = "Warp",      ids = {"warp_overhaul"}},
+        {label = "Reactor",   ids = {"reactor_overhaul"}},
+        {label = "Repair",    ids = {"repair_crew"}},
+        {label = "Sensors",   ids = {"sensor_suite"}},
+        {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
+    }
+
     local function _revokeUpgrade(id)
         local new_list = {}
         for _, uid in ipairs(RT.campaign.upgrades) do
@@ -518,36 +532,139 @@ function addSessionGMFunctions()
         if u then RT.shipLog("Upgrade removed: " .. u.name, "#FF8080") end
     end
 
+    local function _upgradeLabel(group_label, idx, u)
+        local owned  = RT.hasUpgrade(u.id)
+        local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires)
+        local glyph  = owned and "■" or (locked and "×" or "□")
+        return glyph .. " " .. group_label .. " lvl " .. (idx + 1)
+    end
+
+    local function showShipStatusPopup()
+        local p = RT.player
+        if not RT.valid(p) then addGMMessage("No active player ship."); return end
+
+        local cost_map = {}
+        for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
+        local total_invested = 0
+        for _, id in ipairs(RT.campaign.upgrades or {}) do
+            total_invested = total_invested + (cost_map[id] or 0)
+        end
+
+        local function uline(id)
+            local u = RT.upgradeById(id)
+            if not u then return end
+            if RT.hasUpgrade(id) then
+                return string.format("  ■ %s (%dcr)", u.name, u.cost)
+            elseif u.requires and not RT.hasUpgrade(u.requires) then
+                local req = RT.upgradeById(u.requires)
+                return string.format("  × %s (%dcr)  needs: %s", u.name, u.cost, req and req.name or u.requires)
+            else
+                return string.format("  □ %s (%dcr)", u.name, u.cost)
+            end
+        end
+
+        local L = {"=== SHIP STATUS ===\n"}
+        local function add(s) L[#L+1] = s end
+        local function sec(s) add("\n" .. s) end
+
+        add(string.format("Invested: %dcr  |  Job tier: %d\n", total_invested, JOBS.maxTier()))
+
+        sec("HULL")
+        add(uline("hull_plating")); add(uline("hull_plating_2"))
+        add(string.format("  hp: %d / %d", math.floor(p:getHull()), math.floor(p:getHullMax())))
+
+        sec("SHIELDS")
+        add(uline("shield_mk2")); add(uline("shield_mk3"))
+        local sc = p:getShieldCount()
+        if sc >= 2 then
+            add(string.format("  front %d/%d  rear %d/%d",
+                math.floor(p:getShieldLevel(0)), math.floor(p:getShieldMax(0)),
+                math.floor(p:getShieldLevel(1)), math.floor(p:getShieldMax(1))))
+        elseif sc == 1 then
+            add(string.format("  shield %d/%d", math.floor(p:getShieldLevel(0)), math.floor(p:getShieldMax(0))))
+        end
+
+        sec("BEAMS")
+        add(uline("forward_beams")); add(uline("beam_coils")); add(uline("heavy_beams"))
+        for i = 0, 7 do
+            local range = p:getBeamWeaponRange(i)
+            if range ~= nil and range > 0 then
+                add(string.format("  [%d] dir %d°  arc %d°  rng %dm  %.1fs  %.0fdmg",
+                    i, math.floor(p:getBeamWeaponDirection(i)), math.floor(p:getBeamWeaponArc(i)),
+                    math.floor(range), p:getBeamWeaponCycleTime(i), p:getBeamWeaponDamage(i)))
+            end
+        end
+
+        sec("WEAPONS")
+        add(uline("missile_racks")); add(uline("front_tube"))
+        add(string.format("  tubes: %d  homing: %d/%d  HVLI: %d/%d",
+            p:getWeaponTubeCount(),
+            p:getWeaponStorage("Homing"), p:getWeaponStorageMax("Homing"),
+            p:getWeaponStorage("HVLI"), p:getWeaponStorageMax("HVLI")))
+
+        sec("IMPULSE")
+        add(uline("engine_tune"))
+        local fwd, rev = p:getImpulseMaxSpeed()
+        add(string.format("  fwd %.0f / rev %.0f u/s", fwd, rev))
+
+        sec("THRUSTERS")
+        add(uline("combat_thrusters"))
+        add("  combat maneuver: " .. (RT.hasUpgrade("combat_thrusters") and "enhanced" or "default"))
+
+        sec("WARP")
+        add(uline("warp_overhaul"))
+        add(string.format("  speed: %.0f wu/s", p:getWarpSpeed()))
+
+        sec("REACTOR")
+        add(uline("reactor_overhaul"))
+        add(string.format("  energy: %.0f / %.0f", p:getEnergy(), p:getMaxEnergy()))
+
+        sec("REPAIR")
+        add(uline("repair_crew"))
+        add(string.format("  crew: %d", p:getRepairCrewCount()))
+
+        sec("SENSORS")
+        add(uline("sensor_suite"))
+        add(string.format("  LR: %.0fu  SR: %.0fu",
+            p:getLongRangeRadarRange() / 1000, p:getShortRangeRadarRange() / 1000))
+
+        sec("PROBES")
+        add(uline("fast_probes")); add(uline("ludicrous_probes"))
+        local spd = RT.hasUpgrade("ludicrous_probes") and 4000
+                 or RT.hasUpgrade("fast_probes") and 2000 or 1000
+        add(string.format("  speed: %d wu/s", spd))
+
+        addGMMessage(table.concat(L, "\n"))
+    end
+
     showShipUpgradesMenu = function(ship_cs)
         clearGMFunctions()
-        addGMFunction("< Back to Ships", function() showUpgradesMenu() end)
-        for _, u in ipairs(RT.UPGRADES) do
-            local owned  = RT.hasUpgrade(u.id)
-            local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires)
-            local cap_id = u.id
-            local label
-            local n = u.gm_name or u.name
-            if owned then
-                label = "* " .. n
-            elseif locked then
-                label = n .. " lk"
-            else
-                label = n .. " " .. u.cost .. "c"
-            end
-            addGMFunction(label, function()
-                if owned then
-                    _revokeUpgrade(cap_id)
-                elseif not locked then
-                    RT.grantUpgrade(cap_id)
+        addGMFunction("← Ships", function() showUpgradesMenu() end)
+        addGMFunction("Ship Status", function() showShipStatusPopup() end)
+        for _, group in ipairs(_UPGRADE_GROUPS) do
+            for idx, uid in ipairs(group.ids) do
+                local u = RT.upgradeById(uid)
+                if u then
+                    local cap_id  = uid
+                    local cap_req = u.requires
+                    local cap_grp = group.label
+                    local cap_idx = idx
+                    addGMFunction(_upgradeLabel(group.label, idx, u), function()
+                        if RT.hasUpgrade(cap_id) then
+                            _revokeUpgrade(cap_id)
+                        elseif cap_req == nil or RT.hasUpgrade(cap_req) then
+                            RT.grantUpgrade(cap_id)
+                        end
+                        showShipUpgradesMenu(ship_cs)
+                    end)
                 end
-                showShipUpgradesMenu(ship_cs)
-            end)
+            end
         end
     end
 
     showUpgradesMenu = function()
         clearGMFunctions()
-        addGMFunction("< Back to Main", function()
+        addGMFunction("← Back to Main", function()
             clearGMFunctions()
             addSessionGMFunctions()
         end)
