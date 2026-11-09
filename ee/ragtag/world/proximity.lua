@@ -547,6 +547,7 @@ local function _processGroup(st, group, now, player)
                             local jx = px2 + math.sin(head_rad) * 0.25 * U
                             local jy = py2 - math.cos(head_rad) * 0.25 * U
                             local jammer = WarpJammer():setPosition(jx, jy)
+                            pcall(function() jammer:setVelocity(0, 0) end)
                             jammer:setRange(1 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
@@ -604,6 +605,7 @@ local function _processGroup(st, group, now, player)
             local head_rad = math.rad(player:getHeading())
             group.jammer:setPosition(px3 + math.sin(head_rad) * 0.25 * U,
                                      py3 - math.cos(head_rad) * 0.25 * U)
+            pcall(function() group.jammer:setVelocity(0, 0) end)
             pcall(function() player:commandImpulse(0) end)
         end
 
