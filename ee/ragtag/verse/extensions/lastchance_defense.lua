@@ -8,9 +8,9 @@ VERSE.extend({
 
     -- Defense platforms protecting the approach from the Maw
     garrisons = {
-        {fac = "Independent", x = 140, y = 75, ships = {"Defense platform"}},
-        {fac = "Independent", x = 145, y = 90, ships = {"Defense platform"}},
-        {fac = "Independent", x = 148, y = 105, ships = {"Defense platform"}},
+        {fac = "Independent", x = 140, y = 75, ships = {"Defense platform"}, role = "port"},
+        {fac = "Independent", x = 145, y = 90, ships = {"Defense platform"}, role = "port"},
+        {fac = "Independent", x = 148, y = 105, ships = {"Defense platform"}, role = "port"},
     },
 
     lore = {

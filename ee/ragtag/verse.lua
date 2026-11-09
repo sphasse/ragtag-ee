@@ -306,10 +306,22 @@ local function buildGarrisons()
                 s:setDescriptions("No transponder.", "Hull configuration matches no registry. Emissions are... rhythmic.")
             elseif g.fac == "Concord" then
                 s:setCommsFunction(concordPatrolComms)
+                s:setDescriptions("CWS-registered warship.", "Concord Navy. Base defense posting.")
+                s:setDescriptionForScanState("fullscan", "Permanent sector assignment. Authorized to enforce Concord law and customs within this region. Not actively targeting independent traffic — unless you give them a reason.")
+                s:setScanningParameters(1, 2)
             elseif g.fac == "Corsairs" then
                 s:setCommsFunction(function(source, target)
                     setCommsMessage("\"Corsair space, little freighter. Your cargo or your hull - we're easy either way.\"")
                 end)
+                if g.role == "port" then
+                    s:setDescriptions("Unknown vessel.", "Corsair port defender. Territorial patrol.")
+                    s:setDescriptionForScanState("fullscan", "Blackwater defense patrol. These ships aren't hunting — they're guarding. Walk in shooting and you'll meet everything they have.")
+                    s:setScanningParameters(1, 2)
+                end
+            elseif g.fac == "Independent" and g.role == "port" then
+                s:setDescriptions("Defense platform.", "Port defense platform. Perimeter emplacement.")
+                s:setDescriptionForScanState("fullscan", "Automated defense grid maintained by Lastchance Outpost. Old Concord hardware, still functional. These don't follow you — they hold the line against whatever comes out of the Maw.")
+                s:setScanningParameters(1, 2)
             end
             RT.register(s)
             if DIR then DIR.registerKill(s) end

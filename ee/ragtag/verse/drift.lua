@@ -192,8 +192,8 @@ VERSE.extend({
         {fac = "Corsairs", x = 29, y = 73, ships = {"Adder MK5", "Adder MK5"}},
         {fac = "Corsairs", x = 49, y = 69, ships = {"MT52 Hornet", "MT52 Hornet", "Adder MK5"}},
         -- Blackwater Reach: needs a few upgrades
-        {fac = "Corsairs", x = 55, y = 91, ships = {"Phobos T3", "Adder MK5", "Adder MK5"}},
-        {fac = "Corsairs", x = 62, y = 104, ships = {"Phobos T3", "Piranha F12", "MT52 Hornet"}},
+        {fac = "Corsairs", x = 55, y = 91, ships = {"Phobos T3", "Adder MK5", "Adder MK5"}, role = "port"},
+        {fac = "Corsairs", x = 62, y = 104, ships = {"Phobos T3", "Piranha F12", "MT52 Hornet"}, role = "port"},
         -- The Boneyard: relic war drones
         {fac = "Relic", x = 23, y = -86, ships = {"WX-Lindworm", "WX-Lindworm", "WX-Lindworm"}},
         {fac = "Relic", x = 47, y = -104, ships = {"Stalker Q7", "WX-Lindworm"}},

@@ -386,6 +386,17 @@ local function _spawnGroup(st, region_name, px, py)
                 _used_names[picked] = true
             end
         end
+        if zone.faction == "Concord" then
+            if is_shakedown then
+                s:setDescriptions("Concord warship.", "Concord patrol interceptor. Active interdiction assignment.")
+                s:setDescriptionForScanState("fullscan", "Traffic interdiction patrol. Authorized to stop and board civilian vessels. If you're running a hot manifest, now is the time to find a different route.")
+            else
+                s:setDescriptions("Concord warship.", "Concord enforcement vessel. Warrant response.")
+                s:setDescriptionForScanState("fullscan", "Responding to an outstanding warrant. This patrol is here for you specifically. Recommend evasive action.")
+            end
+            s:setScanningParameters(1, 2)
+        end
+
         RT.register(s)
         DIR.registerKill(s)
         DIR.allowControl(s)
