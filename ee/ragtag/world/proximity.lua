@@ -34,7 +34,7 @@ _P.defaults = {
     station_exclusion_u = 15,    -- no spawns within this radius of any station
     station_despawn_u   = 15,    -- despawn any patrol within this radius of a friendly station
     recall_timeout      = 120,   -- seconds before a recalled group despawns
-    shakedown_timeout   = 45,    -- seconds before an ignored shake-down auto-resolves
+    shakedown_timeout   = 60,    -- seconds of comms silence before an ignored shake-down goes hostile
     concord_despawn     = 120,   -- seconds after peaceful Concord resolution before ships vanish
     default_zone_mode   = 3,     -- starting mode for each zone (1=None 2=Low 3=Medium 4=High)
 }
@@ -186,6 +186,8 @@ local _HOSTILE_LINES = {
 
 local function _makeShakedownComms(group)
     return function(src, tgt)
+        -- Relay opened the channel — reset the 60-second compliance timer.
+        group.last_comms_activity = getScenarioTime()
         if group.shakedown_done then
             if group.shakedown_hostile then
                 setCommsMessage('"Concord Hostile. Your vessel is under arrest."')
@@ -289,6 +291,7 @@ local function _makeShakedownComms(group)
                     and "One moment — running checks on our end."
                     or  "Still working on it...", function(s2, t2)
                 group._stall_count = group._stall_count + 1
+                group.last_comms_activity = getScenarioTime()  -- delay option buys another minute
                 local line = _STALL_RESPONSES[math.random(#_STALL_RESPONSES)]
                 local patience = group._stall_count >= 2
                     and '\n\n[Concord]: "Final warning. Comply immediately."'
@@ -300,6 +303,7 @@ local function _makeShakedownComms(group)
                 if group._stall_count < 2 then
                     addCommsReply("Still working on it...", function(s3, t3)
                         group._stall_count = group._stall_count + 1
+                        group.last_comms_activity = getScenarioTime()  -- each stall buys another minute
                         setCommsMessage('"' .. _STALL_RESPONSES[math.random(#_STALL_RESPONSES)] .. '"'
                             .. '\n\n[Concord]: "Final warning. Comply immediately."')
                         addCommsReply("Confirmed. Standing by.", function(s4, t4)
@@ -571,8 +575,8 @@ local function _processGroup(st, group, now, player)
                             log(string.format("[JAMMER] spawn pos=(%.0f,%.0f) phys_type=%s vel_readback=(%s,%s) [dynamic, behind player]",
                                 jx0, jy0, tostring(ptype), tostring(vx0), tostring(vy0)))
                             -- Broadcast fires immediately with jammer deploy; hail fires once stopped
-                            RT.shipLog("[Concord] Standby for inspection. Incoming patrol comms on Relay.", "#8888FF")
-                            local _msg = "CONCORD INSPECTION\nPrepare to comply with data transmission and scanning."
+                            RT.shipLog("[" .. cs .. "] We are Concord interceptor " .. cs .. ". You are being warp jammed and we have weapons targeted. We are in the area checking transponder codes and cargo. Respond to our hail and comply in a timely manner or suffer the consequences. You have one minute.", "#8888FF")
+                            local _msg = "CONCORD INTERCEPTION — " .. cs .. "\nWarp jammer deployed. Weapons targeted.\nRespond to hail within 60 seconds or face consequences."
                             local _key = "concord_insp_" .. math.floor(now)
                             for _, _st in ipairs({"Helms","Weapons","Engineering","Engineering+","Science","Relay","Tactical","Operations","AltRelay"}) do
                                 player:addCustomMessage(_st, _key .. _st, _msg)
@@ -622,15 +626,27 @@ local function _processGroup(st, group, now, player)
             group.shakedown_hostile = false
         end
 
-        -- Timeout: crew ignored the inspection hail entirely.
-        if group.shakedown_state == "pending" and not group.shakedown_done and
-           now - group.shakedown_start > _cfg("shakedown_timeout") then
-            local rep = RT.getReputation("Concord") or 0
-            if rep < 0 then
+        -- Timeout: crew failed to respond within the 60-second window.
+        -- Timer is measured from the last comms activity (opening the channel or choosing
+        -- a stall option), so engaging with Relay always resets the clock.
+        -- Only fires after the player has actually been hailed (stopped).
+        if group.shakedown_state == "pending" and not group.shakedown_done
+           and group.shakedown_hailed then
+            local t0 = group.last_comms_activity or group.shakedown_hailed_at or group.shakedown_start
+            if now - t0 > _cfg("shakedown_timeout") then
+                local hostile_line = _HOSTILE_LINES[math.random(#_HOSTILE_LINES)]
+                local hs_name = group.hailing_ship or "Concord"
+                RT.addReputation("Concord", -100, "failed to comply with Concord inspection")
+                RT.shipLog("[" .. hs_name .. "] You were warned to comply in a timely manner. " .. hostile_line, "#FF4444")
+                local _hmsg = "CONCORD PATROL HOSTILE\n" .. hs_name .. ": \"" .. hostile_line .. "\"\nWarrant issued. -100 Concord standing."
+                local _hkey = "concord_hostile_" .. math.floor(now)
+                if player then
+                    for _, _st2 in ipairs({"Helms","Weapons","Engineering","Engineering+","Science","Relay","Tactical","Operations","AltRelay"}) do
+                        player:addCustomMessage(_st2, _hkey .. _st2, _hmsg)
+                    end
+                end
                 RT.campaign.flags = RT.campaign.flags or {}
                 RT.campaign.flags.wanted = true
-                RT.addReputation("Concord", -100, "ignored Concord inspection")
-                RT.shipLog("[Concord] No response — warrant issued. Patrol is hostile.", "#FF4444")
                 if player then
                     for _, cs in ipairs(group.ships) do
                         local s = RT.named[cs]
@@ -644,10 +660,8 @@ local function _processGroup(st, group, now, player)
                     end
                 end
                 group.shakedown_hostile = true
-            else
-                RT.shipLog("[Concord] No response. Patrol moving on.", "#8888FF")
+                group.shakedown_done    = true
             end
-            group.shakedown_done = true
         end
     end
 
@@ -826,7 +840,9 @@ function _P.update(state, delta, now)
                     if pspeed < 25 then
                         local jxf, jyf = group.jammer:getPosition()
                         log(string.format("[JAMMER] hail fired pspeed=%.1f jpos=(%.0f,%.0f)", pspeed, jxf, jyf))
-                        group.shakedown_hailed = true
+                        group.shakedown_hailed    = true
+                        group.shakedown_hailed_at = now
+                        group.last_comms_activity = now
                         local hs = RT.named[group.hailing_ship]
                         if hs and RT.valid(hs) then hs:openCommsTo(player2) end
                     end
