@@ -466,9 +466,7 @@ function addSessionGMFunctions()
         addGMFunction("← Back to Factions", showReputationFactionList)
         local current = RT.getReputation(faction) or 0
         local wanted  = RT.campaign.flags and RT.campaign.flags.wanted
-        local label   = string.format("%s: %+d", faction, current)
-        if faction == "Concord" and wanted then label = label .. "  ⚠ WANTED" end
-        addGMFunction(label, function() end)
+        addGMFunction(string.format("%s: %+d", faction, current), function() end)
         addGMFunction("↑  +50", function()
             RT.addReputation(faction, 50, "GM adjustment")
             RT.saveCampaign()
