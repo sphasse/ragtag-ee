@@ -536,7 +536,7 @@ local function _processGroup(st, group, now, player)
                             local jammer = WarpJammer()
                             jammer:setPosition(jx, jy)
                             jammer:setRange(1 * U)
-                            jammer:setFaction("Concord")
+                            jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
                                 "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
                             pcall(function() jammer:setHull(100):setHullMax(100) end)
@@ -581,7 +581,7 @@ local function _processGroup(st, group, now, player)
         -- Jammer destroyed by crew during active inspection: rep penalty, free to go.
         if group.shakedown_state == "pending" and not group.shakedown_done and
            group.jammer and not RT.valid(group.jammer) then
-            RT.addReputation("Concord", -75, "destroyed Concord warp jammer")
+            RT.addReputation("Concord", -50, "destroyed Concord warp jammer")
             RT.shipLog("[Concord] Jammer destroyed. Concord standing reduced.", "#FF8040")
             group.shakedown_done    = true
             group.shakedown_hostile = false
