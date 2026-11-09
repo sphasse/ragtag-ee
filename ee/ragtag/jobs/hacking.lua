@@ -421,6 +421,16 @@ function M.completable(m, cs)
     return m.origin == cs and m._hacked == true
 end
 
+function M.cleanup(m)
+    if m.target_cs then
+        local s = RT.find(m.target_cs)
+        if RT.valid(s) then
+            s:setCanBeDestroyed(true)
+            s:destroy()
+        end
+    end
+end
+
 function M.completeReply(m, entry)
     return {
         label = string.format("Deliver %s (+%d cr)", m.cargo, m.reward),

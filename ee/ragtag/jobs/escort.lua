@@ -31,7 +31,7 @@ local function _tickDeparting(now)
         if now > d.despawn_at then
             for _, cs in ipairs(d.ships) do
                 local s = RT.find(cs)
-                if RT.valid(s) then s:destroy() end
+                if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
             end
             table.remove(_departing, i)
         end
@@ -508,7 +508,7 @@ function M.update(m, entry, ctx)
     if m._arrived_at and ctx.now > m._arrived_at + 120 and #m._interceptors > 0 then
         for _, interc in ipairs(m._interceptors) do
             local s = RT.find(interc.cs)
-            if RT.valid(s) then s:destroy() end
+            if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
         end
         m._interceptors = {}
     end
@@ -549,12 +549,15 @@ end
 function M.cleanup(m)
     if m.convoy_cs then
         local s = RT.find(m.convoy_cs)
-        if RT.valid(s) and not m._convoy_arrived then s:destroy() end
+        if RT.valid(s) and not m._convoy_arrived then
+            RT.cancelKillTracking(s)
+            s:destroy()
+        end
     end
 
     for _, interc in ipairs(m._interceptors or {}) do
         local s = RT.find(interc.cs)
-        if RT.valid(s) then s:destroy() end
+        if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
     end
 
     if m._convoy_arrived then
@@ -562,7 +565,7 @@ function M.cleanup(m)
     else
         for _, cs in ipairs(m.fighter_cs or {}) do
             local s = RT.find(cs)
-            if RT.valid(s) then s:destroy() end
+            if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
         end
     end
 end

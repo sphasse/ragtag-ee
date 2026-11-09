@@ -483,6 +483,16 @@ function M.completable(m, cs)
     return m.origin == cs and m._destroyed == true
 end
 
+function M.cleanup(m)
+    if m.target_cs and not m._destroyed then
+        local s = RT.find(m.target_cs)
+        if RT.valid(s) then
+            RT.cancelKillTracking(s)
+            s:destroy()
+        end
+    end
+end
+
 function M.completeReply(m, entry)
     return {
         label = string.format("Submit %s (+%d cr)", m.cargo, m.reward),
