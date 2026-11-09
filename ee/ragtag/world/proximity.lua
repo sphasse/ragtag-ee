@@ -540,19 +540,14 @@ local function _processGroup(st, group, now, player)
                         local ssx, ssy = s:getPosition()
                         local dx, dy = ssx - px2, ssy - py2
                         if math.sqrt(dx * dx + dy * dy) < 5 * U then
-                            -- Spawn jammer 0.25U ahead of player at zero velocity.
-                            -- Velocity stays zero because we reposition it manually every frame;
-                            -- any initial velocity would just shoot it off between updates.
+                            -- Spawn jammer 0.25U BEHIND player at zero velocity.
+                            -- Dynamic physics; commandImpulse(0) every tick slows the player.
                             local head_rad = math.rad(player:getHeading())
                             local jammer = WarpJammer():setPosition(
-                                px2 + math.sin(head_rad) * 0.25 * U,
-                                py2 - math.cos(head_rad) * 0.25 * U)
-                            -- WarpJammer()'s model data loop overwrites physics={type="static"} with
-                            -- {type="dynamic"} because shield_generator calls setRadius(), which
-                            -- seeds physics.type="dynamic". Force it back to static (kinematic in
-                            -- Box2D) so the jammer can't be pushed by collisions with the player ship.
+                                px2 - math.sin(head_rad) * 0.25 * U,
+                                py2 + math.cos(head_rad) * 0.25 * U)
+                            -- Zero out initial velocity so it doesn't drift from spawn position.
                             if jammer.components.physics then
-                                jammer.components.physics.type = "static"
                                 jammer.components.physics.velocity = {0, 0}
                             end
                             jammer:setRange(2 * U)
@@ -565,7 +560,7 @@ local function _processGroup(st, group, now, player)
                             group.shakedown_state  = "pending"
                             group.shakedown_start  = now
                             group.shakedown_hailed = false
-                            group.jammer_diag_next = now  -- log every second for first 10s
+                            group.jammer_diag_next = now  -- log every 0.5s for first 10s
                             -- Diagnostics: log spawn state and read back velocity to verify it was set
                             local jx0, jy0 = jammer:getPosition()
                             local phys = jammer.components.physics
@@ -573,7 +568,7 @@ local function _processGroup(st, group, now, player)
                             local vel = phys and phys.velocity
                             local vx0 = vel and vel[1] or "?"
                             local vy0 = vel and vel[2] or "?"
-                            log(string.format("[JAMMER] spawn pos=(%.0f,%.0f) phys_type=%s vel_readback=(%s,%s) [type forced to static]",
+                            log(string.format("[JAMMER] spawn pos=(%.0f,%.0f) phys_type=%s vel_readback=(%s,%s) [dynamic, behind player]",
                                 jx0, jy0, tostring(ptype), tostring(vx0), tostring(vy0)))
                             -- Broadcast fires immediately with jammer deploy; hail fires once stopped
                             RT.shipLog("[Concord] Standby for inspection. Incoming patrol comms on Relay.", "#8888FF")
@@ -615,54 +610,8 @@ local function _processGroup(st, group, now, player)
             end
         end
 
-        -- Jammer phase: track player (bring them to a stop), then hail and release.
-        -- While not yet hailed: jammer stays 0.25U ahead matching player velocity;
-        -- commandImpulse(0) brings the player to a stop. Once speed < 25 u/s the jammer
-        -- freezes at that position and the Concord comms fire. After that the player can
-        -- use impulse to try to escape the stationary 2U warp-suppression field.
-        if group.shakedown_state == "pending" and not group.shakedown_done and
-           group.jammer and RT.valid(group.jammer) and player then
-            local pvx, pvy = 0, 0
-            pcall(function() pvx, pvy = player:getVelocity() end)
-            local pspeed = math.sqrt(pvx * pvx + pvy * pvy)
-
-            if not group.shakedown_hailed then
-                -- Still decelerating: pin jammer 0.25U ahead, zero velocity to prevent drift,
-                -- and suppress player impulse until nearly stopped
-                local px3, py3 = player:getPosition()
-                local head_rad = math.rad(player:getHeading())
-                group.jammer:setPosition(px3 + math.sin(head_rad) * 0.25 * U,
-                                         py3 - math.cos(head_rad) * 0.25 * U)
-                if group.jammer.components.physics then group.jammer.components.physics.velocity = {0, 0} end
-                pcall(function() player:commandImpulse(0) end)
-
-                -- Diagnostics: log jammer state every second for 10s after spawn
-                local elapsed = now - (group.shakedown_start or now)
-                if elapsed < 10 and group.jammer_diag_next and now >= group.jammer_diag_next then
-                    group.jammer_diag_next = now + 1
-                    local jx3, jy3 = group.jammer:getPosition()
-                    local phys3 = group.jammer.components.physics
-                    local vel3 = phys3 and phys3.velocity
-                    local jvx = vel3 and vel3[1] or "?"
-                    local jvy = vel3 and vel3[2] or "?"
-                    local dx3, dy3 = jx3 - px3, jy3 - py3
-                    log(string.format("[JAMMER] t=+%.0fs jpos=(%.0f,%.0f) ppos=(%.0f,%.0f) offset_dist=%.0f vel=(%s,%s) pspeed=%.1f",
-                        elapsed, jx3, jy3, px3, py3,
-                        math.sqrt(dx3*dx3 + dy3*dy3),
-                        tostring(jvx), tostring(jvy), pspeed))
-                end
-
-                if pspeed < 25 then
-                    -- Player nearly stopped: jammer stays put, fire the comms hail
-                    local jxf, jyf = group.jammer:getPosition()
-                    log(string.format("[JAMMER] hail fired pspeed=%.1f jpos=(%.0f,%.0f)", pspeed, jxf, jyf))
-                    group.shakedown_hailed = true
-                    local hs = RT.named[group.hailing_ship]
-                    if hs and RT.valid(hs) then hs:openCommsTo(player) end
-                end
-            end
-            -- After hail: jammer is stationary; player can impulse away freely
-        end
+        -- commandImpulse(0), speed check, and hail run every tick in _P.update
+        -- (before the rate-limit gate) so the player is halted quickly.
 
         -- Jammer destroyed by crew during active inspection: rep penalty, free to go.
         if group.shakedown_state == "pending" and not group.shakedown_done and
@@ -836,6 +785,46 @@ function _P.update(state, delta, now)
 
     -- Jobboard lock suppresses new spawns; watchdog still cleans up groups.
     local spawning_ok = not (JOBS.config and JOBS.config.jobboard_locked)
+
+    -- Every-tick shakedown pass: commandImpulse(0) must fire each frame to halt the
+    -- player; at 8-second intervals it fires too rarely and the player can fly freely.
+    do
+        local player2 = _firstPlayer()
+        if player2 then
+            for _, group in ipairs(state.active) do
+                if group.shakedown_state == "pending" and not group.shakedown_done
+                   and not group.shakedown_hailed
+                   and group.jammer and RT.valid(group.jammer) then
+                    pcall(function() player2:commandImpulse(0) end)
+                    local pvx, pvy = 0, 0
+                    pcall(function() pvx, pvy = player2:getVelocity() end)
+                    local pspeed = math.sqrt(pvx * pvx + pvy * pvy)
+                    local elapsed = now - (group.shakedown_start or now)
+                    if elapsed < 10 and group.jammer_diag_next and now >= group.jammer_diag_next then
+                        group.jammer_diag_next = now + 0.5
+                        local px3, py3 = player2:getPosition()
+                        local jx3, jy3 = group.jammer:getPosition()
+                        local phys3 = group.jammer.components.physics
+                        local vel3 = phys3 and phys3.velocity
+                        local jvx = vel3 and vel3[1] or "?"
+                        local jvy = vel3 and vel3[2] or "?"
+                        local dx3, dy3 = jx3 - px3, jy3 - py3
+                        log(string.format("[JAMMER] t=+%.1fs jpos=(%.0f,%.0f) ppos=(%.0f,%.0f) offset_dist=%.0f vel=(%s,%s) pspeed=%.1f",
+                            elapsed, jx3, jy3, px3, py3,
+                            math.sqrt(dx3*dx3 + dy3*dy3),
+                            tostring(jvx), tostring(jvy), pspeed))
+                    end
+                    if pspeed < 25 then
+                        local jxf, jyf = group.jammer:getPosition()
+                        log(string.format("[JAMMER] hail fired pspeed=%.1f jpos=(%.0f,%.0f)", pspeed, jxf, jyf))
+                        group.shakedown_hailed = true
+                        local hs = RT.named[group.hailing_ship]
+                        if hs and RT.valid(hs) then hs:openCommsTo(player2) end
+                    end
+                end
+            end
+        end
+    end
 
     if now < state.next_check then return end
     state.next_check = now + _cfg("check_interval")
