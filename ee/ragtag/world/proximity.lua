@@ -555,10 +555,10 @@ local function _processGroup(st, group, now, player)
                                 jammer.components.physics.type = "static"
                                 jammer.components.physics.velocity = {0, 0}
                             end
-                            jammer:setRange(1 * U)
+                            jammer:setRange(2 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
-                                "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
+                                "Active Concord warp suppression emitter. Disrupts warp drive within 2U. Destroy the emitter to clear the field.")
                             pcall(function() jammer:setHull(100):setHullMax(100) end)
                             group.jammer           = jammer
                             group.hailing_ship     = cs
@@ -619,7 +619,7 @@ local function _processGroup(st, group, now, player)
         -- While not yet hailed: jammer stays 0.25U ahead matching player velocity;
         -- commandImpulse(0) brings the player to a stop. Once speed < 25 u/s the jammer
         -- freezes at that position and the Concord comms fire. After that the player can
-        -- use impulse to try to escape the stationary 1U warp-suppression field.
+        -- use impulse to try to escape the stationary 2U warp-suppression field.
         if group.shakedown_state == "pending" and not group.shakedown_done and
            group.jammer and RT.valid(group.jammer) and player then
             local pvx, pvy = 0, 0
