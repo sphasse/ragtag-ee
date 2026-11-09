@@ -504,7 +504,7 @@ function addSessionGMFunctions()
         {label = "Thrusters", ids = {"combat_thrusters"}},
         {label = "Warp",      ids = {"warp_overhaul"}},
         {label = "Reactor",   ids = {"reactor_overhaul"}},
-        {label = "Repair",    ids = {"repair_crew"}},
+        {label = "Repair",    ids = {"repair_crew", "repair_crew_2", "repair_crew_3"}},
         {label = "Sensors",   ids = {"sensor_suite"}},
         {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
     }
@@ -533,9 +533,16 @@ function addSessionGMFunctions()
     end
 
     local function _upgradeLabel(group_label, idx, u)
-        local owned  = RT.hasUpgrade(u.id)
         local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires)
-        local glyph  = owned and "■" or (locked and "×" or "□")
+        local glyph
+        if locked then
+            glyph = "×"
+        elseif u.crew then
+            local p = RT.player
+            glyph = (RT.valid(p) and p:getRepairCrewCount() < 8) and "□" or "■"
+        else
+            glyph = RT.hasUpgrade(u.id) and "■" or "□"
+        end
         return glyph .. " " .. group_label .. " lvl " .. (idx + 1)
     end
 
@@ -620,8 +627,8 @@ function addSessionGMFunctions()
         add(string.format("  energy: %.0f / %.0f", p:getEnergy(), p:getMaxEnergy()))
 
         sec("REPAIR")
-        add(uline("repair_crew"))
-        add(string.format("  crew: %d", p:getRepairCrewCount()))
+        add(uline("repair_crew")); add(uline("repair_crew_2")); add(uline("repair_crew_3"))
+        add(string.format("  crew: %d / 8 max", p:getRepairCrewCount()))
 
         sec("SENSORS")
         add(uline("sensor_suite"))
@@ -645,15 +652,26 @@ function addSessionGMFunctions()
             for idx, uid in ipairs(group.ids) do
                 local u = RT.upgradeById(uid)
                 if u then
-                    local cap_id  = uid
-                    local cap_req = u.requires
-                    local cap_grp = group.label
-                    local cap_idx = idx
+                    local cap_id   = uid
+                    local cap_req  = u.requires
+                    local cap_crew = u.crew
                     addGMFunction(_upgradeLabel(group.label, idx, u), function()
-                        if RT.hasUpgrade(cap_id) then
-                            _revokeUpgrade(cap_id)
-                        elseif cap_req == nil or RT.hasUpgrade(cap_req) then
-                            RT.grantUpgrade(cap_id)
+                        if cap_crew then
+                            local prereq_ok = cap_req == nil or RT.hasUpgrade(cap_req)
+                            local p = RT.player
+                            if prereq_ok and RT.valid(p) and p:getRepairCrewCount() < 8 then
+                                if RT.hasUpgrade(cap_id) then
+                                    RT.applyUpgrade(p, cap_id)   -- owned but crew died; restore
+                                else
+                                    RT.grantUpgrade(cap_id)
+                                end
+                            end
+                        else
+                            if RT.hasUpgrade(cap_id) then
+                                _revokeUpgrade(cap_id)
+                            elseif cap_req == nil or RT.hasUpgrade(cap_req) then
+                                RT.grantUpgrade(cap_id)
+                            end
                         end
                         showShipUpgradesMenu(ship_cs)
                     end)

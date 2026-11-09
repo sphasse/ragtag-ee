@@ -602,9 +602,18 @@ RT.UPGRADES = {
         p:setWeaponTubeDirection(0, 180)
         p:setWeaponTubeDirection(1, 0)
      end},
-    {id = "repair_crew", name = "Two more hands", gm_name = "Repair crew", cost = 150,
-     desc = "+2 repair crew.",
-     apply = function(p) p:setRepairCrewCount(p:getRepairCrewCount() + 2) end},
+    {id = "repair_crew", name = "Two more hands", gm_name = "Repair crew", cost = 150, crew = true,
+     desc = "+2 repair crew (max 8).",
+     available = function(p) return p:getRepairCrewCount() < 8 end,
+     apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
+    {id = "repair_crew_2", name = "Three more hands", gm_name = "Repair crew 2", cost = 150, crew = true,
+     requires = "repair_crew", desc = "+2 repair crew (max 8).",
+     available = function(p) return p:getRepairCrewCount() < 8 end,
+     apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
+    {id = "repair_crew_3", name = "Full crew complement", gm_name = "Repair crew 3", cost = 150, crew = true,
+     requires = "repair_crew_2", desc = "+2 repair crew (max 8).",
+     available = function(p) return p:getRepairCrewCount() < 8 end,
+     apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
     {id = "sensor_suite", name = "Long-range sensor suite", gm_name = "Sensors", cost = 150,
      desc = "Long-range radar 30u -> 45u.",
      apply = function(p) p:setLongRangeRadarRange(45000) end},
@@ -828,7 +837,8 @@ function RT.shipwrightMenu(source, target)
     local lines = {"Shipwright. Balance: " .. RT.credits(source) .. " credits.\n"}
     local any = false
     for _, u in ipairs(RT.UPGRADES) do
-        if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id) and (u.requires == nil or RT.hasUpgrade(u.requires)) then
+        if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id) and (u.requires == nil or RT.hasUpgrade(u.requires))
+           and (u.available == nil or u.available(source)) then
             any = true
             table.insert(lines, string.format("%s (%d cr): %s", u.name, u.cost, u.desc))
             addCommsReply(string.format("Buy %s (%d)", u.name, u.cost), function(s, t)
