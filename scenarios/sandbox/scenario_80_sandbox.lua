@@ -212,7 +212,7 @@ function init()
             if not S.vesper_first_hail then
                 S.vesper_first_hail = true
                 local session_text = S.session_num == 1 and "Welcome to the Drift, independents." or "Back again, I see."
-                info.flavor = session_text .. " Port Vesper is neutral ground--you're safe here. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe."
+                info.flavor = session_text .. " Port Vesper is neutral ground--you're safe here. Dock up and hail us when you need work--we keep a board running. But out there? That's on you. The Gauntlet has good salvage if you can keep it, Core stations pay top credits but ask questions, and nobody goes to the Maw and comes back. Fly safe."
             else
                 info.flavor = "Port Vesper traffic control. Mind the dock clamps, they bite."
             end
