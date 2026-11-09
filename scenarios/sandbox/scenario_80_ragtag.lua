@@ -1,5 +1,5 @@
 -- Name: The Drift
--- Description: Do jobs, get paid, keep flying. Take contracts from stations across the Drift -- deliveries, salvage, hacking runs, and things that shoot back. Credits and upgrades carry between sessions. The AI director watches and responds.
+-- Description: Do jobs, get paid, keep flying. Take contracts from stations across the Drift -- deliveries, salvage, hacking runs, and things that shoot back. Stay on the right side of Concord or learn what their warp jammers feel like. Corsairs don't negotiate. Credits and upgrades carry between sessions.
 ---
 --- The Drift campaign. Persistent credits and upgrades. Jobs, missions, and faction
 --- consequences accumulate across sessions. No fixed end -- just the next job.
