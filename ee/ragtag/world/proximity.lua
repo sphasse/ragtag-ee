@@ -550,10 +550,10 @@ local function _processGroup(st, group, now, player)
                             if jammer.components.physics then
                                 jammer.components.physics.velocity = {0, 0}
                             end
-                            jammer:setRange(2 * U)
+                            jammer:setRange(1 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
-                                "Active Concord warp suppression emitter. Disrupts warp drive within 2U. Destroy the emitter to clear the field.")
+                                "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
                             pcall(function() jammer:setHull(100):setHullMax(100) end)
                             group.jammer           = jammer
                             group.hailing_ship     = cs
