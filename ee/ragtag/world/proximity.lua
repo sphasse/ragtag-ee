@@ -541,10 +541,12 @@ local function _processGroup(st, group, now, player)
                         local dx, dy = ssx - px2, ssy - py2
                         if math.sqrt(dx * dx + dy * dy) < 5 * U then
                             -- Place jammer 0.25U ahead of player's heading; repositioned every frame.
+                            -- setPosition chained to constructor so initial position is sent with
+                            -- entity creation, not as a subsequent update (prevents visual fly-out).
                             local head_rad = math.rad(player:getHeading())
-                            local jammer = WarpJammer()
-                            jammer:setPosition(px2 + math.sin(head_rad) * 0.25 * U,
-                                               py2 - math.cos(head_rad) * 0.25 * U)
+                            local jx = px2 + math.sin(head_rad) * 0.25 * U
+                            local jy = py2 - math.cos(head_rad) * 0.25 * U
+                            local jammer = WarpJammer():setPosition(jx, jy)
                             jammer:setRange(1 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
