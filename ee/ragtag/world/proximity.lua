@@ -540,30 +540,28 @@ local function _processGroup(st, group, now, player)
                         local ssx, ssy = s:getPosition()
                         local dx, dy = ssx - px2, ssy - py2
                         if math.sqrt(dx * dx + dy * dy) < 5 * U then
-                            -- Spawn jammer at player position with player's current velocity.
-                            -- It decelerates to zero over ~5 s; the player can impulse to escape
-                            -- the 1U warp-suppression field before the jammer comes to a stop.
+                            -- Spawn jammer 0.25U ahead of player with player's current velocity.
+                            -- The jammer tracks position + velocity each frame while impulse is
+                            -- suppressed. Once the player reaches near-zero speed the jammer stops
+                            -- tracking and the Concord hail fires, leaving the jammer stationary
+                            -- so the player can decide to outrun it.
                             local jvx, jvy = 0, 0
                             pcall(function() jvx, jvy = player:getVelocity() end)
-                            local jammer = WarpJammer():setPosition(px2, py2)
+                            local head_rad = math.rad(player:getHeading())
+                            local jammer = WarpJammer():setPosition(
+                                px2 + math.sin(head_rad) * 0.25 * U,
+                                py2 - math.cos(head_rad) * 0.25 * U)
                             pcall(function() jammer:setVelocity(jvx, jvy) end)
                             jammer:setRange(1 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
                                 "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
                             pcall(function() jammer:setHull(100):setHullMax(100) end)
-                            group.jammer          = jammer
-                            group.jammer_vx       = jvx
-                            group.jammer_vy       = jvy
-                            group.shakedown_state = "pending"
-                            group.shakedown_start = now
-                            s:openCommsTo(player)
-                            RT.shipLog("[Concord] Standby for inspection. Incoming patrol comms on Relay.", "#8888FF")
-                            local _msg = "CONCORD INSPECTION\nPrepare to comply with data transmission and scanning."
-                            local _key = "concord_insp_" .. math.floor(now)
-                            for _, _st in ipairs({"Helms","Weapons","Engineering","Engineering+","Science","Relay","Tactical","Operations","AltRelay"}) do
-                                player:addCustomMessage(_st, _key .. _st, _msg)
-                            end
+                            group.jammer           = jammer
+                            group.hailing_ship     = cs
+                            group.shakedown_state  = "pending"
+                            group.shakedown_start  = now
+                            group.shakedown_hailed = false
                             break
                         end
                     end
@@ -597,25 +595,41 @@ local function _processGroup(st, group, now, player)
             end
         end
 
-        -- Decelerate jammer from initial player velocity toward zero (~5 seconds to stop).
-        -- Player can use impulse to escape the 1U warp-suppression field before it stops.
-        -- Jammer is cleaned up by the non-hostile despawn block below when player is free to go,
-        -- or left in place for the player to exit or destroy if the patrol goes hostile.
+        -- Jammer phase: track player (bring them to a stop), then hail and release.
+        -- While not yet hailed: jammer stays 0.25U ahead matching player velocity;
+        -- commandImpulse(0) brings the player to a stop. Once speed < 25 u/s the jammer
+        -- freezes at that position and the Concord comms fire. After that the player can
+        -- use impulse to try to escape the stationary 1U warp-suppression field.
         if group.shakedown_state == "pending" and not group.shakedown_done and
-           group.jammer and RT.valid(group.jammer) then
-            local vx = group.jammer_vx or 0
-            local vy = group.jammer_vy or 0
-            if vx ~= 0 or vy ~= 0 then
-                local drag = 0.5 ^ delta
-                vx = vx * drag
-                vy = vy * drag
-                if math.abs(vx) < 10 and math.abs(vy) < 10 then
-                    vx, vy = 0, 0
+           group.jammer and RT.valid(group.jammer) and player then
+            local pvx, pvy = 0, 0
+            pcall(function() pvx, pvy = player:getVelocity() end)
+            local pspeed = math.sqrt(pvx * pvx + pvy * pvy)
+
+            if not group.shakedown_hailed then
+                -- Still decelerating: track position and velocity, suppress impulse
+                local px3, py3 = player:getPosition()
+                local head_rad = math.rad(player:getHeading())
+                group.jammer:setPosition(px3 + math.sin(head_rad) * 0.25 * U,
+                                         py3 - math.cos(head_rad) * 0.25 * U)
+                pcall(function() group.jammer:setVelocity(pvx, pvy) end)
+                pcall(function() player:commandImpulse(0) end)
+
+                if pspeed < 25 then
+                    -- Player nearly stopped: freeze jammer and fire the hail
+                    pcall(function() group.jammer:setVelocity(0, 0) end)
+                    group.shakedown_hailed = true
+                    local hs = RT.named[group.hailing_ship]
+                    if hs and RT.valid(hs) then hs:openCommsTo(player) end
+                    RT.shipLog("[Concord] Standby for inspection. Incoming patrol comms on Relay.", "#8888FF")
+                    local _msg = "CONCORD INSPECTION\nPrepare to comply with data transmission and scanning."
+                    local _key = "concord_insp_" .. math.floor(getScenarioTime())
+                    for _, _st in ipairs({"Helms","Weapons","Engineering","Engineering+","Science","Relay","Tactical","Operations","AltRelay"}) do
+                        player:addCustomMessage(_st, _key .. _st, _msg)
+                    end
                 end
-                group.jammer_vx = vx
-                group.jammer_vy = vy
-                pcall(function() group.jammer:setVelocity(vx, vy) end)
             end
+            -- After hail: jammer is stationary; player can impulse away freely
         end
 
         -- Jammer destroyed by crew during active inspection: rep penalty, free to go.
