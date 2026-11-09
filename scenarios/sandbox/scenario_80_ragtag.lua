@@ -1,7 +1,8 @@
--- Name: Sandbox: Open Play
--- Description: Explore the Drift, earn credits, upgrade your ship. No fixed story--make your own. Perfect for learning the universe and trying out ship systems. The AI director creates dynamic encounters based on your choices.
+-- Name: The Drift
+-- Description: Do jobs, get paid, keep flying. Take contracts from stations across the Drift -- deliveries, salvage, hacking runs, and things that shoot back. Credits and upgrades carry between sessions. The AI director watches and responds.
 ---
---- Sandbox campaign. Credits and upgrades persist across sessions. No fixed objectives.
+--- The Drift campaign. Persistent credits and upgrades. Jobs, missions, and faction
+--- consequences accumulate across sessions. No fixed end -- just the next job.
 --- Optional: run the AI director (director/main.py) for dynamic encounters and opportunities.
 -- Type: The Drift Universe
 -- Setting[Campaign]: Use saved campaign progress or start over.
