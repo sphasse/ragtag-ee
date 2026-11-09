@@ -768,6 +768,15 @@ function _P.init(state)
 end
 
 function _P.update(state, delta, now)
+    -- Auto-clear Concord wanted status when rep recovers to >= 0.
+    -- Runs every tick (not rate-limited) so it fires as soon as rep crosses the threshold,
+    -- regardless of what caused the change (mission reward, donation, GM adjustment, etc.).
+    if RT.campaign.flags and RT.campaign.flags.wanted
+       and (RT.getReputation("Concord") or 0) >= 0 then
+        PROX.clearWantedStatus()
+        RT.shipLog("[Concord] Outstanding warrant cleared — standing restored.", "#8888FF")
+    end
+
     -- Jobboard lock suppresses new spawns; watchdog still cleans up groups.
     local spawning_ok = not (JOBS.config and JOBS.config.jobboard_locked)
 

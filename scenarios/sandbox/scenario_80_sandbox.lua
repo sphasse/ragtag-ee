@@ -480,9 +480,9 @@ function addSessionGMFunctions()
             showFactionDetail(faction)
         end)
         if faction == "Concord" and wanted then
-            addGMFunction("Clear Wanted Status", function()
+            addGMFunction("Clear Wanted Now", function()
                 PROX.clearWantedStatus()
-                RT.shipLog("[GM] Concord wanted status cleared.", "#8888FF")
+                RT.shipLog("[GM] Concord wanted status force-cleared.", "#8888FF")
                 showFactionDetail(faction)
             end)
         end
