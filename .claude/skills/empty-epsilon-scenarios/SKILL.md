@@ -78,6 +78,22 @@ Test as far as the environment allows, and tell the user what was and wasn't ver
 - `scenarios/longhaul/plan.md`: plans for Long Haul sessions 2–5; `scenarios/longhaul/bible.md`: its story bible.
 - `docs/examples/extension_example.lua`: a complete universe extension.
 
+## Reputation consequences — the reactive contract
+
+All faction reputation consequences must be **reactive** (computed live from the current rep value each time they are needed) rather than **sticky** (a separate flag that must be manually reconciled). This ensures that any rep change — GM adjustment, mission reward, donation — immediately produces the correct game state without extra cleanup steps.
+
+**Current consequences and how they are wired:**
+
+| Faction | Consequence | How wired |
+|---|---|---|
+| Concord | Inspection tier (compliment / clean pass / fine / detention / hostile) | Read live in proximity shakedown comms |
+| Concord | `wanted` flag (patrols attack on sight) | The one exception — a sticky flag. Auto-cleared in `_P.update` when rep ≥ 0. `PROX.clearWantedStatus()` is the central clear function; also exposed as "Clear Wanted Now" in the GM Concord detail for force-override. |
+| Corsairs | Patrol spawn frequency (cooldown scaling) | Read live in `_P.update` spawn loop |
+| Any faction | Job board slot penalty (0/1/2/closed) | Read live at job-generation time from the docked station's faction rep |
+| Hollow / Relic | Always hostile | No rep effects; nothing to wire |
+
+**Rule for new consequences:** prefer reading `RT.getReputation(faction)` at the point of use. If you must write a flag (e.g., because an event needs to outlast the rep change that caused it), you must also add an auto-clear trigger — either in `_P.update` or in a comparable always-running tick — that fires when rep crosses back above the relevant threshold. Never rely on the GM to clear it manually.
+
 ## Universe changes
 Add content as a new file in `ee/ragtag/verse/extensions/` (copy the example); edit `ee/ragtag/verse/drift.lua`
 only to change the base map, and never rename or remove places scenarios depend on. Always finish with
