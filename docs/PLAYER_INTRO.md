@@ -22,7 +22,7 @@ Five suns span the Drift. The same map every session — learn it, because navig
 
 ## Factions
 
-**The Concord** — The government. Won the Settlement War twenty years ago. Gray hulls, transponders always on. Be polite, keep your transponder on, don't run. If you're clean they're neutral. If you're wanted, they're a problem.
+**The Concord** — The government. Won the Settlement War twenty years ago. Gray hulls, transponders always on. Good standing means they wave you through. Bad standing means inspections, fines, and warp jammers. Very bad standing means they shoot on sight.
 
 **Independents** — Traders, salvagers, drifters. People like you.
 

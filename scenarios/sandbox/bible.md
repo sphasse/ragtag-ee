@@ -1,6 +1,6 @@
-## Sandbox Campaign — bible
+## The Drift — campaign bible
 
-This campaign has no fixed story. The crew explores the Drift, learns the setting, and encounters opportunities as they arise. The AI director creates dynamic situations based on crew choices and location.
+Do jobs, get paid, keep flying. The crew runs contracts across the Drift, building credits and reputation session by session. The AI director creates dynamic situations based on crew choices and location.
 
 ### Tone
 Space-western sandbox. Wry humour, real stakes, never grimdark. The crew are independents making their way on the frontier. Every action has consequences, but nothing is scripted.
@@ -36,7 +36,7 @@ The Drift spans five suns from the rich Concord Core to the deadly Maw. Money is
 
 ### Factions
 - **Independent**: The crew and most traders. Neutral to each other.
-- **Concord**: The law. Neutral unless provoked; hostile if crew is wanted.
+- **Concord**: The law. Neutral at good standing; inspections and fines at bad standing; hostile and attacks on sight when reputation drops below −200.
 - **Corsairs**: Pirates. Hostile to traders, avoid strong targets.
 - **Relic**: War drones from the Settlement War. Hostile to all.
 - **Hollow**: Unknown faction from the Maw. Hostile, mysterious.

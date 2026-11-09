@@ -53,8 +53,9 @@ Every reputation change logs three lines to the Relay console:
 | Board and disable a ship | Corsairs | −100 |
 | Concord fine paid (shake-down) | Concord | +100 |
 | Evade Concord inspection (flee 10U) | Concord | −100 |
-| Destroy Concord warp jammer | Concord | −75 |
-| Refuse Concord inspection | Concord | −100 + warrant |
+| Destroy Concord warp jammer | Concord | −50 |
+| Evade Concord inspection (timeout — no comms reply) | Concord | −100 |
+| Escalate inspection to hostile (cut channel / refuse) | Concord | −150 |
 | Donate $100 at Saint Brennan's Mission | Independent | +100 |
 | Donate $100 at Concord Waypoint Galen | Concord | +50 |
 | Rezkov Arc M3: destroy CWS Meridian | Concord | −1000 |
@@ -97,18 +98,18 @@ A completed Tier 0 delivery at minimum range moves about +50 rep. A failed Tier 
 |---|---|---|
 | +500 | Wave through inspections — no stop, no fine | Concord resumes inspections |
 | +200 | Accept cargo declarations without proof | No longer accepts declarations without proof |
-| 0 | Benefit of doubt on ignored hails | Patrols will issue warrants for ignored inspections |
-| −200 | More work becoming available at Concord ports | Very few jobs at Concord ports |
+| 0 | Benefit of doubt on ignored hails | Patrols more likely to escalate inspections |
+| −200 | More work becoming available at Concord ports | **Concord patrols now spawn as hostile and attack on sight** |
 | −400 | Concord ports may offer limited work again | Concord ports will no longer offer work |
-| −500 | Inspection protocols restored | **Concord patrols will now attack on sight** |
 
 **How Concord inspections work:**
 - Concord patrols spawn in the **Concord Core** and **Arbiter Line** zones only.
-- On spawn they fly toward the player ("approaching"). When they close to 5U and the player is more than 20U from any station, they deploy a 1U WarpJammer, hail via comms, and begin the shake-down.
-- Player options: submit (30-second scan, −50% credits fine if contraband found, +100 rep on fine paid), stall (3 stalls allowed, each resets the 45-second clock, 4th stall triggers an out-of-patience fine), or run (requires getting 10U clear of all patrol ships, −100 rep).
+- On spawn they fly toward the player ("approaching"). When they close to 5U and the player is more than 20U from any station, they deploy a 1U WarpJammer behind the player, broadcast a warning naming the interceptor, and hail via comms once the player has stopped.
+- Player options: comply (outcome based on rep — wave-through, clean pass, or fine), stall (up to 2 stalls; each resets the 60-second clock), or run (requires getting 10U clear of all patrol ships, −100 rep).
+- Comms timeout (60 seconds of silence after hail): patrol goes hostile, −100 rep, "You were warned" broadcast.
 - Rep ≥ +500: immediate wave-through, no jammer, no fine.
 - Rep ≥ +200: Concord accepts a cargo declaration without a scan.
-- Rep < −500: no shake-down — Concord ships spawn and immediately `orderAttack`.
+- Rep < −200: no shake-down — Concord ships spawn as **Concord Hostile** (targetable) and immediately attack.
 
 ### Independent and Corsair thresholds
 

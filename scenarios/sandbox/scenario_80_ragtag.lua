@@ -103,9 +103,6 @@ function WreckLog.checkWrecks()
     end
 end
 
--- The Witness arc lives in ee/ragtag/missions/witness.lua (MISSIONS engine).
-
-
 
 --------------------------------------------------------------------------------
 -- Setup
