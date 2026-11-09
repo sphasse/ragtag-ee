@@ -529,18 +529,11 @@ local function _processGroup(st, group, now, player)
                         local ssx, ssy = s:getPosition()
                         local dx, dy = ssx - px2, ssy - py2
                         if math.sqrt(dx * dx + dy * dy) < 5 * U then
-                            -- Lead placement: if player is warping, drop jammer 0.5U ahead.
-                            local jx, jy = px2, py2
-                            local ok_v, vx, vy = pcall(function() return player:getVelocity() end)
-                            if ok_v and vx then
-                                local spd = math.sqrt(vx * vx + vy * vy)
-                                if spd > 500 then   -- well above impulse max (~50 wu/s)
-                                    jx = px2 + (vx / spd) * 0.5 * U
-                                    jy = py2 + (vy / spd) * 0.5 * U
-                                end
-                            end
+                            -- Place jammer 0.25U ahead of player's heading; repositioned every frame.
+                            local head_rad = math.rad(player:getHeading())
                             local jammer = WarpJammer()
-                            jammer:setPosition(jx, jy)
+                            jammer:setPosition(px2 + math.sin(head_rad) * 0.25 * U,
+                                               py2 - math.cos(head_rad) * 0.25 * U)
                             jammer:setRange(1 * U)
                             jammer:setFaction("Concord Hostile")
                             jammer:setDescriptions("Concord WarpJammer",
@@ -582,6 +575,18 @@ local function _processGroup(st, group, now, player)
                     if RT.valid(s) then s:orderFlyTowards(px2, py2) end
                 end
             end
+        end
+
+        -- Keep jammer 0.25U ahead of player and kill impulse while inspection is unresolved.
+        -- Jammer is cleaned up by the non-hostile despawn block below when player is free to go,
+        -- or left in place for the player to exit or destroy if the patrol goes hostile.
+        if group.shakedown_state == "pending" and not group.shakedown_done and
+           group.jammer and RT.valid(group.jammer) and player then
+            local px3, py3 = player:getPosition()
+            local head_rad = math.rad(player:getHeading())
+            group.jammer:setPosition(px3 + math.sin(head_rad) * 0.25 * U,
+                                     py3 - math.cos(head_rad) * 0.25 * U)
+            pcall(function() player:commandImpulse(0) end)
         end
 
         -- Jammer destroyed by crew during active inspection: rep penalty, free to go.
