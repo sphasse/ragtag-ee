@@ -175,6 +175,15 @@ local _THREAT_MSGS = {
     "We've been waiting for you. This stop wasn't random.",
 }
 
+local _HOSTILE_LINES = {
+    "Standby for disassembly.",
+    "Your hull has been reclassified as scrap.",
+    "Prepare for unscheduled decommissioning.",
+    "You've been designated a navigation hazard.",
+    "Your flight plan has been permanently cancelled.",
+    "Transmitting termination order now.",
+}
+
 local function _makeShakedownComms(group)
     return function(src, tgt)
         if group.shakedown_done then
@@ -255,13 +264,10 @@ local function _makeShakedownComms(group)
                 end)
 
             else
-                -- rep < -200: flagged for detainment
-                setCommsMessage('"Your vessel is flagged for detainment. Prepare to be boarded."')
-                addCommsReply("[Acknowledge.]", function(s2, t2)
-                    doThreat(doGoHostile)
-                end)
-                addCommsReply("[Open fire first.]", function(s2, t2)
-                    doGoHostile()
+                -- rep < -200: no negotiation
+                setCommsMessage('"You\'re not welcome in Concord space. ' .. _HOSTILE_LINES[math.random(#_HOSTILE_LINES)] .. '"')
+                doGoHostile()
+                addCommsReply("[Cut channel.]", function(s2, t2)
                     setCommsMessage("The channel closes.")
                 end)
             end
