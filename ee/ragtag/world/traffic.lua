@@ -34,7 +34,6 @@ local _CARGO = {
 local _YARDS = {
     "Rim Works Collective, Ashgrave",
     "Vesper Industrial, Port Vesper",
-    "Concord Ordnance Yards, Lumen",
     "Cinder Fields Fabricators",
     "Kestrel Ironworks",
     "Greywater Shipwrights",
@@ -55,11 +54,28 @@ local _CAPTAINS = {
     {name="Orin Slack",    bio="Claims to have never missed a delivery. Most of the stations that could dispute it are no longer standing."},
     {name="Pell Davan",    bio="Came out of the Core with forged credentials and a ship that technically belonged to someone else. That was twenty years ago. Statute of limitations, probably."},
     {name="Saray Cohm",    bio="Inherited a freight contract and a failing ship from a business partner. The contract expired. The ship didn't."},
-    {name="Bram Esten",    bio="Flew Concord patrol ships for twelve years. Took early retirement after the Greywater Incident. The Concord calls it a commendation. He calls it a buyout."},
     {name="Vael Drax",     bio="No flight record before fifteen years ago. Pays in cash. Always on time."},
     {name="Corra Nine",    bio="Self-taught pilot out of the Rim. Never held a license the Concord would recognize, but the cargo always arrives."},
     {name="Henley Cass",   bio="Runs the same three-station loop he's run for twenty years. Knows every dock worker by name. Has no ambitions he'll admit to."},
     {name="Zura Falke",    bio="Former science officer, Concord Survey Corps. Left after the Pale Sun expedition. Delivers freight now. Doesn't discuss the expedition."},
+}
+
+local _CONCORD_YARDS = {
+    "Concord Ordnance Yards, Lumen",
+    "CWS Shipworks, Lumen",
+    "Sentinel Fleet Logistics, Cardinal",
+    "Concord Transport Authority, Ostia",
+    "CWS Maintenance Division, Arbiter Line",
+}
+
+local _CONCORD_CAPTAINS = {
+    {name="Hara Voss",   bio="Concord Transport Authority, fifteen years. Spotless record. Currently on disciplinary review for an incident at Greywater that the official report doesn't mention."},
+    {name="Tomas Drel",  bio="Contracted freight pilot, CWS logistics. Passes every inspection. The Concord likes him. The dock workers at Lumen don't."},
+    {name="Sela Marsh",  bio="CWS-certified freight officer. Twelve years' service. Technically still Concord reserves — never formally discharged."},
+    {name="Oren Vilas",  bio="Concord Transport Authority. Applied for a patrol posting three times. Rejected three times. Delivers freight on time and doesn't discuss it."},
+    {name="Fayen Corp",  bio="Second-generation Concord employee. Her mother worked ordnance logistics. She delivers civilian freight. The family considers it a step down."},
+    {name="Doss Reyne",  bio="Concord freight contractor, fourteen years, no incidents. The kind of pilot the CTA builds training courses around — reliable, invisible, completely uninterested in anything outside his manifest."},
+    {name="Bram Esten",  bio="Flew Concord patrol ships for twelve years. Took early retirement after the Greywater Incident. The Concord calls it a commendation. He calls it a buyout."},
 }
 
 -- ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -160,15 +176,28 @@ local function _spawnTransport(route, rng, near_station)
     -- freighter gets a modest warp drive (the AI uses it on long legs).
     s:setWarpDrive(true)
     s:setWarpSpeed(rng.float(250, 400))
-    local yard = rng.pick(_YARDS)
     local age  = rng.int(8, 45)
-    local cap  = rng.pick(_CAPTAINS)
-    local scan2 = string.format("Currently hauling %s. Captain %s — %s", _CARGO[kind], cap.name, cap.bio)
-    if #scan2 > 200 then scan2 = string.sub(scan2, 1, 197) .. "..." end
-    s:setDescriptions(
-        string.format("%s. %s, %d years in service.", tmpl, yard, age),
-        scan2
-    )
+    if route.fac == "Concord" then
+        local yard = rng.pick(_CONCORD_YARDS)
+        local cap  = rng.pick(_CONCORD_CAPTAINS)
+        local scan3 = string.format("Currently hauling %s under CWS contract. Flight officer %s — %s", _CARGO[kind], cap.name, cap.bio)
+        if #scan3 > 200 then scan3 = string.sub(scan3, 1, 197) .. "..." end
+        s:setDescriptions(
+            "CWS-registered transport.",
+            string.format("Concord Worlds Service transport. %s, %s. %d years active service.", tmpl, yard, age)
+        )
+        s:setDescriptionForScanState("fullscan", scan3)
+        s:setScanningParameters(1, 2)
+    else
+        local yard = rng.pick(_YARDS)
+        local cap  = rng.pick(_CAPTAINS)
+        local scan2 = string.format("Currently hauling %s. Captain %s — %s", _CARGO[kind], cap.name, cap.bio)
+        if #scan2 > 200 then scan2 = string.sub(scan2, 1, 197) .. "..." end
+        s:setDescriptions(
+            string.format("%s. %s, %d years in service.", tmpl, yard, age),
+            scan2
+        )
+    end
     local rec = {ship = s, route = route, kind = kind, dest = nil, docked_since = nil,
                  linger = rng.float(20, 60), last_order = getScenarioTime(), name = s:getCallSign()}
     rec.dest = dest
