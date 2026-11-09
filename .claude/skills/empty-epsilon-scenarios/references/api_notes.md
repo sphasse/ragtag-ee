@@ -63,6 +63,7 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 
 - In `/exec.lua` and other non-scenario environments, `utils.lua` helpers (`angleHeading`, `distance`, `vectorFromAngle`...) are not loaded. Use plain math there.
 - Reading a component that doesn't exist *as a component type* (e.g. `obj.components.planet`) raises "Tried to get non-existing component". Valid names come from the API files: `typename`, `pickup`, `planet_render`, `orbit`, `physics`, `impulse_engine`, ... A valid component type that the entity lacks just returns nil.
+- **No `entity:setVelocity()`** — this method does not exist. `entity:getVelocity()` exists and returns vx, vy by reading `physics.velocity`. To SET velocity write directly to the component: `entity.components.physics.velocity = {0, 0}` (vec2 component members use `{x, y}` table form, not named keys). This is the ONLY way to zero a physics body's velocity from Lua. `pcall(function() e:setVelocity(0,0) end)` silently swallows a "method not found" error and does nothing.
 - `FactionInfo():setName("X")` creates a custom faction at runtime (limit 32; the stock file uses 10). Call it in `init()` before any entity uses the faction. Relations: `a:setEnemy(b)` / `a:setFriendly(b)` take FactionInfo objects (`getFactionInfo("Independent")`) and are reciprocal; anything unset is neutral.
 
 ## 5. Ships, weapons and upgrades
