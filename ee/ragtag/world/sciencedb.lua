@@ -116,7 +116,7 @@ local function _build()
     SCIDB._entries["region_border"] = _entry(regions, "The Border",
         "Independent trading posts around the red star Cinder. Port Vesper is the " ..
         "largest neutral hub in the Drift. Busy lanes, loose law. Where most deals get made.",
-        { ["Star"] = "Cinder (red)", ["Law"] = "Nominal — Concord patrols infrequent", ["Danger"] = "Low to moderate" }
+        { ["Star"] = "Cinder (red)", ["Law"] = "Nominal — sparse patrols", ["Danger"] = "Low to moderate" }
     )
 
     SCIDB._entries["region_rim"] = _entry(regions, "The Rim",
@@ -130,14 +130,14 @@ local function _build()
         "A vast nebula cutting through the mid-Drift. Sensors degrade inside it. " ..
         "Ships go missing. Spacers tell stories. Navigation relies on signal buoys " ..
         "that sometimes go offline without explanation.",
-        { ["Hazard"] = "Sensor interference — expect degraded scan range", ["Danger"] = "Moderate to high" }
+        { ["Hazard"] = "Sensor interference", ["Danger"] = "Moderate to high" }
     )
 
     SCIDB._entries["region_gauntlet"] = _entry(regions, "The Gauntlet",
         "A dense asteroid belt notorious for Corsair ambushes. The rocks provide " ..
         "cover for attack craft and make pursuit difficult. Avoid unless you're armed " ..
         "or you have business there.",
-        { ["Hazard"] = "Corsair interdiction, navigation debris", ["Danger"] = "High" }
+        { ["Hazard"] = "Corsairs, debris fields", ["Danger"] = "High" }
     )
 
     SCIDB._entries["region_blackwater"] = _entry(regions, "Blackwater Reach",
@@ -152,7 +152,7 @@ local function _build()
         "Relic war drones still patrol the debris fields, still following " ..
         "twenty-year-old targeting orders. Salvage value is high. " ..
         "Life expectancy is not.",
-        { ["Hazard"] = "Active Relic war drones", ["Danger"] = "High — drones attack without warning" }
+        { ["Hazard"] = "Active Relic war drones", ["Danger"] = "High — no warning given" }
     )
 
     SCIDB._entries["region_maw"] = _locked(regions, "The Maw",
@@ -163,7 +163,7 @@ local function _build()
         "Expeditions have a near-total loss rate. The ones who come back don't talk about it. " ..
         "Long-range scans show no stations, no debris fields — only Hollow ship signatures " ..
         "and electromagnetic anomalies consistent with large-scale biological activity.",
-        { ["Star"] = "Pale Sun (blue-white)", ["Law"] = "Concord-restricted — lethal enforcement", ["Danger"] = "Extreme" },
+        { ["Star"] = "Pale Sun (blue-white)", ["Law"] = "Concord-restricted", ["Danger"] = "Extreme" },
         "maw_full"
     )
 
@@ -181,7 +181,7 @@ local function _build()
         "At good standing they wave you through. At bad standing, expect warp jammers " ..
         "and compliance timers. Below -200 reputation they treat your ship as hostile " ..
         "and attack on sight.",
-        { ["Attitude at rep ≥ 0"] = "Routine inspection, courteous", ["Attitude at rep < -200"] = "Shoot on sight", ["Warp jammer"] = "Deployed during inspections — comply within 60 seconds" }
+        { ["Attitude at rep ≥ 0"] = "Routine inspection, courteous", ["Attitude at rep < -200"] = "Shoot on sight", ["Warp jammer"] = "Comply within 60s or hostile" }
     )
 
     SCIDB._entries["faction_corsairs"] = _entry(factions, "Corsairs",
@@ -189,7 +189,7 @@ local function _build()
         "Attack traders on sight unless you have an arrangement with them. " ..
         "More organised than they appear — attacks in Concord-patrolled space " ..
         "suggest coordination and insider knowledge.",
-        { ["Territory"] = "Blackwater Reach, Gauntlet", ["Attitude"] = "Hostile to unknown ships", ["Note"] = "Reputation affects patrol frequency" }
+        { ["Territory"] = "Blackwater Reach, Gauntlet", ["Attitude"] = "Hostile to unknown ships", ["Note"] = "Rep affects spawn rate" }
     )
 
     SCIDB._entries["faction_independent"] = _entry(factions, "Independent",
@@ -221,7 +221,7 @@ local function _build()
         "Concord withdrew and sealed the sector. The Hollow are what remained. " ..
         "Phase II reversal protocols were developed but abandoned when Phase III " ..
         "subjects proved unresponsive. Protocol data exists in Ashgrave research archives.",
-        { ["Origin"] = "Human — Concord experimental subjects", ["Status"] = "Transformation ongoing — Synthesis self-sustaining", ["Reversal"] = "Phase II protocol — theoretically possible" },
+        { ["Origin"] = "Human (Concord test subjects)", ["Status"] = "Ongoing — self-sustaining", ["Reversal"] = "Phase II protocol (theoretical)" },
         "hollow_true_nature"
     )
 
@@ -241,7 +241,7 @@ local function _build()
         "The peace treaty restored Concord authority with new 'transitional' tariffs " ..
         "that have not transitioned. Ashgrave was destroyed during the final campaign. " ..
         "The Relic drones were left running. Nobody has explained why.",
-        { ["Duration"] = "~4 years, ended 20 years ago", ["Outcome"] = "Concord victory", ["Unresolved"] = "Relic drones still active; Maw sealed immediately after" }
+        { ["Duration"] = "~4 years, ended 20 years ago", ["Outcome"] = "Concord victory", ["Unresolved"] = "Drones still active; Maw sealed" }
     )
 
     SCIDB._entries["lore_ashgrave"] = _locked(lore, "Ashgrave Research",
@@ -261,7 +261,7 @@ local function _build()
         "Resolution: research station sealed, population quarantined, sector access " ..
         "restricted by emergency order. Phase II reversal protocols shelved — " ..
         "Phase III subjects unresponsive in initial trials. Data archived at Ashgrave Annex.",
-        { ["Classification"] = "Concord Level 5 — destroy on intercept", ["Status"] = "Research discontinued", ["Reversal protocol"] = "Phase II — archived, not destroyed" },
+        { ["Classification"] = "Destroy on intercept", ["Status"] = "Research discontinued", ["Reversal protocol"] = "Archived — not destroyed" },
         "ashgrave_research"
     )
 
@@ -280,7 +280,7 @@ local function _build()
         "Phase III efficacy untested due to research termination. " ..
         "Broadcast source must be within range of the subject population. " ..
         "Duration: 90 seconds minimum for dormancy cascade to initiate.",
-        { ["Type"] = "Engineered biological compound", ["Reversible"] = "Phase II protocol — broadcast-based", ["Broadcast frequency"] = "Documented in Ashgrave archive, Phase II logs" },
+        { ["Type"] = "Engineered biological compound", ["Reversible"] = "Phase II broadcast protocol", ["Broadcast frequency"] = "In Ashgrave archive, Phase II" },
         "synthesis_details"
     )
 
