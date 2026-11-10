@@ -4,14 +4,14 @@
 #
 #   tools/ci_headless.sh                         # build EE into .ee-build/ (about 20 min the first time)
 #   EE_DIR=~/src/EmptyEpsilon tools/ci_headless.sh   # use an existing build (needs _build/EmptyEpsilon)
-#   SCENARIO=scenario_80_sandbox.lua tools/ci_headless.sh
+#   SCENARIO=scenario_80_ragtag.lua tools/ci_headless.sh
 #
 # Linux only. Needs: git cmake ninja-build g++ libsdl2-dev python3.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EE_COMMIT="${EE_COMMIT:-310bebd12f14d82239070445ad190d13680f124b}"  # EE-2026.09.22PR
 SP_COMMIT="${SP_COMMIT:-bbe714aac5a855108ccedb43a99d8334b18ce792}"
-SCENARIO="${SCENARIO:-scenario_80_sandbox.lua}"
+SCENARIO="${SCENARIO:-scenario_80_ragtag.lua}"
 PLAYTHROUGH="${PLAYTHROUGH:-0}"
 PORT="${PORT:-8080}"
 
