@@ -217,7 +217,7 @@ function _P.update(state, delta, now)
             -- Spawn a new defender for this station.
             local ok, err = pcall(_spawnDefender, state, cs, slot.fac)
             if not ok then
-                print("[WORLD/defenders] spawn error at " .. cs .. ": " .. tostring(err))
+                log("[WORLD/defenders] spawn error at " .. cs .. ": " .. tostring(err))
                 slot.respawn_at = now + 30  -- back-off
             end
         end

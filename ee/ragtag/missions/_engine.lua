@@ -76,7 +76,7 @@ function MISSIONS._enterPhase(id, phase_name)
         if old_def and old_def.exit then
             local ok, err = pcall(old_def.exit, st)
             if not ok then
-                print("[MISSIONS] " .. id .. "." .. old .. " exit error: " .. tostring(err))
+                log("[MISSIONS] " .. id .. "." .. old .. " exit error: " .. tostring(err))
             end
         end
     end
@@ -90,7 +90,7 @@ function MISSIONS._enterPhase(id, phase_name)
         if M.resolve then
             local ok, err = pcall(M.resolve, st)
             if not ok then
-                print("[MISSIONS] " .. id .. " resolve error: " .. tostring(err))
+                log("[MISSIONS] " .. id .. " resolve error: " .. tostring(err))
             end
         end
         return
@@ -98,13 +98,13 @@ function MISSIONS._enterPhase(id, phase_name)
 
     local pdef = M.phases[phase_name]
     if not pdef then
-        print("[MISSIONS] " .. id .. ": unknown phase '" .. tostring(phase_name) .. "'")
+        log("[MISSIONS] " .. id .. ": unknown phase '" .. tostring(phase_name) .. "'")
         return
     end
     if pdef.enter then
         local ok, err = pcall(pdef.enter, st)
         if not ok then
-            print("[MISSIONS] " .. id .. "." .. phase_name .. " enter error: " .. tostring(err))
+            log("[MISSIONS] " .. id .. "." .. phase_name .. " enter error: " .. tostring(err))
         end
     end
 end
@@ -165,7 +165,7 @@ function MISSIONS.update(delta)
             local met = MISSIONS._checkTriggers(id)
             if met and status == "inactive" then
                 MISSIONS._status[id] = "triggered"
-                print("[MISSIONS] " .. M.name .. ": trigger conditions met")
+                log("[MISSIONS] " .. M.name .. ": trigger conditions met")
             elseif not met and status == "triggered" then
                 MISSIONS._status[id] = "inactive"
             end
@@ -184,7 +184,7 @@ function MISSIONS.update(delta)
                     local now = getScenarioTime()
                     local ok, err = pcall(pdef.update, MISSIONS._state[id], delta, now)
                     if not ok then
-                        print("[MISSIONS] " .. id .. "." .. phase_name
+                        log("[MISSIONS] " .. id .. "." .. phase_name
                               .. " update error: " .. tostring(err))
                     end
                 end

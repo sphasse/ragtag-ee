@@ -28,7 +28,7 @@ do
     -- tools/check.py --fix; a missing index just means no extensions.
     local ok, err = pcall(require, "ragtag/verse/extensions/index.lua")
     if not ok and not tostring(err):find("not found") and not tostring(err):find("cannot open") then
-        print("[VERSE] extension load failed: " .. tostring(err))
+        log("[VERSE] extension load failed: " .. tostring(err))
     end
 end
 VERSE.SEED = 20261022
@@ -493,7 +493,7 @@ function VERSE.requirePlaces(names)
     end
     if #missing > 0 then
         local msg = "This scenario needs places the universe doesn't have: " .. table.concat(missing, ", ")
-        print("[VERSE] " .. msg)
+        log("[VERSE] " .. msg)
         addGMMessage(msg)
     end
     return missing

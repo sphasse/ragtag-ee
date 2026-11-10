@@ -69,7 +69,7 @@ function WORLD.disable(id)
     if P.cleanup then
         local ok, err = pcall(P.cleanup, st)
         if not ok then
-            print("[WORLD] " .. id .. " cleanup error: " .. tostring(err))
+            log("[WORLD] " .. id .. " cleanup error: " .. tostring(err))
         end
     end
     WORLD._enabled[id] = false
@@ -123,14 +123,14 @@ function WORLD.update(delta)
                 if P.init then
                     local ok, err = pcall(P.init, st)
                     if not ok then
-                        print("[WORLD] " .. id .. " init error: " .. tostring(err))
+                        log("[WORLD] " .. id .. " init error: " .. tostring(err))
                     end
                 end
             end
             if P.update then
                 local ok, err = pcall(P.update, st, delta, now)
                 if not ok then
-                    print("[WORLD] " .. id .. "." .. "update error: " .. tostring(err))
+                    log("[WORLD] " .. id .. "." .. "update error: " .. tostring(err))
                 end
             end
         end

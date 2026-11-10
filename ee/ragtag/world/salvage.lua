@@ -232,7 +232,7 @@ function _P.init(state)
         _spawnCluster(state, (c.x + jx) * VERSE.U, (c.y + jy) * VERSE.U, c.tier)
     end
 
-    print(string.format("[Salvage] %d clusters spawned (density=%s reward=%s).",
+    log(string.format("[Salvage] %d clusters spawned (density=%s reward=%s).",
         target, _DENSITY_NAMES[state.density_idx], _REWARD_NAMES[state.reward_idx]))
 end
 

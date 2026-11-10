@@ -184,7 +184,7 @@ local function _safeComms(fn)
     return function(src, tgt)
         local ok, err = pcall(fn, src, tgt)
         if not ok then
-            print("[RZKOV][COMMS] pcall error: " .. tostring(err))
+            log("[RZKOV][COMMS] pcall error: " .. tostring(err))
             setCommsMessage("[Meridian comms error — check server log]")
         end
     end
@@ -219,7 +219,7 @@ local function _checkMeridianDisabled(st)
     local hull_low    = ok1 and ok2 and hmax > 0 and hull / hmax < 0.25
     local impulse_low = ok3 and impulse_h and impulse_h < 0.3
     if not ok1 or not ok2 or not ok3 then
-        print(string.format("[RZKOV] _checkMeridianDisabled ERROR: hull_ok=%s hmax_ok=%s impulse_ok=%s",
+        log(string.format("[RZKOV] _checkMeridianDisabled ERROR: hull_ok=%s hmax_ok=%s impulse_ok=%s",
             tostring(ok1), tostring(ok2), tostring(ok3)))
     end
     if hull_low or impulse_low then
@@ -232,38 +232,38 @@ local function _checkMeridianDisabled(st)
         local ok_dock, dock_err = pcall(function()
             st.meridian.components.docking_bay = {external_dock_classes = {"Frigate"}}
         end)
-        print(string.format("[RZKOV] docking_bay set: ok=%s err=%s", tostring(ok_dock), tostring(dock_err)))
+        log(string.format("[RZKOV] docking_bay set: ok=%s err=%s", tostring(ok_dock), tostring(dock_err)))
         st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
-            print(string.format("[RZKOV] disabled-comms opened: src=%s tgt_valid=%s faction=%s",
+            log(string.format("[RZKOV] disabled-comms opened: src=%s tgt_valid=%s faction=%s",
                 tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
                 tostring(RT.valid(tgt) and tgt:getFaction())))
             setCommsMessage('"CWS Meridian -- engines are down. We\'re not going anywhere. Close to within 1U and dock to board."')
             addCommsReply("Understood.", function()
-                print("[RZKOV] disabled-comms: Understood clicked")
+                log("[RZKOV] disabled-comms: Understood clicked")
                 setCommsMessage('"Meridian out."')
             end)
         end))
-        print("[RZKOV] Meridian disabled — faction=Independent, commsFunction set, m3_disabled=true")
+        log("[RZKOV] Meridian disabled — faction=Independent, commsFunction set, m3_disabled=true")
         RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
         RT.setObjective("Board CWS Meridian", true)
     end
 end
 
 local function _setupKaelComms(st)
-    print(string.format("[RZKOV] _setupKaelComms: called — m3_boarded was %s, meridian_valid=%s",
+    log(string.format("[RZKOV] _setupKaelComms: called — m3_boarded was %s, meridian_valid=%s",
         tostring(st.m3_boarded), tostring(RT.valid(st.meridian))))
     st.m3_boarded = true
     RT.setObjective("Speak with Commander Kael", true)
     st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
-        print(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
+        log(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
             tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
             tostring(RT.valid(tgt) and tgt:getFaction())))
         setCommsMessage('"CWS Meridian -- engines disabled. I\'ll be direct.\n\nI\'m Commander Kael, Concord Intelligence. I\'ve been monitoring traffic out of Dustmote for three months. I have comms intercepts, cargo manifests, ship registrations -- yours is in the file. So is Rezkov\'s.\n\nYou have a choice. Stand down and let us proceed to Concord space. The Concord will remember that you cooperated, and Rezkov will take the fall. Or wipe the data and run -- but know this won\'t be the last time you see me."')
         addCommsReply("Let the Concord go.", function(s2, t2)
-            print("[RZKOV] kael-comms: 'Let the Concord go' clicked")
+            log("[RZKOV] kael-comms: 'Let the Concord go' clicked")
             setCommsMessage('"Wise. The Concord will remember."')
             addCommsReply("Understood.", function(s3, t3)
-                print("[RZKOV] kael-comms: 'Understood' (let go) clicked")
+                log("[RZKOV] kael-comms: 'Understood' (let go) clicked")
                 RT.addReputation("Independent", -1000, "Rezkov Arc: cooperated with Concord against Rezkov")
                 RT.addReputation("Concord", 500, "Rezkov Arc: cooperated with Concord investigator")
                 RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation.", "#FF8080")
@@ -278,7 +278,7 @@ local function _setupKaelComms(st)
             end)
         end)
         addCommsReply("Wipe the data.", function(s2, t2)
-            print("[RZKOV] kael-comms: 'Wipe the data' clicked")
+            log("[RZKOV] kael-comms: 'Wipe the data' clicked")
             RT.addReputation("Concord", -1000, "Rezkov Arc: wiped Concord investigation data")
             RT.shipLog("[Rezkov Arc] Data wiped. Let Thresh know at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
             RT.flag("kael_alive", true)
@@ -291,7 +291,7 @@ local function _setupKaelComms(st)
             MISSIONS.phase("rezkov", "m3_deliver")
             setCommsMessage('"Take it then.\n\nThis won\'t be the last time you see me, Magpie."')
             addCommsReply("We like our odds, Kael.", function(s3, t3)
-                print("[RZKOV] kael-comms: 'We like our odds Kael' clicked")
+                log("[RZKOV] kael-comms: 'We like our odds Kael' clicked")
                 setCommsMessage('"Meridian out."')
                 RT.shipLog("[Rezkov Arc] Report the data wipe to Thresh at Dustmote Salvage.", "#FFCC80")
             end)
@@ -668,7 +668,7 @@ M.phases.m3_active = {
                                 setCommsMessage('"Your choice. The charges will be waiting when you dock anywhere in Concord space."')
                             end)
                         end))
-                        print("[RZKOV] Meridian switched to Concord Hostile — player within 5U")
+                        log("[RZKOV] Meridian switched to Concord Hostile — player within 5U")
                         break
                     end
                 end
@@ -686,7 +686,7 @@ M.phases.m3_active = {
                     docked_with = p:getCallSign()
                 end
             end
-            print(string.format("[RZKOV] m3 state: disabled=%s boarded=%s meridian_valid=%s faction=%s docked_with=%s",
+            log(string.format("[RZKOV] m3 state: disabled=%s boarded=%s meridian_valid=%s faction=%s docked_with=%s",
                 tostring(st.m3_disabled), tostring(st.m3_boarded),
                 tostring(RT.valid(st.meridian)),
                 tostring(RT.valid(st.meridian) and st.meridian:getFaction()),
@@ -696,7 +696,7 @@ M.phases.m3_active = {
         if st.m3_disabled and not st.m3_boarded and RT.valid(st.meridian) then
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) and p:isDocked(st.meridian) then
-                    print(string.format("[RZKOV] docking detected: player=%s — calling _setupKaelComms", p:getCallSign()))
+                    log(string.format("[RZKOV] docking detected: player=%s — calling _setupKaelComms", p:getCallSign()))
                     _setupKaelComms(st)
                     break
                 end

@@ -369,7 +369,7 @@ function M.spawn(m)
         end)
     end)
     m.convoy_cs = convoy_name
-    print(string.format("[ESCORT-DIAG] spawn complete: convoy=%s pos=(%.0f,%.0f) dx=%.0f dy=%.0f spawned=%s",
+    log(string.format("[ESCORT-DIAG] spawn complete: convoy=%s pos=(%.0f,%.0f) dx=%.0f dy=%.0f spawned=%s",
         convoy_name, ox + math.cos(dock_angle) * 800, oy + math.sin(dock_angle) * 800,
         m.dx, m.dy, tostring(m._spawned)))
 

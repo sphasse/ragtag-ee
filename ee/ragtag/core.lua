@@ -63,7 +63,7 @@ function RT.updateTimers()
         if now >= t.at then
             table.remove(RT.timers, i)
             local ok, err = pcall(t.fn)
-            if not ok then print("[RT] timer '" .. t.name .. "' failed: " .. tostring(err)) end
+            if not ok then log("[RT] timer '" .. t.name .. "' failed: " .. tostring(err)) end
         end
     end
 end
@@ -411,7 +411,7 @@ function RT.updateKillTracking()
             for _, cb in ipairs(handlers) do
                 local ok, err = pcall(cb)
                 if not ok then
-                    print("[RT] kill handler error for " .. cs .. ": " .. tostring(err))
+                    log("[RT] kill handler error for " .. cs .. ": " .. tostring(err))
                 end
             end
             RT._kill_handlers[cs] = nil
@@ -663,7 +663,7 @@ function RT.applyUpgrade(p, id)
     local u = RT.upgradeById(id)
     if u == nil then return false end
     local ok, err = pcall(u.apply, p)
-    if not ok then print("[RT] upgrade " .. id .. " failed: " .. tostring(err)) end
+    if not ok then log("[RT] upgrade " .. id .. " failed: " .. tostring(err)) end
     return ok
 end
 
@@ -798,7 +798,7 @@ function RT.stationComms(source, target)
 
     for _, hook in ipairs(info.hooks) do
         local ok, err = pcall(hook, source, target, info)
-        if not ok then print("[RT] station hook failed: " .. tostring(err)) end
+        if not ok then log("[RT] station hook failed: " .. tostring(err)) end
     end
 
     if source:isDocked(target) then
@@ -957,7 +957,7 @@ function RT.update(delta)
                 -- New ships start with 0 credits - they earn their own way
                 ship:setReputationPoints(0)
             end
-            print("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ", 0 credits)")
+            log("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ", 0 credits)")
         end
     end
 

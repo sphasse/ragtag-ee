@@ -511,7 +511,7 @@ local function _offerMissions(cs)
             end
             offers[#offers + 1] = result
         else
-            print("[JOBS] " .. mtype .. " generate failed: " .. tostring(result))
+            log("[JOBS] " .. mtype .. " generate failed: " .. tostring(result))
             slots_failed = slots_failed + 1
         end
         ::next_slot::
@@ -612,7 +612,7 @@ function JOBS.stationHook(source, target)
     addCommsReply("Any work available?", function(s, t)
         local ok, err = pcall(_offerMissions, cs)
         if not ok then
-            print("[JOBS] offer error at " .. cs .. ": " .. tostring(err))
+            log("[JOBS] offer error at " .. cs .. ": " .. tostring(err))
             setCommsMessage('"System error. Please report to the dockmaster."')
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
         end

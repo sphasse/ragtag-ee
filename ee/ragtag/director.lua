@@ -163,7 +163,7 @@ function DIR.fireBeat(id, source)
     b.fired = true
     local ok, err = pcall(b.fn, source or "script")
     if not ok then
-        print("[DIR] beat " .. id .. " failed: " .. tostring(err))
+        log("[DIR] beat " .. id .. " failed: " .. tostring(err))
         return false, tostring(err)
     end
     DIR.emit("beat", {id = id, desc = b.desc, by = source or "script"}, "normal")
@@ -371,7 +371,7 @@ end
 
 function DIR.update(delta)
     if not DIR.enabled then
-        if DIR.run ~= nil then print("[DIR] update: disabled, skipping") end
+        if DIR.run ~= nil then log("[DIR] update: disabled, skipping") end
         return
     end
     if DIR.run == nil then return end
@@ -429,7 +429,7 @@ function DIR.update(delta)
         DIR.seq = DIR.seq + 1
         local state_ok, state_val = pcall(DIR.buildState)
         if not state_ok then
-            print("[DIR] buildState failed: " .. tostring(state_val))
+            log("[DIR] buildState failed: " .. tostring(state_val))
             state_val = {}
         end
         local out = {
@@ -468,7 +468,7 @@ function DIR.execute(cmd)
         local success, r1, r2 = pcall(handler, args, cmd)
         if not success then
             ok, msg = false, "error: " .. tostring(r1)
-            print("[DIR] action " .. action .. " crashed: " .. tostring(r1))
+            log("[DIR] action " .. action .. " crashed: " .. tostring(r1))
         else
             ok, msg = r1, r2
         end

@@ -343,7 +343,7 @@ function _P.init(state)
 
     _spawnAll(state.density_idx)
 
-    print(string.format("[Traffic] Spawned %d routes (density=%s).",
+    log(string.format("[Traffic] Spawned %d routes (density=%s).",
         #VERSE.ROUTES, _DENSITY_NAMES[state.density_idx]))
 end
 
@@ -354,7 +354,7 @@ function _P.update(state, delta, now)
         _killAll()
         state.density_idx = density_idx
         _spawnAll(density_idx)
-        print(string.format("[Traffic] Density changed to %s; traffic respawned.", _DENSITY_NAMES[density_idx]))
+        log(string.format("[Traffic] Density changed to %s; traffic respawned.", _DENSITY_NAMES[density_idx]))
     end
 
     if now >= state.next_check then
