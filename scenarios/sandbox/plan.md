@@ -30,10 +30,16 @@ Status at last update (2026-11-10):
   already in the built arc's ship log).
 - **Arcs 2–4 run in any order.** Each one surfaces a different facet of the same
   secret — Project Ashgrave Synthesis — and each exports one *thread* the finale
-  consumes: evidence, science, allies.
-- **The Maw arc pays everything off.** The more threads the crew brings, the
-  better the ending. It should be playable (brutally) with only the science
-  thread, since the reversal protocol is the core mechanism.
+  consumes: evidence, science, allies. Two arcs being eligible at once is fine
+  (it thins the rumor pressure and gives the crew a choice).
+- **The Maw arc pays everything off, and requires all three.** It is a
+  Death-Star run, not a siege: one warhead, one target, one shot. The *how* of
+  each earlier arc (did the ledger survive, did the Corsairs become allies,
+  were the drones flipped) shapes the run and the ending; the arcs themselves
+  are hard prerequisites. No in-Maw fallback for a missing thread.
+- **The Hollow are people.** They are victims, not a boss. The finale is built so
+  the crew never has to grind through them: the climax is finding and hitting
+  the rift, then getting out while the reversal takes hold.
 - Director stays observation-only. All beats are scripted; no `ai = true`.
 
 The through-line, in one sentence: *the Concord engineered the Hollow, buried
@@ -52,12 +58,17 @@ Full detail: `ee/ragtag/missions/rezkov.md`. Summary of what matters downstream.
   hidden waypoint) → m2_active (hack Waypoint Galen frontshield to 100%) →
   m2_deliver (card to Thresh) → m3_active (intercept CWS Meridian) →
   m3_deliver / done.
-- **The M3 choice** (Commander Kael, Concord Intelligence, aboard the disabled
-  Meridian): cooperate with Concord, or wipe the surveillance data.
+- **The M3 choice** (Commander Kael — she/her — Concord Intelligence, aboard
+  the disabled Meridian): cooperate with Concord, or wipe the surveillance data.
 - **Exports** (long-term flags):
   - `rezkov_arc_done` = `"concord_won"` | `"data_delivered"` |
     `"meridian_destroyed"` | `"meridian_escaped"`
   - `kael_alive` = true unless the Meridian was destroyed
+- **Kael downstream**: a Concord officer who turns out to be a force for good.
+  She has a small information role in the finale's staging (below) and is the
+  natural lead for a post-campaign follow-on (Kael rises in the Concord;
+  relations normalise). Keep her alive-by-default in writing: only the
+  `meridian_destroyed` path kills her.
 
 ## Arc 2 — Ledger Arc (accounting AI) — PLANNED
 
@@ -109,7 +120,10 @@ and burned — and before Concord traces the implant back to the crew.
 
 Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstream.
 
-- **Trigger**: upgrade spend ≥ 800cr, not done.
+- **Trigger**: upgrade spend ≥ 800cr, not done. **No reputation or Rezkov gate**
+  (confirmed in `boneyard.lua` `M.triggers`) — any crew that can afford the
+  upgrades and flies to Ashgrave gets it. Open decision: add
+  `flagged = {rezkov_arc_done}` so "Rezkov is the gate" holds for every arc.
 - **Structure**: hook (battle-group rumors; fly within 8U of Ashgrave) →
   approach (Ashgrave Annex spawns) → annex_hack (Science hacks frontshield to
   100%; drones go idle) → annex_control (60s archive download and/or 30s drone
@@ -121,9 +135,14 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
     `boneyard_drone_flip` (drones now `Relic Active`, hostile to Concord);
     `boneyard_battlegroup_destroyed` (CNS Vanguard killed)
   - SCIDB unlocks on data: `hollow_true_nature`, `ashgrave_research`,
-    `synthesis_details` — these contain the finale's core mechanic: **Phase II
-    reversal = targeted EM broadcast at a documented frequency, within range of
-    the subject population, 90 seconds minimum; Phase III efficacy untested.**
+    `synthesis_details` — these contain the finale's core mechanic. The
+    current entry text says *broadcast, within range, 90 seconds*; the Maw
+    build revises it (entries are mutable via `SCIDB.get`) to the warhead
+    version: **Phase II reversal = a modulated EM pulse delivered into the
+    spatial rift the Synthesis collective is anchored on; the dormancy cascade
+    takes ~90 seconds to propagate; Concord shelved it because no delivery
+    vehicle survived the Maw.** The archive also carries the warhead schematic
+    — that is what `boneyard_hack_done` means to the finale.
   - Rep: Concord -300 (-500 with drone flip); Corsairs +150 with drone flip.
     Credits 600 (data) + 200 (flip).
 
@@ -158,8 +177,9 @@ asks the crew to carry a warning no one else will.
      vanguard at the Veil.
    - **Walk away / sell them out**: report the Corsair disposition to Concord
      at Sentinel Fleet Yard. Big Concord rep payoff, permanent Corsair
-     hostility, and the finale loses the ally thread. This must be a real,
-     payable choice.
+     hostility, and the finale loses the escort wing (nothing worse — the
+     finale adds no Corsair hunters; sandbox PROX already hunts low-rep
+     crews). This must be a real, payable choice.
 3. `strike` — the battle group arrives either way; outcome depends on track.
 4. `done`.
 
@@ -178,68 +198,138 @@ hook works — the sister vouches for the crew).
 
 ## Arc 5 — Maw Arc (finale) — PLANNED
 
-**Premise.** Everything converges on the Pale Sun. The crew has some or all of:
-the *science* (Phase II reversal broadcast — Boneyard), the *evidence* (the
-Containment Ledger — Ledger arc), and the *allies* (Corsair staging and escort
-— Corsair arc). Lastchance Outpost is the staging door; The Maw station is the
-target: get a broadcast source inside Hollow space and hold it on the
-documented frequency for 90+ seconds while everything the Pale Sun has
-converges on the ship.
+**Premise.** The Synthesis collective is anchored on a spatial rift near the
+Pale Sun — the "electromagnetic anomalies" in the Maw entry. The Ashgrave
+archive's Phase II reversal was never a broadcast: it is a modulated EM pulse
+delivered *into* the rift, which the collective then carries to every subject
+at once. Concord shelved it because nothing they sent into the Maw came back.
+The crew has the schematic (Boneyard), the proof of who did this (Ledger), and
+the only fleet in the Drift willing to fly cover (Corsairs). Dustmote builds
+one warhead. The crew gets one shot.
 
-**Thread effects** (design rule: each thread removes one layer of pain, none is
-individually mandatory except science — see open questions):
-- **Science** (`boneyard_hack_done`): unlocks the reversal broadcast objective
-  at all. Without it, the finale offers a desperate fallback: recover the
-  protocol from a wrecked Concord research hulk *inside* the Maw first (one
-  extra deadly phase).
-- **Evidence** (`ledger_evidence`): adds the political ending — after the
-  broadcast, transmit the ledger Drift-wide from the Maw relay. Concord can't
-  bury what everyone has read. Gates the best ending.
-- **Allies** (`corsair_ally`): Blackwater staging (repair/rearm inside the
-  approach), plus a Corsair escort wing in the final hold. Without it, the
-  approach runs from Lastchance with no support.
-- **Drones** (`boneyard_drone_flip`): the `Relic Active` wing arrives as
-  late-battle cavalry during the 90-second hold. Pure payoff, no gate.
-- **Kael** (`kael_alive` + `rezkov_arc_done`): if alive, Kael resurfaces at
-  Lastchance — as a quiet defector handing over Concord patrol schedules
-  (`concord_won` path: the crew's cooperation earned his trust, and the ledger
-  broke his faith), or as a pursuer who must be shaken or turned
-  (`data_delivered` path). If dead, a Concord hunter group replaces him.
+**Shape of the run** — a Death-Star trench run, every station busy:
+- **Science** finds the rift (it is hidden in the Maw nebula; three EM
+  anomalies must be scanned to triangulate it) and reads the anchor field.
+- **Helm / Engineering** fly the run: Hollow waves, the nebula, the anchor
+  platforms, and after the shot a backlash-crippled ship that has to get out.
+- **Weapons** drops the two anchor platforms that screen the rift, then makes
+  the one shot that matters.
+- **Relay** holds the thread to Lastchance, Kael and the escort wing, and after
+  the shot transmits the Containment Ledger to the whole Drift.
 
-**Structure sketch** (phases):
-1. `hook` — rumor category `MAW_HOOK` (fed by `BONEYARD_DONE`/`CORSAIR_DONE`
-   rumors already in place); briefing at Lastchance Outpost.
-2. `staging` — gather threads; Kael beat; fit the broadcast rig (one-off
-   "upgrade" granted via `RT.grantUpgrade`-style story reward or a mission
-   item flag).
-3. `approach` — cross the Maw boundary. Hollow proximity spawns suspended via
-   `PROX.suspendZone("the Maw")`; the arc runs its own scripted waves so the
-   pacing is authored, not ambient.
-4. `broadcast` — hold within ~10U of The Maw station for 90 continuous seconds
-   of broadcast (timer pauses if the ship leaves range — comms-as-timer pattern
-   from the Boneyard Annex). Scripted Hollow waves; defense platforms;
-   cavalry/escort per threads. GM skip buttons for every wave.
-5. `aftermath` — the Hollow go dormant (Derelict-style idle, mirroring the
-   Boneyard drones going quiet — deliberate echo). Optional ledger transmission
-   beat. Exit the Maw.
-6. `done` / `M.resolve`.
+**The warhead** ("the Ashgrave warhead" — one EMP, one rack):
+- Granted in `staging`: `maw_warhead = "fitted"` (RT.flag). On every player
+  spawn while the flag is `"fitted"`: `setWeaponStorageMax("EMP", 1)`,
+  `setWeaponStorage("EMP", 1)`, make sure a tube exists
+  (`getWeaponTubeCount() == 0` → add one as `front_tube` does) and allows EMP
+  (`weaponTubeAllowMissle(i, "EMP")`). It is a flag, not an `RT.UPGRADES`
+  entry, so it never appears in the shipwright and can be cleanly revoked.
+- When EMP storage drops to 0 (polled in `update`): `setWeaponStorageMax("EMP",
+  0)` immediately — the rack is gone and no station or dock can refill it.
+  `RT.restockMenu` only lists Homing/HVLI already. Flag → `"spent"`.
+- The shot only counts if it hits the rift while the anchor field is down (see
+  `run`). A spent warhead with no hit is the fail state: the arc restarts from
+  `staging`, and Thresh can build a second one for 500cr ("the schematic was
+  the easy part") — GM button to re-grant for free.
+- Hit detection, preferred: while `"spent"` and the hit is pending, scan
+  `getObjectsInRadius(rift_x, rift_y, 2500)` each frame for a missile entity
+  and count a hit when one is inside ~1.5U of the rift centre (verify the
+  missile component name in a headless run before relying on it). Fallback if
+  that is unreliable: count the hit from fire-time geometry — player within 4U
+  of the rift at the moment storage drops. Decide in playtest; log which rule
+  fired.
 
-**Endings matrix** (resolve on flags):
+**Thread effects** (all arcs are prerequisites; their *outcomes* shape the run):
+- **Ledger** (`ledger_evidence`): the ledger transmission beat in `aftermath`
+  and the two best endings. `ledger_arc_done = "lost"` still unlocks the arc
+  but the Drift never learns why.
+- **Corsairs** (`corsair_ally`): a Corsair escort wing (3–4 ships, `Corsair
+  Friendly`) joins at Lastchance and flies the whole run; Blackwater is a
+  repair/rearm stop on the way. `"betrayed"` → no wing, nothing else (no
+  Corsair hunters in the finale — the betrayal was already paid).
+- **Drones** (`boneyard_drone_flip`): a `Relic Active` wing warps in at the
+  start of `cascade` to cover the exit. Pure payoff.
+- **Kael** (`kael_alive`): she meets the crew at Lastchance in `staging` with
+  the Concord research addendum the archive didn't have — the rift is screened
+  by two anchor platforms and the pulse won't take while their field is up
+  (the "exhaust port" brief). She turns if `rezkov_arc_done == "concord_won"`
+  *or* `ledger_evidence` is set; otherwise the same brief comes anonymously
+  through Thresh and Kael is saved for the follow-on. If dead, Thresh alone.
+  Concord does not appear in the climax.
+- **The face of the finale**: **Marit Sauvola**, Lastchance stationmaster. Her
+  parents stayed on a Pale Sun colony when the sector was sealed. She is the
+  one who asks the question the arc is about: *"Can you bring them back?"* She
+  gives the hook briefing, keeps the relay open during the run, and gets the
+  last line in `aftermath`.
 
-| Science | Evidence | Outcome flag `maw_arc_done` | Ending |
+**Structure** (phases):
+1. `hook` — rumor category `MAW_HOOK` (alongside the `BONEYARD_DONE` /
+   `CORSAIR_DONE` rumors already in place): Lastchance is calling for any ship
+   that has been to Ashgrave. Advance when the player docks at Lastchance:
+   Sauvola's briefing, objective set.
+2. `staging` — at Lastchance: Kael/Thresh brief; a Dustmote freighter arrives
+   with the warhead (comms "Transfer warhead" → `maw_warhead = "fitted"`,
+   EMP rack appears); Corsair wing arrives if allied. Advance when the player
+   undocks with the warhead fitted and enters the Maw boundary (39U from
+   156,109). Restart point for every fail.
+3. `approach` — `PROX.suspendZone("the Maw")`. Clear the verse's Hollow
+   garrisons (five groups, two platforms) and place the arc's own: two outer
+   pickets, the Maw station's guard, and the two **anchor platforms** flanking
+   the (not yet revealed) rift. Spawn three **EM anomaly** artifacts (scannable,
+   `setCanBeDestroyed(false)`) around the nebula; each scan logs a bearing,
+   the third reveals the rift: spawn the `WormHole` (target position:
+   Lastchance, see `cascade`) and log its grid. Scripted Hollow waves on a
+   timer; GM skip reveals the rift.
+4. `run` — the rift is screened by the two anchor platforms (Hollow, 4U either
+   side). While either is alive the anchor field is up: Science log + Sauvola
+   make it explicit that the shot will not take. Platforms are destroyed or
+   hacked (reuse the hacking mechanic: `beamweapons` to 100% drops that
+   platform's field — the no-kill option). Field down → "Fire when ready."
+   Weapons fires the EMP at the rift from inside ~4U. Waves continue through
+   the run; GM skip for each wave and for "field down". Hit → big
+   `ElectricExplosionEffect` at the rift, backlash on the player (shields to 0,
+   warp health −0.5) → `cascade`. Miss → fail, restart `staging`.
+5. `cascade` — the 90 seconds the archive promised, played as the escape, not
+   a hold. Every Hollow ship in 20U gets a dormancy timer: at 30/60/90s a third
+   of them flip to `Derelict` and `orderIdle` (the fight gets quieter as it
+   works). The ones still awake at each step rush the player. The rift stays
+   open until 90s and **leads out**: flying through it drops the ship 4U off
+   Lastchance (`setTargetPosition`). Helm chooses — dive through the thing
+   they just shot, or run the long way on a crippled drive. Relic Active wing
+   warps in at 0s if flipped. At 90s the rift collapses (destroy it), all
+   remaining Hollow go dormant → `aftermath`.
+6. `aftermath` — Sauvola on comms. Ledger beat (if `ledger_evidence`): Relay
+   transmits the Containment Ledger from Lastchance's relay to every station;
+   Kael, if turned, takes it to the Concord senate (follow-on hook). Resolve.
+
+**Endings** (resolve on flags + a Hollow kill tally kept via `RT.onKill`
+through `approach`–`cascade`; `instigator` = player or escort):
+
+| `ledger_evidence` | Hollow destroyed | `maw_arc_done` | Ending |
 |---|---|---|---|
-| yes | yes | `"liberation"` | Hollow dormant, cover-up exposed, Concord in crisis — the Drift changes |
-| yes | no  | `"mercy"` | Hollow dormant; Concord spins it; the crew knows the truth, the Drift doesn't |
-| fallback | any | `"pyrrhic"` | Broadcast ran on a recovered, degraded protocol — partial dormancy, Maw still dangerous |
-| failed hold | — | arc restartable | retreat; Maw unchanged |
+| yes | ≤ threshold (tune; ~6) | `"liberation"` | The Pale Sun wakes up human; the cover-up is public; Concord in crisis |
+| yes | > threshold | `"mercy"` | The truth is out, but the Pale Sun is mostly a graveyard |
+| no (ledger lost) | any | `"quiet"` | The Hollow are dormant; Concord calls it a "stabilisation"; only the crew knows |
+| warhead spent, no hit / ship lost | — | unset, restart `staging` | second warhead 500cr |
 
-- SCIDB: unlock `maw_full` on any completion; update the Hollow/Maw entries'
-  key-values post-broadcast (via `SCIDB.get` — entries are mutable).
-- Rep: Independent +500 on any success; Concord per ending (−500 liberation,
-  −200 mercy); Corsairs +200 if they flew escort.
+- SCIDB: unlock `maw_full`; rewrite the Hollow / Maw entries' text and
+  key-values post-cascade (`SCIDB.get` — entries are mutable).
+- Rep: Independent +500 on any success; Concord −500 (liberation/mercy), −200
+  (quiet); Corsairs +200 if the wing flew. Credits 1000.
+- **World after** (integration outside the arc module; `VERSE`/`PROX`/world
+  plugins read `maw_arc_done` at build): Hollow garrisons spawn as dormant
+  `Derelict` hulks; the Maw PROX zone is off; region danger 3 → 1; The Maw
+  station becomes Independent and dockable with a new description. On
+  `liberation` only: Concord shakedown spawns in the Core stop (Concord has
+  bigger problems). Rumor category `MAW_DONE`.
+- **Follow-on (beyond the five arcs)**: Kael rises in the Concord on the back
+  of the ledger; relations normalise; the "transitional" tariffs finally
+  transition. A sixth, political arc if the campaign keeps going.
 
-**Trigger sketch**: upgrades ≥ 1500 AND (`boneyard_arc_done` or a GM override)
-AND at least one other arc done, `not_flagged = {maw_arc_done}`.
+**Trigger**: upgrades ≥ 1500 AND `boneyard_hack_done` AND `ledger_arc_done`
+(any) AND `corsair_arc_done` (any), `not_flagged = {maw_arc_done}`. The
+Boneyard GM "→ Complete arc" button already sets `boneyard_hack_done` for
+crews that skipped the download.
 
 ---
 
@@ -254,7 +344,8 @@ Flags any future arc may rely on (never rename these):
 | `ledger_arc_done`, `ledger_evidence` | Ledger | outcome string / bool |
 | `boneyard_arc_done`, `boneyard_hack_done`, `boneyard_drone_flip`, `boneyard_battlegroup_destroyed` | Boneyard | bool |
 | `corsair_arc_done`, `corsair_ally` | Corsair | outcome string / bool |
-| `maw_arc_done` | Maw | ending string |
+| `maw_warhead` | Maw | `fitted` / `spent` (read at player spawn to fit the EMP rack) |
+| `maw_arc_done` | Maw | `liberation` / `mercy` / `quiet` |
 
 SCIDB lock keys: `hollow_true_nature`, `ashgrave_research`, `synthesis_details`
 (Boneyard); `maw_full` (Maw); `ledger_findings` (Ledger, to be added in
@@ -262,6 +353,10 @@ SCIDB lock keys: `hollow_true_nature`, `ashgrave_research`, `synthesis_details`
 
 Rumor categories: `<ARC>_HOOK` injected in hook enter / removed in hook exit;
 `<ARC>_DONE` injected at resolve (persistent flavor for the session).
+
+World-state readers (not arcs) that consume these flags: `VERSE` build and the
+PROX zone table read `maw_arc_done` (dormant Maw, danger, Concord shakedowns);
+`RT.spawnPlayer` (or a hook on it) reads `maw_warhead`.
 
 ## Rebuild notes
 
@@ -284,17 +379,38 @@ If an arc module is lost, rebuild against these rails:
 - **Factions available**: `Concord Hostile` (targetable law), `Corsair
   Friendly` (allied pirates), `Relic Active` (reprogrammed drones, anti-Concord)
   — all defined in `VERSE.setupFactions()`.
+- **One-shot story weapons**: a flag read at player spawn, not an `RT.UPGRADES`
+  entry (upgrades re-apply every session and show in the shipwright). Fit with
+  `setWeaponStorageMax`/`setWeaponStorage`; revoke by setting the max to 0 the
+  frame storage hits 0, so docking can't refill it. Missile types: Homing,
+  Nuke, Mine, EMP, HVLI.
+- **Arc-owned regions**: suspend the PROX zone, destroy the verse garrisons in
+  the region on phase enter, and place the arc's own; restore nothing on
+  resolve (the next session rebuilds the verse), but `on_cancel` must clean up
+  what the arc spawned.
 - Run `python tools/check.py` after every change; headless smoke test before
   calling an arc done.
 
+## Decisions made (2026-11-10)
+
+- The Maw arc hard-requires all three Phase II arcs; no in-Maw fallback.
+- The finale's objective is one warhead into the rift, not a 90-second hold.
+  The 90 seconds is the escape (`cascade`).
+- Concord is absent from the climax; Kael (she/her) is a small staging beat and
+  the follow-on lead.
+- Corsair "betrayed" costs the escort wing only; no hunters in the finale.
+- Fail state restarts from `staging`, never `hook`.
+- Two arcs eligible at once is acceptable; no trigger staggering.
+- The verse's Maw garrisons are cleared and replaced by the arc's own.
+
 ## Open questions / tuning
 
-- Should the Maw arc hard-require `boneyard_hack_done`, or is the in-Maw
-  fallback recovery enough? (Current plan: fallback exists, tuned brutal.)
+- Boneyard trigger: add `rezkov_arc_done` as a gate, or leave it open?
+- EMP hit detection: missile-entity proximity vs. fire-time geometry (needs a
+  headless check of the missile component name).
+- Liberation kill threshold, anchor platform strength, wave sizes, and whether
+  three anomaly scans is too slow for Science under fire — playtest numbers.
+- Does the player template's tube accept EMP without `weaponTubeAllowMissle`?
+  Verify on the actual `Flavia P.Falcon` template.
 - Ledger arc fragment count and audit-sweep timing need playtest numbers.
-- Corsair "betrayed" path: does it lock the Maw arc's ally thread only, or
-  should Corsair hunters also appear during the finale approach?
-- Does the Maw broadcast hold (90s) need a mid-hold breather wave gap for
-  Engineering to recover? Boneyard playtests should inform this.
-- Kael's defector beat assumes `concord_won`; decide whether `data_delivered`
-  Kael can also be turned with `ledger_evidence` in hand.
+- Follow-on arc (Kael / normalisation): in scope for this campaign or a new one?
