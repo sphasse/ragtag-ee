@@ -10,6 +10,8 @@ Checks:
   * scenarios: header fields, unique scenario numbers, every place they depend on exists,
     no stock factions (Human Navy / Exuari / Ghosts) in campaign content
   * generated files are up to date (director/generated/world.md, docs/verse_map.svg)
+  * every missions/jobs/world module file is required by its loader (unloaded files go in attic/)
+  * the two skill copies of missions_api.md are identical
   * the director's Python compiles
 """
 from __future__ import annotations
@@ -145,6 +147,48 @@ def check_generated(data: dict, fix: bool) -> None:
             errors.append("docs/verse_map.svg is out of date: run python tools/check.py --fix")
 
 
+# Module directories whose files must be required by their loader. A file that
+# exists but isn't required silently never loads (no error in-game), which is
+# the #1 way a new mission/job/plugin "doesn't work". Intentionally parked
+# files go in a subdirectory (e.g. missions/attic/), which this check ignores.
+LOADERS = {
+    "ee/ragtag/missions.lua": "ee/ragtag/missions",
+    "ee/ragtag/jobs.lua":     "ee/ragtag/jobs",
+    "ee/ragtag/world.lua":    "ee/ragtag/world",
+}
+
+
+def check_loader_requires() -> None:
+    for loader_rel, dir_rel in LOADERS.items():
+        loader = ROOT / loader_rel
+        mod_dir = ROOT / dir_rel
+        if not loader.exists() or not mod_dir.is_dir():
+            continue
+        text = loader.read_text(encoding="utf-8")
+        for f in sorted(mod_dir.glob("*.lua")):
+            if f.name.startswith("_"):
+                continue
+            needle = f'require("ragtag/{mod_dir.name}/{f.name}")'
+            if needle not in text:
+                errors.append(
+                    f"{dir_rel}/{f.name} is not required by {loader_rel} and will never load "
+                    f"(add the require, or park it in {dir_rel}/attic/)")
+
+
+# missions_api.md is deliberately kept in two skills; they must stay identical.
+API_MD_COPIES = [
+    ROOT / ".claude" / "skills" / "sandbox-missions" / "references" / "missions_api.md",
+    ROOT / ".claude" / "skills" / "empty-epsilon-scenarios" / "references" / "missions_api.md",
+]
+
+
+def check_api_md_sync() -> None:
+    a, b = API_MD_COPIES
+    if a.exists() and b.exists() and a.read_text() != b.read_text():
+        errors.append("missions_api.md copies differ: sync "
+                      f"{a.relative_to(ROOT)} and {b.relative_to(ROOT)}")
+
+
 def check_python() -> None:
     for f in sorted((ROOT / "director").glob("*.py")) + sorted((ROOT / "tools").glob("*.py")):
         try:
@@ -178,6 +222,8 @@ def main() -> int:
         errors.append(f"universe: {p}")
     check_scenarios(data["places"] or {})
     check_generated(data, args.fix)
+    check_loader_requires()
+    check_api_md_sync()
     check_python()
 
     for w in warnings:
