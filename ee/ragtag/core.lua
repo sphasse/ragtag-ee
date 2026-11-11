@@ -1037,10 +1037,31 @@ function RT.addCampaignGMFunctions()
         addGMMessage("Sound cues " .. (RT.sound_enabled and "ON" or "OFF") .. " (server speakers)")
     end)
 
-    addGMFunction("Test sound cue", function()
-        RT.sound("concord_hail", {now = true})
-        addGMMessage("Played 'concord_hail' (" .. RT.SOUNDS.concord_hail.file .. ") on the server.")
+    addGMFunction("Test sounds...", function() RT.showSoundTestMenu() end)
+end
+
+-- GM submenu: one button per cue in RT.SOUNDS, played immediately on the server.
+-- Works even when cues are toggled off (it is a test), and reports the file.
+function RT.showSoundTestMenu()
+    clearGMFunctions()
+    addGMFunction("← Back to Main", function()
+        clearGMFunctions()
+        RT.addCampaignGMFunctions()
+        if addSessionGMFunctions then addSessionGMFunctions() end
     end)
+    local ids = {}
+    for id in pairs(RT.SOUNDS) do ids[#ids + 1] = id end
+    table.sort(ids)
+    for _, id in ipairs(ids) do
+        local entry = RT.SOUNDS[id]
+        addGMFunction(string.format("%s (%.1fs)", id, entry.seconds or 0), function()
+            local ok, err = pcall(playSoundFile, entry.file)
+            if not ok then
+                addGMMessage("Could not play " .. entry.file .. ": " .. tostring(err))
+            end
+            RT._sound_busy_until = getScenarioTime() + (entry.seconds or 2)
+        end)
+    end
 end
 
 --------------------------------------------------------------------------------
