@@ -2,7 +2,17 @@
 
 Cue files for `RT.sound(id)` (see `ee/ragtag/core.lua`, table `RT.SOUNDS`).
 This folder installs to `scripts/ragtag/sfx/`, which EmptyEpsilon resolves as a
-resource root, so a file here is referenced as `"ragtag/sfx/<name>.ogg"`.
+resource root, so a file here is referenced as `"ragtag/sfx/<name>.wav"`.
+
+## Where the files come from
+
+The current cues are **synthesized** by `tools/gen_sfx.py` (stdlib-only,
+deterministic: tones, sweeps, seeded noise). Edit a recipe there and rerun
+`python tools/gen_sfx.py`; `--check` prints lengths/levels without writing.
+If a length changes, update `seconds` for that id in `RT.SOUNDS`.
+They are ours: no third-party licence applies. Format is mono 44.1 kHz 16-bit
+WAV (no OGG encoder on the dev machine; `brew install vorbis-tools` and
+`oggenc` convert if you want OGG).
 
 ## How cues play
 
@@ -15,33 +25,27 @@ resource root, so a file here is referenced as `"ragtag/sfx/<name>.ogg"`.
   screens with a 3D view (the main screen) hear positional sound. Clients then
   need the file too: put it under `~/.emptyepsilon/resources/ragtag/sfx/` on
   each client, or run the main screen on the server machine.
-- Formats: `.ogg` preferred (`.wav`, `.flac` also work). Positional files must
-  be mono; server-only cues may be stereo.
+- Formats: `.wav`, `.ogg`, `.flac` all work. Positional files must be mono
+  (the generated cues are).
 
 ## Cue ids and what they mark
 
-| id | Moment | Length target | Current file |
+| id | Moment | Length | Sound |
 |---|---|---|---|
-| `concord_hail` | Patrol stop: the ship is halted and the hail opens | 3–4 s comms chirp + low drone | stock `sfx/shield_up.wav` (placeholder) |
-| `concord_warning` | 10 s left on the compliance clock | ≤1 s alert tone | stock `audio/scenario/58/sa_58_goBeep.ogg` (placeholder) |
-| `concord_hostile` | Patrol goes hostile (refused, timed out, bad standing) | 1–3 s klaxon / "warrant issued" | stock `audio/scenario/34/sa_34_HostileShips.ogg` (placeholder) |
-| `jammer_engage` | Warp jammer deploys (Concord stop, Boneyard) | 2–4 s power surge / crackle | stock `sfx/emp_explosion.wav` (placeholder) |
-| `jammer_bed` | Re-fired every 10 s while jammed | 8–10 s interference hum | stock `sfx/engine_fighter.wav` (placeholder, CC-BY-NC) |
-| `jammer_release` | Jammer clears / crew is free to go | 2–3 s release tone | stock `sfx/laser.wav` (placeholder) |
+| `concord_hail` | Patrol stop: ship halted, hail opens | 3.4 s | two rising comms chirps over a 55 Hz drone |
+| `concord_warning` | 10 s left on the compliance clock | 0.5 s | two sharp 1 kHz pulses |
+| `concord_hostile` | Patrol goes hostile | 1.8 s | descending buzzy two-tone klaxon, twice |
+| `jammer_engage` | Warp jammer deploys (Concord stop, Boneyard) | 3.1 s | rising surge sweep into a sub thud and crackle |
+| `jammer_bed` | Re-fired every 10 s while jammed | 8.0 s | detuned 62 Hz hum, band-limited hiss, wobbling whine; quieter (peak 0.55) |
+| `jammer_release` | Jammer clears / crew is free to go | 1.5 s | falling tone and a soft click |
 
-To replace a placeholder: drop the file in this folder, change `file` in
-`RT.SOUNDS` to `"ragtag/sfx/<name>.ogg"`, and set `seconds` to the clip length
-(`afinfo <file>` on macOS, `soxi -D` elsewhere). Add it to the table below.
+## Replacing a cue with a sourced file
 
-## Licences
-
-Prefer CC0 (freesound.org, opengameart.org). CC-BY is fine with attribution
-here. Avoid NC licences for anything we might publish.
+Drop the file in this folder, set `file` and `seconds` in `RT.SOUNDS`
+(`afinfo <file>` on macOS, `soxi -D` elsewhere), and add a row below. Remove
+its recipe from `gen_sfx.py` so a rerun doesn't overwrite it. Prefer CC0
+(freesound.org, opengameart.org); CC-BY is fine with attribution; avoid NC.
 
 | File | Source | Licence | Author |
 |---|---|---|---|
-| (none yet) | | | |
-
-Stock EmptyEpsilon files used as placeholders are credited in the engine's
-`resources/sfx/source.txt`; the `audio/scenario/*` voice clips ship with the
-engine without a separate credits file.
+| (none sourced; all cues generated) | | | |

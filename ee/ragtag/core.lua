@@ -82,8 +82,8 @@ end
 -- relative to that screen's ship. Off by default: clients would need the file.
 --
 -- Cue files live in ee/ragtag/sfx/ (installed to scripts/ragtag/sfx/, which EE
--- resolves as "ragtag/sfx/<name>.ogg"). Entries below point at stock EE files
--- as placeholders until real cues are sourced — see ee/ragtag/sfx/SOURCES.md.
+-- resolves as "ragtag/sfx/<name>.wav"). Entries below point at files
+-- as synthesized by tools/gen_sfx.py — see ee/ragtag/sfx/SOURCES.md.
 --------------------------------------------------------------------------------
 
 RT.sound_enabled        = true    -- GM toggle; silences every cue
@@ -92,13 +92,13 @@ RT.sound_client_enabled = false   -- also emit positional client cues (needs fil
 -- id -> {file, seconds}. `seconds` is the clip length, used for queue pacing.
 RT.SOUNDS = {
     -- Concord patrol stop
-    concord_hail      = {file = "sfx/shield_up.wav",                        seconds = 3.7},
-    concord_warning   = {file = "audio/scenario/58/sa_58_goBeep.ogg",       seconds = 1.0},
-    concord_hostile   = {file = "audio/scenario/34/sa_34_HostileShips.ogg", seconds = 1.2},
+    concord_hail      = {file = "ragtag/sfx/concord_hail.wav",    seconds = 3.4},
+    concord_warning   = {file = "ragtag/sfx/concord_warning.wav", seconds = 0.5},
+    concord_hostile   = {file = "ragtag/sfx/concord_hostile.wav", seconds = 1.8},
     -- Warp jammer (Concord stop and Boneyard)
-    jammer_engage     = {file = "sfx/emp_explosion.wav",                    seconds = 3.6},
-    jammer_bed        = {file = "sfx/engine_fighter.wav",                   seconds = 10.4},
-    jammer_release    = {file = "sfx/laser.wav",                            seconds = 2.2},
+    jammer_engage     = {file = "ragtag/sfx/jammer_engage.wav",   seconds = 3.1},
+    jammer_bed        = {file = "ragtag/sfx/jammer_bed.wav",      seconds = 8.0},
+    jammer_release    = {file = "ragtag/sfx/jammer_release.wav",  seconds = 1.5},
 }
 
 RT._sound_queue      = {}   -- pending {id, opts}
