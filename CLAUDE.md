@@ -30,7 +30,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 2. **Extensions only add.** Renaming/removing a place in `drift.lua` is a breaking change; `check.py` lists every scenario it breaks.
 3. **The model never sends Lua.** Director actions are whitelisted in `ee/ragtag/director.lua` (`DIR.ACTIONS`) and mirrored in
    `director/actions.py`; change both together and clamp every argument on the Lua side.
-4. **Director is observation-only** (as of 2026-10-29); scenarios don't define `ai = true` beats. The Witness arc uses scripted beats.
+4. **Director is observation-only** (as of 2026-10-29); scenarios don't define `ai = true` beats — story arcs use scripted beats.
 5. **Each campaign has its own save** via `RT.useCampaign("<folder name>")` and its own `scenarios/<campaign>/bible.md`.
 6. Scenario numbers must not collide with stock EmptyEpsilon or each other (`check.py` enforces; ranges in CONTRIBUTING.md).
 7. Generated files (`extensions/index.lua`, `director/generated/world.md`, `docs/verse_map.svg`) come from `check.py --fix`; never hand-edit.
@@ -128,10 +128,9 @@ Say plainly in PR descriptions what was and wasn't tested.
 
 ### Hacking Missions
 
-- Spawn custom "Comms Relay Beacon" template (only reactor system)
-- Relay is stationary, Concord faction, cannot be destroyed
+- Relay is a stationary "Defense platform" CpuShip, Relic faction, cannot be destroyed until hacked
+- Armed: six 30° beam arcs at 5U range with 30° gaps — Helm threads the windows while Science hacks
 - Player must hack **any system to 75%** (not just reactor, despite archetype field)
-- **Relay jamming**: Active relays neutralise scan probes within 5U (checked every 2s)
 - Mission completes when threshold reached
 - Ambient patrols may spawn based on zone (proximity system), not mission-specific
 
@@ -161,8 +160,7 @@ end
 - **Always use `isObjectType()` when you need to identify a specific entity type**
 
 **Common use cases:**
-- Relay jamming destroying only scan probes (not player/NPC ships)
-- Filtering `getObjectsInRadius()` results by type
+- Filtering `getObjectsInRadius()` results by type (e.g. only CpuShips when idling Boneyard drones)
 - Type-specific behaviors in event callbacks
 
 Reference: [EmptyEpsilon utils.lua:351](https://github.com/daid/EmptyEpsilon/blob/b492ea94326c229ec8c0047872451129c4338871/scripts/utils.lua#L351)
@@ -189,7 +187,7 @@ Reference: [EmptyEpsilon utils.lua:351](https://github.com/daid/EmptyEpsilon/blo
 - Check player is in a zone with patrol config (`PROX.zones` table)
 - Verify cooldowns not active (90s region, 60s global)
 - Check max_active limit not reached (4 ships default)
-- Witness arc sets `S.witness_active = true` which suspends all spawns
+- Story arcs suspend zone spawns via `PROX.suspendZone("zone name")` — check `PROX._suspended_zones`
 
 ### Port Vesper Welcome System
 

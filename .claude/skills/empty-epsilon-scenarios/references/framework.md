@@ -26,6 +26,8 @@ Three Lua libraries that every campaign session requires, plus a Python director
 | `RT.hail(entity, text, speaker)` | Hail the player; falls back to the ship's log if comms are busy |
 | `RT.find(callsign)`, `RT.register(entity, callsign)` | Callsign lookup with a registry |
 | `RT.after(seconds, fn, name)`, `RT.cancelTimer(name)` | Scenario-time timers |
+| `RT.onKill(ship, fn(ship, instigator))` | Destruction callback dispatcher. ALWAYS use this instead of `entity:onDestruction` (single slot — direct calls clobber rep tracking / director events / loot drops). Fires on damage kills only, never on scripted `destroy()` |
+| `RT.cancelKillTracking(ship)` | Skip the auto rep penalty for a ship whose consequences the arc manages itself |
 | `RT.valid(e)`, `RT.dist(a, b)`, `RT.cleanText(s, max)` | Helpers |
 | `RT.update(delta)` | Call every frame: timers, autosave every 60 s, hull threshold events |
 | `RT.addCampaignGMFunctions()` | GM buttons for credits and saving |

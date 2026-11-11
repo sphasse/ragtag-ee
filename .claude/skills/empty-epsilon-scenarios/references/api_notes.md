@@ -42,11 +42,12 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 - **A `require()` failure throws and stops all subsequent requires in the same file.** When a module fails to load (Lua error at load time), every later `require()` in the caller also never runs. This means a failed sub-module can silently abort loading the scenario entirely — the player ship never spawns, the universe is empty, and the error only appears in the log.
 - **Module-level code runs at require time.** Any statement outside a function body executes when the file is first required. If that code calls a global (`RUMORS.add(...)`, `WORLD.register(...)`) that hasn't been loaded yet, it raises a nil-index error and aborts the whole require chain. Rule: **never call a framework global at module level unless the caller guarantees it is loaded first.** The safe pattern: each loader file (`missions.lua`, `jobs.lua`, `world.lua`) must `require()` every global its sub-modules need before requiring those sub-modules. `require()` is idempotent, so double-requiring is free.
   ```lua
-  -- missions.lua: RUMORS must come before witness.lua, which calls RUMORS.add() at load time
-  require("ragtag/rumors.lua")
+  -- missions.lua: RUMORS must come before any arc that calls RUMORS.add() at load time
+  require("ragtag/world/rumors.lua")
   require("ragtag/missions/_engine.lua")
-  require("ragtag/missions/witness.lua")
+  require("ragtag/missions/rezkov.lua")
   ```
+- **`local function` order matters — a forward reference silently becomes a nil global.** A function body that names a `local function` declared *later in the file* compiles that name as a global lookup; the later `local function` statement assigns a local, never the global, so the earlier body sees `nil` at call time with no error at load. Verified bite: `buildGarrisons` passed `concordPatrolComms` (declared 25 lines below it) to `setCommsFunction` — garrison comms silently never attached. Rule: declare helper `local function`s above every function that uses them, or forward-declare with `local name` at the top.
 - Comms callbacks: `entity:setCommsFunction(function(comms_source, comms_target) ... end)`. Use the parameters. The old `comms_source`/`comms_target` globals exist only inside the callback and are not visible in required files. Reply callbacks get the same two parameters: `addCommsReply("Text", function(source, target) ... end)`.
 - HTTP `/exec.lua` (enabled with `httpserver=8080` in `options.ini`, or as a command-line argument) runs posted code in a **separate environment built from the base API**. It can call any API function and see every entity, but it **cannot see scenario globals or functions**. Its return value must be a string (the handler converts with `run<string>`); use `return "ok"` for writes. `/get.lua` and `/set.lua` currently return "TODO".
 - The only shared channel between scenario and HTTP environments, besides the entities themselves, is `getScriptStorage()`.
@@ -58,7 +59,7 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 - **Identifying entity types**: Use `isObjectType(entity, "TypeName")` from `utils.lua` (automatically loaded). This is the correct way to identify specific entity types like scan probes, which don't have a `typename` component. Example: `if isObjectType(obj, "ScanProbe") then obj:destroy() end`. Common types: `"ScanProbe"`, `"CpuShip"`, `"PlayerSpaceship"`, `"SpaceStation"`. Reference: [EmptyEpsilon utils.lua:351](https://github.com/daid/EmptyEpsilon/blob/b492ea94326c229ec8c0047872451129c4338871/scripts/utils.lua#L351)
 - **Do NOT** try to identify types with `obj:typeName()` (doesn't exist) or `obj:getTypeName()` (fails on objects without typename component) or heuristics like faction/method presence (matches unintended objects). Always use `isObjectType()`.
 - `entity:isValid()` checks if an entity still exists; `entity:destroy()` removes it silently; `entity:explode()` removes it with an explosion. Entities compare with `==`.
-- `onDestruction(fn(self, instigator))` fires when destroyed by damage; `onDestroyed(fn)` fires for any removal.
+- `onDestruction(fn(self, instigator))` fires when destroyed by damage; `onDestroyed(fn)` fires for any removal. Each holds a **single callback** — a later call replaces the earlier one. In ragtag code always register via `RT.onKill(ship, fn)` (see §5b) so rep tracking, director events, and loot drops coexist.
 - Use `setCanBeDestroyed(false)` on anything the story depends on (a derelict that must be scanned, a key station). A stray missile otherwise softlocks the session.
 
 - In `/exec.lua` and other non-scenario environments, `utils.lua` helpers (`angleHeading`, `distance`, `vectorFromAngle`...) are not loaded. Use plain math there.
@@ -84,20 +85,14 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 - Docking: `player:isDocked(station)`; `ship:getDockedWith()` returns the station entity, or **`false` (not nil) when undocked**. Test it with `if ship:getDockedWith() then`, never `~= nil` (older scripts, including well-known community ones, use `~= nil` and silently break on the ECS engine). `player:commandDock(station)` only works within docking range.
 - Scanning: `ship:setScanningParameters(complexity, depth)`, `ship:setDescriptions(unscanned_text, scanned_text)`, `ship:isFullyScannedBy(player)`.
 
+## 5b. Destruction callbacks and kill tracking
+
+- `entity:onDestruction(fn)` holds **one callback slot per entity** — a second call silently replaces the first. In this codebase, reputation tracking, director kill events, and loot drops all want that slot, so **never call `onDestruction` directly; register through `RT.onKill(ship, fn)`**, which installs a single engine callback and dispatches to every registered fn.
+- Callbacks receive `fn(ship, instigator)`. `onDestruction` fires **only on damage kills** — a scripted `entity:destroy()` never fires it, so despawns are free.
+- `RT.register()` on a CpuShip auto-wires a rep penalty via `RT.trackShipForReputation`, which fires **only when `RT.isPlayer(instigator)`** — NPC-vs-NPC crossfire costs the player nothing. Player ships, `Derelict`, `Unknown`, and the presentation pseudo-factions (`Concord Hostile`, `Corsair Friendly`, `Relic Active`) are never tracked.
+- `RT.cancelKillTracking(ship)` marks a ship so the rep callback skips it. Scripted destroys don't need it (no event fires), but call it when an arc lets a ship **die to damage** while managing rep consequences itself — e.g. a story target whose destruction already has an explicit `RT.addReputation` outcome.
+
 ## 6. Comms
-## 5b. Scripted ship despawn vs player kill
-
-`RT.updateKillTracking()` (called each frame in `update()`) fires kill callbacks whenever a registered ship disappears — both when the player destroys it AND when the arc calls `entity:destroy()` from script. This means a scripted despawn at arc-end will trigger the same `-200` rep callback as a genuine player kill unless you cancel it first.
-
-**Pattern: cancel tracking before any scripted despawn where the arc manages rep itself:**
-```lua
-RT.cancelKillTracking(st.my_ship)   -- remove kill callbacks; arc handles rep
-st.my_ship:setCanBeDestroyed(true)
-st.my_ship:destroy()
-```
-
-**When to use it:** Any arc that calls `RT.register()` on a ship (which auto-wires kill tracking) and then later scripts the ship's removal at arc-end, GM cancel, or story resolution. If the arc already applies the right rep consequences via `RT.addReputation`, cancel tracking on the scripted path only — leave it active so player kills still trigger the callback.
-
 - `sender:sendCommsMessage(player, text)` opens a hail and logs the text. **It returns false if the player's comms are busy**, and the message is then lost. Always check the result and fall back to `player:addToShipLog(text, color)` or retry later (`RT.hail` does the fallback).
 - Inside a comms function: `setCommsMessage(text)` once, then any number of `addCommsReply(label, fn)`. Rebuild the menu by calling your menu function again from a reply.
 - **Every `addCommsReply` callback must call `setCommsMessage` before it returns**, including terminal replies that just close the conversation. If a callback does work (phase transition, rep change, etc.) but never calls `setCommsMessage`, the channel stays open showing "???" — this is silent and easy to miss. The rule applies even when the last thing a player sees is a closing line like `"Meridian out."` — the callback for that final button still needs its own `setCommsMessage`. Exception: callbacks that immediately call a function which calls `setCommsMessage` itself (e.g. `RT.stationComms`, a local `doThreat` helper) are fine — the check is whether `setCommsMessage` will be called before the callback returns.

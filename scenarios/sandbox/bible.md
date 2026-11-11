@@ -2,6 +2,8 @@
 
 Do jobs, get paid, keep flying. The crew runs contracts across the Drift, building credits and reputation session by session. The AI director creates dynamic situations based on crew choices and location.
 
+Story arcs layered on the sandbox are planned and tracked in `plan.md` (five arcs: Rezkov → Ledger / Boneyard / Corsair → the Maw finale).
+
 ### Tone
 Space-western sandbox. Wry humour, real stakes, never grimdark. The crew are independents making their way on the frontier. Every action has consequences, but nothing is scripted.
 

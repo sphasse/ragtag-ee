@@ -204,8 +204,13 @@ This makes arcs easy to disable, restart, skip, or test independently.
 
 | id | Name | locks_jobs | Trigger | Phases |
 |---|---|---|---|---|
-| `witness` | The Witness | yes | not_flagged: witness_complete | offer, transit, checkpoint, revealed, shroud_run, halcyon, broadcast |
-| `rezkov` | Rezkov Arc | no | upgrades_min + not_flagged | hook, m1_navigate, m2_active, m2_deliver, m3_active, m3_deliver |
+| `rezkov`   | Rezkov Arc    | no  | upgrades_min + not_flagged    | hook, m1_navigate, m2_active, m2_deliver, m3_active, m3_deliver |
+| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged    | hook, approach, annex_hack, annex_control, extract |
+
+Retired arcs (Witness, Whistleblower) live in `ee/ragtag/missions/attic/` — kept for
+reference, never required by the loader. `check.py` errors on any file in
+`ee/ragtag/missions/` that isn't required by `missions.lua`, so attic/ is where
+intentionally unloaded arcs go.
 
 Design notes for each arc: `ee/ragtag/missions/<id>.md`.
 
@@ -264,8 +269,20 @@ to `return RT.campaign.flags[name]` — no write happens. Any loop that calls
 
 ### Using RT.after inside a phase
 
-`RT.after` timers survive phase transitions — cancel them explicitly in `exit` if they
-should not fire after the phase ends.
+`RT.after` timers survive phase transitions — cancel them explicitly in `exit` or
+`_clearState` if they should not fire after the phase ends.
+
+```lua
+RT.after(90, function()
+    -- Guard: arc may have been cancelled before this fires
+    if MISSIONS._status["myarc"] ~= "active" then return end
+    local st = MISSIONS._state["myarc"]
+    if st then _doThing(st) end
+end, "myarc_timer_name")
+
+-- Cancel by the name passed as the third argument:
+RT.cancelTimer("myarc_timer_name")
+```
 
 ### Checking active phase from outside the engine
 
@@ -278,6 +295,81 @@ end
 
 Use `RT.flag("witness_complete")` for cross-session state; `_status` is session-only and
 starts as `"inactive"` each run.
+
+### Suspending proximity spawns in a named zone
+
+Use `PROX.suspendZone(name)` to suppress ambient spawns while the arc controls a region,
+and `PROX.resumeZone(name)` to restore them on resolve or cancel.
+
+```lua
+-- In a phase update when the arc takes over a zone:
+PROX.suspendZone("the Boneyard")
+
+-- In M.resolve and M.on_cancel:
+PROX.resumeZone("the Boneyard")
+```
+
+Zone names match the keys in `PROX.zones` (see `ee/ragtag/world/proximity.lua`). The
+leash/despawn watchdog keeps running during suspension — only new spawns are blocked.
+Call `PROX.suspendZone` again in every GM skip action that jumps to a post-suspend phase.
+
+### Unlocking Science database entries from arc resolve
+
+When an arc recovers classified information, unlock the corresponding SCIDB entries in
+`M.resolve`. The entries must have been created with a `lock_key` in `sciencedb.lua`.
+
+```lua
+function M.resolve(st)
+    if RT.flag("myarc_data_retrieved") then
+        SCIDB.unlock("hollow_true_nature")
+        SCIDB.unlock("ashgrave_research")
+        RT.shipLog("[Science] Database updated with recovered files.", "#00CCAA")
+    end
+end
+```
+
+### Injecting and cleaning up arc rumors
+
+Add arc-specific rumors with a `category` tag, inject in the hook phase's `enter`,
+and remove the category in `exit` so they retire when the player acts on them.
+Injected rumors are session state — they reset every run — so **never gate the
+injection on a persistent `RT.flag`**: the flag survives to session 2, the rumors
+don't, and the hook silently disappears.
+
+```lua
+hook = {
+    enter = function(st)
+        RUMORS.removeCategory("MYARC_HOOK")  -- idempotent for GM re-entry
+        RUMORS.add({text = "...", priority = 3, category = "MYARC_HOOK"})
+    end,
+    exit = function(st)
+        RUMORS.removeCategory("MYARC_HOOK")  -- phase transitions always run exit
+    end,
+}
+
+-- And in _clearState (covers cancel and GM skip actions):
+RUMORS.removeCategory("MYARC_HOOK")
+RUMORS.removeCategory("MYARC_DONE")
+```
+
+Note: `RUMORS.get` returns **nil** when the rumors WORLD plugin is disabled —
+guard any direct concatenation with `or "fallback line"`.
+
+### Destruction hooks and kill tracking
+
+`entity:onDestruction` holds ONE callback per entity; reputation tracking, director
+kill events, and loot drops all share it. **Always register through
+`RT.onKill(ship, fn(ship, instigator))`** — it installs a single dispatcher and
+calls every registered fn.
+
+- Fires on damage kills only; a scripted `entity:destroy()` fires nothing, so
+  despawns in `_clearState`/`on_cancel` are automatically penalty-free.
+- `RT.register()` on a CpuShip auto-wires a -200 rep penalty that fires **only
+  when the player is the instigator**. Pseudo-factions (`Concord Hostile`,
+  `Corsair Friendly`, `Relic Active`) and `Derelict`/`Unknown` are never tracked.
+- `RT.cancelKillTracking(ship)` suppresses the auto penalty for a ship the arc
+  lets die to damage while applying its own rep consequences (e.g. a story
+  target with an explicit `RT.addReputation` outcome).
 
 ### Guard against double hook registration on restart
 

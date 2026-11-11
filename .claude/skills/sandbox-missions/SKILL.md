@@ -6,7 +6,7 @@ description: Add or extend a story arc in the ragtag sandbox campaign using the 
 # Adding a story arc (sandbox-missions)
 
 **Read `references/missions_api.md` now.** It is the authoritative reference.
-**Note**: this file is also kept in `.claude/skills/empty-epsilon-scenarios/references/missions_api.md` — update both when it changes.
+**Note**: this file is also kept in `.claude/skills/empty-epsilon-scenarios/references/missions_api.md` — update both when it changes (`check.py` errors if the two copies differ).
 The reference implementation is `ee/ragtag/missions/rezkov.lua`; design notes live in `ee/ragtag/missions/rezkov.md`.
 
 ---
@@ -42,8 +42,8 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 ## Interaction with other layers
 
 - **Suspend the job board** while the arc is active: set `M.locks_jobs = true`.
-- **Add a rumor as an arc hook**: `RUMORS.add({text=..., once=true, priority=5})` from an `enter` function.
-- **Proximity spawn suspension**: the Witness arc sets `S.witness_active = true` to suspend all proximity spawns. If your arc also needs to suppress spawns, coordinate with that flag or add a parallel one the scenario exposes.
+- **Add a rumor as an arc hook**: inject in the hook phase's `enter` (call `RUMORS.removeCategory` first so GM re-entry doesn't duplicate), remove the category in `exit` and in `_clearState`. Do NOT gate injection on a persistent `RT.flag` — injected rumors reset every session, so a persistent "already injected" flag silently kills the hook in session 2.
+- **Proximity spawn suspension**: call `PROX.suspendZone("zone name")` to block new spawns in a region while your arc controls it, and `PROX.resumeZone("zone name")` in both `M.resolve` and `M.on_cancel`. Zone names match the keys in `PROX.zones`. Call suspend again in any GM skip action that jumps to a post-suspend phase.
 - **Cross-session state**: `RT.flag(name, true)` to persist, `RT.clearFlag(name)` to clear. Never use `RT.flag(name, nil)` to clear — that is a read, not a write.
 
 ---
@@ -54,7 +54,8 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - **`RT.flag("x", nil)` is a no-op read** — it does not clear the flag. Use `RT.clearFlag("x")`.
 - **Not cleaning up in `on_cancel`** — world objects persist across GM restarts.
 - **Double-registering station hooks** — if the GM restarts the arc in the same session, hooks fire twice. Guard with a file-level `_hook_registered` boolean.
-- **Forgetting the require** — if `ee/ragtag/missions.lua` doesn't require your file, the arc never loads and no error is thrown.
+- **Forgetting the require** — the arc never loads and the game throws no error, but `check.py` now errors on any `ee/ragtag/missions/*.lua` not required by `missions.lua`. Intentionally unloaded arcs go in `ee/ragtag/missions/attic/`.
+- **Calling `entity:onDestruction` directly** — one callback slot per entity; a direct call clobbers reputation tracking, director kill events, and loot drops. Register via `RT.onKill(ship, fn(ship, instigator))`. It fires only on damage kills (never on scripted `destroy()`), and `instigator` tells you whether the player did it.
 
 ---
 
@@ -62,7 +63,9 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 
 - [ ] `M.on_cancel` destroys all spawned objects
 - [ ] Every GM skip action calls a `_clearState()` helper first (idempotent skips)
-- [ ] `RT.after` timers cancelled in `exit` if they shouldn't fire after the phase ends
+- [ ] `RT.after` timers cancelled with `RT.cancelTimer(name)` in `_clearState` if they shouldn't fire after phase ends
 - [ ] Arc triggers use `not_flagged` to prevent re-triggering after completion
+- [ ] Destruction callbacks registered via `RT.onKill`, never `entity:onDestruction`
+- [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
 - [ ] Design doc exists at `ee/ragtag/missions/<name>.md`
 - [ ] `python tools/check.py` passes
