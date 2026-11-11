@@ -1028,26 +1028,25 @@ function RT.addCampaignGMFunctions()
         addGMMessage("Campaign saved. Credits: " .. RT.credits() .. ", Upgrades: " .. #RT.campaign.upgrades)
     end)
 
-    addGMFunction("Toggle sound cues", function()
-        RT.sound_enabled = not RT.sound_enabled
-        if not RT.sound_enabled then
-            RT._sound_queue = {}
-            RT._sound_loops = {}
-        end
-        addGMMessage("Sound cues " .. (RT.sound_enabled and "ON" or "OFF") .. " (server speakers)")
-    end)
-
-    addGMFunction("Test sounds...", function() RT.showSoundTestMenu() end)
+    addGMFunction("Sounds...", function() RT.showSoundMenu() end)
 end
 
--- GM submenu: one button per cue in RT.SOUNDS, played immediately on the server.
--- Works even when cues are toggled off (it is a test), and reports the file.
-function RT.showSoundTestMenu()
+-- GM submenu: enable/disable toggle, then one test button per cue in RT.SOUNDS
+-- (played immediately on the server). Tests work even while cues are disabled.
+function RT.showSoundMenu()
     clearGMFunctions()
     addGMFunction("← Back to Main", function()
         clearGMFunctions()
         RT.addCampaignGMFunctions()
         if addSessionGMFunctions then addSessionGMFunctions() end
+    end)
+    addGMFunction("Sound cues: " .. (RT.sound_enabled and "ON" or "OFF"), function()
+        RT.sound_enabled = not RT.sound_enabled
+        if not RT.sound_enabled then
+            RT._sound_queue = {}
+            RT._sound_loops = {}
+        end
+        RT.showSoundMenu()  -- redraw so the label shows the new state
     end)
     local ids = {}
     for id in pairs(RT.SOUNDS) do ids[#ids + 1] = id end
