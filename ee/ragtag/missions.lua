@@ -5,3 +5,4 @@
 require("ragtag/world/rumors.lua")
 require("ragtag/missions/_engine.lua")
 require("ragtag/missions/rezkov.lua")
+require("ragtag/missions/boneyard.lua")
