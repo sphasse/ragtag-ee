@@ -403,6 +403,14 @@ M.phases = {
                 end)
             end
             RT.shipLog("[Science] Ashgrave Annex: encrypted lockdown. Relay, that is a hacking job: breach any system.", "#FFAA44")
+            -- Diagnostics (EmptyEpsilon.log): is the Annex a valid hack target?
+            if RT.valid(st.annex) then
+                local okf, fac = pcall(function() return st.annex:getFaction() end)
+                local oks, has = pcall(function() return st.annex:hasSystem("frontshield") end)
+                log("[BONEYARD] annex_hack: faction=" .. tostring(okf and fac) ..
+                    " hasFrontshield=" .. tostring(oks and has))
+            end
+            st.hack_last_logged = -1
         end,
         update = function(st, delta, now)
             if not RT.valid(st.annex) then return end
@@ -412,6 +420,12 @@ M.phases = {
             end)
             if not ok then hack_lvl = 0 end
             if not hack_lvl then hack_lvl = 0 end
+            -- Log each 5% step so a playtest shows whether the Relay hack lands.
+            local step = math.floor(hack_lvl * 20)
+            if step ~= st.hack_last_logged then
+                st.hack_last_logged = step
+                log("[BONEYARD] Annex frontshield hacked level = " .. string.format("%.2f", hack_lvl))
+            end
 
             if not st.hack_mid_logged and hack_lvl >= 0.5 then
                 st.hack_mid_logged = true
