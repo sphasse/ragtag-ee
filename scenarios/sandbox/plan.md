@@ -231,13 +231,22 @@ one warhead. The crew gets one shot.
   `run`). A spent warhead with no hit is the fail state: the arc restarts from
   `staging`, and Thresh can build a second one for 500cr ("the schematic was
   the easy part") — GM button to re-grant for free.
-- Hit detection, preferred: while `"spent"` and the hit is pending, scan
-  `getObjectsInRadius(rift_x, rift_y, 2500)` each frame for a missile entity
-  and count a hit when one is inside ~1.5U of the rift centre (verify the
-  missile component name in a headless run before relying on it). Fallback if
-  that is unreliable: count the hit from fire-time geometry — player within 4U
-  of the rift at the moment storage drops. Decide in playtest; log which rule
-  fired.
+- Hit detection — **the rift is an entity** (verified against the engine
+  source, EE commit b492ea94): a stationary `CpuShip` ("Defense platform"
+  template, Hollow, `setCanBeDestroyed(false)`, shields 0, beams zeroed,
+  radar trace restyled) at the rift position. Weapons can lock it and the EMP
+  detonates on it because it has a `Hull`. Set
+  `hull.damaged_by_emp = true` and `damaged_by_energy/kinetic = false` so only
+  the warhead registers, then `onTakingDamage(fn(anchor, instigator))` *is*
+  the hit (fires even with destruction disabled). The anchor-field rule is a
+  guard inside that callback (platform alive → "the pulse didn't take" →
+  miss). EMP facts: 0.2 U/s, 27 s lifetime (~5.4 U reach), 0.5 U homing,
+  1 U blast — a 20 s flight from 4 U, and any Hollow hull in the path eats it.
+- **No `WormHole` until after the hit.** A live wormhole pulls every physics
+  entity in range to its centre and teleports it (`gravity.cpp`) — including
+  the missile, which would arrive at Lastchance undetonated, and the anchor
+  itself. On the hit: destroy the anchor, spawn the `WormHole` in its place as
+  the exit (`setTargetPosition` 4U off Lastchance). The shot opens the door.
 
 **Thread effects** (all arcs are prerequisites; their *outcomes* shape the run):
 - **Ledger** (`ledger_evidence`): the ledger transmission beat in `aftermath`
@@ -406,8 +415,9 @@ If an arc module is lost, rebuild against these rails:
 ## Open questions / tuning
 
 - Boneyard trigger: add `rezkov_arc_done` as a gate, or leave it open?
-- EMP hit detection: missile-entity proximity vs. fire-time geometry (needs a
-  headless check of the missile component name).
+- Rift anchor: confirm in a headless run that `hull.damaged_by_emp` and
+  `onTakingDamage` behave as the source reads (callback fires on the EMP
+  blast; beams and homings do nothing to it).
 - Liberation kill threshold, anchor platform strength, wave sizes, and whether
   three anomaly scans is too slow for Science under fire — playtest numbers.
 - Does the player template's tube accept EMP without `weaponTubeAllowMissle`?
