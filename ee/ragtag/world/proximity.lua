@@ -585,6 +585,12 @@ local function _processGroup(st, group, now, player)
                             group.shakedown_state  = "pending"
                             group.shakedown_start  = now
                             group.shakedown_hailed = false
+                            -- Sound: jammer engages, interference bed while it holds.
+                            RT.sound("jammer_engage", {now = true})
+                            group.sound_loop = "prox_jammer_" .. cs
+                            RT.soundLoop(group.sound_loop, "jammer_bed", 10, function()
+                                return RT.valid(group.jammer) and not group.shakedown_done
+                            end)
                             -- Broadcast fires immediately with jammer deploy; hail fires once stopped
                             RT.shipLog("[" .. cs .. "] We are Concord interceptor " .. cs .. ". You are being warp jammed and we have weapons targeted. We are in the area checking transponder codes and cargo. Respond to our hail and comply in a timely manner or suffer the consequences. You have one minute.", "#8888FF")
                             local _msg = "CONCORD INTERCEPTION — " .. cs .. "\nWarp jammer deployed. Weapons targeted.\nRespond to hail within 60 seconds or face consequences."
@@ -644,6 +650,11 @@ local function _processGroup(st, group, now, player)
         if group.shakedown_state == "pending" and not group.shakedown_done
            and group.shakedown_hailed then
             local t0 = group.last_comms_activity or group.shakedown_hailed_at or group.shakedown_start
+            -- Ten-second warning, re-armed whenever Relay resets the clock.
+            if group.sound_warned_for ~= t0 and now - t0 > _cfg("shakedown_timeout") - 10 then
+                group.sound_warned_for = t0
+                RT.sound("concord_warning", {now = true})
+            end
             if now - t0 > _cfg("shakedown_timeout") then
                 local hostile_line = _HOSTILE_LINES[math.random(#_HOSTILE_LINES)]
                 local hs_name = group.hailing_ship or "Concord"
@@ -829,7 +840,14 @@ function _P.update(state, delta, now)
                         group.last_comms_activity = now
                         local hs = RT.named[group.hailing_ship]
                         if hs and RT.valid(hs) then hs:openCommsTo(player2) end
+                        RT.sound("concord_hail", {now = true})
                     end
+                end
+                -- Stop resolved (any path): one closing cue. The bed loop ends on its own.
+                if group.sound_loop and not group.sound_resolved
+                   and (group.shakedown_done or not RT.valid(group.jammer)) then
+                    group.sound_resolved = true
+                    RT.sound(group.shakedown_hostile and "concord_hostile" or "jammer_release", {now = true})
                 end
             end
         end

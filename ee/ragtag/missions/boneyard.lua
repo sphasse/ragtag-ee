@@ -204,6 +204,8 @@ local function _spawnJammer(st)
     pcall(function() j:setFaction("Concord Hostile") end)
     st.jammer = j
     RT.shipLog("[Science] Warp signatures suppressed. Concord jammer active. Fly out — warp is down.", "#FF4444")
+    RT.sound("jammer_engage", {now = true})
+    RT.soundLoop("boneyard_jammer", "jammer_bed", 10, function() return RT.valid(st.jammer) end)
 end
 
 local function _setAnnexControlComms(st)
@@ -302,6 +304,7 @@ local function _clearState(st)
     if RT.valid(st.jammer) then pcall(function() st.jammer:destroy() end) end
     st.jammer         = nil
     st.jammer_spawned = false
+    RT.stopSoundLoop("boneyard_jammer")
 
     RT.cancelTimer("boneyard_jammer")
     RT.cancelTimer("boneyard_cleanup")
@@ -504,6 +507,8 @@ M.phases = {
                 pcall(function() st.jammer:destroy() end)
             end
             st.jammer = nil
+            RT.stopSoundLoop("boneyard_jammer")
+            RT.sound("jammer_release", {now = true})
         end,
     },
 }

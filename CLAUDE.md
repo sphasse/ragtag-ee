@@ -45,6 +45,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 - Headless EE: start detached (`setsid nohup ...`) and poll; one server per port.
 - **`debug` library not available**: EmptyEpsilon Lua doesn't have `debug.traceback()`. Use `pcall` and `tostring(err)` for error handling.
 - **`sendCommsMessage` logs twice**: Once when sent, again when accepted in Relay. Use direct `RT.shipLog()` if you need single-log behavior.
+- **`playSoundFile` is server-only** (plays on the server machine, never on clients). Use `RT.sound(id)` for cues; client/positional sound needs an `sfx` entity and the file on every client. Music can't be driven from Lua.
 
 ## Definition of done
 `python tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error` and the smoke test passes.

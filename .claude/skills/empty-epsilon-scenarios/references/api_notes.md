@@ -15,6 +15,7 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 10. GM screen
 11. Factions and templates
 12. Headless testing
+13. Sound
 
 ## 1. Scenario file format
 - File name `scenario_NN_name.lua` in the `scripts/` folder. NN orders the list.
@@ -146,3 +147,11 @@ punctuation (`! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ \` { | } ~`)
 - Lua errors appear in the terminal / `EmptyEpsilon.log` as `LUA-Error:` with a traceback.
 - Only one server can bind port 8080; a second launch crashes. Stop the old one first.
 - `luac -p file.lua` (Lua 5.4) catches syntax errors without the game.
+
+## 13. Sound (verified in engine source, EE b492ea94)
+- `playSoundFile("path")` plays on the **server machine only**, never on clients (`src/script.cpp:1408`). No volume/pitch/stop/loop. It first tries `name.<language>.ext`. Paths resolve against `resources/`, `scripts/` and `~/.emptyepsilon/{resources,scripts}`, so files in `scripts/ragtag/sfx/` are `"ragtag/sfx/x.ogg"`. Formats: wav/ogg/flac.
+- Client sound = an entity with an `sfx` component (`createEntity()`, `e.components = {sfx = {sound=..., volume=..., pitch=...}}`), which replicates and plays once on every machine. Without `transform` it is global on every screen; with one it is positional and only heard on screens rendering a 3D view (main screen; crew screens only with the wide side view), with falloff `400/(400+0.6·(d−400))` world units. Positional files must be mono. Destroy the entity a few seconds later — late-joining clients replay every live `sfx` entity.
+- Every client needs any custom file it is asked to play; a missing file logs "Failed to load sound" and plays nothing.
+- Music (ambient/combat) is chosen client-side by a threat estimator (enemy-relation armed ships within 7U, damage taken) and cannot be driven from Lua. Neutral Concord stops and warp jammers do not trigger combat music.
+- `gameGlobalInfo->playSoundOnMainScreen` (shields up/down, self-destruct voice) is engine-internal, not exposed to Lua.
+- In this repo use `RT.sound(id)` / `RT.soundLoop` (core.lua) rather than calling `playSoundFile` directly; cue ids and files are listed in `ee/ragtag/sfx/SOURCES.md`.
