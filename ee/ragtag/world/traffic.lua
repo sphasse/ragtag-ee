@@ -203,7 +203,7 @@ local function _spawnTransport(route, rng, near_station)
     rec.dest = dest
     if rec.dest then s:orderDock(rec.dest) end
     s:setCommsFunction(function(source, target) _transportComms(source, target, rec) end)
-    s:onDestruction(function(ship, instigator)
+    RT.onKill(s, function(ship, instigator)
         local x, y = ship:getPosition()
         if DIR then
             DIR.emit("transport_destroyed", {callsign = rec.name, route = route.id,
@@ -253,10 +253,12 @@ local function _updateTransports(now)
                     if moved < 1500 and rec.resume_at == nil then
                         rec.stall_count = (rec.stall_count or 0) + 1
                         if rec.stall_count >= 3 then
-                            -- Stuck for 3+ minutes: destroy and respawn elsewhere
+                            -- Stuck for 3+ minutes: destroy and respawn elsewhere.
+                            -- Skip the rest of the body — s is gone.
                             table.remove(VERSE.transports, i)
                             table.insert(VERSE.respawn_queue, {route = rec.route, at = now + VERSE.rng_live.float(30, 90)})
                             s:destroy()
+                            goto continue
                         elseif rec.stall_count == 2 then
                             -- Stuck for 2 minutes: teleport to destination's vicinity if far from player
                             if rec.dest and RT.valid(rec.dest) and (not RT.valid(RT.player) or RT.dist(s, RT.player) > 15000) then
@@ -296,6 +298,7 @@ local function _updateTransports(now)
                 end
             end
         end
+        ::continue::
     end
     for i = #VERSE.respawn_queue, 1, -1 do
         local q = VERSE.respawn_queue[i]

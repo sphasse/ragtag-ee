@@ -409,8 +409,8 @@ local function _spawnGroup(st, region_name, px, py)
         DIR.registerKill(s)
         DIR.allowControl(s)
 
-        local zdanger = zone.danger or 0
-        s:onDestruction(function(self, instigator)
+        local zdanger = region.danger or 0
+        RT.onKill(s, function(self, instigator)
             local dx, dy = self:getPosition()
             local count = math.random(1, 3)
             for _ = 1, count do
@@ -585,16 +585,6 @@ local function _processGroup(st, group, now, player)
                             group.shakedown_state  = "pending"
                             group.shakedown_start  = now
                             group.shakedown_hailed = false
-                            group.jammer_diag_next = now  -- log every 0.5s for first 10s
-                            -- Diagnostics: log spawn state and read back velocity to verify it was set
-                            local jx0, jy0 = jammer:getPosition()
-                            local phys = jammer.components.physics
-                            local ptype = phys and phys.type or "nil"
-                            local vel = phys and phys.velocity
-                            local vx0 = vel and vel[1] or "?"
-                            local vy0 = vel and vel[2] or "?"
-                            log(string.format("[JAMMER] spawn pos=(%.0f,%.0f) phys_type=%s vel_readback=(%s,%s) [dynamic, behind player]",
-                                jx0, jy0, tostring(ptype), tostring(vx0), tostring(vy0)))
                             -- Broadcast fires immediately with jammer deploy; hail fires once stopped
                             RT.shipLog("[" .. cs .. "] We are Concord interceptor " .. cs .. ". You are being warp jammed and we have weapons targeted. We are in the area checking transponder codes and cargo. Respond to our hail and comply in a timely manner or suffer the consequences. You have one minute.", "#8888FF")
                             local _msg = "CONCORD INTERCEPTION — " .. cs .. "\nWarp jammer deployed. Weapons targeted.\nRespond to hail within 60 seconds or face consequences."
@@ -768,7 +758,7 @@ local function _nearbyHostiles(px, py)
     local count = 0
     for _, obj in ipairs(getObjectsInRadius(px, py, r)) do
         local ok, fac = pcall(function() return obj:getFaction() end)
-        if ok and (fac == "Corsairs" or fac == "Relic" or fac == "Hollow" or fac == "Concord Hostile") then
+        if ok and VERSE.HOSTILE_FACTIONS[fac] then
             count = count + 1
         end
     end
@@ -833,23 +823,7 @@ function _P.update(state, delta, now)
                     local pvx, pvy = 0, 0
                     pcall(function() pvx, pvy = player2:getVelocity() end)
                     local pspeed = math.sqrt(pvx * pvx + pvy * pvy)
-                    local elapsed = now - (group.shakedown_start or now)
-                    if elapsed < 10 and group.jammer_diag_next and now >= group.jammer_diag_next then
-                        group.jammer_diag_next = now + 0.5
-                        local jx3, jy3 = group.jammer:getPosition()
-                        local phys3 = group.jammer.components.physics
-                        local vel3 = phys3 and phys3.velocity
-                        local jvx = vel3 and vel3[1] or "?"
-                        local jvy = vel3 and vel3[2] or "?"
-                        local dx3, dy3 = jx3 - px3, jy3 - py3
-                        log(string.format("[JAMMER] t=+%.1fs jpos=(%.0f,%.0f) ppos=(%.0f,%.0f) offset_dist=%.0f vel=(%s,%s) pspeed=%.1f",
-                            elapsed, jx3, jy3, px3, py3,
-                            math.sqrt(dx3*dx3 + dy3*dy3),
-                            tostring(jvx), tostring(jvy), pspeed))
-                    end
                     if pspeed < 25 then
-                        local jxf, jyf = group.jammer:getPosition()
-                        log(string.format("[JAMMER] hail fired pspeed=%.1f jpos=(%.0f,%.0f)", pspeed, jxf, jyf))
                         group.shakedown_hailed    = true
                         group.shakedown_hailed_at = now
                         group.last_comms_activity = now
@@ -893,6 +867,7 @@ function _P.update(state, delta, now)
     for name, region in pairs(state.regions) do
         local depth = _depthIn(px, py, region)
         if depth > 0 then
+            if PROX._suspended_zones[name] then goto skip end
             local zone     = PROX.zones[name]
             local mode_idx = state.zone_modes[name] or _cfg("default_zone_mode")
             local mode     = _SPAWN_MODES[mode_idx]
@@ -1067,6 +1042,18 @@ function PROX.clearWantedStatus()
     end
     st.region_cd["the Concord Core"]  = nil
     st.region_cd["the Arbiter Line"]  = nil
+end
+
+-- Suppress ambient spawns in a named zone (e.g. during a story arc).
+-- Suspended zones still run the leash/despawn watchdog; only new spawns are blocked.
+PROX._suspended_zones = PROX._suspended_zones or {}
+
+function PROX.suspendZone(name)
+    PROX._suspended_zones[name] = true
+end
+
+function PROX.resumeZone(name)
+    PROX._suspended_zones[name] = nil
 end
 
 -- Manually add a no-spawn exclusion zone around a named station.

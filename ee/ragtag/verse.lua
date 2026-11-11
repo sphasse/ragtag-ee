@@ -71,6 +71,12 @@ VERSE.FACTIONS = {
     wreck = "Derelict",
 }
 
+-- Factions whose ships count as ambient threats to the player (density checks,
+-- hostile counting). Keep in sync when adding a faction that attacks Independents.
+VERSE.HOSTILE_FACTIONS = {
+    Corsairs = true, Relic = true, Hollow = true, ["Concord Hostile"] = true,
+}
+
 function VERSE.setupFactions()
     local ind = getFactionInfo("Independent")
     local function make(name, r, g, b, desc)
@@ -124,6 +130,13 @@ function VERSE.setupFactions()
     corsair_friendly:setEnemy(concord_hostile)
     corsair_friendly:setEnemy(hollow)
     corsair_friendly:setEnemy(relic)
+
+    -- Relic Active: war drones with IFF override.  Hostile to Concord forces only;
+    -- neutral to Independent and Corsairs so the player can observe without being targeted.
+    local relic_active = make("Relic Active", 230, 210, 70,
+        "Relic war drones with targeting override active. Concord transponders designated hostile.")
+    relic_active:setEnemy(concord)
+    relic_active:setEnemy(concord_hostile)
 
     VERSE.factions_ready = true
 end
@@ -289,6 +302,14 @@ local function buildHazards()
     end
 end
 
+local function concordPatrolComms(source, target)
+    if RT.flag("wanted") then
+        setCommsMessage("\"" .. source:getCallSign() .. ", your transponder is flagged. Keep your distance and keep moving.\"")
+    else
+        setCommsMessage("\"Concord patrol " .. target:getCallSign() .. ". Lanes are clear. Keep it that way.\"")
+    end
+end
+
 local function buildGarrisons()
     local n = 0
     for _, g in ipairs(VERSE.GARRISONS) do
@@ -329,14 +350,6 @@ local function buildGarrisons()
         end
     end
     return n
-end
-
-local function concordPatrolComms(source, target)
-    if RT.flag("wanted") then
-        setCommsMessage("\"" .. source:getCallSign() .. ", your transponder is flagged. Keep your distance and keep moving.\"")
-    else
-        setCommsMessage("\"Concord patrol " .. target:getCallSign() .. ". Lanes are clear. Keep it that way.\"")
-    end
 end
 
 local function stripWeapons(s)
@@ -411,7 +424,8 @@ function VERSE.updateRegion()
     local r = VERSE.regionAt(x, y)
 
     -- Always refresh label so the grid coordinate stays current.
-    local label = "Location: " .. r.name .. "  " .. JOBS.gridRef(x, y)
+    -- getSectorName directly: VERSE must not depend on the JOBS layer.
+    local label = "Location: " .. r.name .. "  " .. getSectorName(x, y)
     p:addCustomInfo("helms", "rt_region", label, 1)
     p:addCustomInfo("relay", "rt_region_r", label, 1)
     p:addCustomInfo("operations", "rt_region_o", label, 1)

@@ -193,7 +193,9 @@ end
 function DIR.registerKill(ship)
     if not RT.valid(ship) then return end
     local str = RT.shipStrength(ship)
-    ship:onDestruction(function(s, instigator)
+    -- RT.onKill shares one onDestruction slot with reputation tracking and
+    -- loot drops; setting onDestruction directly here would clobber them.
+    RT.onKill(ship, function(s, instigator)
         local by_player = RT.isPlayer(instigator)
         DIR.emit("destroyed", {callsign = s:getCallSign(), faction = s:getFaction(),
             by_player = by_player and 1 or 0}, "normal")

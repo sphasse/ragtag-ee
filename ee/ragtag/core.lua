@@ -235,7 +235,7 @@ local function defaultCampaign()
         flags = {},      -- story flags: string -> bool/number/string
         notes = {},      -- short human-readable campaign log lines
         discovered = {}, -- names of charted regions (see ragtag_verse.lua)
-        reputation = {   -- standing with each faction (-100 to +100)
+        reputation = {   -- standing with each faction (unbounded; thresholds at ±200/±400/±500)
             Concord = 0,
             Corsairs = 0,
             Hollow = 0,
@@ -391,50 +391,52 @@ function RT.getReputation(faction)
     return RT.campaign.reputation[faction] or 0
 end
 
--- Track ship kills for reputation penalties
-RT._kill_handlers = {}
-function RT.onKill(ship, callback)
+-- Destruction callbacks. EE's onDestruction holds a single callback per entity,
+-- so this dispatcher lets several systems (reputation, director events, loot
+-- drops) hook the same ship without clobbering each other.
+-- fn(ship, instigator). onDestruction only fires on damage kills, never on a
+-- scripted destroy(), and instigator identifies the killer.
+RT._kill_cbs      = setmetatable({}, {__mode = "k"})
+RT._rep_cancelled = setmetatable({}, {__mode = "k"})
+
+function RT.onKill(ship, fn)
     if not ship or not RT.valid(ship) then return end
-    local cs = ship:getCallSign()
-    if not RT._kill_handlers[cs] then
-        RT._kill_handlers[cs] = {}
-    end
-    table.insert(RT._kill_handlers[cs], callback)
-end
-
--- Call this in update() to check for destroyed ships
-function RT.updateKillTracking()
-    for cs, handlers in pairs(RT._kill_handlers) do
-        local ship = RT.named[cs]
-        if not RT.valid(ship) then
-            -- Ship was destroyed, fire callbacks
-            for _, cb in ipairs(handlers) do
-                local ok, err = pcall(cb)
-                if not ok then
-                    log("[RT] kill handler error for " .. cs .. ": " .. tostring(err))
-                end
+    local cbs = RT._kill_cbs[ship]
+    if cbs == nil then
+        cbs = {}
+        RT._kill_cbs[ship] = cbs
+        ship:onDestruction(function(s, instigator)
+            for _, cb in ipairs(cbs) do
+                local ok, err = pcall(cb, s, instigator)
+                if not ok then log("[RT] kill callback failed: " .. tostring(err)) end
             end
-            RT._kill_handlers[cs] = nil
-        end
+        end)
     end
+    cbs[#cbs + 1] = fn
 end
 
--- Cancel kill-tracking callbacks for a ship. Call before a scripted destroy() when
--- the arc manages its own reputation consequences, to prevent double-firing.
+-- Suppress the reputation penalty for a ship an arc is managing itself.
+-- (Scripted destroy() never fires onDestruction anyway; this covers arcs that
+-- let a ship die to damage but apply their own consequences.)
 function RT.cancelKillTracking(ship)
-    if not ship then return end
-    local ok, cs = pcall(function() return ship:getCallSign() end)
-    if ok and cs then RT._kill_handlers[cs] = nil end
+    if ship ~= nil then RT._rep_cancelled[ship] = true end
 end
 
--- Register a ship for automatic reputation tracking on kill
+-- Register a ship for a reputation penalty when the PLAYER destroys it.
+-- NPC-vs-NPC kills and scripted despawns cost nothing.
 function RT.trackShipForReputation(ship)
     if not ship or not RT.valid(ship) then return end
-    local faction  = ship:getFaction()
-    -- Only track ships from factions we care about (not player ships, not derelict)
-    if faction == RT.PLAYER_FACTION or faction == "Derelict" or faction == "Unknown" then return end
+    local faction = ship:getFaction()
+    -- Skip player ships, inert factions, and presentation-only pseudo-factions.
+    local skip = {
+        [RT.PLAYER_FACTION] = true, Derelict = true, Unknown = true,
+        ["Concord Hostile"] = true, ["Corsair Friendly"] = true, ["Relic Active"] = true,
+    }
+    if skip[faction] then return end
     local callsign = ship:getCallSign()   -- capture before entity is destroyed
-    RT.onKill(ship, function()
+    RT.onKill(ship, function(s, instigator)
+        if RT._rep_cancelled[s] then return end
+        if not RT.isPlayer(instigator) then return end
         RT.addReputation(faction, -200, "destroyed " .. callsign)
     end)
 end
@@ -810,10 +812,9 @@ function RT.stationComms(source, target)
 
     addCommsReply("Any news worth hearing?", function(s, t)
         -- Deliver a rumor with cooldown, plus ping the director for dynamic content
-        local rumor_text = "\"Let me think...\""
-        if RUMORS and RUMORS.get then
-            rumor_text = "\"" .. RUMORS.get(s:getCallSign(), t:getFaction()) .. "\""
-        end
+        -- RUMORS.get returns nil when the rumors plugin is disabled.
+        local rumor = RUMORS and RUMORS.get and RUMORS.get(s:getCallSign(), t:getFaction())
+        local rumor_text = "\"" .. (rumor or "Nothing worth repeating right now.") .. "\""
         setCommsMessage(rumor_text)
         if DIR then
             DIR.emit("comms_ask", {station = t:getCallSign(), faction = t:getFaction(), topic = "rumours"}, "normal")

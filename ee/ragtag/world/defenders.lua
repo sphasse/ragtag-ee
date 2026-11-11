@@ -94,7 +94,7 @@ local function _defenderComms(ship_name, station_cs, fac)
             else
                 setCommsMessage('"No valid targets in range. Holding post."')
             end
-            addCommsReply("Understood.", function(s3, t3) RT.stationComms(s3, t3) end)
+            addCommsReply("Understood.", function(s3, t3) setCommsMessage('"' .. ship_name .. ' out."') end)
         end)
 
         addCommsReply("Defend our ship.", function(s2, t2)
@@ -107,7 +107,7 @@ local function _defenderComms(ship_name, station_cs, fac)
             else
                 setCommsMessage('"Copy."')
             end
-            addCommsReply("Good.", function(s3, t3) RT.stationComms(s3, t3) end)
+            addCommsReply("Good.", function(s3, t3) setCommsMessage('"' .. ship_name .. ' out."') end)
         end)
 
         addCommsReply("Return to your station.", function(s2, t2)
@@ -117,19 +117,19 @@ local function _defenderComms(ship_name, station_cs, fac)
             else
                 setCommsMessage('"Copy."')
             end
-            addCommsReply("Good.", function(s3, t3) RT.stationComms(s3, t3) end)
+            addCommsReply("Good.", function(s3, t3) setCommsMessage('"' .. ship_name .. ' out."') end)
         end)
     end
 
     if fac == "Concord" then
         addCommsReply("Just passing through.", function(s2, t2)
             setCommsMessage('"Logged. Proceed."')
-            addCommsReply("Out.", function(s3, t3) RT.stationComms(s3, t3) end)
+            addCommsReply("Out.", function(s3, t3) setCommsMessage('"' .. ship_name .. ' out."') end)
         end)
     else
         addCommsReply("Just checking in.", function(s2, t2)
             setCommsMessage('"Keep your transponder live and you\'ll have no trouble from me."')
-            addCommsReply("Out.", function(s3, t3) RT.stationComms(s3, t3) end)
+            addCommsReply("Out.", function(s3, t3) setCommsMessage('"' .. ship_name .. ' out."') end)
         end)
     end
 end

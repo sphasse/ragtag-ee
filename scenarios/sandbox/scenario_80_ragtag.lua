@@ -786,7 +786,6 @@ end
 
 function update(delta)
     RT.update(delta)
-    RT.updateKillTracking()  -- Track ship kills for reputation
     VERSE.update(delta)
     DIR.update(delta)
 

@@ -262,14 +262,7 @@ end
 -- Add the single top-level "Missions..." button to the GM menu.
 -- backToMainFn: rebuilds the main GM screen (clearGMFunctions + addSessionGMFunctions).
 function MISSIONS.addGMButton(backToMainFn)
-    local label = "Missions..."
-    for _, id in ipairs(MISSIONS._order) do
-        if MISSIONS._status[id] == "triggered" then
-            label = "Missions..."
-            break
-        end
-    end
-    addGMFunction(label, function()
+    addGMFunction("Missions...", function()
         MISSIONS._showList(backToMainFn)
     end)
 end

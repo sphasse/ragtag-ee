@@ -677,22 +677,6 @@ M.phases.m3_active = {
 
         _checkMeridianDisabled(st)
 
-        -- Periodic state dump for comms debugging
-        if not st._diag_next or now >= st._diag_next then
-            st._diag_next = now + 10
-            local docked_with = "none"
-            for _, p in ipairs(RT.players) do
-                if RT.valid(p) and RT.valid(st.meridian) and p:isDocked(st.meridian) then
-                    docked_with = p:getCallSign()
-                end
-            end
-            log(string.format("[RZKOV] m3 state: disabled=%s boarded=%s meridian_valid=%s faction=%s docked_with=%s",
-                tostring(st.m3_disabled), tostring(st.m3_boarded),
-                tostring(RT.valid(st.meridian)),
-                tostring(RT.valid(st.meridian) and st.meridian:getFaction()),
-                docked_with))
-        end
-
         if st.m3_disabled and not st.m3_boarded and RT.valid(st.meridian) then
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) and p:isDocked(st.meridian) then

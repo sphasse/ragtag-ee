@@ -232,7 +232,7 @@ end
 -- ── Panel ─────────────────────────────────────────────────────────────────────
 function JOBS.refreshPanel()
     RT.forEachPlayer(function(p)
-        for slot = 1, 2 do
+        for slot = 1, JOBS.config.max_active do
             local entry = JOBS._active[slot]
             local txt = (entry and entry.phase == "active")
                         and ("Job: " .. entry.mission.short)

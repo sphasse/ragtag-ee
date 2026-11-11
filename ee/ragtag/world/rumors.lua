@@ -311,14 +311,16 @@ function _P.gmMenu(addButton, showSelf)
 end
 
 function _P.init(state)
-    -- Merge rumors declared in verse data (via VERSE.extend) into the pool.
+    -- Merge rumors declared in verse data (via VERSE.extend) into the pool,
+    -- then reshuffle so the new entries mix in instead of queueing at the end.
     if VERSE and VERSE.RUMORS then
         for _, text in ipairs(VERSE.RUMORS) do
             if type(text) == "string" and text ~= "" then
                 table.insert(RUMORS.pool, text)
             end
         end
-        RUMORS._shuffled = false  -- trigger re-shuffle to include new entries
+        _shuffle(RUMORS.pool)
+        RUMORS._index = 1
     end
 end
 function _P.update(state, delta, now) end
