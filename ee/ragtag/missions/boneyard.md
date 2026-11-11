@@ -23,7 +23,7 @@ Rumor injection: Concord is mobilising a heavy response group, destination unkno
 Ashgrave Annex spawns at (43, -104) verse coords — deeper in the debris field than the visible battle damage. Ship log directs crew toward it. Arc advances when player closes to 2.5U.
 
 ### annex_hack
-Annex comms are encrypted. Science must hack the `frontshield` system to 100%. At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When hack completes:
+Annex comms are encrypted. Relay must hack the `frontshield` system to 100% (hacking is a Relay-screen function; each success adds 50% and it decays over 180 s, so two successes in a row). At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When hack completes:
 - All Relic drones in Boneyard radius set to Derelict/idle (the IFF is offline)
 - Concord battle group spawns ~42U NW (8, -80 verse) and starts flying toward Annex at warp
 - Proximity spawns for the Boneyard are suspended

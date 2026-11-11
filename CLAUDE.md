@@ -130,7 +130,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 ### Hacking Missions
 
 - Relay is a stationary "Defense platform" CpuShip, Relic faction, cannot be destroyed until hacked
-- Armed: six 30° beam arcs at 5U range with 30° gaps — Helm threads the windows while Science hacks
+- Armed: six 30° beam arcs at 5U range with 30° gaps — Helm threads the windows while Relay hacks
 - Player must hack **any system to 75%** (not just reactor, despite archetype field)
 - Mission completes when threshold reached
 - Ambient patrols may spawn based on zone (proximity system), not mission-specific

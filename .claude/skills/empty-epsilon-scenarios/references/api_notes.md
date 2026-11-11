@@ -15,6 +15,7 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 10. GM screen
 11. Factions and templates
 12. Headless testing
+12b. Hacking
 13. Sound
 
 ## 1. Scenario file format
@@ -147,6 +148,11 @@ punctuation (`! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ \` { | } ~`)
 - Lua errors appear in the terminal / `EmptyEpsilon.log` as `LUA-Error:` with a traceback.
 - Only one server can bind port 8080; a second launch crashes. Stop the old one first.
 - `luac -p file.lua` (Lua 5.4) catches syntax errors without the game.
+
+## 12b. Hacking (verified in engine source and a headless run, EE b492ea94)
+- **Hacking is a Relay-screen function.** The only "Start hacking" button is on the Relay screen (`relayScreen.cpp`), shown when the player ship has a hacking device and enabled for any target not friendly to it. Science has no hack control: never tell "Science" to hack in player-facing text.
+- Each minigame success adds the device's `effectiveness` (default 0.5) to the chosen system's `hacked_level`; it decays at 1/180 per second. So 100% needs two successes within a few minutes, and a completed hack should be latched by the arc (check `>= 1.0` every tick and advance), not re-read later.
+- Stations are hackable: a Small/Medium Station has a `frontshield` system with `can_be_hacked = true` (one shield segment means front only; no rear shield), and no docking is required. Use `entity:getSystemHackedLevel("frontshield")`; note it returns 0.0 (not nil) for a system the entity lacks.
 
 ## 13. Sound (verified in engine source, EE b492ea94)
 - `playSoundFile("path")` plays on the **server machine only**, never on clients (`src/script.cpp:1408`). No volume/pitch/stop/loop. It first tries `name.<language>.ext`. Paths resolve against `resources/`, `scripts/` and `~/.emptyepsilon/{resources,scripts}`, so files in `scripts/ragtag/sfx/` are `"ragtag/sfx/x.ogg"`. Formats: wav/ogg/flac.

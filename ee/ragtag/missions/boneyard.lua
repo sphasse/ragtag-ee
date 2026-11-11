@@ -95,7 +95,7 @@ local function _spawnAnnex(st)
     a:setCommsFunction(function(src, tgt)
         setCommsMessage(
             "[Ashgrave Annex]\n\nEncrypted — military-grade lockdown.\n\n" ..
-            "Science: breach the access codes via system hack."
+            "Relay: breach the access codes via system hack."
         )
     end)
     st.annex = a
@@ -398,11 +398,11 @@ M.phases = {
                     setCommsMessage(
                         "[Ashgrave Annex]\n\n" ..
                         "Encrypted — military-grade lockdown on all channels.\n\n" ..
-                        "Science: hack any system to gain access."
+                        "Relay: hack any system to gain access."
                     )
                 end)
             end
-            RT.shipLog("[Relay] Ashgrave Annex: encrypted. Science, can you breach this?", "#FFAA44")
+            RT.shipLog("[Science] Ashgrave Annex: encrypted lockdown. Relay, that is a hacking job: breach any system.", "#FFAA44")
         end,
         update = function(st, delta, now)
             if not RT.valid(st.annex) then return end

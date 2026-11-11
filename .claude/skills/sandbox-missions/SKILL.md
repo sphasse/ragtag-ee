@@ -55,6 +55,7 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - **Not cleaning up in `on_cancel`** — world objects persist across GM restarts.
 - **Double-registering station hooks** — if the GM restarts the arc in the same session, hooks fire twice. Guard with a file-level `_hook_registered` boolean.
 - **Forgetting the require** — the arc never loads and the game throws no error, but `check.py` now errors on any `ee/ragtag/missions/*.lua` not required by `missions.lua`. Intentionally unloaded arcs go in `ee/ragtag/missions/attic/`.
+- **Telling Science to hack** — hacking is a **Relay** function in this engine (no hack control on Science). Say "Relay" in ship logs, comms and design docs; see `api_notes.md` §12b for the mechanics (50% per success, 180 s decay).
 - **GM button labels over 18 characters** — the GM console clips them. Keep every `M.gm_actions` label (including function labels like a state/phase readout) to **18 characters max**; put detail in the `globalMessage` the action fires, not the label. `→ Annex control` (15) is fine; `→ Annex control (hack done)` is not. The engine truncates and logs `GM label too long` as a backstop.
 - **Calling `entity:onDestruction` directly** — one callback slot per entity; a direct call clobbers reputation tracking, director kill events, and loot drops. Register via `RT.onKill(ship, fn(ship, instigator))`. It fires only on damage kills (never on scripted `destroy()`), and `instigator` tells you whether the player did it.
 

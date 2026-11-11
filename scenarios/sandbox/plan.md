@@ -125,7 +125,7 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   upgrades and flies to Ashgrave gets it. Open decision: add
   `flagged = {rezkov_arc_done}` so "Rezkov is the gate" holds for every arc.
 - **Structure**: hook (battle-group rumors; fly within 8U of Ashgrave) →
-  approach (Ashgrave Annex spawns) → annex_hack (Science hacks frontshield to
+  approach (Ashgrave Annex spawns) → annex_hack (Relay hacks frontshield to
   100%; drones go idle) → annex_control (60s archive download and/or 30s drone
   IFF reprogram, while a 6-ship Concord Hostile battle group closes at warp and
   a jammer seals the region at ~90s) → extract (fly out past the Boneyard
@@ -214,7 +214,7 @@ one warhead. The crew gets one shot.
   platforms, and after the shot a backlash-crippled ship that has to get out.
 - **Weapons** drops the two anchor platforms that screen the rift, then makes
   the one shot that matters.
-- **Relay** holds the thread to Lastchance, Kael and the escort wing, and after
+- **Relay** hacks the anchor platforms (the no-kill route), holds the thread to Lastchance, Kael and the escort wing, and after
   the shot transmits the Containment Ledger to the whole Drift.
 
 **The warhead** ("the Ashgrave warhead" — one EMP, one rack):
@@ -292,8 +292,8 @@ one warhead. The crew gets one shot.
 4. `run` — the rift is screened by the two anchor platforms (Hollow, 4U either
    side). While either is alive the anchor field is up: Science log + Sauvola
    make it explicit that the shot will not take. Platforms are destroyed or
-   hacked (reuse the hacking mechanic: `beamweapons` to 100% drops that
-   platform's field — the no-kill option). Field down → "Fire when ready."
+   hacked (Relay, reusing the hacking mechanic: `beamweapons` to 100% drops
+   that platform's field — the no-kill option). Field down → "Fire when ready."
    Weapons fires the EMP at the rift from inside ~4U. Waves continue through
    the run; GM skip for each wave and for "field down". Hit → big
    `ElectricExplosionEffect` at the rift, backlash on the player (shields to 0,

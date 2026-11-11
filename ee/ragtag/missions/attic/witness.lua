@@ -583,7 +583,7 @@ M.phases.broadcast = {
         if RT.valid(buoy) then
             local bx, by = buoy:getPosition()
             RT.shipLog("[Relay] " .. st.buoy_cs .. " at grid " .. JOBS.gridRef(bx, by) ..
-                ". Science: open the hacking panel and breach the reactor to 50% to trigger the broadcast.", "#A0C0FF")
+                ". Relay: open the hacking panel and breach the reactor to 50% to trigger the broadcast.", "#A0C0FF")
             buoy:setCommsFunction(function(src, tgt)
                 setCommsMessage('"Public Relay Node. Unauthorized access detected. This channel is Concord-licensed."')
             end)
