@@ -91,7 +91,7 @@ M.gm_actions = {
 
 | Field | Type | Default | Notes |
 |---|---|---|---|
-| `label` | string or `function(st)` | required | Function form re-evaluated each render |
+| `label` | string or `function(st)` | required | **18 characters max** (GM console limit; engine truncates + logs). Function form re-evaluated each render — keep its longest output ≤ 18 too |
 | `fn` | `function(st)` | required | Called when GM taps the button |
 | `phases` | list of strings | nil | If set, shown only when current phase matches |
 | `done_ok` | bool | false | Also show when status is `"done"` |

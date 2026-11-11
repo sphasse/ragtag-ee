@@ -474,7 +474,7 @@ end
 
 M.gm_actions = {
     -- ── Info ──────────────────────────────────────────────────────────────
-    {label = function(st) return "State: " .. _gmStateLabel() end, done_ok = true, fn = function(st) end},
+    {label = function(st) return "State: " .. _gmStateLabel():match("^%S+") end, done_ok = true, fn = function(st) end},
     -- ── Skip ──────────────────────────────────────────────────────────────
     {label = "→ Inactive", fn = function(st)
         _gmClearFlags(st)

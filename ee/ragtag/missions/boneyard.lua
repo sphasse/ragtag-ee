@@ -576,16 +576,16 @@ end
 
 M.gm_actions = {
     {label = function(st)
-        return "Phase: " .. (MISSIONS._cur_phase["boneyard"] or "inactive")
+        return "Ph: " .. (MISSIONS._cur_phase["boneyard"] or "inactive")
     end, done_ok = true, fn = function(st) end},
 
-    {label = "→ Hook (rumors)", fn = function(st)
+    {label = "→ Hook", fn = function(st)
         _clearState(st)
         MISSIONS.phase("boneyard", "hook")
         globalMessage("[GM] Boneyard: → Hook.", 4)
     end},
 
-    {label = "→ Approach (Annex spawned)", fn = function(st)
+    {label = "→ Approach", fn = function(st)
         _clearState(st)
         MISSIONS.phase("boneyard", "approach")
         globalMessage("[GM] Boneyard: → Approach.", 4)
@@ -597,7 +597,7 @@ M.gm_actions = {
         globalMessage("[GM] Boneyard: → Annex hack.", 4)
     end},
 
-    {label = "→ Annex control (hack done)", fn = function(st)
+    {label = "→ Annex control", fn = function(st)
         _clearState(st)
         _spawnAnnex(st)
         _idleDrones(st)
@@ -612,7 +612,7 @@ M.gm_actions = {
         globalMessage("[GM] Boneyard: → Annex control.", 4)
     end},
 
-    {label = "→ Extract (battle active)", fn = function(st)
+    {label = "→ Extract", fn = function(st)
         _clearState(st)
         PROX.suspendZone("the Boneyard")
         MISSIONS.phase("boneyard", "extract")

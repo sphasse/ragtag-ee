@@ -282,6 +282,27 @@ function MISSIONS._showList(backToMainFn)
     end
 end
 
+-- GM buttons must fit the console: 18 characters max. Over-long labels are
+-- truncated and logged so the offending arc gets fixed (not silently clipped).
+MISSIONS.GM_LABEL_MAX = 18
+function MISSIONS._gmLabel(lbl, id)
+    lbl = tostring(lbl or "?")
+    -- Count characters, not bytes: "→" is 3 bytes in UTF-8 but one character.
+    local function nchars(str) return select(2, str:gsub("[^\128-\191]", "")) end
+    local n = nchars(lbl)
+    if n > MISSIONS.GM_LABEL_MAX then
+        log("[MISSIONS] GM label too long (" .. n .. " > " .. MISSIONS.GM_LABEL_MAX .. ") in '" .. tostring(id) .. "': " .. lbl)
+        local out, count = {}, 0
+        for ch in lbl:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+            count = count + 1
+            if count > MISSIONS.GM_LABEL_MAX then break end
+            out[#out + 1] = ch
+        end
+        lbl = table.concat(out)
+    end
+    return lbl
+end
+
 function MISSIONS._showDetail(id, backToMainFn)
     local M      = MISSIONS._registry[id]
     local status = MISSIONS._status[id]
@@ -335,7 +356,7 @@ function MISSIONS._showDetail(id, backToMainFn)
                     end
                 end
                 if show then
-                    local lbl = type(a.label) == "function" and a.label(st) or a.label
+                    local lbl = MISSIONS._gmLabel(type(a.label) == "function" and a.label(st) or a.label, id)
                     addGMFunction(lbl, function()
                         pcall(a.fn, st)
                         MISSIONS._showDetail(id, backToMainFn)
@@ -345,7 +366,7 @@ function MISSIONS._showDetail(id, backToMainFn)
         end
 
         if not M.no_auto_cancel then
-            addGMFunction("Cancel " .. M.name, function()
+            addGMFunction(#("Cancel " .. M.name) <= 18 and ("Cancel " .. M.name) or "Cancel arc", function()
                 MISSIONS.cancel(id)
                 globalMessage(M.name .. " -- arc cancelled.", 5)
                 MISSIONS._showDetail(id, backToMainFn)
@@ -364,7 +385,7 @@ function MISSIONS._showDetail(id, backToMainFn)
                 end
             end
             if show then
-                local lbl = type(a.label) == "function" and a.label(st) or a.label
+                local lbl = MISSIONS._gmLabel(type(a.label) == "function" and a.label(st) or a.label, id)
                 addGMFunction(lbl, function()
                     pcall(a.fn, st)
                     MISSIONS._showDetail(id, backToMainFn)

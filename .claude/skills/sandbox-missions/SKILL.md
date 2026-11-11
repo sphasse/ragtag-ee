@@ -55,6 +55,7 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - **Not cleaning up in `on_cancel`** — world objects persist across GM restarts.
 - **Double-registering station hooks** — if the GM restarts the arc in the same session, hooks fire twice. Guard with a file-level `_hook_registered` boolean.
 - **Forgetting the require** — the arc never loads and the game throws no error, but `check.py` now errors on any `ee/ragtag/missions/*.lua` not required by `missions.lua`. Intentionally unloaded arcs go in `ee/ragtag/missions/attic/`.
+- **GM button labels over 18 characters** — the GM console clips them. Keep every `M.gm_actions` label (including function labels like a state/phase readout) to **18 characters max**; put detail in the `globalMessage` the action fires, not the label. `→ Annex control` (15) is fine; `→ Annex control (hack done)` is not. The engine truncates and logs `GM label too long` as a backstop.
 - **Calling `entity:onDestruction` directly** — one callback slot per entity; a direct call clobbers reputation tracking, director kill events, and loot drops. Register via `RT.onKill(ship, fn(ship, instigator))`. It fires only on damage kills (never on scripted `destroy()`), and `instigator` tells you whether the player did it.
 
 ---
@@ -66,6 +67,7 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - [ ] `RT.after` timers cancelled with `RT.cancelTimer(name)` in `_clearState` if they shouldn't fire after phase ends
 - [ ] Arc triggers use `not_flagged` to prevent re-triggering after completion
 - [ ] Destruction callbacks registered via `RT.onKill`, never `entity:onDestruction`
+- [ ] Every `M.gm_actions` label is ≤ 18 characters (check function labels at their longest value)
 - [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
 - [ ] Design doc exists at `ee/ragtag/missions/<name>.md`
 - [ ] `python tools/check.py` passes
