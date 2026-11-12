@@ -42,7 +42,7 @@ Crew runs jobs, explores regions, and accumulates credits and rep. The director 
 
 ### Closing (5-10 min)
 
-Crew docks at any friendly station. GM presses **"Sandbox: End session"**. Campaign saves. Can resume with Continue next session.
+GM presses **Save campaign** and quits (progress also saves as it happens). Resume with Continue next session.
 
 ---
 

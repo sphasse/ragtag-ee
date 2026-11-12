@@ -241,8 +241,7 @@ function init()
         end)
     end)
 
-    RT.addCampaignGMFunctions()
-    addSessionGMFunctions()
+    addSessionGMFunctions()   -- also adds the campaign buttons (Save campaign, Sounds...)
     defineBeats()
 
     DIR.addStateProvider(function()
@@ -381,6 +380,11 @@ function addSessionGMFunctions()
                 table.insert(lines, string.format("  %s: %+d%s", faction, rep, standing))
             end
         end
+        -- Overall overview: money, jobs by type, regions, story arcs, achievements.
+        if STATS then
+            table.insert(lines, "")
+            table.insert(lines, STATS.reportText())
+        end
         addGMMessage(table.concat(lines, "\n"))
     end)
 
@@ -475,17 +479,6 @@ function addSessionGMFunctions()
     end
 
     addGMFunction("Reputation...", showReputationFactionList)
-
-    addGMFunction("End session", function()
-        if RT.valid(RT.player) then
-            local docked = RT.player:getDockedWith()
-            if docked and RT.valid(docked) then
-                finishSession("completed", "Session ended at " .. docked:getCallSign() .. ".")
-            else
-                globalMessage("Dock at a friendly station first.", 5)
-            end
-        end
-    end)
 
     local showJobsMenu
     local showUpgradesMenu
@@ -740,6 +733,10 @@ function addSessionGMFunctions()
         clearGMFunctions()
         addSessionGMFunctions()
     end)
+
+    -- Campaign tools (Save campaign, Sounds...). Added here so every route back to the main
+    -- menu (clearGMFunctions + addSessionGMFunctions) shows the same buttons as the first start.
+    RT.addCampaignGMFunctions()
 end
 
 --------------------------------------------------------------------------------

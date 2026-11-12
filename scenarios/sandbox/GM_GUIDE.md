@@ -82,7 +82,6 @@ Time limits scale with distance. Failing or letting a mission expire costs the c
 - **Campaign: save now**: Manual save to scriptstorage.json
 
 ### Scenario-Specific Buttons
-- **Sandbox: End session**: Call when the crew docks and you're ready to wrap up
 - **Sandbox: +500 credits**: Large reward for major accomplishments
 - **Sandbox: Spawn salvage nearby**: Drop a supply pod near the player
 - **Reputation...**: Opens faction list showing current standing. Select a faction to adjust it +100 or −100
@@ -132,8 +131,8 @@ Crew decides what to do. AI director (if on) creates encounters matching the reg
 
 ### Closing (5-10 min)
 1. Crew docks at any friendly station
-2. GM presses **"Sandbox: End session"** button
-3. Campaign saves (credits, upgrades, reputation persist)
+2. GM presses **Save campaign** (progress also saves as it happens), then quits
+3. Credits, upgrades, reputation, stats and story flags persist
 4. Can start a new session anytime with **Campaign: Continue**
 
 ## Tips for Great Sessions
@@ -193,10 +192,9 @@ Crew decides what to do. AI director (if on) creates encounters matching the reg
 - Raise rep via Concord Waypoint Galen donations (+50/100cr) or completing jobs with Concord-aligned stations
 - GM can manually adjust rep via the **Reputation...** button
 
-### Session won't end
-- Crew must be **docked at a friendly station**
-- Then GM presses "Sandbox: End session" button
-- If button doesn't work, check EmptyEpsilon.log for errors
+### Saving
+- There is no End session button. Press **Save campaign** and quit; progress also saves as it happens
+- **Campaign Status** shows credits, upgrades, reputation, stats, story arcs and achievements
 
 ## Files
 

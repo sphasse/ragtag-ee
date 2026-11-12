@@ -305,6 +305,17 @@ function STATS.reportText()
     for _, a in ipairs(sum.achievements.earned) do
         L[#L + 1] = "  * " .. a.name .. (a.desc and (" - " .. a.desc) or "")
     end
+    local left = {}
+    for _, id in ipairs(ACH.order) do
+        local def = ACH.defs[id]
+        if def and not def.hidden and not ACH.has(id) then
+            left[#left + 1] = "  - " .. def.name .. (def.desc and (" - " .. def.desc) or "")
+        end
+    end
+    if #left > 0 then
+        L[#L + 1] = "Still to earn:"
+        for _, l in ipairs(left) do L[#L + 1] = l end
+    end
     return table.concat(L, "\n")
 end
 

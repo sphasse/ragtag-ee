@@ -34,7 +34,7 @@ Three Lua libraries that every campaign session requires, plus a Python director
 | `RT.cancelKillTracking(ship)` | Skip the auto rep penalty for a ship whose consequences the arc manages itself |
 | `RT.valid(e)`, `RT.dist(a, b)`, `RT.cleanText(s, max)` | Helpers |
 | `RT.update(delta)` | Call every frame: timers, autosave every 60 s, hull threshold events |
-| `RT.addCampaignGMFunctions()` | GM buttons for credits and saving |
+| `RT.addCampaignGMFunctions()` | GM buttons for saving and the Sounds submenu (add it last in the main menu, so every route back to the main menu looks the same) |
 
 Upgrades are re-applied in purchase order at every session start, so each `apply(p)` must work on a fresh stock ship. To add one, append to `RT.UPGRADES`; the shipwright menu picks it up automatically.
 
@@ -44,7 +44,7 @@ Tracked automatically and saved with the campaign (`RT.campaign.stats`, `RT.camp
 
 | Function | What it does |
 |---|---|
-| `STATS.summary()` / `STATS.reportText()` | Structured summary (with "this session" deltas) and a ready-made multi-line report. GM-only view: campaign GM menu → "Stats report". Nothing is shown to the crew yet |
+| `STATS.summary()` / `STATS.reportText()` | Structured summary (with "this session" deltas) and a ready-made multi-line report. GM-only view: the sandbox GM menu's "Campaign Status" popup (credits, upgrades, reputation, then this report, with earned and still-to-earn achievements). Nothing is shown to the crew yet |
 | `STATS.inc(key, n)` / `STATS.get(key)` | Free-form counters (e.g. `kills_corsair`) |
 | `ACH.define{id, name, desc, hidden, category, check = function(stats) return bool end}` | Define an achievement; `check` is evaluated every ~5 s against the raw stats table |
 | `ACH.award(id)` / `ACH.has(id)` | Grant directly (from an arc or event) / test. Awards persist and emit a `achievement` director event |

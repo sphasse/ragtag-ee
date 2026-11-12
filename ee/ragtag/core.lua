@@ -1013,24 +1013,7 @@ end
 --------------------------------------------------------------------------------
 
 function RT.addCampaignGMFunctions()
-    addGMFunction("Stats report", function()
-        local text = STATS and STATS.reportText() or "Stats not loaded."
-        log("[STATS]\n" .. text)
-        addGMMessage(text)
-    end)
-    addGMFunction("Campaign info", function()
-        local c = RT.campaign
-        local msg = "Campaign: " .. (RT.campaign_id or "unknown") .. "\n"
-        msg = msg .. "Ship: " .. c.ship_name .. "\n"
-        msg = msg .. "Credits: " .. RT.credits() .. "\n"
-        msg = msg .. "Upgrades (" .. #c.upgrades .. "): " .. (c.upgrades[1] and table.concat(c.upgrades, ", ") or "none") .. "\n"
-        local session_list = {}
-        for sid, _ in pairs(c.sessions) do table.insert(session_list, sid) end
-        table.sort(session_list)
-        msg = msg .. "Completed sessions: " .. (session_list[1] and table.concat(session_list, ", ") or "none")
-        addGMMessage(msg)
-    end)
-
+    -- Campaign status / stats / achievements live in the scenario's "Campaign Status" popup.
     -- Credit adjustment buttons removed: scenarios provide their own granular controls
 
     addGMFunction("Save campaign", function()
@@ -1047,8 +1030,8 @@ function RT.showSoundMenu()
     clearGMFunctions()
     addGMFunction("← Back to Main", function()
         clearGMFunctions()
-        RT.addCampaignGMFunctions()
-        if addSessionGMFunctions then addSessionGMFunctions() end
+        -- A scenario's addSessionGMFunctions builds the whole main menu (campaign buttons included).
+        if addSessionGMFunctions then addSessionGMFunctions() else RT.addCampaignGMFunctions() end
     end)
     addGMFunction("Sound cues: " .. (RT.sound_enabled and "ON" or "OFF"), function()
         RT.sound_enabled = not RT.sound_enabled
