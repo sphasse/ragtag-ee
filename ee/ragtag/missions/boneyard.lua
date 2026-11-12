@@ -43,7 +43,7 @@ local _BATTLE_X     =  30000   -- Concord battle group arrives at grid zy6 (cent
 local _BATTLE_Y     = -130000
 local _REIN_X       =  43000   -- Reinforcement drone spawn (~35U S of Annex, outside scan range)
 local _REIN_Y       = -139000
-local _BONEYARD_CX  =  36000   -- Boneyard center (for jammer placement and exit check)
+local _BONEYARD_CX  =  36000   -- Boneyard center (for the exit check)
 local _BONEYARD_CY  = -96000
 local _BONEYARD_R   =  29500   -- Boneyard radius in world units (29U + small buffer)
 
@@ -56,8 +56,6 @@ function M.init_state()
         concord_group    = {},     -- Concord Hostile battle group ships
         concord_cmd      = nil,    -- command ship reference
         rein_drones      = {},     -- Relic Active reinforcement wave
-        jammer           = nil,    -- WarpJammer over Boneyard
-        jammer_spawned   = false,
 
         hack_mid_logged  = false,  -- mid-hack revelation fired
 
@@ -244,19 +242,6 @@ local function _reprogramDrones(st)
     RT.shipLog("[Science] Eight Relic contacts inbound from the north — fast approach. They are on our side.", "#00FF88")
 end
 
-local function _spawnJammer(st)
-    if st.jammer_spawned then return end
-    st.jammer_spawned = true
-    local j = WarpJammer()
-    j:setPosition(_BONEYARD_CX, _BONEYARD_CY)
-    j:setRange(32000)  -- 32U radius covers full Boneyard
-    pcall(function() j:setFaction("Concord Hostile") end)
-    st.jammer = j
-    RT.shipLog("[Science] Warp signatures suppressed. Concord jammer active. Fly out — warp is down.", "#FF4444")
-    RT.sound("jammer_engage", {now = true})
-    RT.soundLoop("boneyard_jammer", "jammer_bed", 10, function() return RT.valid(st.jammer) end)
-end
-
 local function _setAnnexControlComms(st)
     if not RT.valid(st.annex) then return end
     st.annex:setCommsFunction(function(src, tgt)
@@ -350,12 +335,6 @@ local function _clearState(st)
     end
     st.rein_drones = {}
 
-    if RT.valid(st.jammer) then pcall(function() st.jammer:destroy() end) end
-    st.jammer         = nil
-    st.jammer_spawned = false
-    RT.stopSoundLoop("boneyard_jammer")
-
-    RT.cancelTimer("boneyard_jammer")
     RT.cancelTimer("boneyard_cleanup")
 
     RUMORS.removeCategory("BONEYARD_HOOK")
@@ -655,13 +634,6 @@ M.phases = {
                 -- Concord battle group: ~85 seconds travel time at warp
                 _spawnConcordGroup(st)
 
-                -- Warp jammer deploys 90 seconds after control phase enters
-                RT.after(90, function()
-                    if MISSIONS._status["boneyard"] ~= "active" then return end
-                    local cst = MISSIONS._state["boneyard"]
-                    if cst then _spawnJammer(cst) end
-                end, "boneyard_jammer")
-
                 MISSIONS.phase("boneyard", "annex_control")
             end
         end,
@@ -715,8 +687,7 @@ M.phases = {
 
     extract = {
         enter = function(st)
-            _spawnJammer(st)  -- ensure jammer is up regardless of timer state
-            RT.shipLog("[Nav] Exit the Boneyard. Warp is suppressed inside the jammer radius.", "#FFAA44")
+            RT.shipLog("[Nav] Exit the Boneyard. Warp is available; the battle group will pursue.", "#FFAA44")
         end,
         update = function(st, delta, now)
             _trackCmdShip(st)
@@ -730,14 +701,6 @@ M.phases = {
             if _dist(px, py, _BONEYARD_CX, _BONEYARD_CY) > _BONEYARD_R then
                 MISSIONS.phase("boneyard", "done")
             end
-        end,
-        exit = function(st)
-            if RT.valid(st.jammer) then
-                pcall(function() st.jammer:destroy() end)
-            end
-            st.jammer = nil
-            RT.stopSoundLoop("boneyard_jammer")
-            RT.sound("jammer_release", {now = true})
         end,
     },
 }
@@ -842,11 +805,6 @@ M.gm_states = {
         _idleDrones(st)
         PROX.suspendZone("the Boneyard")
         _spawnConcordGroup(st)
-        RT.after(90, function()
-            if MISSIONS._status["boneyard"] ~= "active" then return end
-            local cst = MISSIONS._state["boneyard"]
-            if cst then _spawnJammer(cst) end
-        end, "boneyard_jammer")
     end)},
     {key = "extract",  label = "→ Extract",       fn = _gmJump("extract", function(st)
         PROX.suspendZone("the Boneyard")

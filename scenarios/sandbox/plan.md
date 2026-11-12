@@ -103,8 +103,7 @@ and burned — and before Concord traces the implant back to the crew.
    evidence quality.
 4. `exfil` — Concord Hostile audit-escort squadron intercepts after the second
    pickup (spawned at scan edge, comms-first: "surrender the data"). Fight or
-   run; a warp-out escape is legitimate here (no jammer — contrast with
-   Boneyard).
+   run; a warp-out escape is legitimate here.
 5. `deliver` — hand the assembled ledger to Thresh at Dustmote → done.
 
 **Exports**:
@@ -130,8 +129,8 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
 - **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are recovered, or at 8U from Ashgrave) →
   annex_hack (Relay hacks frontshield to
   100%; drones go idle) → annex_control (60s archive download and/or 30s drone
-  IFF reprogram, while a 6-ship Concord Hostile battle group closes at warp and
-  a jammer seals the region at ~90s) → extract (fly out past the Boneyard
+  IFF reprogram, while a 6-ship Concord Hostile battle group closes at warp;
+  no warp jammer, the crew keeps warp) → extract (fly out past the Boneyard
   boundary) → done.
 - **Exports**:
   - `boneyard_arc_done`; `boneyard_hack_done` (archive downloaded);

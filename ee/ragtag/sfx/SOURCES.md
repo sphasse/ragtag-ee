@@ -35,7 +35,7 @@ WAV (no OGG encoder on the dev machine; `brew install vorbis-tools` and
 | `concord_hail` | Patrol stop: ship halted, hail opens | 3.4 s | two rising comms chirps over a 55 Hz drone |
 | `concord_warning` | 10 s left on the compliance clock | 0.5 s | two sharp 1 kHz pulses |
 | `concord_hostile` | Patrol goes hostile | 1.8 s | descending buzzy two-tone klaxon, twice |
-| `jammer_engage` | Warp jammer deploys (Concord stop, Boneyard) | 3.1 s | rising surge sweep into a sub thud and crackle |
+| `jammer_engage` | Warp jammer deploys (Concord stop) | 3.1 s | rising surge sweep into a sub thud and crackle |
 | `jammer_bed` | Re-fired every 10 s while jammed | 8.0 s | detuned 62 Hz hum, band-limited hiss, wobbling whine; quieter (peak 0.275) |
 | `jammer_release` | Jammer clears / crew is free to go | 1.5 s | falling tone and a soft click |
 

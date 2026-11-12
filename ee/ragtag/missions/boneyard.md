@@ -27,7 +27,7 @@ Annex comms are encrypted. Relay must hack the `frontshield` system to 100% (hac
 - All Relic drones in Boneyard radius set to Derelict/idle (the IFF is offline)
 - Concord battle group spawns at grid zy6 (30, -130 verse, ~26U NW of the Annex) and attacks the player ship at warp; orders are re-issued every 10 s, and with no living player they defend the Annex instead
 - Proximity spawns for the Boneyard are suspended
-- Timer: warp jammer deploys at Boneyard center 90 seconds after annex_control enters
+- No warp jammer: the crew keeps warp throughout (removed 2026-11-12; the Concord fight is hard enough)
 
 ### annex_control
 Comms on the Annex show two operations (Relay/Captain drives these):
@@ -40,9 +40,9 @@ Comms on the Annex show two operations (Relay/Captain drives these):
 The player can attempt both. Battle group arrives in ~85 seconds. The first operation the player completes determines the dominant outcome.
 
 ### extract
-Player must exit the Boneyard boundary (29U radius from center 36, -96). Warp is suppressed inside the jammer radius (32U). The command ship `CNS Vanguard` is `setCanBeDestroyed(false)` until hull falls below 20%, at which point it becomes vulnerable and flags `boneyard_battlegroup_destroyed`.
+Player must exit the Boneyard boundary (29U radius from center 36, -96). Warp stays available. The command ship `CNS Vanguard` is `setCanBeDestroyed(false)` until hull falls below 20%, at which point it becomes vulnerable and flags `boneyard_battlegroup_destroyed`.
 
-Jammer is destroyed when exit phase ends (player escaped). Remaining combat ships clean up 120 seconds after resolve.
+Remaining combat ships clean up 120 seconds after resolve.
 
 ### done / M.resolve
 - `Concord` rep: -300 base, -200 extra if drones were reprogrammed
