@@ -1032,6 +1032,13 @@ function RT.addCampaignGMFunctions()
     addGMFunction("Backup campaign", function() RT.showBackupMenu() end)
     addGMFunction("Restore campaign", function() RT.showRestoreMenu() end)
     addGMFunction("Sounds...", function() RT.showSoundMenu() end)
+    if TESTBTN then
+        addGMFunction("Test buttons: " .. (TESTBTN.enabled and "ON" or "OFF"), function()
+            TESTBTN.setEnabled(not TESTBTN.enabled)
+            clearGMFunctions()
+            if addSessionGMFunctions then addSessionGMFunctions() else RT.addCampaignGMFunctions() end
+        end)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -1174,6 +1181,7 @@ function RT.update(delta)
     RT.updateTimers()
     RT.updateSounds()
     if STATS then STATS.update(delta) end
+    if TESTBTN then TESTBTN.update() end
 
     -- Sync RT.players with EmptyEpsilon's active player ships.
     -- Catches ships spawned through GM console or other means outside RT.spawnPlayer().
@@ -1230,3 +1238,4 @@ end
 -- Helpers that extend RT. Loaded last: they only use RT at call time.
 require("ragtag/voice.lua")
 require("ragtag/stats.lua")
+require("ragtag/testbuttons.lua")   -- temporary: test buttons on the crew stations
