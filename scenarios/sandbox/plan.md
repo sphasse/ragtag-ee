@@ -188,6 +188,8 @@ asks the crew to carry a warning no one else will.
 
 **Exports**:
 - `corsair_arc_done` = `"evacuated"` | `"defended"` | `"betrayed"` | `"failed"`
+- `corsair_battlegroup_destroyed` = true when the crew kills the vanguard at the Veil
+  (`defended` path only). Read by Arc 6's trigger.
 - `corsair_ally` = true on evacuated/defended → Corsair comms turn
   `Corsair Friendly` for the crew (existing faction, already wired); Blackwater
   becomes dockable staging for the Maw run.
@@ -380,10 +382,16 @@ Rezkov/`sciencedb.lua` retrofit (see "What changes in the built arcs"):
 > precise and unwilling to let a file close. Key values: Service: Concord Intelligence;
 > War record: fighter pilot, Settlement War; Reputation: asks the questions nobody wants asked.
 
-**Trigger**: `maw_arc_done` ∈ {`liberation`, `mercy`} (the cover-up is public; `quiet` leaves
-Concord intact, so there is no split and no sixth arc) AND `kael_alive` AND
-`not_flagged = {republic_arc_done}`. Upgrade spend is already ≥ 1500 by the Maw. If Kael
-is dead (`rezkov_arc_done == "meridian_destroyed"`) see open question 1.
+**Trigger — a bonus arc, earned by how the earlier arcs played out.** All of:
+`maw_arc_done` ∈ {`liberation`, `mercy`} (the cover-up is public; `quiet` leaves Concord
+intact, so no split), `kael_alive`, `boneyard_battlegroup_destroyed` (the Boneyard fleet),
+`corsair_battlegroup_destroyed` (the Blackwater strike group, new flag written by the
+Corsair arc when the crew kills the vanguard at the Veil), and
+`not_flagged = {republic_arc_done}`. If any is missing the arc simply never fires and the
+campaign ends at the Maw: that is intended, not a gap to patch. Upgrade spend is already
+≥ 1500 by the Maw. Because the two fleets are really gone (the crew destroyed them), the
+Imperial forces in Arc 6 are the loyalist remnant and recalled home squadrons, and the
+Kael hook can say "your handiwork" without caveats.
 
 **The factions.** Two new factions (defined in `VERSE.setupFactions`, alongside Concord
 Hostile / Corsair Friendly / Relic Active):
@@ -482,22 +490,22 @@ already stop on `liberation`; on `mercy` this finishes the job); Core prices dro
 ### Where the current plot does not support this (and the plan for each)
 
 1. **"Both fleets destroyed" is not guaranteed.** `boneyard_battlegroup_destroyed` is only
-   set if the crew kills CNS Vanguard, and the Corsair arc's `betrayed`/`failed` outcomes
-   leave the Blackwater strike group intact. *Plan:* don't depend on it. The fleets Arc 6
-   fights are new loyalist (Imperial) forces; the "both fleets gone" framing is narrated
-   in the Maw aftermath either way (the groups mutiny, withdraw or are recalled), and the
-   Kael hook text varies on the flags ("your handiwork" versus "someone else's").
+   set if the crew kills CNS Vanguard, and the Corsair arc has no equivalent flag yet.
+   *Decision (user, 2026-11-12):* Arc 6 is a bonus; it requires both fleets destroyed. The
+   Corsair arc must write `corsair_battlegroup_destroyed` when the vanguard dies at the
+   Veil (only the `defended` path fights it). Otherwise Arc 6 does not happen.
 2. **The Maw `quiet` ending has no split.** The ledger is not public, so Concord is intact.
    *Plan:* Arc 6 only triggers on `liberation`/`mercy`. `quiet` ends the campaign (a GM
    override can force it).
-3. **Kael may be dead.** `meridian_destroyed` sets `kael_alive = false`, and the Maw only
-   "turns" her if alive. *Plan:* open question 1.
+3. **Kael may be dead.** `meridian_destroyed` sets `kael_alive = false`. *Decision:* no
+   Arc 6 in that case (trigger requires `kael_alive`).
 4. **The Maw aftermath sent Kael to the senate.** That contradicted her being trapped.
    *Plan:* fixed in the Maw section above (she is intercepted and cornered at Galen).
 5. **Independent reputation can be deeply negative.** Rezkov `concord_won` is -1000.
    *Plan:* the Independent wing is a task chain, not a reputation gate.
-6. **The Corsair ally may not exist.** `corsair_ally` is false on `betrayed`/`failed`.
-   *Plan:* open question 2.
+6. **The Corsair ally may not exist.** `corsair_ally` is false on `betrayed`/`failed`, but
+   Arc 6 needs `corsair_battlegroup_destroyed`, which only the `defended` path sets, so
+   `corsair_ally` is always true when Arc 6 runs. The Corsair wing is always available.
 7. **The Annex is destroyed when the Boneyard arc ends.** *Plan:* respawn it for Arc 6
    (export `_spawnAnnex`); drone flip is not required, since the Annex visit performs it.
 8. **Drones are slow and the Core is ~145U from the Boneyard.** The Ashgrave wing needs
@@ -529,7 +537,7 @@ Flags any future arc may rely on (never rename these):
 | `kael_alive` | Rezkov | true / false |
 | `ledger_arc_done`, `ledger_evidence` | Ledger | outcome string / bool |
 | `boneyard_arc_done`, `boneyard_hack_done`, `boneyard_drone_flip`, `boneyard_battlegroup_destroyed` | Boneyard | bool |
-| `corsair_arc_done`, `corsair_ally` | Corsair | outcome string / bool |
+| `corsair_arc_done`, `corsair_ally`, `corsair_battlegroup_destroyed` | Corsair | outcome string / bool / bool |
 | `maw_warhead` | Maw | `fitted` / `spent` (read at player spawn to fit the EMP rack) |
 | `maw_arc_done` | Maw | `liberation` / `mercy` / `quiet` |
 | `republic_arc_done`, `republic_wings`, `republic_corsair`, `republic_ashgrave`, `republic_independent` | Republic | `ascendant` / `coalition`; count; bools |
@@ -606,14 +614,9 @@ If an arc module is lost, rebuild against these rails:
 
 ## Open questions / tuning
 
-- **Arc 6, 1: if Kael is dead** (`rezkov_arc_done == "meridian_destroyed"`). Options: (a) no
-  Arc 6 (simplest, honours the choice); (b) her deputy, Lt. Cmdr. Dessa Marlow (proposed),
-  carries Kael's papers and the arc plays the same with a different voice; Kael's DB entry
-  then ends "lost with CWS Meridian". Recommend (b).
-- **Arc 6, 2: no Corsair ally** (`betrayed`/`failed`). Option: Kael's amnesty writ is exactly
-  what the Free Ship veterans want, so Reva (or the Saint Brennan's sister) trades the
-  wing for it at a price (a hard test: defend something first). Or no Corsair wing and a
-  lower ending. Recommend the amnesty trade for `failed`, none for `betrayed`.
+- ~~Arc 6, 1: Kael dead~~ — decided 2026-11-12: Arc 6 does not happen (no deputy).
+- ~~Arc 6, 2: no Corsair ally~~ — decided 2026-11-12: Arc 6 requires both fleets destroyed,
+  which implies the Corsair `defended` path, so the ally always exists.
 - **Arc 6, 3: which station is the seat of government?** The plan uses Ostia Highport (the
   Core's largest port) as the final fight and Lumen Exchange (the trading floor, where the
   Magistrate sat) as the mid-route stop. Confirm.
