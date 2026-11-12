@@ -452,12 +452,20 @@ end
 -- once the survivors have been recovered in any session.
 local _BUOY_X, _BUOY_Y = 22000, -72000
 
+-- True while the Rezkov arc is mid-run (M1 to M3). The Boneyard's special job waits for the crew
+-- to finish or step out of it, so two story contracts never compete (e.g. a GM replaying Rezkov).
+local _REZKOV_ACTIVE = {m1_navigate = true, m2_active = true, m2_deliver = true,
+                        m3_active = true, m3_deliver = true}
+local function _rezkovBusy()
+    return _REZKOV_ACTIVE[MISSIONS._cur_phase and MISSIONS._cur_phase["rezkov"] or ""] == true
+end
+
 local function _injectHookJob()
     JOBS.removeCategory("BONEYARD_SPECIAL")
     JOBS.inject({
         category = "BONEYARD_SPECIAL", priority = 5,
         origin = {"Port Vesper", "Halcyon Rest", "Saint Brennan's Mission"},
-        when = function() return not RT.flag("boneyard_buoy_found") end,
+        when = function() return not RT.flag("boneyard_buoy_found") and not _rezkovBusy() end,
         record = function(cs)
             return JOBS.build("salvage", {
                 id = "boneyard_buoy",   -- one shared id: taking it at one station hides the others
