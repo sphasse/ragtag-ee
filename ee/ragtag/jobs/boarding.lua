@@ -410,6 +410,48 @@ function M.acceptLog(m)
         m.target_cs or "unknown", JOBS.gridRef(m.wx, m.wy), heading_text)
 end
 
+-- Surrender hail: the disabled target hails the crew with a line that fits the contract
+-- (hostage-takers, cargo runners, data thieves, a person on the run). Chosen by keyword from the
+-- archetype's cargo / label so every archetype gets flair without a per-archetype table.
+local function _has(text, words)
+    for _, w in ipairs(words) do
+        if text:find(w, 1, true) then return true end
+    end
+    return false
+end
+
+local function _surrenderLine(m)
+    local t = (tostring(m.cargo) .. " " .. tostring(m.faction_label)):lower()
+    if _has(t, {"hostage", "crew in distress", "captain", "kidnap", "traffick", "passenger",
+                "prisoner", "diplomat", "hijacked", "prize", "boarded", "research subject"}) then
+        return '"Hold your fire! We give up. Nobody aboard has been hurt, and nobody will be. Come aboard and take them."'
+    elseif _has(t, {"weapons", "shipment", "contraband", "smuggl", "transport", "cargo"}) then
+        return '"That\'s enough. We give up. The cargo\'s sealed and untouched. Take it and let us go."'
+    elseif _has(t, {"data", "nav", "record", "files", "client list", "testimony", "keys",
+                    "credentials", "access codes", "sensors", "intel", "encryption", "evidence", "documents"}) then
+        return '"You win. We give up. We haven\'t wiped anything, and we won\'t. It\'s all there. Just don\'t shoot."'
+    elseif _has(t, {"officer", "operative", "defector", "informant", "spy", "fugitive", "deserter",
+                    "executive", "engineer", "accountant", "lieutenant", "mate", "broker", "fence",
+                    "thief", "courier", "agent", "runner"}) then
+        return '"All right. I\'m done running. I give up, and I\'ll come quietly. Just keep your people off the triggers."'
+    end
+    return '"We give up. Engines are gone and so is our nerve. Come aboard, and don\'t shoot."'
+end
+
+local function _surrenderHail(m)
+    local cs = m.target_cs
+    local line = _surrenderLine(m)
+    local function send()
+        local tgt = RT.find(cs)
+        if not RT.valid(tgt) or m._boarded then return true end
+        return RT.hail(tgt, line, cs)
+    end
+    if send() then return end
+    RT.after(15, function()
+        if not send() then RT.shipLog("[" .. cs .. "] " .. line, "#FFCC80") end
+    end, "boarding_surrender_retry_" .. tostring(cs))
+end
+
 function M.update(m, entry, ctx)
     if m._boarded then return nil end
 
@@ -450,6 +492,7 @@ function M.update(m, entry, ctx)
             m.obj = "Dock with " .. m.target_cs
             RT.shipLog("[Target] " .. m.target_cs .. " disabled. Close to within 1U and request docking to board.", "#FFCC80")
             JOBS.updateObj()
+            RT.after(3, function() _surrenderHail(m) end, "boarding_surrender_" .. tostring(cs))
         end
     end
 
