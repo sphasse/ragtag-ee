@@ -475,57 +475,51 @@ local function _gmClearFlags(st)
     RUMORS.removeCategory("REZKOV_HOOK")
 end
 
-M.gm_actions = {
-    -- ── Info ──────────────────────────────────────────────────────────────
-    {label = function(st) return "State: " .. _gmStateLabel():match("^%S+") end, done_ok = true, fn = function(st) end},
-    -- ── Skip ──────────────────────────────────────────────────────────────
-    {label = "→ Inactive", fn = function(st)
+M.gm_flag_prefixes = {"rezkov_", "kael_"}
+
+-- GM "→" buttons (labels max 18 chars). Each jumps from any state, clearing the arc's
+-- world objects and flags first so the jump is clean. "Done:" states pick the outcome.
+local function _gmJump(phase, flags)
+    return function(st)
+        _gmClearFlags(st)
+        for k, v in pairs(flags or {}) do RT.flag(k, v) end
+        MISSIONS.phase("rezkov", phase)
+    end
+end
+
+local function _gmDone(outcome, kael_alive, extra)
+    return function(st)
+        _gmClearFlags(st)
+        for k, v in pairs(extra or {}) do RT.flag(k, v) end
+        RT.flag("rezkov_arc_done", outcome)
+        RT.flag("kael_alive", kael_alive)
+        MISSIONS.phase("rezkov", "done")
+    end
+end
+
+M.gm_states = {
+    {key = "inactive", label = "→ Inactive", fn = function(st)
         _gmClearFlags(st)
         RT.flag("rezkov_declined", "gm_inactivated")
-        MISSIONS.phase("rezkov", "hook")
-        globalMessage("[GM] Rezkov Arc: suppressed. Will not trigger even if criteria are met.", 4)
+        MISSIONS.phase("rezkov", "hook")   -- suppressed: will not trigger or offer the hook
     end},
-    {label = "→ Rumors", fn = function(st)
-        _gmClearFlags(st)
-        MISSIONS.phase("rezkov", "hook")
-        globalMessage("[GM] Rezkov Arc: → Rumors.", 4)
-    end},
-    {label = "→ Meeting", fn = function(st)
-        _gmClearFlags(st)
-        RT.flag("rezkov_hook", true)
-        MISSIONS.phase("rezkov", "m1_navigate")
-        globalMessage("[GM] Rezkov Arc: → Meeting.", 4)
-    end},
-    {label = "→ Hacking", fn = function(st)
-        _gmClearFlags(st)
-        RT.flag("rezkov_hook", true)
-        RT.flag("rezkov_m1_done", true)
-        MISSIONS.phase("rezkov", "m2_active")
-        globalMessage("[GM] Rezkov Arc: → Hacking.", 4)
-    end},
-    {label = "→ Intercept", fn = function(st)
-        _gmClearFlags(st)
-        RT.flag("rezkov_hook", true)
-        RT.flag("rezkov_m1_done", true)
-        RT.flag("rezkov_m2_done", true)
-        RT.flag("rezkov_m3_accepted", true)
-        MISSIONS.phase("rezkov", "m3_active")
-        globalMessage("[GM] Rezkov Arc: → Intercept.", 4)
-    end},
-    {label = "→ Complete", fn = function(st)
-        _gmClearFlags(st)
-        RT.flag("rezkov_arc_done", "gm_skip")
-        MISSIONS.phase("rezkov", "done")
-        globalMessage("[GM] Rezkov Arc: → Complete.", 4)
-    end},
-    {label = "Restart arc", phases = {"done"}, fn = function(_)
-        local cur = MISSIONS._state["rezkov"]
-        if cur then _gmClearFlags(cur) end
-        MISSIONS._status["rezkov"] = "inactive"  -- guarantee start() proceeds
-        MISSIONS.start("rezkov")
-        globalMessage("[GM] Rezkov Arc: restarted.", 4)
-    end},
-    -- ── Phase helpers ─────────────────────────────────────────────────────
+    {key = "rumors",    label = "→ Rumors",    fn = _gmJump("hook")},
+    {key = "meeting",   label = "→ Meeting",   fn = _gmJump("m1_navigate", {rezkov_hook = true})},
+    {key = "hacking",   label = "→ Hacking",   fn = _gmJump("m2_active",   {rezkov_hook = true, rezkov_m1_done = true})},
+    {key = "intercept", label = "→ Intercept", fn = _gmJump("m3_active",
+        {rezkov_hook = true, rezkov_m1_done = true, rezkov_m2_done = true, rezkov_m3_accepted = true})},
+    {key = "datarun",   label = "→ Data run",  fn = _gmJump("m3_deliver",
+        {rezkov_hook = true, rezkov_m1_done = true, rezkov_m2_done = true, rezkov_m3_accepted = true,
+         rezkov_m3_data = true})},
+    -- End states: the four real outcomes (see the header for what each means).
+    {key = "done_concord",   label = "→ Done: Concord",   fn = _gmDone("concord_won", true)},
+    {key = "done_data",      label = "→ Done: Data",      fn = _gmDone("data_delivered", true, {rezkov_m3_data = true})},
+    {key = "done_destroyed", label = "→ Done: Destroyed", fn = _gmDone("meridian_destroyed", false)},
+    {key = "done_escaped",   label = "→ Done: Escaped",   fn = _gmDone("meridian_escaped", true)},
+}
+
+-- State-specific helpers: only shown in the phase they apply to.
+M.gm_actions = {
     {label = "Complete hack", phases = {"m2_active"},
      fn = function(st)
         if not st.hack_done and RT.valid(st.galen) then

@@ -58,48 +58,43 @@ M.phases = {
 }
 ```
 
-### GM actions
+### GM console (every arc has the same screen)
 
-`M.gm_actions` is an ordered list of action tables. The engine shows them when the mission
-is active (filtered by current phase) and optionally when done.
+The engine builds the arc's GM screen. Buttons, in order:
+
+`← Missions` | `Mission criteria` (popup: each trigger condition, `[MET]` or `[ ? ]`) |
+`Mission state` (popup: status, phase, `gm_state_fn` label, saved flags matching
+`gm_flag_prefixes`, and every variable in the arc's state table) | `Enable arc` / `Disable arc`
+(only while waiting) | one `→` button per entry in `M.gm_states` | phase helpers from `M.gm_actions`.
 
 ```lua
+M.gm_flag_prefixes = {"myarc_"}            -- flags shown in "Mission state" (default: id .. "_")
+M.gm_state_fn = function() return "Hacking" end   -- optional one-line state label
+
+-- One "→" button per phase and one per end state. Each jumps from ANY status: the engine
+-- starts the arc first if it is inactive or done, then runs fn(st). Clear spawned objects
+-- and flags in fn (a shared _clearState) so the jump is clean.
+M.gm_states = {
+    {key = "meeting",   label = "→ Meeting",     fn = function(st) _clearState(st); MISSIONS.phase("myarc", "meeting") end},
+    {key = "done_win",  label = "→ Done: Win",   fn = function(st) _clearState(st); RT.flag("myarc_won", true); MISSIONS.phase("myarc", "done") end},
+    {key = "done_lose", label = "→ Done: Lose",  fn = function(st) _clearState(st); MISSIONS.phase("myarc", "done") end},
+}
+-- "→ Inactive" is added by the engine (MISSIONS.gmDeactivate: cancel + disable so criteria
+-- cannot re-trigger it) unless an entry has key = "inactive", which then replaces it.
+
+-- State-specific helpers: shown only while the arc is in one of the listed phases.
 M.gm_actions = {
-    -- Static label, always shown while active
-    {label = "→ Skip to deliver", fn = function(st)
-        MISSIONS.phase("myarc", "deliver")
-    end},
-
-    -- Function label — re-evaluated on each render (good for state display)
-    {label = function(st) return "State: " .. _myStateLabel() end,
-     done_ok = true, fn = function(st) end},  -- no-op; info display only
-
-    -- Phase filter: only shown when current phase matches one of the list
-    {label = "→ M2", phases = {"m1_active", "m1_deliver"}, fn = function(st)
-        MISSIONS.phase("myarc", "m2_active")
-    end},
-
-    -- Shown when done (restart, post-arc actions)
-    {label = "Restart arc", phases = {"done"}, fn = function(st)
-        local cur = MISSIONS._state["myarc"]
-        if cur then _clearState(cur) end
-        MISSIONS._status["myarc"] = "inactive"
-        MISSIONS.start("myarc")
-    end},
+    {label = "Complete hack", phases = {"hack"}, fn = function(st) ... end},
 }
 ```
 
-**Action fields:**
+Provide one `→ Done:` state for **every** possible end state (each value the arc can write to
+its `<id>_arc_done` flag), so the GM can test every ending. `resolve()` runs on `done` as usual.
 
-| Field | Type | Default | Notes |
-|---|---|---|---|
-| `label` | string or `function(st)` | required | **18 characters max** (GM console limit; engine truncates + logs). Function form re-evaluated each render — keep its longest output ≤ 18 too |
-| `fn` | `function(st)` | required | Called when GM taps the button |
-| `phases` | list of strings | nil | If set, shown only when current phase matches |
-| `done_ok` | bool | false | Also show when status is `"done"` |
-
-When status is `"done"`: only actions with `done_ok = true` or `phases` containing `"done"`
-are shown — all other active-phase actions are hidden.
+**Labels are 18 characters max** (GM console limit; the engine truncates and logs the arc id).
+Count the `→` as one character. `gm_actions` fields: `label` (string or `function(st)`), `fn`,
+`phases` (required for it to show; `"done"` is allowed). Arcs with no `gm_states` fall back to
+the legacy Start / `> phase` / Cancel buttons and unscoped `gm_actions`.
 
 ---
 

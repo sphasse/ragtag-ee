@@ -767,31 +767,42 @@ end
 
 -- ── GM actions ────────────────────────────────────────────────────────────────
 
-M.gm_actions = {
-    {label = function(st)
-        return "Ph: " .. (MISSIONS._cur_phase["boneyard"] or "inactive")
-    end, done_ok = true, fn = function(st) end},
+M.gm_flag_prefixes = {"boneyard_"}
 
-    {label = "→ Hook", fn = function(st)
-        _clearState(st)
-        MISSIONS.phase("boneyard", "hook")
-        globalMessage("[GM] Boneyard: → Hook.", 4)
-    end},
+-- Short state label for the "Mission state" popup.
+M.gm_state_fn = function()
+    local st = MISSIONS._status["boneyard"]
+    local ph = MISSIONS._cur_phase["boneyard"]
+    if st == "done" then
+        return "Complete (hack=" .. tostring(RT.flag("boneyard_hack_done") and true or false)
+            .. ", flip=" .. tostring(RT.flag("boneyard_drone_flip") and true or false) .. ")"
+    end
+    return ph or st
+end
 
-    {label = "→ Approach", fn = function(st)
+-- GM "→" buttons (labels max 18 chars). "→ Inactive" is the engine default (stop and disable).
+local function _gmJump(phase, setup)
+    return function(st)
         _clearState(st)
-        MISSIONS.phase("boneyard", "approach")
-        globalMessage("[GM] Boneyard: → Approach.", 4)
-    end},
+        if setup then setup(st) end
+        MISSIONS.phase("boneyard", phase)
+    end
+end
 
-    {label = "→ Annex hack", fn = function(st)
+local function _gmDone(hack, flip)
+    return function(st)
         _clearState(st)
-        MISSIONS.phase("boneyard", "annex_hack")
-        globalMessage("[GM] Boneyard: → Annex hack.", 4)
-    end},
+        if hack then RT.flag("boneyard_hack_done", true)  else RT.clearFlag("boneyard_hack_done") end
+        if flip then RT.flag("boneyard_drone_flip", true) else RT.clearFlag("boneyard_drone_flip") end
+        MISSIONS.phase("boneyard", "done")
+    end
+end
 
-    {label = "→ Annex control", fn = function(st)
-        _clearState(st)
+M.gm_states = {
+    {key = "hook",     label = "→ Hook",          fn = _gmJump("hook")},
+    {key = "approach", label = "→ Approach",      fn = _gmJump("approach")},
+    {key = "hack",     label = "→ Annex hack",    fn = _gmJump("annex_hack")},
+    {key = "control",  label = "→ Annex control", fn = _gmJump("annex_control", function(st)
         _spawnAnnex(st)
         _idleDrones(st)
         PROX.suspendZone("the Boneyard")
@@ -801,25 +812,19 @@ M.gm_actions = {
             local cst = MISSIONS._state["boneyard"]
             if cst then _spawnJammer(cst) end
         end, "boneyard_jammer")
-        MISSIONS.phase("boneyard", "annex_control")
-        globalMessage("[GM] Boneyard: → Annex control.", 4)
-    end},
-
-    {label = "→ Extract", fn = function(st)
-        _clearState(st)
+    end)},
+    {key = "extract",  label = "→ Extract",       fn = _gmJump("extract", function(st)
         PROX.suspendZone("the Boneyard")
-        MISSIONS.phase("boneyard", "extract")
-        globalMessage("[GM] Boneyard: → Extract.", 4)
-    end},
-
-    {label = "→ Complete arc", fn = function(st)
-        _clearState(st)
-        RT.flag("boneyard_hack_done",  true)
-        RT.flag("boneyard_drone_flip", true)
-        MISSIONS.phase("boneyard", "done")
-        globalMessage("[GM] Boneyard: → Complete.", 4)
-    end},
+    end)},
+    -- End states: which of the two objectives (Annex data, drone flip) were achieved.
+    {key = "done_full",    label = "→ Done: Full",    fn = _gmDone(true,  true)},
+    {key = "done_data",    label = "→ Done: Data",    fn = _gmDone(true,  false)},
+    {key = "done_drones",  label = "→ Done: Drones",  fn = _gmDone(false, true)},
+    {key = "done_minimal", label = "→ Done: Minimal", fn = _gmDone(false, false)},
 }
+
+-- No phase-specific helpers yet.
+M.gm_actions = {}
 
 -- ── Register ──────────────────────────────────────────────────────────────────
 

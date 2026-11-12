@@ -24,7 +24,7 @@ with lasting reputation consequences.
 | `m3_active` | CWS Meridian is en route to Concord space; intercept and board; Kael comms offer |
 | `m3_deliver` | Report data wipe to Thresh at Dustmote |
 
-All phases have `no_skip = true` (GM must use the explicit skip buttons in `gm_actions`).
+All phases have `no_skip = true` (GM uses the `→` buttons from `gm_states`: Inactive, Rumors, Meeting, Hacking, Intercept, Data run, and one `→ Done:` per outcome).
 
 ---
 
