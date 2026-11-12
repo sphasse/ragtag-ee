@@ -1,12 +1,13 @@
-# The Drift — five-arc story plan
+# The Drift — five-arc story plan (plus an optional sixth)
 
-The sandbox campaign's story layer: five arcs on top of the open-play job loop.
+The sandbox campaign's story layer: five arcs on top of the open-play job loop, with an
+optional sixth serial that unlocks after the finale (Arc 6, below).
 This is the master plan — detailed enough to rebuild any arc from scratch.
 Built arcs have authoritative design docs in `ee/ragtag/missions/<id>.md`; this
 file holds the connective tissue, the unbuilt arc specs, and the cross-arc state
 contract.
 
-Status at last update (2026-11-10):
+Status at last update (2026-11-12):
 
 | # | Arc | Status | Module |
 |---|-----|--------|--------|
@@ -15,6 +16,7 @@ Status at last update (2026-11-10):
 | 3 | Boneyard Arc | **BUILT** | `ee/ragtag/missions/boneyard.lua` + `boneyard.md` |
 | 4 | Corsair Arc (redemption) | planned | — |
 | 5 | Maw Arc (finale) | planned | — |
+| 6 | Concord Republic Arc (optional serial) | planned | — |
 
 ## Shape of the campaign
 
@@ -22,6 +24,7 @@ Status at last update (2026-11-10):
             ┌─> 2. Ledger (evidence thread) ──┐
 1. Rezkov ──┼─> 3. Boneyard (science thread) ─┼─> 5. Maw (finale)
             └─> 4. Corsair (ally thread) ─────┘
+                                                    └─> 6. Concord Republic (optional serial)
 ```
 
 - **Rezkov is the gate**: it establishes the crew as serious independent
@@ -309,7 +312,10 @@ one warhead. The crew gets one shot.
    remaining Hollow go dormant → `aftermath`.
 6. `aftermath` — Sauvola on comms. Ledger beat (if `ledger_evidence`): Relay
    transmits the Containment Ledger from Lastchance's relay to every station;
-   Kael, if turned, takes it to the Concord senate (follow-on hook). Resolve.
+   Kael, if turned, sets out for Ostia Highport to put it before the Concord government;
+   Imperial hardliners cut her off and she is trapped at Concord Waypoint Galen — her
+   last hail to the crew is the hook for Arc 6. Resolve. Seed Arc 6's rumors now (see Arc 6
+   "Seeding").
 
 **Endings** (resolve on flags + a Hollow kill tally kept via `RT.onKill`
 through `approach`–`cascade`; `instigator` = player or escort):
@@ -331,14 +337,185 @@ through `approach`–`cascade`; `instigator` = player or escort):
   station becomes Independent and dockable with a new description. On
   `liberation` only: Concord shakedown spawns in the Core stop (Concord has
   bigger problems). Rumor category `MAW_DONE`.
-- **Follow-on (beyond the five arcs)**: Kael rises in the Concord on the back
-  of the ledger; relations normalise; the "transitional" tariffs finally
-  transition. A sixth, political arc if the campaign keeps going.
+- **Follow-on**: Kael rises in the Concord on the back of the ledger; relations
+  normalise; the "transitional" tariffs finally transition. That is Arc 6 below, an
+  optional sixth arc, available only on `liberation` or `mercy`.
 
 **Trigger**: upgrades ≥ 1500 AND `boneyard_hack_done` AND `ledger_arc_done`
 (any) AND `corsair_arc_done` (any), `not_flagged = {maw_arc_done}`. The
 Boneyard GM "→ Complete arc" button already sets `boneyard_hack_done` for
 crews that skipped the download.
+
+---
+
+## Arc 6 — The Concord Republic (optional serial after Arc 5) — PLANNED
+
+**Premise.** The Maw cover-up is public. Concord's two battle groups are gone (the
+Boneyard group and the Blackwater strike group) and the government has split. Loyalist
+hardliners under **Marshal Irenaeus Vane** (proposed name) call themselves the *Concord
+Imperial* forces and hold the capital. Commander **Kael** (she/her) leads the reformers,
+the *Concord Republic*, but she is trapped on a remote Concord station and cannot reach
+the seat of government to take control and turn the Concord into a force for good. The
+crew must rally Corsair, Ashgrave and Independent forces and escort Kael's ship from
+station to station through Imperial-held space, then hold her at the capital while she
+takes the government.
+
+It is the escort job at campaign scale: the job template (`jobs/escort.lua`: one slow
+convoy ship, impulse only, a couple of escorts, two intercept waves) becomes a multi-leg
+convoy with several rallied wings and a fierce, scripted opponent.
+
+**Kael's backstory (her Science DB entry).** She was a fighter pilot on the Concord side
+of the Settlement War who questioned her superiors' orders, went on to become a
+Concord special-operations investigator, and has spent twenty years trying to find the
+truth about what was buried. The entry (lock key `kael_profile`) is unlocked in the
+Rezkov arc as soon as the crew meets her at M3 and `kael_alive` is set, whichever choice
+they make, including "Let the Concord go". It does not exist yet and needs a small
+Rezkov/`sciencedb.lua` retrofit (see "What changes in the built arcs"):
+
+> **Commander Kael** — *Concord Intelligence, Special Operations Investigations.*
+> Flew in the Settlement War on the Concord side, and was one of a handful of officers
+> who put their doubts about the orders in writing. She was not punished; she was moved.
+> After the war she transferred to special-operations investigation, where for twenty years
+> she has followed the gaps in the official record. Colleagues describe her as patient,
+> precise and unwilling to let a file close. Key values: Service: Concord Intelligence;
+> War record: fighter pilot, Settlement War; Reputation: asks the questions nobody wants asked.
+
+**Trigger**: `maw_arc_done` ∈ {`liberation`, `mercy`} (the cover-up is public; `quiet` leaves
+Concord intact, so there is no split and no sixth arc) AND `kael_alive` AND
+`not_flagged = {republic_arc_done}`. Upgrade spend is already ≥ 1500 by the Maw. If Kael
+is dead (`rezkov_arc_done == "meridian_destroyed"`) see open question 1.
+
+**The factions.** Two new factions (defined in `VERSE.setupFactions`, alongside Concord
+Hostile / Corsair Friendly / Relic Active):
+- **Concord Imperial** — the loyalists. Hostile to the player, Corsair Friendly, Relic Active
+  and Concord Republic. Friendly to `Concord` (the legacy faction on the stations).
+- **Concord Republic** — Kael's side. Friendly to the player, Independent, Corsair Friendly
+  and Relic Active; hostile to Concord Imperial. Reputation for it is an alias of `Concord`
+  (add `RT.repAlias["Concord Republic"] = "Concord"`; today `RT.getReputation` returns 0
+  for any faction without a table entry).
+
+**Seeding (before it triggers).** Arc 5's resolve injects ~10 vague seed rumors (`REPUBLIC_SEED`,
+priority 3: "the Concord senate hasn't sat in weeks", "Sentinel Fleet Yard is taking orders
+from nobody the Magistrate knows") so the world already feels split. Kael's hook is an
+`RT.voice` hail from nobody-in-particular (a position-less artifact), not a rumor.
+
+**Structure** (phases; each has a GM skip button, ≤ 18 chars):
+1. `hook` — Kael hails the crew by voice from Concord Waypoint Galen: the Imperials sealed her
+   in, she needs an escort to Ostia Highport. Accept by flying to Galen (the station where the
+   crew started the Rezkov chain: pay it off). Docking at Galen opens her briefing and the
+   rally plan.
+2. `rally` — three wings, in any order, each its own mini-arc and each yielding a named
+   escort squadron. The crew needs at least two to proceed; the third is the difference
+   between the good ending and the narrow one.
+   - **Corsair wing** (Blackwater; Reva Okonkwo from Arc 4): 6 raiders, `Corsair Friendly`.
+     Requires `corsair_ally`. Reva wants proof Kael is serious: a story delivery
+     (`JOBS.inject`, priority 5, `story = true`) carries Kael's signed amnesty writ for the
+     Free Ship veterans from Galen to Blackwater. She holds the writ up and commits the wing.
+     (`betrayed`/`failed`: see open question 2.)
+   - **Ashgrave wing** (the Annex): 8 war drones refitted with warp drives, `Relic Active`.
+     Requires `boneyard_hack_done` (the crew has the Annex's access codes). The arc respawns
+     the Annex (the Boneyard arc destroys it in `_clearState`, so `_spawnAnnex` must be
+     exported or copied). Retasking the drone net is a 45-second hold under attack by an
+     Imperial raider squadron (comms-as-timer, like the Boneyard download). If the survivors
+     were rescued (`boneyard_buoy_found`) they staff the console and vouch.
+   - **Independent wing** (the stations): 6 gunships. Not a reputation check: the crew
+     carries Kael's charter to Port Vesper, Calder's Reach and Halcyon Rest (three `story`
+     deliveries injected at Galen), and each station contributes two ships. Reputation
+     only changes how many extras show up; Rezkov's `concord_won` path leaves Independent
+     reputation at -1000 and it must not lock the wing out.
+   - The Republic loyalists already at Galen (4 ships) and Kael's flagship round out the
+     escort: ~24 escorts at full strength.
+3. `muster` — at Galen. The wings arrive over a minute or two, Kael's ship (the Meridian,
+   or her replacement) stands by, and the crew gets **wing orders** via comms with each wing's
+   lead (Screen / Hunt / Hold). Break the Galen siege to leave. **Restart point for every
+   fail.**
+4. `leg_1` — Galen to Lumen Exchange (~63U). Kael's ship is impulse-only (~125 u/s, about
+   eight minutes). Imperial pickets (4 ships) and a Sentinel Fleet Yard sortie midway
+   (a command Phobos and five escorts). Lumen flips to `Concord Republic` on arrival and
+   becomes a dockable repair and rearm stop. Optional objective: Relay hacks the Sentinel
+   launch relay to shrink leg 2's waves (reuse the hacking mechanic).
+5. `leg_2` — Lumen to Ostia Highport (~37U): Marshal Vane's main fleet. This is the fierce
+   one: two Atlantis X23, a Phobos T3 flagship, and fighter screens, plus a minefield the
+   hardliners laid. About 18 ships, spawned in two surges so the entity count stays sane.
+6. `ostia` — break the station's defense platforms and the last fleet, dock Kael, and hold
+   60 seconds while she broadcasts to the government (comms-as-timer, the Boneyard control
+   pattern) with the Imperial flagship still contesting. Destroying or disabling it, or
+   surviving the hold, ends the battle. Vane stands down.
+7. `done` — resolve: Kael takes the seat; the Concord becomes a force for good.
+
+**Failure.** Kael's ship destroyed: restart from the last station checkpoint (`muster` if before
+Lumen, `leg_2` start if after). Wings re-form at full strength at the checkpoint; only the
+Imperials reset. No reputation penalty.
+
+**Stats, voice and jobs hooks.** Wings are `RT.voice` leads (Reva, the Annex console, the
+Vesper militia captain) and Marshal Vane taunts by voice during the legs; the writ and
+charter run as story jobs; `STATS.arcEvent` and a handful of `ACH` entries ("Standing
+Beside Kael", "No Wing Left Behind", "Three Wings") track it.
+
+**Exports**:
+- `republic_arc_done` = `"ascendant"` (all three wings, Kael's ship above 50% hull at the end)
+  | `"coalition"` (two wings, or a battered Kael) — success either way; failure restarts.
+- `republic_wings` (count), `republic_corsair`, `republic_ashgrave`, `republic_independent`
+  (bools).
+- Rep: Concord (and so Concord Republic) reset to at least +300 at the hook and to +500 on
+  success; Independent +300; Corsairs +200 per Corsair wing that flew. Credits ~1500.
+- SCIDB: unlock a locked Lore entry **"The Concord Republic"** (lock key `republic_formed`):
+  who won, the first acts (tariffs that finally transition, the Core's shakedowns ended).
+
+**World after** (integration outside the arc module, like Arc 5): `Concord Imperial` is gone;
+Concord stations stay faction `Concord` but Concord shakedown spawns stop for good (they
+already stop on `liberation`; on `mercy` this finishes the job); Core prices drop (the
+"transitional" tariffs); Concord ports offer full job access again; rumor category
+`REPUBLIC_DONE`. On `ascendant` Sentinel Fleet Yard sells a Republic shipwright upgrade
+(design TBD) as the campaign's last reward.
+
+### What changes in the built arcs (small retrofits)
+
+- **Rezkov**: add the **Commander Kael** SCIDB entry (above) in `sciencedb.lua` and unlock
+  it from the M3 comms where `kael_alive` is set (all alive outcomes). No other change.
+- **Boneyard**: export `_spawnAnnex` (or a thin `BONEYARD.spawnAnnex()`), so Arc 6 can
+  respawn it. Nothing else; `boneyard_hack_done` already means "has the codes".
+- **Maw (planned)**: change the aftermath Kael beat (done above) and seed Arc 6's rumors in
+  `M.resolve`; set `maw_arc_done` before the seeds so Arc 6's `on_load` sees it.
+- **Factions / core**: the two new factions and the `RT.repAlias` lookup (see above).
+
+### Where the current plot does not support this (and the plan for each)
+
+1. **"Both fleets destroyed" is not guaranteed.** `boneyard_battlegroup_destroyed` is only
+   set if the crew kills CNS Vanguard, and the Corsair arc's `betrayed`/`failed` outcomes
+   leave the Blackwater strike group intact. *Plan:* don't depend on it. The fleets Arc 6
+   fights are new loyalist (Imperial) forces; the "both fleets gone" framing is narrated
+   in the Maw aftermath either way (the groups mutiny, withdraw or are recalled), and the
+   Kael hook text varies on the flags ("your handiwork" versus "someone else's").
+2. **The Maw `quiet` ending has no split.** The ledger is not public, so Concord is intact.
+   *Plan:* Arc 6 only triggers on `liberation`/`mercy`. `quiet` ends the campaign (a GM
+   override can force it).
+3. **Kael may be dead.** `meridian_destroyed` sets `kael_alive = false`, and the Maw only
+   "turns" her if alive. *Plan:* open question 1.
+4. **The Maw aftermath sent Kael to the senate.** That contradicted her being trapped.
+   *Plan:* fixed in the Maw section above (she is intercepted and cornered at Galen).
+5. **Independent reputation can be deeply negative.** Rezkov `concord_won` is -1000.
+   *Plan:* the Independent wing is a task chain, not a reputation gate.
+6. **The Corsair ally may not exist.** `corsair_ally` is false on `betrayed`/`failed`.
+   *Plan:* open question 2.
+7. **The Annex is destroyed when the Boneyard arc ends.** *Plan:* respawn it for Arc 6
+   (export `_spawnAnnex`); drone flip is not required, since the Annex visit performs it.
+8. **Drones are slow and the Core is ~145U from the Boneyard.** The Ashgrave wing needs
+   warp. *Plan:* the Annex refit gives them a warp drive and a throttle to match Kael's
+   impulse speed while escorting.
+9. **No faction fits.** `Concord Hostile` is a targetable-law stand-in. *Plan:* the two
+   new factions above, plus reputation aliasing. Stations stay `Concord` (the Imperials
+   treat them as friendly); they flip to `Concord Republic` only on arrival, so
+   `JOBS.stationFaction` and rep lookups keep working.
+10. **The escort job is too small.** One convoy ship, two escorts, two waves, a single
+    destination. *Plan:* a new arc-owned convoy with checkpoints, wing orders, scripted waves
+    and a hard entity budget (stay under ~45 active `CpuShip`s; spawn by leg, retire
+    beaten waves, two-surge spawns for leg 2).
+11. **The Core is "safe" (danger 0, shakedowns only).** The arc makes it a war zone. *Plan:*
+    suspend the Core/Arbiter PROX zones (`PROX.suspendZone`) for the whole arc; region
+    danger is cosmetic and left alone.
+12. **The Maw aftermath said the Concord "stops shaking down".** That holds on `liberation` but
+    not `mercy`. *Plan:* Arc 6 finishes it in the world-after step.
 
 ---
 
@@ -355,10 +532,12 @@ Flags any future arc may rely on (never rename these):
 | `corsair_arc_done`, `corsair_ally` | Corsair | outcome string / bool |
 | `maw_warhead` | Maw | `fitted` / `spent` (read at player spawn to fit the EMP rack) |
 | `maw_arc_done` | Maw | `liberation` / `mercy` / `quiet` |
+| `republic_arc_done`, `republic_wings`, `republic_corsair`, `republic_ashgrave`, `republic_independent` | Republic | `ascendant` / `coalition`; count; bools |
 
 SCIDB lock keys: `hollow_true_nature`, `ashgrave_research`, `synthesis_details`
 (Boneyard); `maw_full` (Maw); `ledger_findings` (Ledger, to be added in
-`ee/ragtag/world/sciencedb.lua`).
+`ee/ragtag/world/sciencedb.lua`); `kael_profile` (Rezkov M3, to be added) and
+`republic_formed` (Republic, to be added).
 
 Rumor categories: `<ARC>_HOOK` injected in hook enter / removed in hook exit;
 `<ARC>_DONE` injected at resolve (persistent flavor for the session).
@@ -412,7 +591,34 @@ If an arc module is lost, rebuild against these rails:
 - Two arcs eligible at once is acceptable; no trigger staggering.
 - The verse's Maw garrisons are cleared and replaced by the arc's own.
 
+## Decisions made (2026-11-12)
+
+- Arc 6 (the Concord Republic) is an optional serial after the finale. It requires `liberation`
+  or `mercy` and a living Kael; `quiet` ends the campaign.
+- The two factions are `Concord Imperial` (loyalists, hostile) and `Concord Republic` (Kael's
+  side, friendly); Republic reputation aliases Concord.
+- The rally is three wings (Corsair, Ashgrave, Independent), at least two required. The
+  Independent wing is a task chain, never a reputation check.
+- The convoy is an arc-owned multi-leg escort, not the stock escort job.
+- Kael's Science DB entry: Settlement War fighter who questioned her superiors, then a Concord
+  special-operations investigator seeking the truth; unlocked at Rezkov M3.
+- Fail restarts from the last station, with no penalty.
+
 ## Open questions / tuning
+
+- **Arc 6, 1: if Kael is dead** (`rezkov_arc_done == "meridian_destroyed"`). Options: (a) no
+  Arc 6 (simplest, honours the choice); (b) her deputy, Lt. Cmdr. Dessa Marlow (proposed),
+  carries Kael's papers and the arc plays the same with a different voice; Kael's DB entry
+  then ends "lost with CWS Meridian". Recommend (b).
+- **Arc 6, 2: no Corsair ally** (`betrayed`/`failed`). Option: Kael's amnesty writ is exactly
+  what the Free Ship veterans want, so Reva (or the Saint Brennan's sister) trades the
+  wing for it at a price (a hard test: defend something first). Or no Corsair wing and a
+  lower ending. Recommend the amnesty trade for `failed`, none for `betrayed`.
+- **Arc 6, 3: which station is the seat of government?** The plan uses Ostia Highport (the
+  Core's largest port) as the final fight and Lumen Exchange (the trading floor, where the
+  Magistrate sat) as the mid-route stop. Confirm.
+- **Arc 6, 4: Sentinel Fleet Yard** is the Imperial base. Is a hacking sabotage objective
+  (smaller leg-2 waves) enough, or should the crew also assault it?
 
 - ~~Boneyard trigger gate~~ — decided: gated on `rezkov_arc_done` (or `rezkov_declined`). Phase II arcs load ~10 vague seed rumors (priority 2) via `M.on_load` while waiting, and 3 actionable hooks (priority 5) once started.
 - Rift anchor: confirm in a headless run that `hull.damaged_by_emp` and
