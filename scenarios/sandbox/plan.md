@@ -442,8 +442,9 @@ from nobody the Magistrate knows") so the world already feels split. Kael's hook
 4. `leg_1` — Galen to Lumen Exchange (~63U). Kael's ship is impulse-only (~125 u/s, about
    eight minutes). Imperial pickets (4 ships) and a Sentinel Fleet Yard sortie midway
    (a command Phobos and five escorts). Lumen flips to `Concord Republic` on arrival and
-   becomes a dockable repair and rearm stop. Optional objective: Relay hacks the Sentinel
-   launch relay to shrink leg 2's waves (reuse the hacking mechanic).
+   becomes a dockable repair and rearm stop. No sabotage or assault objective: the loyalist
+   fleet is finite and the crew wins by exhausting it (Sentinel's sortie and the pickets are
+   ships that will not be there for leg 2). The escort is the challenge, not a side objective.
 5. `leg_2` — Lumen to Ostia Highport (~37U): Marshal Vane's main fleet. This is the fierce
    one: two Atlantis X23, a Phobos T3 flagship, and fighter screens, plus a minefield the
    hardliners laid. About 18 ships, spawned in two surges so the entity count stays sane.
@@ -622,8 +623,10 @@ If an arc module is lost, rebuild against these rails:
 - **Arc 6, 3: which station is the seat of government?** The plan uses Ostia Highport (the
   Core's largest port) as the final fight and Lumen Exchange (the trading floor, where the
   Magistrate sat) as the mid-route stop. Confirm.
-- **Arc 6, 4: Sentinel Fleet Yard** is the Imperial base. Is a hacking sabotage objective
-  (smaller leg-2 waves) enough, or should the crew also assault it?
+- ~~Arc 6, 3: seat of government~~ — confirmed: Ostia Highport final, Lumen Exchange mid-route.
+- ~~Arc 6, 4: Sentinel Fleet Yard~~ — decided 2026-11-12: no hack and no assault. The Imperial
+  fleet is a finite pool; the crew exhausts it by destroying each wave. The escort itself is
+  the challenge. Tune by wave size and Kael's hull, not by side objectives.
 
 - ~~Boneyard trigger gate~~ — decided: gated on `rezkov_arc_done` (or `rezkov_declined`). Phase II arcs load ~10 vague seed rumors (priority 2) via `M.on_load` while waiting, and 3 actionable hooks (priority 5) once started.
 - Rift anchor: confirm in a headless run that `hull.damaged_by_emp` and
