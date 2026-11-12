@@ -90,6 +90,9 @@ local function _spawnWaypoint(st)
     wp:setPosition(_RWX, _RWY)
     wp:setCanBeDestroyed(false)
     wp:orderIdle()
+    -- Slow tumble, a little faster than the hacking Comms Relays (spin 4), so a Science scan
+    -- of the station shows it turning.
+    wp:setRotationMaxSpeed(0):setSpin(6)
     wp:setCommsFunction(function(src, tgt)
         local phase = MISSIONS._cur_phase["rezkov"]
         local art = MISSIONS._state["rezkov"]
