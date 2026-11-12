@@ -157,6 +157,10 @@ JOBS.removeCategory("MYARC_JOBS")        -- in M.on_unload / phase exit / _clear
 - **priority 5 (hook)**: listed first at every matching station, *outside* the normal
   slot count, as soon as `when` holds. Use for story contracts. Hidden only when the
   station refuses all work (reputation below -400, the same rule as the normal board).
+- **`ensure = true`** (priority 3 only): guarantee the job is on the station's board. It takes a
+  free or expired slot, else replaces a cached ordinary job, and is listed first with no
+  special tag, so it reads as regular work that happened to be there. Use it to steer the
+  crew without telling them they're being steered (Rezkov's M2 cover deliveries to Galen).
 - **priority 3 (seed)**: ordinary-looking work. Each time a station fills a slot there is a
   `JOBS.SEED_CHANCE` (0.4) chance an eligible seed is used instead of a random job; it is
   cached in the slot like any other job. Seeds are for filler that moves crews around.

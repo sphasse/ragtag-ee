@@ -359,12 +359,12 @@ local _SEED_RUMORS = {
 }
 
 -- Seed jobs (priority 3): ordinary-looking deliveries among the north-side stations,
--- so crews are already moving around Halcyon / Vesper / Arbiter / Galen.
+-- so crews are already moving around Halcyon / Vesper / Arbiter / Saint Brennan's.
 local _SEED_JOBS = {
     {"Halcyon Rest",           "Concord Station Arbiter",  "sealed legal pouches",   85, "Halcyon's clerks need these filed with Arbiter's registry office. Don't read them."},
-    {"Port Vesper",            "Concord Waypoint Galen",   "replacement relay cores", 105, "Galen's comms array has been dropping packets for a month. Concord won't pay for the parts; a private buyer will."},
+    {"Port Vesper",            "Saint Brennan's Mission",  "replacement relay cores", 105, "Brennan's comms array has been dropping packets for a month. The Mission can't pay Concord prices, so a private buyer is covering it."},
     {"Concord Station Arbiter","Halcyon Rest",             "inspection stamps",       80, "Arbiter's stamps for Halcyon's yard. Halcyon pays on delivery and tips if you don't make a fuss."},
-    {"Concord Waypoint Galen", "Port Vesper",              "survey data crates",      95, "Galen's survey crews bag data faster than they can ship it. Take a crate to Vesper's archive."},
+    {"Saint Brennan's Mission","Halcyon Rest",             "survey data crates",      95, "The Mission's survey volunteers bag data faster than they can ship it. Take a crate to Halcyon's archive."},
     {"Port Vesper",            "Halcyon Rest",             "coolant canisters",       70, "Halcyon burns through coolant. Standard run."},
 }
 

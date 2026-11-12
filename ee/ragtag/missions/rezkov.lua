@@ -614,10 +614,59 @@ M.phases.m1_navigate = {
     end,
 }
 
+-- M2 cover jobs. Rezkov: "Pick up some jobs along the way to get you closer." While the
+-- crew is on the Galen hack, the arc watches for them docking at one of the stations on the
+-- way. When they do, an ordinary-looking delivery to Concord Waypoint Galen is added to THAT
+-- station's board only (ensure = true: it is on the board when they open "Any work?"). It is
+-- deliberately not special: no tag, normal rewards, nothing that says "story". Just a lucky
+-- break. One per station per session.
+local _COVER_JOBS = {
+    ["Halcyon Rest"]            = {cargo = "ration crates",           reward = 100, brief = "Galen's galley keeps running short. Nobody wants the long haul out to the Arbiter Line, so the pay's decent."},
+    ["Port Vesper"]             = {cargo = "replacement relay cores", reward =  85, brief = "Galen's comms array has been dropping packets for a month. Concord won't pay for the parts, a private buyer will."},
+    ["Calder's Reach"]          = {cargo = "spare filter units",      reward =  75, brief = "Galen's air scrubbers are due. Small station, small order, steady money."},
+    ["Concord Station Arbiter"] = {cargo = "sealed legal pouches",    reward =  65, brief = "Arbiter's clerks send paper to Galen by hand. They don't trust the net with it."},
+}
+
+local function _addCoverJob(cs)
+    local j = _COVER_JOBS[cs]
+    JOBS.inject({
+        category = "REZKOV_COVER", priority = 3, ensure = true, origin = cs,
+        record = function(station)
+            return JOBS.build("delivery", {
+                id = "rezkov_cover_" .. station, origin = station, dest = "Concord Waypoint Galen",
+                cargo = j.cargo, reward = j.reward, brief = j.brief,
+            })
+        end,
+    })
+end
+
+-- Called from m2_active.update: when a player ship is docked at a cover station that has not
+-- had its job yet, add that station's job. getDockedWith() returns false when undocked.
+local function _watchCoverDocks(st)
+    st.cover_given = st.cover_given or {}
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) then
+            local d = p:getDockedWith()
+            if d and RT.valid(d) then
+                local cs = d:getCallSign()
+                if _COVER_JOBS[cs] and not st.cover_given[cs] then
+                    st.cover_given[cs] = true
+                    _addCoverJob(cs)
+                end
+            end
+        end
+    end
+end
+
 M.phases.m2_active = {
     no_skip = true,
+    exit = function(st)
+        JOBS.removeCategory("REZKOV_COVER")
+    end,
     enter = function(st)
         st.hack_done = false
+        st.cover_given = {}
+        JOBS.removeCategory("REZKOV_COVER")   -- idempotent for GM re-entry
         _spawnWaypoint(st)
         _spawnHackTerminal(st)
         RT.setObjective("Hack Waypoint Galen", true)
@@ -625,6 +674,7 @@ M.phases.m2_active = {
 
     update = function(st, delta, now)
         _checkHack(st, now)
+        _watchCoverDocks(st)
     end,
 }
 

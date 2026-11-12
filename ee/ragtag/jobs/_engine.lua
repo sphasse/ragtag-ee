@@ -54,6 +54,9 @@ local _inject_seq = 0
 --   priority = 5 | 3,                -- default 3
 --   origin   = "Port Vesper" | {"A","B"} | nil (any station),
 --   when     = function(cs) ... end, -- optional; evaluated each time the board is opened
+--   ensure   = true,                 -- priority 3 only: guarantee this job is on the station's
+--                                    -- board (takes a free slot, else replaces a cached ordinary
+--                                    -- job). Still looks like a normal job (no [SPECIAL] tag).
 --   record   = <mission table> | function(cs) return <mission table> end,
 -- }
 -- Build records with JOBS.build("delivery"|"salvage", opts) (see those modules).
@@ -62,7 +65,7 @@ function JOBS.inject(def)
     local e = {
         id = def.id or ("inj_" .. _inject_seq),
         category = def.category, priority = def.priority or 3,
-        origin = def.origin, when = def.when, record = def.record, missions = {},
+        origin = def.origin, when = def.when, record = def.record, ensure = def.ensure, missions = {},
     }
     JOBS._injected[#JOBS._injected + 1] = e
     return e.id
@@ -104,6 +107,7 @@ function JOBS._injectedFor(cs, hook)
                         rec.id      = rec.id or (e.id .. ":" .. cs)
                         rec.origin  = rec.origin or cs
                         rec._inject = e.id
+                        rec._ensure = e.ensure and e.priority < 4 or nil
                         e.missions[cs] = rec
                         m = rec
                     end
@@ -586,6 +590,42 @@ local function _offerMissions(cs)
             local seen = false
             for _, o in ipairs(offers) do if o.id == slot.mission.id then seen=true; break end end
             if not seen then offers[#offers + 1] = slot.mission end
+        end
+    end
+
+    -- Ensured seeds (inject{ensure = true}) must be on the board: they take a free or
+    -- expired slot, otherwise replace a cached ordinary job. They are listed first but
+    -- carry no special tag, so they read as regular work that happened to be there.
+    local _seeds_now = JOBS._injectedFor(cs, false)
+    for _, sm in ipairs(_seeds_now) do
+        if sm._ensure then
+            local present = false
+            for _, o in ipairs(offers) do if o.id == sm.id then present = true; break end end
+            if not present then
+                local placed_slot
+                for k, sn in ipairs(slots_to_gen) do
+                    table.remove(slots_to_gen, k); placed_slot = sn; break
+                end
+                if not placed_slot then
+                    for sn = 1, n_slots do
+                        local sl = ss.slots[sn]
+                        if sl.mission and not sl.taken_at and not sl.mission._ensure then
+                            for i2, o in ipairs(offers) do
+                                if o.id == sl.mission.id then table.remove(offers, i2); break end
+                            end
+                            placed_slot = sn; break
+                        end
+                    end
+                end
+                if placed_slot then
+                    if JOBS.config.work_cooldown_enabled then
+                        ss.slots[placed_slot].mission    = sm
+                        ss.slots[placed_slot].offered_at = now
+                        ss.slots[placed_slot].taken_at   = nil
+                    end
+                    table.insert(offers, 1, sm)
+                end
+            end
         end
     end
 

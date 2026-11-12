@@ -108,3 +108,16 @@ when players refuse the hook at Dustmote). The state label shows which.
 Rumors for this arc use category `REZKOV_HOOK`. They are added in `hook.enter` and removed by
 `_gmClearFlags`. The hook phase checks `RT.flag("rezkov_declined")` on entry and skips rumor
 injection if the arc has been inactivated.
+
+## Rumors and jobs: seeds and hooks
+
+- **Waiting seeds** (`REZKOV_SEED`, priority 3, via `M.on_load`/`M.on_unload`): eight vague
+  Dustmote-adjacent rumors that never name Rezkov, loaded before the trigger fires.
+- **Hook rumors** (`REZKOV_HOOK`, priority 5): name Dustmote. These are integral, not cosmetic:
+  the rumors are how crews find Thresh, and no job or objective replaces them.
+- **M2 cover jobs** (`REZKOV_COVER`, injected in `m2_active.enter`, removed in its `exit`):
+  Rezkov says "pick up some jobs along the way to get you closer", so Halcyon Rest, Port Vesper,
+  Calder's Reach and Arbiter each get an ordinary delivery to Concord Waypoint Galen
+  (`JOBS.inject{priority=3, ensure=true}`), generated the first time the crew opens the board at
+  that station while M2 is active. Deliberately not special: normal rewards, no `[SPECIAL]` tag,
+  no story rules. They just read as a lucky break. No jobs are seeded for the Dustmote leg.
