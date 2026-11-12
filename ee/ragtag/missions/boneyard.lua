@@ -2,7 +2,7 @@
 -- Boneyard Arc: breach the Ashgrave Annex before a Concord battle group arrives.
 --
 -- Trigger: Rezkov arc finished (or declined) AND upgrade investment >= 800cr AND not completed
--- Structure: hook → approach → annex_hack → annex_control → extract → done
+-- Structure: hook → annex_hack → annex_control → extract → done
 --
 -- RT.flag keys used (prefix "boneyard_"):
 --   arc_done                  arc complete (blocks re-trigger)
@@ -28,7 +28,7 @@ M.triggers = {
 }
 
 M.phase_order = {
-    "hook", "approach", "annex_hack", "annex_control", "extract",
+    "hook", "annex_hack", "annex_control", "extract",
 }
 
 -- ── Coordinates ──────────────────────────────────────────────────────────────
@@ -104,6 +104,23 @@ local function _spawnAnnex(st)
     end)
     st.annex = a
     log("[BONEYARD] Annex spawned at (" .. _ANNEX_X .. "," .. _ANNEX_Y .. ")")
+end
+
+-- Make the Annex appear (idempotent). Called when the survivors are recovered (their telemetry
+-- names its grid) or, for a crew following the rumors instead, when they reach Ashgrave.
+-- `quiet`: the caller already told the crew about the signal.
+local function _annexSignal(st, quiet)
+    local fresh = not RT.valid(st.annex)
+    _spawnAnnex(st)
+    if not fresh then return end
+    RUMORS.removeCategory("BONEYARD_HOOK")      -- the lead has paid off
+    JOBS.removeCategory("BONEYARD_SPECIAL")
+    if not quiet then
+        RT.shipLog(
+            "[Science] Anomalous signal from deep in the Boneyard. " ..
+            "Source: Ashgrave Annex. Bearing inside the debris field.", "#FFCC00")
+    end
+    RT.shipLog("[Nav] Waypoint set: Ashgrave Annex.", "#AAAAFF")
 end
 
 local function _idleDrones(st)
@@ -484,6 +501,11 @@ local function _injectHookJob()
                     RT.shipLog("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
                     RT.shipLog(string.format("[Science] Survivor lifeboat telemetry: launched from the Annex, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ANNEX_X, _ANNEX_Y)), "#00CCAA")
                     _survivorHail()
+                    local bst = MISSIONS._state["boneyard"]
+                    if bst and MISSIONS._status["boneyard"] == "active"
+                       and MISSIONS._cur_phase["boneyard"] == "hook" then
+                        _annexSignal(bst, true)   -- the telemetry line above already named its grid
+                    end
                 end,
             })
         end,
@@ -535,37 +557,22 @@ M.phases = {
             local player = players[1]
             if not RT.valid(player) then return end
             local px, py = player:getPosition()
-            -- 8U: Ashgrave's planet radius is 3.4U, so the trigger band clears
-            -- the surface comfortably.
-            if _dist(px, py, _ASHGRAVE_X, _ASHGRAVE_Y) < 8 * U then
-                MISSIONS.phase("boneyard", "approach")
+            if RT.valid(st.annex) then
+                -- The Annex is out (survivors recovered, or the crew came by Ashgrave): closing
+                -- to 2.5U starts the hack.
+                local ax, ay = st.annex:getPosition()
+                if _dist(px, py, ax, ay) < 2.5 * U then
+                    MISSIONS.phase("boneyard", "annex_hack")
+                end
+            elseif _dist(px, py, _ASHGRAVE_X, _ASHGRAVE_Y) < 8 * U then
+                -- No survivors yet: a crew following the rumors finds it at Ashgrave. 8U clears
+                -- the planet (radius 3.4U) comfortably.
+                _annexSignal(st)
             end
         end,
         exit = function(st)
             RUMORS.removeCategory("BONEYARD_HOOK")
             JOBS.removeCategory("BONEYARD_SPECIAL")
-        end,
-    },
-
-    approach = {
-        enter = function(st)
-            _spawnAnnex(st)
-            RT.shipLog(
-                "[Science] Anomalous signal from deep in the Boneyard. " ..
-                "Source: Ashgrave Annex. Bearing inside the debris field.", "#FFCC00")
-            RT.shipLog("[Nav] Waypoint set: Ashgrave Annex.", "#AAAAFF")
-        end,
-        update = function(st, delta, now)
-            if not RT.valid(st.annex) then return end
-            local players = RT.players
-            if not players or not players[1] then return end
-            local player = players[1]
-            if not RT.valid(player) then return end
-            local px, py = player:getPosition()
-            local ax, ay = st.annex:getPosition()
-            if _dist(px, py, ax, ay) < 2.5 * U then
-                MISSIONS.phase("boneyard", "annex_hack")
-            end
         end,
     },
 
@@ -799,8 +806,7 @@ end
 
 M.gm_states = {
     {key = "hook",     label = "→ Hook",          fn = _gmJump("hook")},
-    {key = "approach", label = "→ Approach",      fn = _gmJump("approach")},
-    {key = "hack",     label = "→ Annex hack",    fn = _gmJump("annex_hack")},
+    {key = "hack",     label = "→ Annex hack",    fn = _gmJump("annex_hack", function(st) _spawnAnnex(st) end)},
     {key = "control",  label = "→ Annex control", fn = _gmJump("annex_control", function(st)
         _spawnAnnex(st)
         _idleDrones(st)

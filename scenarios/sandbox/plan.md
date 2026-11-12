@@ -127,8 +127,8 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   (confirmed in `boneyard.lua` `M.triggers`) — any crew that can afford the
   upgrades and flies to Ashgrave gets it. Open decision: add
   `flagged = {rezkov_arc_done}` so "Rezkov is the gate" holds for every arc.
-- **Structure**: hook (battle-group rumors; fly within 8U of Ashgrave) →
-  approach (Ashgrave Annex spawns) → annex_hack (Relay hacks frontshield to
+- **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are recovered, or at 8U from Ashgrave) →
+  annex_hack (Relay hacks frontshield to
   100%; drones go idle) → annex_control (60s archive download and/or 30s drone
   IFF reprogram, while a 6-ship Concord Hostile battle group closes at warp and
   a jammer seals the region at ~90s) → extract (fly out past the Boneyard

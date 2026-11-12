@@ -16,14 +16,11 @@ The crew breaches the Ashgrave Annex — a Concord Level-5 research archive buri
 ## Phase Diagram
 
 ```
-hook → approach → annex_hack → annex_control → extract → done
+hook → annex_hack → annex_control → extract → done
 ```
 
 ### hook
-Rumor injection: Concord is mobilising a heavy response group, destination unknown. Rumors are re-injected each session while the arc is unfinished and removed on phase exit. Arc advances automatically when the player flies within 8U of Ashgrave (planet radius 3.4U).
-
-### approach
-Ashgrave Annex spawns at (43, -104) verse coords — deeper in the debris field than the visible battle damage. Ship log directs crew toward it. Arc advances when player closes to 2.5U.
+Rumor injection: Concord is mobilising a heavy response group, destination unknown. Rumors are re-injected each session while the arc is unfinished and removed on phase exit. The Ashgrave Annex spawns at (43, -104) verse coords (grid zz7), deeper in the debris field than the visible battle damage, in either of two ways: when the lifeboat survivors are recovered (their telemetry log names the grid), or, for a crew following the rumors instead, when they fly within 8U of Ashgrave (planet radius 3.4U). Spawning removes the hook rumors and the lifeboat job (the lead has paid off). Arc advances to `annex_hack` when the player closes to 2.5U of the Annex. There is no separate approach phase.
 
 ### annex_hack
 Annex comms are encrypted. Relay must hack the `frontshield` system to 100% (hacking is a Relay-screen function; each success adds 50% and it decays over 180 s, so two successes in a row). At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When hack completes:

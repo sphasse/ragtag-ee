@@ -204,7 +204,7 @@ This makes arcs easy to disable, restart, skip, or test independently.
 | id | Name | locks_jobs | Trigger | Phases |
 |---|---|---|---|---|
 | `rezkov`   | Rezkov Arc    | no  | upgrades_min + not_flagged    | hook, m1_navigate, m2_active, m2_deliver, m3_active, m3_deliver |
-| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged    | hook, approach, annex_hack, annex_control, extract |
+| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged    | hook, annex_hack, annex_control, extract |
 
 Retired arcs (Witness, Whistleblower) live in `ee/ragtag/missions/attic/` — kept for
 reference, never required by the loader. `check.py` errors on any file in
