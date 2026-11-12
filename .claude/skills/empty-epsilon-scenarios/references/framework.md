@@ -34,7 +34,7 @@ Three Lua libraries that every campaign session requires, plus a Python director
 | `RT.cancelKillTracking(ship)` | Skip the auto rep penalty for a ship whose consequences the arc manages itself |
 | `RT.valid(e)`, `RT.dist(a, b)`, `RT.cleanText(s, max)` | Helpers |
 | `RT.update(delta)` | Call every frame: timers, autosave every 60 s, hull threshold events |
-| `RT.addCampaignGMFunctions()` | GM buttons for saving and the Sounds submenu (add it last in the main menu, so every route back to the main menu looks the same) |
+| `RT.addCampaignGMFunctions()` | GM buttons: Backup campaign / Restore campaign (6 numbered slots, no text input on the GM console; restore writes the slot over the live save and freezes saving until the scenario is restarted and Continue chosen) and the Sounds submenu. Add it last in the main menu so every route back looks the same. The campaign autosaves every 60 s and on every flag, rep, credit and job event, so there is no manual save button |
 
 Upgrades are re-applied in purchase order at every session start, so each `apply(p)` must work on a fresh stock ship. To add one, append to `RT.UPGRADES`; the shipwright menu picks it up automatically.
 

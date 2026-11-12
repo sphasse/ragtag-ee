@@ -131,7 +131,7 @@ Crew decides what to do. AI director (if on) creates encounters matching the reg
 
 ### Closing (5-10 min)
 1. Crew docks at any friendly station
-2. GM presses **Save campaign** (progress also saves as it happens), then quits
+2. Optionally press **Backup campaign** and pick a slot to keep a restore point (the campaign also autosaves every minute and on every story or credit event), then quit
 3. Credits, upgrades, reputation, stats and story flags persist
 4. Can start a new session anytime with **Campaign: Continue**
 
@@ -193,7 +193,9 @@ Crew decides what to do. AI director (if on) creates encounters matching the reg
 - GM can manually adjust rep via the **Reputation...** button
 
 ### Saving
-- There is no End session button. Press **Save campaign** and quit; progress also saves as it happens
+- There is no End session or Save campaign button: the campaign autosaves every minute and on every story, reputation, credit and job event
+- **Backup campaign** copies the campaign into one of 6 numbered slots (labelled with play time and credits); pressing a slot again saves over it
+- **Restore campaign** replaces the live save with a slot after a confirmation, then asks you to restart the scenario and choose Continue. Saving is paused until you restart, and your previous save is kept under `<campaign key>.before_restore`
 - **Campaign Status** shows credits, upgrades, reputation, stats, story arcs and achievements
 
 ## Files

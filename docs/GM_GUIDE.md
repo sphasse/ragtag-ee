@@ -42,7 +42,7 @@ Crew runs jobs, explores regions, and accumulates credits and rep. The director 
 
 ### Closing (5-10 min)
 
-GM presses **Save campaign** and quits (progress also saves as it happens). Resume with Continue next session.
+GM quits any time (the campaign autosaves; use **Backup campaign** for a restore point). Resume with Continue next session.
 
 ---
 
