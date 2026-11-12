@@ -390,19 +390,18 @@ local function _survivorRecordsText()
           .. "Unverified. Recorded by people who were never cleared to know what they were looking at.",
         "",
         "WHO THEY ARE\nCatalogue and records staff of the Ashgrave Annex, a Concord Level-5 research archive buried in the debris field "
-          .. "beyond Ashgrave. When Concord sealed the Annex from the outside, they launched a lifeboat and drifted among the wrecks until the air ran short.",
+          .. "beyond Ashgrave. They launched a lifeboat disguised as debris to try and make it out. They drifted among the wrecks until the air ran short.",
         "",
         "THE ANNEX\nIt sits deeper in the debris field than the visible battle damage, north-east of Ashgrave at grid "
           .. JOBS.gridRef(_ANNEX_X, _ANNEX_Y) .. ". Its systems are encrypted and locked down. Anyone with a Relay officer who can breach "
-          .. "one of its systems opens the access net. The archive then takes about a minute to download.",
+          .. "one of its systems opens the access net. We don't know what the data in there is, but it is clear it is very valuable and the Concord will kill to keep it out of the wrong hands.",
         "",
         "THE DRONES\nThe Relic drones are not rogue. Their war-IFF is slaved to the Annex's own access network, which is why they never stopped "
-          .. "fighting: nothing ever told them the war was over. Breach the access net and the drones stand down. The Annex console can also "
-          .. "retarget them. Staff ran that as a drill. They did not enjoy it.",
+          .. "fighting: nothing ever told them the war was over. The Concord wants it that way. The drones are protecting what is there. "
+          .. "The Annex is the command and control center for the drones.",
         "",
         "CONCORD\nConcord traffic over Ashgrave has been heavy for weeks, logged as 'routine rotation'. Staff were told a heavy response group "
-          .. "would arrive to seal the archive permanently. Expect it within a couple of minutes of anyone breaching the Annex, "
-          .. "and expect a warp inhibitor over the Boneyard when it does. Plan to fight or to leave by impulse.",
+          .. "would arrive to seal the archive permanently. That battle group is expected soon and after that the Annex will be closed off forever.",
         "",
         "THE ARCHIVE\nThe technicians only worked the catalogue desk. The vault index lists a program called 'Ashgrave Synthesis' and a "
           .. "folder marked 'reversal protocol'. Nobody on staff was cleared to open either.",
@@ -413,7 +412,7 @@ local function _addSurvivorRecords()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["boneyard_survivors"] then return end
     local e = SCIDB.addEntry("lore", "Boneyard Survivor Records", _survivorRecordsText(),
         {["Source"] = "Ashgrave Annex archive staff", ["Reliability"] = "Unverified testimony",
-         ["Hazards"] = "Relic drones; Concord response group; warp inhibitor"})
+         ["Hazards"] = "Relic drones; Concord response group"})
     SCIDB._entries["boneyard_survivors"] = e
 end
 
