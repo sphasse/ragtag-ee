@@ -459,6 +459,7 @@ local function _clearState(st)
     RUMORS.removeCategory("BONEYARD_HOOK")
     RUMORS.removeCategory("BONEYARD_DONE")
     JOBS.removeCategory("BONEYARD_SPECIAL")
+    RT.clearObjective("boneyard")
 
     PROX.resumeZone("the Boneyard")
 end
@@ -627,6 +628,7 @@ local function _injectHookJob()
                     RT.shipLog("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
                     RT.shipLog(string.format("[Science] Survivor lifeboat telemetry: launched from the Annex, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ANNEX_X, _ANNEX_Y)), "#00CCAA")
                     _survivorHail()
+                    RT.setObjective("Hack the Annex", true, "boneyard")   -- a second objective line
                     local bst = MISSIONS._state["boneyard"]
                     if bst and MISSIONS._status["boneyard"] == "active"
                        and MISSIONS._cur_phase["boneyard"] == "hook" then
@@ -662,6 +664,9 @@ M.phases = {
             -- GM re-entry of this phase doesn't duplicate them.
             RUMORS.removeCategory("BONEYARD_HOOK")
             _injectHookJob()
+            -- Survivors recovered in an earlier session: the objective line comes back (the
+            -- objective display is rebuilt each run).
+            if RT.flag("boneyard_buoy_found") then RT.setObjective("Hack the Annex", true, "boneyard") end
             -- Hooks: few, and nearly actionable. Priority 5 = same tier as other arcs'
             -- hooks, so a crew with several leads hears all of them.
             RUMORS.add({
@@ -713,6 +718,7 @@ M.phases = {
                     )
                 end)
             end
+            RT.setObjective("Hack the Annex", true, "boneyard")
             RT.shipLog("[Science] Ashgrave Annex: encrypted lockdown. Relay, that is a hacking job: breach any system.", "#FFAA44")
             -- Diagnostics (EmptyEpsilon.log): is the Annex a valid hack target?
             if RT.valid(st.annex) then
@@ -760,6 +766,7 @@ M.phases = {
 
     annex_control = {
         enter = function(st)
+            RT.clearObjective("boneyard")   -- "Hack the Annex" is done
             RT.shipLog("[Relay] Ashgrave Annex: access granted. Concord battle group inbound.", "#00FF88")
             RT.shipLog("[Science] All Relic drones idle. That won't last.", "#FFCC00")
             _setAnnexControlComms(st)
@@ -913,7 +920,6 @@ M.gm_reset = function(st, target)
     _clearState(st)
     for k in pairs(st) do st[k] = nil end
     for k, v in pairs(M.init_state()) do st[k] = v end
-    RT.clearObjective()
     MISSIONS.gmClearFlags("boneyard", function(name)
         if name == "boneyard_buoy_found" then return target ~= "hook" end
         if name == "boneyard_rewarded"   then return target == "done" end

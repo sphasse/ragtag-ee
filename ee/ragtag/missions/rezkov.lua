@@ -514,7 +514,7 @@ M.gm_reset = function(st, target)
     for k, v in pairs(M.init_state()) do st[k] = v end
     JOBS.removeCategory("REZKOV_COVER")
     RUMORS.removeCategory("REZKOV_HOOK")
-    RT.clearObjective()
+    RT.clearObjective("main")   -- only this arc's line; other arcs' objectives stay
     MISSIONS.gmClearFlags("rezkov")
 end
 

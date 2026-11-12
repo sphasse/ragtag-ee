@@ -836,24 +836,58 @@ end
 -- Objectives (shown on Relay and Operations, logged to ship's log)
 --------------------------------------------------------------------------------
 
-function RT.setObjective(text, silent)
-    RT.objective = RT.cleanText(text, 160)
-    RT.forEachPlayer(function(p)
-        p:addCustomInfo("relay", "rt_objective", "Objective: " .. RT.objective, 0)
-        p:addCustomInfo("operations", "rt_objective_ops", "Objective: " .. RT.objective, 0)
-        if not silent then p:addToShipLog("New objective: " .. RT.objective, "#80C0FF") end
-    end)
-    if DIR then DIR.emit("objective", {text = RT.objective}) end
+-- Several objectives can be active at once, each under its own key. The default key "main"
+-- is the arc/job objective everything already uses (and RT.objective mirrors it for the
+-- director); an arc can add a second line under its own key, e.g. RT.setObjective("Hack the
+-- Annex", true, "boneyard"), and remove just that line with RT.clearObjective("boneyard").
+-- Each shows as its own "Objective: ..." line on Relay and Operations.
+RT.objectives      = {}   -- key -> text
+RT._objective_keys = {}   -- insertion order, for the display order
+
+local function _objKeys(key)
+    if key == "main" then return "rt_objective", "rt_objective_ops" end
+    return "rt_objective_" .. key, "rt_objective_ops_" .. key
 end
 
--- Remove the objective line from the Relay and Operations screens (used when a GM jump lands
--- in a state that has no objective).
-function RT.clearObjective()
-    RT.objective = ""
+function RT.setObjective(text, silent, key)
+    key = key or "main"
+    local clean = RT.cleanText(text, 160)
+    if RT.objectives[key] == nil and key ~= "main" then
+        RT._objective_keys[#RT._objective_keys + 1] = key
+    end
+    RT.objectives[key] = clean
+    if key == "main" then RT.objective = clean end
+    local order = 0
+    for i, k in ipairs(RT._objective_keys) do if k == key then order = i end end
+    local relay_key, ops_key = _objKeys(key)
     RT.forEachPlayer(function(p)
-        pcall(function() p:removeCustom("rt_objective") end)
-        pcall(function() p:removeCustom("rt_objective_ops") end)
+        p:addCustomInfo("relay", relay_key, "Objective: " .. clean, order)
+        p:addCustomInfo("operations", ops_key, "Objective: " .. clean, order)
+        if not silent then p:addToShipLog("New objective: " .. clean, "#80C0FF") end
     end)
+    if DIR then DIR.emit("objective", {text = clean, key = key}) end
+end
+
+-- Remove one objective line (by key), or all of them when no key is given (used when a GM
+-- jump lands in a state that has no objective).
+function RT.clearObjective(key)
+    local keys
+    if key then
+        keys = {key}
+    else
+        keys = {"main"}
+        for _, k in ipairs(RT._objective_keys) do keys[#keys + 1] = k end
+    end
+    for _, k in ipairs(keys) do
+        RT.objectives[k] = nil
+        if k == "main" then RT.objective = "" end
+        local relay_key, ops_key = _objKeys(k)
+        RT.forEachPlayer(function(p)
+            pcall(function() p:removeCustom(relay_key) end)
+            pcall(function() p:removeCustom(ops_key) end)
+        end)
+    end
+    if not key then RT._objective_keys = {} end
 end
 
 --------------------------------------------------------------------------------

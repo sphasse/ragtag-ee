@@ -23,6 +23,7 @@ Three Lua libraries that every campaign session requires, plus a Python director
 | `RT.station{template, faction, callsign, x, y, shop, flavor, description}` | Station using the campaign comms menu (shipwright if `shop`, missile restock, "any news?") |
 | `RT.addStationHook(callsign, fn(source, target, info))` | Add session-specific comms replies to a station's menu |
 | `RT.setObjective(text)` | Show the job on Relay/Operations, log it, emit an `objective` event. **Max ~19 chars** — the UI prepends "Objective: " (11 chars) and the total must fit in ~30 chars. |
+| `RT.setObjective(text, silent, key)` / `RT.clearObjective(key)` | Several objectives at once: each key (default `"main"`) is its own "Objective: …" line on Relay and Operations. An arc adds a second line under its own key (`RT.setObjective("Hack the Annex", true, "boneyard")`) and removes just that line with `RT.clearObjective("boneyard")`; `RT.clearObjective()` clears all. |
 | `RT.hail(entity, text, speaker)` | Hail the player; falls back to the ship's log if comms are busy |
 | `RT.find(callsign)`, `RT.register(entity, callsign)` | Callsign lookup with a registry |
 | `RT.after(seconds, fn, name)`, `RT.cancelTimer(name)` | Scenario-time timers |
