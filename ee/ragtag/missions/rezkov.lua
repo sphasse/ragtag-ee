@@ -254,6 +254,7 @@ local function _setupKaelComms(st)
         tostring(st.m3_boarded), tostring(RT.valid(st.meridian))))
     st.m3_boarded = true
     RT.setObjective("Speak with Commander Kael", true)
+    if SCIDB and SCIDB.addKaelProfile then pcall(SCIDB.addKaelProfile) end   -- Science DB: "Commander Kael"
     st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
         log(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
             tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),

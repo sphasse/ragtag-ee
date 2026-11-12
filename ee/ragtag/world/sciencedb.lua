@@ -65,6 +65,27 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
     return entry
 end
 
+-- Commander Kael's profile. Added when the crew meets her (Rezkov M3), under Lore.
+-- Deliberately a character sketch only: it says what she is like, not what she will do.
+function SCIDB.addKaelProfile()
+    if SCIDB._entries["kael_profile"] or not SCIDB._entries["lore"] then return end
+    local e = SCIDB.addEntry("lore", "Commander Kael",
+        "Concord Intelligence, Special Operations Investigations.\n\n" ..
+        "Flew for the Concord in the Settlement War, and was one of a handful of officers " ..
+        "who put their doubts about their orders in writing. She was not punished; she was " ..
+        "moved. After the war she transferred to special-operations investigation, where she " ..
+        "has spent twenty years following the gaps in the official record.\n\n" ..
+        "Colleagues describe her as patient, precise and unwilling to let a file close. " ..
+        "She commands CWS Meridian with a small, steady crew who are said to follow her " ..
+        "without needing to be told twice, and she is considered one of Concord " ..
+        "Intelligence's most capable field officers. She does not bluff.",
+        {["Service"] = "Concord Intelligence", ["War record"] = "Fighter pilot, Settlement War",
+         ["Current post"] = "Special Operations Investigations", ["Vessel"] = "CWS Meridian",
+         ["Reputation"] = "Asks the questions nobody wants asked"})
+    SCIDB._entries["kael_profile"] = e
+    RT.flag("kael_profile_known", true)
+end
+
 -- ─── Internal builder helpers ─────────────────────────────────────────────────
 
 local function _entry(parent, name, desc, kv)
@@ -283,6 +304,10 @@ local function _build()
         { ["Type"] = "Engineered biological compound", ["Reversible"] = "Phase II broadcast protocol", ["Broadcast frequency"] = "In Ashgrave archive, Phase II" },
         "synthesis_details"
     )
+
+    -- Re-add entries earned in a previous session (the database is rebuilt every init).
+    local ok, known = pcall(function() return RT and RT.flag and RT.flag("kael_profile_known") end)
+    if ok and known then SCIDB.addKaelProfile() end
 
     log("[SCIDB] Drift database built.")
 end

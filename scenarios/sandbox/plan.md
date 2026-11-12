@@ -371,8 +371,10 @@ of the Settlement War who questioned her superiors' orders, went on to become a
 Concord special-operations investigator, and has spent twenty years trying to find the
 truth about what was buried. The entry (lock key `kael_profile`) is unlocked in the
 Rezkov arc as soon as the crew meets her at M3 and `kael_alive` is set, whichever choice
-they make, including "Let the Concord go". It does not exist yet and needs a small
-Rezkov/`sciencedb.lua` retrofit (see "What changes in the built arcs"):
+they make, including "Let the Concord go". **Built** (2026-11-12): `SCIDB.addKaelProfile()` in `sciencedb.lua`, called when the Kael
+comms opens, flag `kael_profile_known` re-adds it each session. The shipped text is a
+character sketch only (capable officer; no hint of her later role), shorter than the
+draft below:
 
 > **Commander Kael** — *Concord Intelligence, Special Operations Investigations.*
 > Flew in the Settlement War on the Concord side, and was one of a handful of officers
