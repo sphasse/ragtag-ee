@@ -35,7 +35,7 @@ Comms on the Annex show two operations (Relay/Captain drives these):
 | Operation | Time | Effect |
 |---|---|---|
 | Download research archive | 60s | Sets `boneyard_hack_done`; unlocks Science DB lore on completion |
-| Reprogram drone IFF targets | 30s | Sets `boneyard_drone_flip`; idle drones flip to `Relic Active` and attack Concord; reinforcement wave of 8 drones warps in from south |
+| Reprogram drone IFF targets | 30s | Sets `boneyard_drone_flip`; idle drones flip to `Relic Active` and attack Concord; reinforcement wave of 8 drones warps in from the north |
 
 The two operations run one at a time: while one is in progress the other shows as [LOCKED] and cannot be started. Once the drone override completes, destroyed friendly drones are replaced (one every 4 s, up to 20 alive and 40 replacements per battle, while any Concord ship survives), so the drones are a stream, not a one-off wave. Tuning constants: `_DRONE_TARGET_CAP`, `_DRONE_RESPAWN_MAX`, `_DRONE_RESPAWN_GAP`, `_CIRCLE_R`, `_HUNTERS` in `boneyard.lua`. Replacements warp in from the north (the same spawn points as the first wave).
 
