@@ -127,7 +127,7 @@ function JOBS.build(mtype, o)
     assert(mod and mod.build, "JOBS.build: no builder for type " .. tostring(mtype))
     local m = mod.build(o)
     m.id = o.id or m.id
-    for _, k in ipairs({"story", "special", "accept_log", "on_accept", "on_complete", "on_fail", "on_found", "category"}) do
+    for _, k in ipairs({"story", "special", "time_limit", "accept_log", "on_accept", "on_complete", "on_fail", "on_found", "category"}) do
         if o[k] ~= nil then m[k] = o[k] end
     end
     if m.story then m.special = true end
@@ -375,8 +375,10 @@ function JOBS.accept(m, skip_log, ship)
     end
 
     local mod = JOBS._registry[m.type]
-    m._time_limit = mod and mod.duration(m) or (20 * 60)
-    m._expires_at = (not m.story) and (getScenarioTime() + m._time_limit) or nil
+    m._time_limit = m.time_limit or (mod and mod.duration(m)) or (20 * 60)
+    -- Story jobs have no timer unless they set time_limit (seconds); either way a
+    -- story job never costs reputation when it expires.
+    m._expires_at = (m.time_limit or not m.story) and (getScenarioTime() + m._time_limit) or nil
 
     local os_e = RT.find(m.origin)
     if RT.valid(os_e) then m.origin_faction = os_e:getFaction() end
@@ -698,7 +700,10 @@ local function _offerMissions(cs)
         local dist_u  = math.floor((m.distance_u or 0) / 1000 + 0.5)
         local dur_min = math.floor((mod2 and mod2.duration(m) or 1200) / 60)
         local stats   = string.format("%dU · %dcr · %d min", dist_u, m.reward, dur_min)
-        if m.story then stats = string.format("%dU · %dcr · no time limit", dist_u, m.reward) end
+        if m.story then
+            stats = string.format("%dU · %dcr · %s", dist_u, m.reward,
+                m.time_limit and (math.floor(m.time_limit / 60) .. " min") or "no time limit")
+        end
         local txt = mod2 and mod2.offerText(m, stats) or ("* " .. m.short .. "\n  " .. stats)
         if m.special then txt = txt:gsub("^%* ", "* [SPECIAL] ", 1) end
         lines[#lines + 1] = txt

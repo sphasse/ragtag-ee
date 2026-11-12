@@ -382,10 +382,61 @@ local function _injectSeedJobs()
     end
 end
 
--- Hook job (priority 5): the special salvage contract that sends the crew to the
--- Boneyard rim, where recovering the buoy reveals the lead to Ashgrave.
+-- Survivor records (Science DB). Added when the survivors are recovered, and re-added at
+-- the start of every later session (the DB is rebuilt each run; the flag persists).
+local function _survivorRecordsText()
+    return table.concat({
+        "Testimony and instrument logs from four archive technicians recovered from a lifeboat on the Boneyard's south rim. "
+          .. "Unverified. Recorded by people who were never cleared to know what they were looking at.",
+        "",
+        "WHO THEY ARE\nCatalogue and records staff of the Ashgrave Annex, a Concord Level-5 research archive buried in the debris field "
+          .. "beyond Ashgrave. When Concord sealed the Annex from the outside, they launched a lifeboat and drifted among the wrecks until the air ran short.",
+        "",
+        "THE ANNEX\nIt sits deeper in the debris field than the visible battle damage, north-east of Ashgrave at grid "
+          .. JOBS.gridRef(_ANNEX_X, _ANNEX_Y) .. ". Its systems are encrypted and locked down. Anyone with a Relay officer who can breach "
+          .. "one of its systems opens the access net. The archive then takes about a minute to download.",
+        "",
+        "THE DRONES\nThe Relic drones are not rogue. Their war-IFF is slaved to the Annex's own access network, which is why they never stopped "
+          .. "fighting: nothing ever told them the war was over. Breach the access net and the drones stand down. The Annex console can also "
+          .. "retarget them. Staff ran that as a drill. They did not enjoy it.",
+        "",
+        "CONCORD\nConcord traffic over Ashgrave has been heavy for weeks, logged as 'routine rotation'. Staff were told a heavy response group "
+          .. "would arrive to seal the archive permanently. Expect it within a couple of minutes of anyone breaching the Annex, "
+          .. "and expect a warp inhibitor over the Boneyard when it does. Plan to fight or to leave by impulse.",
+        "",
+        "THE ARCHIVE\nThe technicians only worked the catalogue desk. The vault index lists a program called 'Ashgrave Synthesis' and a "
+          .. "folder marked 'reversal protocol'. Nobody on staff was cleared to open either.",
+    }, "\n")
+end
+
+local function _addSurvivorRecords()
+    if not SCIDB or not SCIDB.addEntry or SCIDB._entries["boneyard_survivors"] then return end
+    local e = SCIDB.addEntry("lore", "Boneyard Survivor Records", _survivorRecordsText(),
+        {["Source"] = "Ashgrave Annex archive staff", ["Reliability"] = "Unverified testimony",
+         ["Hazards"] = "Relic drones; Concord response group; warp inhibitor"})
+    SCIDB._entries["boneyard_survivors"] = e
+end
+
+-- The survivors' message goes to the ship's log. (EE has no way to hail without a sender
+-- entity, and the picked-up pod is consumed, so we don't spawn a contact just to talk.)
+local _SURVIVOR_MSG = '"Thank you. We saw a lot of strange activity in the Boneyard while we were stranded, '
+    .. 'and we don\'t want those records to be lost, so we\'re uploading them to your database now. Please read them. Ashgrave is where it starts."'
+
+local function _survivorHail()
+    RT.shipLog("[Lifeboat Survivors] " .. _SURVIVOR_MSG, "#C0E0FF")
+    RT.after(5, function()
+        _addSurvivorRecords()
+        RT.shipLog("[Science] Survivor records received. Science database updated: Lore, Boneyard Survivor Records.", "#00CCAA")
+    end, "boneyard_survivor_records")
+end
+
+-- Hook job (priority 5): an urgent rescue. A lifeboat of survivors is pinging from the
+-- Boneyard south rim. Offered only at the three nearest friendly stations, on the board
+-- (no rumor, no objective), 350 cr, 20 minute clock. Recovering them reveals the lead.
 -- (22, -72) is inside the Boneyard (center (36, -96), r 29), ~15U off the Galen-Saint
--- Brennan's lane.
+-- Brennan's lane. Survivors: archive staff who got out of the Ashgrave Annex before Concord
+-- sealed it. A missed clock re-offers the job (the signal is reacquired). Never re-offered
+-- once the survivors have been recovered in any session.
 local _BUOY_X, _BUOY_Y = 22000, -72000
 
 local function _injectHookJob()
@@ -393,22 +444,26 @@ local function _injectHookJob()
     JOBS.inject({
         category = "BONEYARD_SPECIAL", priority = 5,
         origin = {"Port Vesper", "Halcyon Rest", "Saint Brennan's Mission"},
+        when = function() return not RT.flag("boneyard_buoy_found") end,
         record = function(cs)
             return JOBS.build("salvage", {
                 id = "boneyard_buoy",   -- one shared id: taking it at one station hides the others
                 origin = cs, wx = _BUOY_X, wy = _BUOY_Y,
-                cargo = "a Concord survey buoy", reward = 400, story = true,
+                cargo = "a lifeboat of survivors", reward = 350, story = true, urgent = true,
+                time_limit = 20 * 60,
                 region_name = "the Boneyard",
-                brief = "A Concord survey buoy came off its mooring on the south rim of the Boneyard and drifted. "
-                      .. "Somebody wants it, and wants it quietly: Concord's been in a hurry to retrieve their own.\n\n"
-                      .. "\"Scan the debris, the buoy will read as a sealed container. Don't linger. The drones don't forget.\"",
-                complete_msg = '"This is it. Concord will be sorry they lost it. Don\'t ask what it logged."',
-                accept_log = string.format("Special contract: Concord survey buoy. Debris field at grid %s, Boneyard south rim. Danger: drones. No time limit.",
+                brief = "\"My god. We've picked up a signal: people are alive out there. A lifeboat pod on the south rim of the Boneyard, "
+                      .. "air failing, drifting among the Settlement War wrecks. The drones will be on them if the pod's beacon draws attention.\"\n\n"
+                      .. "\"Somebody has to go and get them. The Boneyard's no place for a freighter, but you're the nearest crew. "
+                      .. "Scan the debris to find the pod, and bring them back here. Fast.\"",
+                complete_msg = '"They\'re breathing. They\'re talking. Whatever they\'re saying, I think Concord wants it kept quiet. Thank you."',
+                accept_log = string.format("URGENT rescue: lifeboat survivors, grid %s on the Boneyard south rim. Air is failing; 20 minutes. Danger: drones.",
                     JOBS.gridRef(_BUOY_X, _BUOY_Y)),
                 on_found = function(m)
                     RT.flag("boneyard_buoy_found", true)
-                    RT.shipLog(string.format("[Science] Survey buoy memory: a repeating Concord fix, 'ARCHIVE HOLD, ASHGRAVE, grid %s. Do not approach.' The buoy was logging it for someone.",
-                        JOBS.gridRef(_ASHGRAVE_X, _ASHGRAVE_Y)), "#00CCAA")
+                    RT.shipLog("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
+                    RT.shipLog(string.format("[Science] Survivor lifeboat telemetry: launched from Ashgrave, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ASHGRAVE_X, _ASHGRAVE_Y)), "#00CCAA")
+                    _survivorHail()
                 end,
             })
         end,
@@ -421,6 +476,7 @@ function M.on_load(st)
         RUMORS.add({text = text, priority = 3, category = "BONEYARD_SEED"})
     end
     _injectSeedJobs()
+    if RT.flag("boneyard_buoy_found") then _addSurvivorRecords() end   -- DB is rebuilt each session
 end
 
 function M.on_unload(st)

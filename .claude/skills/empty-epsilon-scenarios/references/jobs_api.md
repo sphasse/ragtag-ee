@@ -175,7 +175,9 @@ JOBS.removeCategory("MYARC_JOBS")        -- in M.on_unload / phase exit / _clear
 
 | Opt | Effect |
 |---|---|
-| `story = true` | Bypasses `max_active`; no expiry timer; no reputation penalty on failure; re-offered after a failure; listed `[SPECIAL]` with "no time limit" |
+| `story = true` | Bypasses `max_active`; no expiry timer (unless `time_limit`); no reputation penalty on failure; re-offered after a failure; listed `[SPECIAL]` |
+| `time_limit` | Seconds. Gives a story job a clock (still no penalty; it comes back after a miss) |
+| `urgent = true` | Salvage: "URGENT:" prefix and the faster duration formula |
 | `special = true` | Listed `[SPECIAL]` only (normal rules) |
 | `id` | Stable id (see above) |
 | `accept_log` | Text for the accept ship log (replaces the generic "N minutes" line) |

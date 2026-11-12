@@ -307,7 +307,7 @@ end
 
 -- Hand-written salvage (story/seed jobs): a pod cluster at world position (wx, wy)
 -- with one target pod. o = {origin, wx, wy, cargo, reward, brief, complete_msg,
--- region_name, + common opts from JOBS.build}. on_found(m) fires when the crew picks
+-- region_name, urgent, + common opts from JOBS.build}. on_found(m) fires when the crew picks
 -- up the target pod (before the return trip), the natural place for a story reveal.
 function M.build(o)
     local oe = RT.find(o.origin)
@@ -319,9 +319,9 @@ function M.build(o)
     return {
         id = JOBS.nextId(), type = "salvage", tier = o.tier or 0,
         origin = o.origin, wx = o.wx, wy = o.wy, cargo = o.cargo, reward = o.reward,
-        short = o.cargo, obj = "Recover " .. o.cargo,
+        short = (o.urgent and "URGENT: " or "") .. o.cargo, obj = "Recover " .. o.cargo,
         brief = o.brief or "", complete_msg = o.complete_msg,
-        urgent = false, distance_u = dist, region_name = o.region_name,
+        urgent = o.urgent or false, distance_u = dist, region_name = o.region_name,
         _found = false,
     }
 end
