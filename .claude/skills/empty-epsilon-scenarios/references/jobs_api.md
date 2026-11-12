@@ -154,6 +154,7 @@ JOBS.inject({
 JOBS.removeCategory("MYARC_JOBS")        -- in M.on_unload / phase exit / _clearState
 ```
 
+- **No duplicates**: two offers on one board never share a summary (type + `short` text, e.g. the same cargo to the same station). A generated job that collides is re-rolled (up to 4 times); a final pass drops any remaining collision, keeping story and ensured jobs over generated ones. Give injected jobs distinct `short` text.
 - **Order**: the offers on a board are shuffled every time it is shown, so injected jobs are never reliably first or last.
 - **priority 5 (hook)**: always on the board at every matching station, *outside* the normal
   slot count, as soon as `when` holds. Use for story contracts. Hidden only when the

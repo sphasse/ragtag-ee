@@ -661,6 +661,15 @@ local function _offerMissions(cs)
         valid          = RT.valid,
     }
 
+    -- Two jobs with the same summary (type + short text) must not both be offered.
+    local function _key(m) return tostring(m.type) .. "|" .. tostring(m.short) end
+    local function _onBoard(m)
+        local k = _key(m)
+        for _, o in ipairs(offers) do if _key(o) == k then return true end end
+        for _, o in ipairs(story)  do if _key(o) == k then return true end end
+        return false
+    end
+
     local slots_failed = 0
     for _, sn in ipairs(slots_to_gen) do
         -- Injected seed jobs compete for the slot with the random generator.
@@ -681,28 +690,38 @@ local function _offerMissions(cs)
                 goto next_slot
             end
         end
-        ctx.tier = math.min(mt, math.random(0, 1))
-        local mtype = JOBS.pickType()
-        local mod   = JOBS._registry[mtype]
-        if not mod then goto next_slot end
+        -- Generate, re-rolling a few times if the result has the same summary as a job
+        -- already on this board (same cargo and destination, same salvage cargo, ...).
+        do
+            local failed = false
+            for _ = 1, 4 do
+                ctx.tier = math.min(mt, math.random(0, 1))
+                local mtype = JOBS.pickType()
+                local mod   = JOBS._registry[mtype]
+                if not mod then break end
 
-        local opts = mod.prepareOpts(ctx)
-        if not opts then
-            slots_failed = slots_failed + 1
-            goto next_slot
-        end
+                local opts = mod.prepareOpts(ctx)
+                if not opts then failed = true; break end
 
-        local ok, result = pcall(mod.generate, opts)
-        if ok and result then
-            if JOBS.config.work_cooldown_enabled then
-                ss.slots[sn].mission    = result
-                ss.slots[sn].offered_at = now
-                ss.slots[sn].taken_at   = nil
+                local ok, result = pcall(mod.generate, opts)
+                if ok and result then
+                    if not _onBoard(result) then
+                        if JOBS.config.work_cooldown_enabled then
+                            ss.slots[sn].mission    = result
+                            ss.slots[sn].offered_at = now
+                            ss.slots[sn].taken_at   = nil
+                        end
+                        offers[#offers + 1] = result
+                        break
+                    end
+                    -- duplicate summary: roll again
+                else
+                    log("[JOBS] " .. mtype .. " generate failed: " .. tostring(result))
+                    failed = true
+                    break
+                end
             end
-            offers[#offers + 1] = result
-        else
-            log("[JOBS] " .. mtype .. " generate failed: " .. tostring(result))
-            slots_failed = slots_failed + 1
+            if failed then slots_failed = slots_failed + 1 end
         end
         ::next_slot::
     end
@@ -711,6 +730,16 @@ local function _offerMissions(cs)
     while #offers > n_offer do table.remove(offers) end
     if n_offer > 0 then
         for i = #story, 1, -1 do table.insert(offers, 1, story[i]) end
+    end
+    -- Final de-duplication by summary (cached slots / injected seeds can still collide).
+    -- Earlier entries win, so story and ensured jobs are kept over generated ones.
+    do
+        local seen, uniq = {}, {}
+        for _, m in ipairs(offers) do
+            local k = _key(m)
+            if not seen[k] then seen[k] = true; uniq[#uniq + 1] = m end
+        end
+        offers = uniq
     end
     -- Present in random order so arc-injected jobs are not always the first ones listed.
     for i = #offers, 2, -1 do
