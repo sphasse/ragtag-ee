@@ -766,7 +766,7 @@ M.phases = {
 
     annex_control = {
         enter = function(st)
-            RT.clearObjective("boneyard")   -- "Hack the Annex" is done
+            RT.setObjective("Defend the Annex", true, "boneyard")   -- replaces "Hack the Annex"
             RT.shipLog("[Relay] Ashgrave Annex: access granted. Concord battle group inbound.", "#00FF88")
             RT.shipLog("[Science] All Relic drones idle. That won't last.", "#FFCC00")
             _setAnnexControlComms(st)
@@ -815,6 +815,7 @@ M.phases = {
 
     extract = {
         enter = function(st)
+            RT.clearObjective("boneyard")   -- the Annex fight is over
             RT.shipLog("[Nav] Exit the Boneyard. Warp is available; the battle group will pursue.", "#FFAA44")
         end,
         update = function(st, delta, now)
