@@ -482,7 +482,7 @@ local function _injectHookJob()
                 on_found = function(m)
                     RT.flag("boneyard_buoy_found", true)
                     RT.shipLog("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
-                    RT.shipLog(string.format("[Science] Survivor lifeboat telemetry: launched from Ashgrave, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ASHGRAVE_X, _ASHGRAVE_Y)), "#00CCAA")
+                    RT.shipLog(string.format("[Science] Survivor lifeboat telemetry: launched from the Annex, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ANNEX_X, _ANNEX_Y)), "#00CCAA")
                     _survivorHail()
                 end,
             })
