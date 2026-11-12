@@ -25,7 +25,7 @@ Rumor injection: Concord is mobilising a heavy response group, destination unkno
 ### annex_hack
 Annex comms are encrypted. Relay must hack the `frontshield` system to 100% (hacking is a Relay-screen function; each success adds 50% and it decays over 180 s, so two successes in a row). At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When hack completes:
 - All Relic drones in Boneyard radius set to Derelict/idle (the IFF is offline)
-- Concord battle group spawns at grid zy6 (30, -130 verse, ~26U NW of the Annex) and attacks the player ship at warp; orders are re-issued every 10 s, and with no living player they defend the Annex instead
+- Concord battle group spawns at grid zy6 (30, -130 verse, ~26U NW of the Annex) at warp. Two ships (CNS Vanguard and the first escort) hunt the player; their orders are re-issued every 10 s (with no living player they defend the Annex). The other four Atlantis hold fixed posts on a ring 2U from the Annex (defend-location), so the group doesn't clump
 - Proximity spawns for the Boneyard are suspended
 - No warp jammer: the crew keeps warp throughout (removed 2026-11-12; the Concord fight is hard enough)
 
@@ -37,7 +37,9 @@ Comms on the Annex show two operations (Relay/Captain drives these):
 | Download research archive | 60s | Sets `boneyard_hack_done`; unlocks Science DB lore on completion |
 | Reprogram drone IFF targets | 30s | Sets `boneyard_drone_flip`; idle drones flip to `Relic Active` and attack Concord; reinforcement wave of 8 drones warps in from south |
 
-The player can attempt both. Battle group arrives in ~85 seconds. The first operation the player completes determines the dominant outcome.
+The two operations run one at a time: while one is in progress the other shows as [LOCKED] and cannot be started. Once the drone override completes, destroyed friendly drones are replaced (one every 4 s, up to 20 alive and 40 replacements per battle, while any Concord ship survives), so the drones are a stream, not a one-off wave. Tuning constants: `_DRONE_TARGET_CAP`, `_DRONE_RESPAWN_MAX`, `_DRONE_RESPAWN_GAP`, `_CIRCLE_R`, `_HUNTERS` in `boneyard.lua`. Replacements warp in from the north (the same spawn points as the first wave).
+
+The player can attempt both, one after the other. Battle group arrives in ~85 seconds. The first operation the player completes determines the dominant outcome.
 
 ### extract
 Player must exit the Boneyard boundary (29U radius from center 36, -96). Warp stays available. The command ship `CNS Vanguard` is `setCanBeDestroyed(false)` until hull falls below 20%, at which point it becomes vulnerable and flags `boneyard_battlegroup_destroyed`.

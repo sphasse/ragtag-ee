@@ -137,18 +137,32 @@ local function _idleDrones(st)
     log("[BONEYARD] idled " .. #found .. " Relic drones")
 end
 
--- (Re)issue the battle group's orders: attack the first living player ship. With no player to
--- target they defend the Annex (fly to it and engage anything hostile nearby). Re-issued every
--- few seconds from the phase updates so a dead or respawned player never leaves them idle.
--- Note: orderFlyTowards takes coordinates, not an entity; passing the Annex there made the
+-- Battle-group orders. Two ships (the command ship and the first escort) hunt the player and
+-- keep hunting: their orders are re-issued every few seconds so a dead or respawned player never
+-- leaves them idle. The other four hold fixed posts on a ring _CIRCLE_R from the Annex
+-- (defend-location: go there, patrol close by, engage anything hostile that comes near), so the
+-- group no longer clumps into one ball the drones can't break.
+-- Note: orderFlyTowards takes coordinates, not an entity; passing the Annex there once made the
 -- group roam off toward independent traffic outside the Boneyard.
-local function _orderConcordAttack(st)
-    local target
+local _CIRCLE_R  = 2000   -- 2U from the Annex
+local _HUNTERS   = 2      -- ships 1..2 of the group hunt the player; the rest guard the ring
+
+local function _annexXY(st)
+    if RT.valid(st.annex) then return st.annex:getPosition() end
+    return _ANNEX_X, _ANNEX_Y
+end
+
+local function _firstPlayer()
     for _, p in ipairs(RT.players or {}) do
-        if RT.valid(p) then target = p; break end
+        if RT.valid(p) then return p end
     end
-    for _, s in ipairs(st.concord_group or {}) do
-        if RT.valid(s) then
+end
+
+-- Order the two hunters (re-issued on a timer).
+local function _orderConcordHunters(st)
+    local target = _firstPlayer()
+    for i, s in ipairs(st.concord_group or {}) do
+        if i <= _HUNTERS and RT.valid(s) then
             if target then
                 s:orderAttack(target)
             elseif RT.valid(st.annex) then
@@ -158,10 +172,28 @@ local function _orderConcordAttack(st)
     end
 end
 
+-- Send the guards to their posts (once, at spawn): evenly spaced on the ring, offset 45 degrees.
+local function _orderConcordGuards(st)
+    local ax, ay = _annexXY(st)
+    local n = #(st.concord_group or {}) - _HUNTERS
+    for i, s in ipairs(st.concord_group or {}) do
+        if i > _HUNTERS and RT.valid(s) then
+            local k = i - _HUNTERS - 1
+            local a = math.rad(45 + k * (360 / math.max(n, 1)))
+            s:orderDefendLocation(ax + _CIRCLE_R * math.cos(a), ay + _CIRCLE_R * math.sin(a))
+        end
+    end
+end
+
+local function _orderConcordAttack(st)
+    _orderConcordHunters(st)
+    _orderConcordGuards(st)
+end
+
 local function _tickConcordOrders(st, now)
     if now - (st.concord_ordered_at or 0) < 10 then return end
     st.concord_ordered_at = now
-    _orderConcordAttack(st)
+    _orderConcordHunters(st)
 end
 
 local function _spawnConcordGroup(st)
@@ -200,43 +232,94 @@ local function _spawnConcordGroup(st)
         "Stand down and prepare for boarding. Non-compliance will be treated as hostility.", "#FF6666")
 end
 
+-- Friendly (Relic Active) drones. They arrive from the north of the Annex, outside scan range.
+-- Tuning: every Concord ship the drones kill is matched by a fresh drone until the cap, so the
+-- fight is a stream of drones against a fixed Concord group, not a one-off wave.
+local _DRONE_SPAWNS = {
+    { 40000, -130000}, { 44000, -132000}, { 46000, -128000}, { 38000, -131000},
+    { 50000, -134000}, { 36000, -129000}, { 48000, -138000}, { 42000, -133000},
+}
+local _DRONE_TEMPLATES = {"WX-Lindworm", "WX-Lindworm", "WX-Lindworm", "Stalker Q7", "Stalker R7"}
+local _DRONE_TARGET_CAP   = 20   -- keep up to this many friendly drones alive
+local _DRONE_RESPAWN_MAX  = 40   -- replacement drones per battle (stops the stream eventually)
+local _DRONE_RESPAWN_GAP  = 4    -- seconds between replacements
+
+local function _orderDrone(st, s)
+    local sx, sy = s:getPosition()
+    local target = _nearestConcord(st, sx, sy)
+    if target then
+        s:orderAttack(target)
+    elseif RT.valid(st.annex) then
+        s:orderDefendTarget(st.annex)
+    else
+        s:orderRoaming()
+    end
+end
+
+local function _spawnReinDrone(st, i, template)
+    local pos = _DRONE_SPAWNS[((i - 1) % #_DRONE_SPAWNS) + 1]
+    local tmpl = template or _DRONE_TEMPLATES[math.random(#_DRONE_TEMPLATES)]
+    local s = CpuShip():setTemplate(tmpl):setFaction("Relic Active")
+    s:setPosition(pos[1] + math.random(-1500, 1500), pos[2] + math.random(-1500, 1500))
+    s:setWarpDrive(true)
+    _orderDrone(st, s)
+    st.rein_drones[#st.rein_drones + 1] = s
+    return s
+end
+
+local function _aliveDrones(st)
+    local alive = {}
+    for _, s in ipairs(st.idle_drones or {}) do if RT.valid(s) then alive[#alive + 1] = s end end
+    for _, s in ipairs(st.rein_drones or {}) do if RT.valid(s) then alive[#alive + 1] = s end end
+    return alive
+end
+
+local function _concordAlive(st)
+    for _, s in ipairs(st.concord_group or {}) do if RT.valid(s) then return true end end
+    return false
+end
+
+-- Per-frame from annex_control / extract: keep the drones fighting and replace casualties.
+local function _tickDrones(st, now)
+    if not st.drones_flipped then return end
+    if not _concordAlive(st) then return end
+
+    -- Re-aim every 10 s: a drone whose target died would otherwise go idle.
+    if now - (st.drone_aimed_at or 0) >= 10 then
+        st.drone_aimed_at = now
+        for _, s in ipairs(_aliveDrones(st)) do _orderDrone(st, s) end
+    end
+
+    -- Replace casualties, one every _DRONE_RESPAWN_GAP seconds, up to the caps.
+    if (st.drone_respawns or 0) < _DRONE_RESPAWN_MAX and now >= (st.drone_next_at or 0) then
+        if #_aliveDrones(st) < (st.drone_target or 0) then
+            st.drone_next_at = now + _DRONE_RESPAWN_GAP
+            st.drone_respawns = (st.drone_respawns or 0) + 1
+            _spawnReinDrone(st, st.drone_respawns)
+            if st.drone_respawns == 1 then
+                RT.shipLog("[Science] More Relic contacts warping in from the north. The Annex is feeding them in.", "#00FF88")
+            end
+        end
+    end
+end
+
 local function _reprogramDrones(st)
     for _, s in ipairs(st.idle_drones) do
         if RT.valid(s) then
             s:setFaction("Relic Active")
-            local sx, sy = s:getPosition()
-            local target = _nearestConcord(st, sx, sy)
-            if target then
-                s:orderAttack(target)
-            else
-                s:orderRoaming()
-            end
+            _orderDrone(st, s)
         end
     end
 
-    -- Eight-ship reinforcement wave from south, outside scan range
-    local positions = {
-        { 40000, -130000}, { 44000, -132000}, { 46000, -128000}, { 38000, -131000},
-        { 50000, -134000}, { 36000, -129000}, { 48000, -138000}, { 42000, -133000},
-    }
-    local templates = {
-        "WX-Lindworm","WX-Lindworm","WX-Lindworm","WX-Lindworm",
-        "Stalker Q7",  "Stalker Q7",  "Stalker R7",  "Stalker R7",
-    }
-
+    -- Eight-ship reinforcement wave from the north, outside scan range
     st.rein_drones = {}
-    for i, pos in ipairs(positions) do
-        local s = CpuShip():setTemplate(templates[i]):setFaction("Relic Active")
-        s:setPosition(pos[1], pos[2])
-        s:setWarpDrive(true)
-        local target = _nearestConcord(st, pos[1], pos[2])
-        if target then
-            s:orderAttack(target)
-        elseif RT.valid(st.annex) then
-            s:orderFlyTowards(st.annex)
-        end
-        st.rein_drones[#st.rein_drones + 1] = s
-    end
+    local first_wave = {"WX-Lindworm", "WX-Lindworm", "WX-Lindworm", "WX-Lindworm",
+                        "Stalker Q7", "Stalker Q7", "Stalker R7", "Stalker R7"}
+    for i = 1, 8 do _spawnReinDrone(st, i, first_wave[i]) end
+
+    st.drones_flipped = true
+    st.drone_respawns = 0
+    st.drone_target   = math.min(_DRONE_TARGET_CAP, #_aliveDrones(st))
 
     RT.shipLog("[Relay] IFF override complete. All drones retargeting Concord transponders.", "#FF8800")
     RT.shipLog("[Science] Eight Relic contacts inbound from the north — fast approach. They are on our side.", "#00FF88")
@@ -251,6 +334,15 @@ local function _indexAshgraveResearch()
     SCIDB.unlock("ashgrave_research")
     SCIDB.unlock("synthesis_details")
     RT.shipLog("[Science] Ashgrave research files indexed. Database updated.", "#00CCAA")
+end
+
+-- The two Annex operations (archive download, drone IFF reprogram) run one at a time: while
+-- one is in progress the other cannot be started. `which` is the operation being requested.
+local function _annexBusy(st, which)
+    if which == "download" then
+        return st.reprogramming and not st.reprogram_done
+    end
+    return st.downloading and not st.download_done
 end
 
 local function _setAnnexControlComms(st)
@@ -274,8 +366,16 @@ local function _setAnnexControlComms(st)
             addCommsReply("[IN PROGRESS] Downloading archive: " .. remaining .. "s", function()
                 setCommsMessage("Transfer in progress. Hold position.")
             end)
+        elseif _annexBusy(st, "download") then
+            addCommsReply("[LOCKED] Download archive", function()
+                setCommsMessage("The Annex runs one operation at a time. Wait for the drone override to finish.")
+            end)
         else
             addCommsReply("1) Download research archive (60s)", function(s, t)
+                if _annexBusy(st, "download") then
+                    setCommsMessage("The Annex runs one operation at a time. Wait for the drone override to finish.")
+                    return
+                end
                 st.downloading    = true
                 st.download_start = getScenarioTime()
                 RT.shipLog("[Relay] Archive download initiated. 60 seconds to complete.", "#00AAFF")
@@ -294,8 +394,16 @@ local function _setAnnexControlComms(st)
             addCommsReply("[IN PROGRESS] IFF reprogram: " .. remaining .. "s", function()
                 setCommsMessage("Override sequence running. Stand by.")
             end)
+        elseif _annexBusy(st, "reprogram") then
+            addCommsReply("[LOCKED] Reprogram drone IFF", function()
+                setCommsMessage("The Annex runs one operation at a time. Wait for the archive download to finish.")
+            end)
         else
             addCommsReply("2) Reprogram drone IFF targets (30s)", function(s, t)
+                if _annexBusy(st, "reprogram") then
+                    setCommsMessage("The Annex runs one operation at a time. Wait for the archive download to finish.")
+                    return
+                end
                 st.reprogramming    = true
                 st.reprogram_start  = getScenarioTime()
                 RT.shipLog("[Relay] Drone IFF override sequence initiated. 30 seconds.", "#FF8800")
@@ -678,6 +786,7 @@ M.phases = {
 
             _trackCmdShip(st)
             _tickConcordOrders(st, now)
+            _tickDrones(st, now)
 
             -- Advance to extract when player moves >10U from Annex
             local players = RT.players
@@ -704,6 +813,7 @@ M.phases = {
         update = function(st, delta, now)
             _trackCmdShip(st)
             _tickConcordOrders(st, now)
+            _tickDrones(st, now)
 
             local players = RT.players
             if not players or not players[1] then return end
