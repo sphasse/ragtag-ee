@@ -37,6 +37,7 @@ function MISSIONS.start(id)
     MISSIONS._unload(id)
     MISSIONS._state[id]  = M.init_state and M.init_state() or {}
     MISSIONS._status[id] = "active"
+    if STATS then STATS.arcEvent(id, "started") end
 
     if M.locks_jobs then JOBS.config.jobboard_locked = true end
 
@@ -95,6 +96,7 @@ function MISSIONS.cancel(id)
 
     if M.on_cancel then pcall(M.on_cancel, st) end
     if M.locks_jobs then JOBS.config.jobboard_locked = false end
+    if STATS then STATS.arcEvent(id, "cancelled") end
 
     MISSIONS._status[id]    = "inactive"
     MISSIONS._cur_phase[id] = nil
@@ -124,6 +126,7 @@ function MISSIONS._enterPhase(id, phase_name)
     if phase_name == "done" then
         MISSIONS._status[id] = "done"
         if M.locks_jobs then JOBS.config.jobboard_locked = false end
+        if STATS then STATS.arcEvent(id, "completed") end
         if M.resolve then
             local ok, err = pcall(M.resolve, st)
             if not ok then

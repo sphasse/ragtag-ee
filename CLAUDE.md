@@ -14,6 +14,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
+- `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse) and `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements), both loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
 
 ## Commands

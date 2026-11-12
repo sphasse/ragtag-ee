@@ -337,6 +337,8 @@ local function defaultCampaign()
         flags = {},      -- story flags: string -> bool/number/string
         notes = {},      -- short human-readable campaign log lines
         discovered = {}, -- names of charted regions (see ragtag_verse.lua)
+        stats = {},      -- statistics (see ragtag/stats.lua)
+        achievements = {}, -- id -> {at, session} (see ragtag/stats.lua)
         reputation = {   -- standing with each faction (unbounded; thresholds at ±200/±400/±500)
             Concord = 0,
             Corsairs = 0,
@@ -384,6 +386,8 @@ function RT.loadCampaign(fresh)
         if type(c.flags) ~= "table" then c.flags = {} end
         if type(c.sessions) ~= "table" then c.sessions = {} end
         if type(c.discovered) ~= "table" then c.discovered = {} end
+        if type(c.stats) ~= "table" then c.stats = {} end
+        if type(c.achievements) ~= "table" then c.achievements = {} end
     end
     RT.campaign = c
     return c
@@ -655,6 +659,7 @@ function RT.addCredits(amount, reason, ship)
     end
     local sign = amount >= 0 and "+" or ""
     ship:addToShipLog(string.format("Credits %s%d (%s). Balance: %d", sign, amount, reason or "misc", new_total), "#E0C060")
+    if STATS then STATS.noteCredits(amount, reason) end
     -- Only save campaign for the primary ship
     if ship == RT.player then
         RT.saveCampaign()
@@ -1008,6 +1013,11 @@ end
 --------------------------------------------------------------------------------
 
 function RT.addCampaignGMFunctions()
+    addGMFunction("Stats report", function()
+        local text = STATS and STATS.reportText() or "Stats not loaded."
+        log("[STATS]\n" .. text)
+        addGMMessage(text)
+    end)
     addGMFunction("Campaign info", function()
         local c = RT.campaign
         local msg = "Campaign: " .. (RT.campaign_id or "unknown") .. "\n"
@@ -1073,6 +1083,7 @@ RT._hull_marks = {}   -- callsign -> {75=bool, 50=bool, 25=bool}
 function RT.update(delta)
     RT.updateTimers()
     RT.updateSounds()
+    if STATS then STATS.update(delta) end
 
     -- Sync RT.players with EmptyEpsilon's active player ships.
     -- Catches ships spawned through GM console or other means outside RT.spawnPlayer().
@@ -1125,3 +1136,7 @@ function RT.update(delta)
         end
     end
 end
+
+-- Helpers that extend RT. Loaded last: they only use RT at call time.
+require("ragtag/voice.lua")
+require("ragtag/stats.lua")

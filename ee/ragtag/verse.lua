@@ -449,6 +449,7 @@ function VERSE.updateRegion()
         p:addToShipLog("WARNING: " .. r.name .. " is " .. DANGER_LABEL[r.danger] .. " for a ship like this.", "#FF6060")
         if r.danger >= 3 then globalMessage("NAV WARNING: Entering " .. r.name .. ". Turn back.", 8) end
     end
+    if STATS then STATS.regionEntered(r.name, first_ever) end
     if DIR then
         DIR.emit("region_entered", {region = r.name, danger = r.danger, first_visit = first_ever, desc = r.desc},
             r.danger >= 2 and "high" or (first_ever and "normal" or "low"))

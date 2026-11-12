@@ -417,13 +417,26 @@ local function _addSurvivorRecords()
     SCIDB._entries["boneyard_survivors"] = e
 end
 
--- The survivors' message goes to the ship's log. (EE has no way to hail without a sender
--- entity, and the picked-up pod is consumed, so we don't spawn a contact just to talk.)
+-- The survivors hail the ship through an RT.voice (a position-less Artifact: never on radar,
+-- see ee/ragtag/voice.lua). Falls back to the ship log if comms are busy. Answering the hail
+-- opens a short conversation.
 local _SURVIVOR_MSG = '"Thank you. We saw a lot of strange activity in the Boneyard while we were stranded, '
     .. 'and we don\'t want those records to be lost, so we\'re uploading them to your database now. Please read them. Ashgrave is where it starts."'
 
 local function _survivorHail()
-    RT.shipLog("[Lifeboat Survivors] " .. _SURVIVOR_MSG, "#C0E0FF")
+    RT.voice.create("boneyard_survivors", {
+        name = "Lifeboat Survivors", ttl = 300,
+        tree = {
+            text = _SURVIVOR_MSG,
+            replies = {
+                {label = "What did you see out there?", next = {
+                    text = '"We kept the catalogue desk at the Annex. Then the lockdown came and Concord sealed it from the outside, with us locked out. '
+                        .. 'The drones never touched our lifeboat. We think the Annex was keeping them off us. It is all in the records."'}},
+                {label = "Rest. We'll get you home.", say = '"Thank you. Please, read the records."'},
+            },
+        },
+    })
+    RT.voice.hail("boneyard_survivors", _SURVIVOR_MSG)
     RT.after(5, function()
         _addSurvivorRecords()
         RT.shipLog("[Science] Survivor records received. Science database updated: Lore, Boneyard Survivor Records.", "#00CCAA")

@@ -147,6 +147,7 @@ end
 
 -- A job was lost (expired / cargo destroyed). Story jobs come back on the board.
 function JOBS._failed(m)
+    if STATS then STATS.jobFailed(m) end
     _cb(m, "on_fail")
     if m.story then
         JOBS._done[m.id] = nil
@@ -405,6 +406,7 @@ function JOBS.accept(m, skip_log, ship)
 
     if mod and mod.spawn then mod.spawn(m) end
     JOBS.updateObj()
+    if STATS then STATS.jobAccepted(m) end
     _cb(m, "on_accept")
 
     if not skip_log then
@@ -440,6 +442,7 @@ function JOBS.complete(entry, completing_ship)
     end
 
     JOBS.updateObj()
+    if STATS then STATS.jobCompleted(entry.mission) end
     _cb(entry.mission, "on_complete")
     DIR.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward}, "low")
 end
