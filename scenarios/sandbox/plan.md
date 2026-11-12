@@ -419,7 +419,7 @@ from nobody the Magistrate knows") so the world already feels split. Kael's hook
      Requires `corsair_ally`. Reva wants proof Kael is serious: a story delivery
      (`JOBS.inject`, priority 5, `story = true`) carries Kael's signed amnesty writ for the
      Free Ship veterans from Galen to Blackwater. She holds the writ up and commits the wing.
-     (`betrayed`/`failed`: see open question 2.)
+     (Always available: the trigger already requires the `defended` path.)
    - **Ashgrave wing** (the Annex): 8 war drones refitted with warp drives, `Relic Active`.
      Requires `boneyard_hack_done` (the crew has the Annex's access codes). The arc respawns
      the Annex (the Boneyard arc destroys it in `_clearState`, so `_spawnAnnex` must be
