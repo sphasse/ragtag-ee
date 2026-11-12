@@ -390,10 +390,7 @@ function addSessionGMFunctions()
     local function _repEffects(faction, rep)
         local lines = {}
         if faction == "Concord" then
-            local wanted = RT.campaign.flags and RT.campaign.flags.wanted
-            if wanted then
-                lines[#lines+1] = "  Action: Wanted — patrols attack on sight"
-            elseif rep < -500 then
+            if rep < -500 then
                 lines[#lines+1] = "  Action: Shakedowns suspended (treated as wanted)"
             elseif rep < -200 then
                 lines[#lines+1] = "  Action: Inspection — detention threat, patrol goes hostile"
@@ -448,7 +445,6 @@ function addSessionGMFunctions()
         clearGMFunctions()
         addGMFunction("← Back to Factions", showReputationFactionList)
         local current = RT.getReputation(faction) or 0
-        local wanted  = RT.campaign.flags and RT.campaign.flags.wanted
         addGMFunction(string.format("%s: %+d", faction, current), function() end)
         addGMFunction("↑  +50", function()
             RT.addReputation(faction, 50, "GM adjustment")
@@ -460,13 +456,6 @@ function addSessionGMFunctions()
             RT.saveCampaign()
             showFactionDetail(faction)
         end)
-        if faction == "Concord" and wanted then
-            addGMFunction("Clear Wanted Now", function()
-                PROX.clearWantedStatus()
-                RT.shipLog("[GM] Concord wanted status force-cleared.", "#8888FF")
-                showFactionDetail(faction)
-            end)
-        end
     end
 
     showReputationFactionList = function()

@@ -303,11 +303,7 @@ local function buildHazards()
 end
 
 local function concordPatrolComms(source, target)
-    if RT.flag("wanted") then
-        setCommsMessage("\"" .. source:getCallSign() .. ", your transponder is flagged. Keep your distance and keep moving.\"")
-    else
-        setCommsMessage("\"Concord patrol " .. target:getCallSign() .. ". Lanes are clear. Keep it that way.\"")
-    end
+    setCommsMessage("\"Concord patrol " .. target:getCallSign() .. ". Lanes are clear. Keep it that way.\"")
 end
 
 local function buildGarrisons()
