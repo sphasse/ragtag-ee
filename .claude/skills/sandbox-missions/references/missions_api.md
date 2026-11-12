@@ -388,7 +388,7 @@ hook = {
 ```
 
 To steer crews with a job that looks perfectly ordinary, use a priority-3 seed with `ensure = true`: it is guaranteed on the board at each matching station (gate it with `when`, e.g. on the arc's phase) but gets no `[SPECIAL]` tag and normal rewards. Rules of thumb: seeds are priority 3 and look like normal work; the one story contract
-is priority 5 with `story = true` (shown first, `[SPECIAL]`, bypasses the 2-job cap, no
+is priority 5 with `story = true` (`[SPECIAL]`, bypasses the 2-job cap, no
 penalty). Use a shared `id` when one contract is offered at several stations. Injected
 jobs reset each run, so never gate injection on a persistent `RT.flag`; use
 `JOBS.hasVisited(cs)` in `when` to gate on progress.

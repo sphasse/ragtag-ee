@@ -40,7 +40,7 @@ JOBS._dynamic_queue = {}
 -- ── Injected jobs (story arcs seed the board) ────────────────────────────────
 -- Arcs add jobs with JOBS.inject() from M.on_load / phase enter and remove them
 -- with JOBS.removeCategory() from M.on_unload / exit (same pattern as RUMORS).
---   priority 5 (hook): shown FIRST at every matching station, outside the normal
+--   priority 5 (hook): always on the board at every matching station, outside the normal
 --                      slot count, as soon as when() holds. Use for story contracts.
 --   priority 3 (seed): ordinary-looking board work. Each time a station fills a slot,
 --                      there is a JOBS.SEED_CHANCE chance an eligible seed is used
@@ -575,8 +575,8 @@ local function _offerMissions(cs)
 
     local offers = {}
 
-    -- Story offers (director-pushed + priority-5 injected) are listed first and do
-    -- not use up the station's normal slots; they respect the reputation cap below.
+    -- Story offers (director-pushed + priority-5 injected) do not use up the station's
+    -- normal slots; they respect the reputation cap below. (The final list is shuffled.)
     local story = {}
     for _, m in ipairs(JOBS._dynamic_queue) do
         if m.origin == cs and not JOBS._done[m.id] then
@@ -597,7 +597,7 @@ local function _offerMissions(cs)
     end
 
     -- Ensured seeds (inject{ensure = true}) must be on the board: they take a free or
-    -- expired slot, otherwise replace a cached ordinary job. They are listed first but
+    -- expired slot, otherwise replace a cached ordinary job. They are on the board but
     -- carry no special tag, so they read as regular work that happened to be there.
     local _seeds_now = JOBS._injectedFor(cs, false)
     for _, sm in ipairs(_seeds_now) do
@@ -711,6 +711,11 @@ local function _offerMissions(cs)
     while #offers > n_offer do table.remove(offers) end
     if n_offer > 0 then
         for i = #story, 1, -1 do table.insert(offers, 1, story[i]) end
+    end
+    -- Present in random order so arc-injected jobs are not always the first ones listed.
+    for i = #offers, 2, -1 do
+        local j = math.random(i)
+        offers[i], offers[j] = offers[j], offers[i]
     end
 
     if #offers == 0 then

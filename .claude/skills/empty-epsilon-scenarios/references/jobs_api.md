@@ -154,11 +154,12 @@ JOBS.inject({
 JOBS.removeCategory("MYARC_JOBS")        -- in M.on_unload / phase exit / _clearState
 ```
 
-- **priority 5 (hook)**: listed first at every matching station, *outside* the normal
+- **Order**: the offers on a board are shuffled every time it is shown, so injected jobs are never reliably first or last.
+- **priority 5 (hook)**: always on the board at every matching station, *outside* the normal
   slot count, as soon as `when` holds. Use for story contracts. Hidden only when the
   station refuses all work (reputation below -400, the same rule as the normal board).
 - **`ensure = true`** (priority 3 only): guarantee the job is on the station's board. It takes a
-  free or expired slot, else replaces a cached ordinary job, and is listed first with no
+  free or expired slot, else replaces a cached ordinary job, and is on the board with no
   special tag, so it reads as regular work that happened to be there. Use it to steer the
   crew without telling them they're being steered (Rezkov's M2 cover deliveries to Galen).
 - **priority 3 (seed)**: ordinary-looking work. Each time a station fills a slot there is a
@@ -193,7 +194,7 @@ JOBS.removeCategory("MYARC_JOBS")        -- in M.on_unload / phase exit / _clear
 ("after they have been to Arbiter").
 
 **Director queue**: `JOBS._dynamic_queue` still works; entries whose `origin` matches are
-shown first, like priority-5 injected jobs.
+shown like priority-5 injected jobs.
 
 ### Post-mission tick hooks
 
