@@ -65,26 +65,63 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
     return entry
 end
 
--- Commander Kael's profile. Added when the crew meets her (Rezkov M3), under Lore.
--- Deliberately a character sketch only: it says what she is like, not what she will do.
-function SCIDB.addKaelProfile()
-    if SCIDB._entries["kael_profile"] or not SCIDB._entries["lore"] then return end
-    local e = SCIDB.addEntry("lore", "Commander Kael",
-        "Concord Intelligence, Special Operations Investigations.\n\n" ..
-        "Flew for the Concord in the Settlement War, and was one of a handful of officers " ..
-        "who put their doubts about their orders in writing. She was not punished; she was " ..
-        "moved. After the war she transferred to special-operations investigation, where she " ..
-        "has spent twenty years following the gaps in the official record.\n\n" ..
-        "Colleagues describe her as patient, precise and unwilling to let a file close. " ..
-        "She commands CWS Meridian with a small, steady crew who are said to follow her " ..
-        "without needing to be told twice, and she is considered one of Concord " ..
-        "Intelligence's most capable field officers. She does not bluff.",
-        {["Service"] = "Concord Intelligence", ["War record"] = "Fighter pilot, Settlement War",
-         ["Current post"] = "Special Operations Investigations", ["Vessel"] = "CWS Meridian",
-         ["Reputation"] = "Asks the questions nobody wants asked"})
-    SCIDB._entries["kael_profile"] = e
-    RT.flag("kael_profile_known", true)
+-- Character profiles under Lore, added when the crew first meets someone. Deliberately
+-- character sketches: what a person is like, not what they will do later.
+-- SCIDB.addProfile(key) returns true only the first time (so callers can log "records added").
+-- The flag "<key>_known" re-adds the entry each session (the database is rebuilt every init).
+SCIDB.PROFILES = {
+    thresh_profile = {
+        name = "Thresh",
+        desc = "Proprietor of Dustmote Salvage, and the usual way to reach people who don't answer " ..
+               "hails.\n\n" ..
+               "Runs the yard's books, its lines out to the Rim, and a steady trade in work that " ..
+               "never reaches the posted boards. Dry, sparing with words, and careful about " ..
+               "what he is asked and by whom. He pays on time and expects the same discretion " ..
+               "in return.\n\n" ..
+               "Known to act for an associate he has never named in public. Nobody in the Drift " ..
+               "can say how long he has worked for them, or whether he is the one who chose it.",
+        kv = {["Role"] = "Fixer, Dustmote Salvage", ["Works for"] = "An unnamed associate",
+              ["Manner"] = "Dry, discreet, punctual", ["Standing"] = "Pays on time"},
+    },
+    rezkov_profile = {
+        name = "Orlan Rezkov",
+        desc = "Independent operator, and the head of a small network of couriers, salvagers and " ..
+               "informants working the lanes around Dustmote.\n\n" ..
+               "Keeps a station in a nebula cloud that is hard to find and harder to find twice: " ..
+               "it is not always where it was. Does business in person, and has no patience for " ..
+               "go-betweens other than the one he trusts. Said to remember everything anyone " ..
+               "has ever said to him, and to hold a grudge exactly as long as the memory lasts.\n\n" ..
+               "Concord patrols have never been seen to trouble his people, and he is careful " ..
+               "to keep it that way.",
+        kv = {["Role"] = "Independent operator", ["Base"] = "Nebula station near Dustmote",
+              ["Method"] = "In person, never through go-betweens", ["Memory"] = "Total"},
+    },
+    kael_profile = {
+        name = "Commander Kael",
+        desc = "Concord Intelligence, Special Operations Investigations.\n\n" ..
+               "Flew for the Concord in the Settlement War, and was one of a handful of officers " ..
+               "who put their doubts about their orders in writing. She was not punished; she was " ..
+               "moved. After the war she transferred to special-operations investigation, where she " ..
+               "has spent twenty years following the gaps in the official record.\n\n" ..
+               "Colleagues describe her as patient, precise and unwilling to let a file close. " ..
+               "She commands CWS Meridian with a small, steady crew who are said to follow her " ..
+               "without needing to be told twice, and she is considered one of Concord " ..
+               "Intelligence's most capable field officers. She does not bluff.",
+        kv = {["Service"] = "Concord Intelligence", ["War record"] = "Fighter pilot, Settlement War",
+              ["Current post"] = "Special Operations Investigations", ["Vessel"] = "CWS Meridian",
+              ["Reputation"] = "Asks the questions nobody wants asked"},
+    },
+}
+
+function SCIDB.addProfile(key, silent)
+    local p = SCIDB.PROFILES[key]
+    if not p or SCIDB._entries[key] or not SCIDB._entries["lore"] then return false end
+    SCIDB._entries[key] = SCIDB.addEntry("lore", p.name, p.desc, p.kv)
+    if not silent then RT.flag(key .. "_known", true) end
+    return true
 end
+
+function SCIDB.addKaelProfile() return SCIDB.addProfile("kael_profile") end   -- kept for callers
 
 -- ─── Internal builder helpers ─────────────────────────────────────────────────
 
@@ -306,8 +343,10 @@ local function _build()
     )
 
     -- Re-add entries earned in a previous session (the database is rebuilt every init).
-    local ok, known = pcall(function() return RT and RT.flag and RT.flag("kael_profile_known") end)
-    if ok and known then SCIDB.addKaelProfile() end
+    for key in pairs(SCIDB.PROFILES) do
+        local ok, known = pcall(function() return RT and RT.flag and RT.flag(key .. "_known") end)
+        if ok and known then SCIDB.addProfile(key, true) end
+    end
 
     log("[SCIDB] Drift database built.")
 end

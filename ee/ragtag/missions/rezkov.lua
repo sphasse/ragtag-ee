@@ -75,6 +75,16 @@ local _NEBULA_POS = {
 -- Concord Waypoint Galen: verse (-75, -52). Terminal spawns slightly NE.
 
 
+-- First meeting with someone: add their Science DB profile and tell the crew once.
+local function _addRecords(key, who)
+    if SCIDB and SCIDB.addProfile then
+        local ok, added = pcall(SCIDB.addProfile, key)
+        if ok and added then
+            RT.shipLog("[Rezkov Arc] " .. who .. " personnel records added to our database.", "#80C0FF")
+        end
+    end
+end
+
 -- ── Spawn helpers ────────────────────────────────────────────────────────────
 
 local function _spawnWaypoint(st)
@@ -104,6 +114,7 @@ local function _spawnWaypoint(st)
                 addCommsReply("Back", function() setCommsMessage("The channel closes.") end)
                 return
             end
+            _addRecords("rezkov_profile", "Orlan Rezkov")
             setCommsMessage('"You found it.\n\nI am Orlan Rezkov. Reputation got you to my door. What you do after the door opens -- that is what matters.\n\nI need something from a Concord station. Not a fleet base, nothing dramatic. Concord Waypoint Galen on the Arbiter Line. I want the traffic log -- ninety days of docking records. I need to know if someone in my organization is talking.\n\nI will tell you this: your name does not raise flags with their patrols. Keep it that way until the job is finished."')
             addCommsReply("We're up for the challenge.", function(s2, t2)
                 local concord_rep = RT.getReputation("Concord") or 0
@@ -278,7 +289,7 @@ local function _setupKaelComms(st)
         tostring(st.m3_boarded), tostring(RT.valid(st.meridian))))
     st.m3_boarded = true
     RT.setObjective("Speak with Commander Kael", true)
-    if SCIDB and SCIDB.addKaelProfile then pcall(SCIDB.addKaelProfile) end   -- Science DB: "Commander Kael"
+    _addRecords("kael_profile", "Commander Kael")
     st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
         log(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
             tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
@@ -335,6 +346,7 @@ local function _dustmoteHook(src, tgt, info)
     -- M1 hook phase: The Fixer makes contact
     if phase == "hook" and not RT.flag("rezkov_declined") then
         addCommsReply("Heard you were looking for an independent operator.", function(s2, t2)
+            _addRecords("thresh_profile", "Thresh")
             setCommsMessage('"Word travels in the Drift, and your name has been mentioned. My name\'s Thresh and I\'m looking for a crew that can take on serious work and keep quiet about it.\n\nInterested in hearing more?"')
             addCommsReply("Sure, what\'s the job?", function(s3, t3)
                 setCommsMessage('"My associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHead out at bearing 15. You\'ll hit a nebula cloud. You\'ll find what you are looking for there.\n\nMind what you say when you get there. He remembers everything."')
