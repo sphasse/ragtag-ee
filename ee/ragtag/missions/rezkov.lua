@@ -567,6 +567,30 @@ M.phases.init = {
     end,
 }
 
+-- Lifecycle seeds (loaded while the arc waits for its trigger). Priority 3: vague,
+-- never naming Rezkov or the contact. Mixed into the normal rumor rotation.
+local _SEED_RUMORS = {
+    "I heard there's a station that appears and disappears somewhere around Dustmote. Sensors catch it for a minute, then nothing.",
+    "Dustmote's yard crews keep a ship's worth of berth empty. Nobody says who for.",
+    "Somebody's been paying cash for sensor logs of the nebula past Dustmote. No questions, no receipts.",
+    "A Concord officer went into the nebula off Dustmote last month and filed no flight plan. Nobody's said he came back.",
+    "There's a salvage run out of Dustmote that pays three times the going rate. The catch is you never get told what you're carrying.",
+    "Dustmote's got a regular who tips well and never gives a name. Keeps asking who's flying independent these days.",
+    "If a stranger offers you a quiet job near Dustmote, know a good hacker first.",
+    "There's a ship out by Dustmote that Concord pretends not to see. Everyone else sees it fine.",
+}
+
+function M.on_load(st)
+    RUMORS.removeCategory("REZKOV_SEED")   -- idempotent
+    for _, text in ipairs(_SEED_RUMORS) do
+        RUMORS.add({text = text, priority = 3, category = "REZKOV_SEED"})
+    end
+end
+
+function M.on_unload(st)
+    RUMORS.removeCategory("REZKOV_SEED")
+end
+
 M.phases.hook = {
     no_skip = true,
     enter = function(st)

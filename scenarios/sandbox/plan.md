@@ -414,7 +414,7 @@ If an arc module is lost, rebuild against these rails:
 
 ## Open questions / tuning
 
-- Boneyard trigger: add `rezkov_arc_done` as a gate, or leave it open?
+- ~~Boneyard trigger gate~~ — decided: gated on `rezkov_arc_done` (or `rezkov_declined`). Phase II arcs load ~10 vague seed rumors (priority 2) via `M.on_load` while waiting, and 3 actionable hooks (priority 5) once started.
 - Rift anchor: confirm in a headless run that `hull.damaged_by_emp` and
   `onTakingDamage` behave as the source reads (callback fires on the EMP
   blast; beams and homings do nothing to it).

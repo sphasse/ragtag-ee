@@ -41,6 +41,8 @@ Add `require("ragtag/missions/<name>.lua")` to `ee/ragtag/missions.lua`.
 | `M.init_state()` | function | Returns fresh mutable state table for each run |
 | `M.resolve(st)` | function | Called when entering the terminal `"done"` phase |
 | `M.on_cancel(st)` | function | Called on `MISSIONS.cancel(id)`; clean up world objects here |
+| `M.on_load(st)` | function | Optional. Runs once when the arc is enabled and *waiting* (inactive/triggered), i.e. before its trigger is met. Use it to seed vague rumors (`RUMORS.add{priority=2, category="X_SEED"}`). Must be idempotent (remove the category first). Re-runs after a cancel. |
+| `M.on_unload(st)` | function | Optional. Runs when the arc starts or is GM-disabled (`MISSIONS.setEnabled(id,false)`, "Disable arc" button). Undo what `on_load` did. |
 
 ### Phase definition
 
@@ -113,6 +115,7 @@ M.triggers = {
     upgrades_min = 200,                    -- total credits spent on upgrades >= value
     not_flagged  = {"witness_complete"},   -- RT.flag(name) must be falsy for each
     custom       = function(st) return ... end,  -- any extra condition
+    custom_label = "text for the GM criteria popup", -- optional, names the custom condition
 }
 ```
 
@@ -129,6 +132,7 @@ MISSIONS.register(M)         -- called by each module at load time
 MISSIONS.start(id)           -- activate; init_state, lock jobs, enter start_phase
 MISSIONS.phase(id, name)     -- transition to named phase (NOTE: not .goto — reserved keyword)
 MISSIONS.cancel(id)          -- exit current phase, call on_cancel, unlock jobs
+MISSIONS.setEnabled(id, bool) -- false: ignore triggers and call on_unload (GM "Disable arc")
 MISSIONS.update(delta)       -- call every frame from scenario update()
 MISSIONS.addGMButton(backFn) -- single top-level GM button (self-labels when any triggered)
 ```
@@ -340,7 +344,7 @@ don't, and the hook silently disappears.
 hook = {
     enter = function(st)
         RUMORS.removeCategory("MYARC_HOOK")  -- idempotent for GM re-entry
-        RUMORS.add({text = "...", priority = 3, category = "MYARC_HOOK"})
+        RUMORS.add({text = "...", priority = 5, category = "MYARC_HOOK"})  -- 5 = actionable hook; 3 = background seed (see Rumor tiers)
     end,
     exit = function(st)
         RUMORS.removeCategory("MYARC_HOOK")  -- phase transitions always run exit
@@ -354,6 +358,40 @@ RUMORS.removeCategory("MYARC_DONE")
 
 Note: `RUMORS.get` returns **nil** when the rumors WORLD plugin is disabled —
 guard any direct concatenation with `or "fallback line"`.
+
+### Seeding jobs from an arc
+
+An arc can put work on the station job boards, both pre-trigger seeds and the hook
+contract. Full API (builders, `story` rules, priorities): `jobs_api.md` → "Injected jobs".
+Pair it with the lifecycle hooks and phase `enter`/`exit`, exactly like rumors:
+
+```lua
+function M.on_load(st)                    -- waiting for the trigger: seed filler
+    JOBS.removeCategory("MYARC_JOBS")     -- idempotent
+    JOBS.inject({category = "MYARC_JOBS", priority = 3, origin = "Port Vesper",
+        record = function(cs) return JOBS.build("delivery",
+            {origin = cs, dest = "Halcyon Rest", cargo = "coolant", reward = 70, brief = "..."}) end})
+end
+function M.on_unload(st) JOBS.removeCategory("MYARC_JOBS") end
+
+-- hook phase: the special contract that leads into the arc
+hook = {
+    enter = function(st)
+        JOBS.inject({category = "MYARC_SPECIAL", priority = 5, origin = {"Port Vesper", "Halcyon Rest"},
+            record = function(cs) return JOBS.build("salvage", {id = "myarc_buoy", story = true,
+                origin = cs, wx = 22000, wy = -72000, cargo = "a survey buoy", reward = 400,
+                brief = "...", on_found = function(m) RT.shipLog("[Science] ...") end}) end})
+    end,
+    exit = function(st) JOBS.removeCategory("MYARC_SPECIAL") end,
+}
+-- and in _clearState: JOBS.removeCategory("MYARC_SPECIAL")
+```
+
+Rules of thumb: seeds are priority 3 and look like normal work; the one story contract
+is priority 5 with `story = true` (shown first, `[SPECIAL]`, bypasses the 2-job cap, no
+penalty). Use a shared `id` when one contract is offered at several stations. Injected
+jobs reset each run, so never gate injection on a persistent `RT.flag`; use
+`JOBS.hasVisited(cs)` in `when` to gate on progress.
 
 ### Destruction hooks and kill tracking
 
@@ -391,3 +429,9 @@ M.phases = {
     },
 }
 ```
+
+
+## Rumor tiers (RUMORS.add priority)
+
+- **3 seed**: background foreshadowing, loaded from `M.on_load` while the arc waits for its trigger. Mixed into the normal "Any news?" rotation: each unheard seed is picked slightly more readily than each pool rumor (`RUMORS.SEED_WEIGHT` = 1.5 vs 1), subject to the 5-minute cooldown, each heard once before repeating. Harmless if never heard. (Priority 2 is treated the same.)
+- **5 hook** (anything >= 4): actionable lead, set in the hook phase. Bypasses the cooldown and replaces the background pool entirely; hooks of equal priority from different arcs are mixed, so give Phase II arcs the same priority and the crew hears every lead. Higher priority hides lower (Rezkov's 5 would hide a 4).

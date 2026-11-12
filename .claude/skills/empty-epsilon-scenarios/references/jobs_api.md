@@ -128,7 +128,66 @@ JOBS.spawnInVerse(rx, ry)    -- wx, wy, dist_u, region — random in-verse point
 JOBS.maxTier()               -- 0/1/2 from campaign upgrade spend
 JOBS.updateObj()             -- refreshes objective display and relay panel
 JOBS.stationHook(src, tgt)   -- wire into station setCommsFunction
+JOBS.inject(def) / JOBS.removeCategory(cat) / JOBS.build(type, opts) / JOBS.hasVisited(cs)
+                             -- story-arc injection, see "Injected jobs" below
 ```
+
+### Injected jobs (story arcs seed the board)
+
+Arcs add jobs to the board with `JOBS.inject()` and remove them with
+`JOBS.removeCategory()`, the same pattern as rumors. Injected jobs are **session
+state** (they reset every run): inject from the arc's `M.on_load` or a phase `enter`,
+never gated on a persistent flag.
+
+```lua
+JOBS.inject({
+    category = "MYARC_JOBS",              -- for removeCategory
+    priority = 5,                         -- 5 = hook, 3 = seed (default 3)
+    origin   = {"Port Vesper", "Halcyon Rest"},  -- string, list, or nil = any station
+    when     = function(cs) return JOBS.hasVisited("Concord Station Arbiter") end,  -- optional
+    record   = function(cs)               -- or a plain mission table
+        return JOBS.build("salvage", {id = "myarc_buoy", origin = cs, wx = 22000, wy = -72000,
+            cargo = "a survey buoy", reward = 400, story = true, brief = "...",
+            on_found = function(m) ... end})
+    end,
+})
+JOBS.removeCategory("MYARC_JOBS")        -- in M.on_unload / phase exit / _clearState
+```
+
+- **priority 5 (hook)**: listed first at every matching station, *outside* the normal
+  slot count, as soon as `when` holds. Use for story contracts. Hidden only when the
+  station refuses all work (reputation below -400, the same rule as the normal board).
+- **priority 3 (seed)**: ordinary-looking work. Each time a station fills a slot there is a
+  `JOBS.SEED_CHANCE` (0.4) chance an eligible seed is used instead of a random job; it is
+  cached in the slot like any other job. Seeds are for filler that moves crews around.
+- **Give a shared `id`** when the same job is offered at several stations (`origin` list)
+  so accepting it at one hides the others. `record(cs)` is called once per station.
+- Once accepted, a job is gone for the session (`JOBS._done`). Story jobs that *fail*
+  (cargo destroyed) come back; completed ones never do.
+
+**Builders**: `JOBS.build(type, opts)` calls the module's `build(opts)`.
+- `delivery`: `{origin, dest, cargo, reward, brief, complete_msg, urgent}`
+- `salvage`: `{origin, wx, wy, cargo, reward, brief, complete_msg, region_name}`. A pod
+  cluster spawns at `(wx, wy)` (world units); Science scans to find the target pod; the
+  crew returns it to `origin`.
+
+**Common opts** (every type):
+
+| Opt | Effect |
+|---|---|
+| `story = true` | Bypasses `max_active`; no expiry timer; no reputation penalty on failure; re-offered after a failure; listed `[SPECIAL]` with "no time limit" |
+| `special = true` | Listed `[SPECIAL]` only (normal rules) |
+| `id` | Stable id (see above) |
+| `accept_log` | Text for the accept ship log (replaces the generic "N minutes" line) |
+| `on_accept(m)`, `on_complete(m)`, `on_fail(m)` | Lifecycle callbacks (pcall'd) |
+| `on_found(m)` | **Salvage only**: the target pod was picked up, before the return trip. The natural place for a story reveal |
+
+**Visits**: `JOBS.hasVisited(cs)` is true once the crew has docked at `cs`
+(flag `visited_<callsign>`, saved with the campaign). Use it in `when` and in arc triggers
+("after they have been to Arbiter").
+
+**Director queue**: `JOBS._dynamic_queue` still works; entries whose `origin` matches are
+shown first, like priority-5 injected jobs.
 
 ### Post-mission tick hooks
 

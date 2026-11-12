@@ -82,6 +82,13 @@ Say plainly in PR descriptions what was and wasn't tested.
 5. **Nearby stations** calculated for boarding/destroy (50U radius) → stored as `target_dest`
 6. **Mission record created** with all fields, added to offers list
 
+### Story arcs and the job board
+
+Arcs seed station boards with `JOBS.inject{category, priority, origin, when, record}` (priority 3 = filler,
+5 = `story` contract listed `[SPECIAL]` first, bypassing the 2-job cap with no failure penalty). Build records
+with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unload`/phase `exit`. Details:
+`.claude/skills/empty-epsilon-scenarios/references/jobs_api.md`.
+
 ### Proximity Spawn System (Replaced Intercepts)
 
 **Ambient faction patrols** spawn based on player location, not mission progress. System in `ee/ragtag/proximity.lua`.

@@ -6,9 +6,12 @@ The crew breaches the Ashgrave Annex — a Concord Level-5 research archive buri
 
 ## Trigger
 
+- Rezkov arc finished (`rezkov_arc_done`) or declined (`rezkov_declined`)
 - Upgrade investment ≥ 800 credits
 - Not yet completed (`boneyard_arc_done` unset)
-- Auto-starts; no reputation gate (the Boneyard is discoverable by any crew willing to fly there)
+- Auto-starts; no reputation gate
+- Rumors: ten vague "up north" seed rumors (priority 3) load as soon as the arc is enabled, via `M.on_load`, and are removed on start/disable. Three actionable hook rumors (priority 5) replace them in the hook phase and name Ashgrave and the Boneyard. No objective is set: crews have to follow the leads themselves.
+- Jobs: five seed deliveries (priority 3) among Halcyon Rest, Port Vesper, Arbiter and Galen load with the arc, via `JOBS.inject`. In the hook phase a priority-5 `story` salvage contract, "a Concord survey buoy", is offered at Port Vesper, Halcyon Rest and Saint Brennan's Mission (shared id `boneyard_buoy`). Its pods spawn on the Boneyard south rim at (22, -72); picking up the target pod fires `on_found`, which sets `boneyard_buoy_found` and logs the "ARCHIVE HOLD, ASHGRAVE" fix with Ashgrave's grid. The 8U Ashgrave proximity trigger still drives the phase change.
 
 ## Phase Diagram
 

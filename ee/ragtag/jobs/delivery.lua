@@ -302,6 +302,27 @@ function M.generate(opts)
     }
 end
 
+-- Hand-written delivery (story/seed jobs). o = {origin, dest, cargo, reward, brief,
+-- complete_msg, urgent, + common opts from JOBS.build}. distance_u is computed.
+function M.build(o)
+    local oe, de = RT.find(o.origin), RT.find(o.dest)
+    local dist = 0
+    if RT.valid(oe) and RT.valid(de) then
+        local ox, oy = oe:getPosition(); local dx, dy = de:getPosition()
+        dist = math.sqrt((dx-ox)^2 + (dy-oy)^2)
+    end
+    local dest_short = JOBS.shortName(o.dest)
+    return {
+        id = JOBS.nextId(), type = "delivery", tier = o.tier or 0,
+        origin = o.origin, dest = o.dest, cargo = o.cargo, reward = o.reward,
+        short = (o.urgent and "URGENT: " or "") .. o.cargo .. " → " .. dest_short,
+        obj = "Deliver to " .. dest_short,
+        brief = o.brief or "", complete_msg = o.complete_msg,
+        urgent = o.urgent or false, distance_u = dist,
+        dest_faction = JOBS.stationFaction(o.dest),
+    }
+end
+
 function M.duration(m)
     local d = m.distance_u or 60000
     if m.urgent then
@@ -322,6 +343,7 @@ function M.spawn(m)
 end
 
 function M.acceptLog(m)
+    if m.accept_log then return m.accept_log end
     local dest_e = RT.find(m.dest)
     if RT.valid(dest_e) then
         local dx, dy = dest_e:getPosition()

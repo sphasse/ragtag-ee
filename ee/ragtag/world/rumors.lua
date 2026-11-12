@@ -4,9 +4,17 @@
 -- Background pool (priority 1): 100 strings, cycle through all before repeating.
 --   Subject to per-source cooldown (RUMORS.COOLDOWN_SECONDS).
 --
--- Injected rumors (priority 2-10): added by missions/plugins via RUMORS.add().
---   Priority >= 2 bypasses the cooldown so quest hooks always cut through.
+-- Injected rumors: added by missions/plugins via RUMORS.add().
 --   Persist until explicitly removed with RUMORS.remove() or RUMORS.removeCategory().
+--   Two tiers:
+--     priority 3    SEED   background foreshadowing, loaded while an arc waits for its
+--                          trigger. Each unheard seed is picked slightly more readily than
+--                          each pool rumor (RUMORS.SEED_WEIGHT, default 1.5 vs 1), subject to
+--                          the normal cooldown, each heard once before any repeats. Safe to
+--                          load early and never be heard. (Priority 2 behaves the same.)
+--     priority >= 4 HOOK   actionable quest leads (use 5). Bypass the cooldown and replace
+--                          the pool entirely; equal-priority hooks from different arcs
+--                          are mixed so the crew hears all of them and can choose.
 --
 -- API:
 --   RUMORS.add({text, priority, faction, category})  -- returns assigned id
@@ -252,14 +260,35 @@ RUMORS.no_news = {
 --   callsign     : player ship callsign (used for cooldown tracking)
 --   source_faction: faction of the NPC being hailed (nil = any)
 --
--- Priority >= 2 rumors bypass the cooldown so quest hooks always cut through.
--- Background cycling (priority 1) is subject to the per-source cooldown.
+-- Hooks (priority >= 4) bypass the cooldown; seeds (2-3) and the background pool share it.
+RUMORS.SEED_MAX_PRIORITY = 3   -- priority <= this is a seed; above it is a hook
+RUMORS.SEED_WEIGHT       = 1.5 -- pick weight of each unheard seed; each pool rumor weighs 1
+RUMORS._heard            = RUMORS._heard or {}  -- id -> true (seed already delivered)
+
+-- Pick a seed this source faction can hear, preferring ones not yet heard.
+-- Returns nil when there are none.
+local function _freshSeeds(source_faction)
+    local pool, fresh = {}, {}
+    for _, r in ipairs(RUMORS._injected) do
+        if r.priority >= 2 and r.priority <= RUMORS.SEED_MAX_PRIORITY
+           and (r.faction == nil or r.faction == source_faction) then
+            pool[#pool + 1] = r
+            if not RUMORS._heard[r.id] then fresh[#fresh + 1] = r end
+        end
+    end
+    if #fresh == 0 and #pool > 0 then
+        for _, r in ipairs(pool) do RUMORS._heard[r.id] = nil end  -- all heard: start over
+        fresh = pool
+    end
+    return fresh
+end
+
 function RUMORS.get(callsign, source_faction)
     if WORLD and not WORLD.isEnabled("rumors") then return nil end
-    -- Collect injected rumors matching the source faction, priority >= 2
+    -- Hooks (priority > SEED_MAX_PRIORITY) matching the source faction
     local high = {}
     for _, r in ipairs(RUMORS._injected) do
-        if r.priority >= 2 then
+        if r.priority > RUMORS.SEED_MAX_PRIORITY then
             if r.faction == nil or r.faction == source_faction then
                 high[#high + 1] = r
             end
@@ -281,13 +310,22 @@ function RUMORS.get(callsign, source_faction)
         return chosen.text
     end
 
-    -- Fall through to background pool with cooldown
+    -- Seeds and the background pool share the cooldown
     local now  = getScenarioTime and getScenarioTime() or 0
     local last = RUMORS._cooldowns[callsign]
     if last and (now - last) < RUMORS.COOLDOWN_SECONDS then
         return RUMORS.no_news[math.random(#RUMORS.no_news)]
     end
     RUMORS._cooldowns[callsign] = now
+    -- Weighted draw: every unheard seed vs every background rumor.
+    local fresh = _freshSeeds(source_faction)
+    local seed_w = #fresh * RUMORS.SEED_WEIGHT
+    if seed_w > 0 and math.random() * (seed_w + #RUMORS.pool) < seed_w then
+        local chosen = fresh[math.random(#fresh)]
+        RUMORS._heard[chosen.id] = true
+        if chosen.once then RUMORS.remove(chosen.id) end
+        return chosen.text
+    end
     return _nextBackground()
 end
 

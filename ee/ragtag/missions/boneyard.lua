@@ -1,7 +1,7 @@
 -- ee/ragtag/missions/boneyard.lua
 -- Boneyard Arc: breach the Ashgrave Annex before a Concord battle group arrives.
 --
--- Trigger: upgrade investment >= 800cr AND not yet completed
+-- Trigger: Rezkov arc finished (or declined) AND upgrade investment >= 800cr AND not completed
 -- Structure: hook → approach → annex_hack → annex_control → extract → done
 --
 -- RT.flag keys used (prefix "boneyard_"):
@@ -21,6 +21,10 @@ M.start_phase = "hook"
 M.triggers = {
     upgrades_min = 800,
     not_flagged  = {"boneyard_arc_done"},
+    -- Phase II follows the Rezkov arc. A crew that declined Rezkov (or had it
+    -- GM-inactivated) is not locked out of the rest of the campaign.
+    custom       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
+    custom_label = "Rezkov arc finished or declined",
 }
 
 M.phase_order = {
@@ -311,6 +315,7 @@ local function _clearState(st)
 
     RUMORS.removeCategory("BONEYARD_HOOK")
     RUMORS.removeCategory("BONEYARD_DONE")
+    JOBS.removeCategory("BONEYARD_SPECIAL")
 
     PROX.resumeZone("the Boneyard")
 end
@@ -334,6 +339,95 @@ local function _trackCmdShip(st)
     end
 end
 
+-- ── Lifecycle (waiting-for-trigger) ───────────────────────────────────────────
+-- Seed rumors: vague foreshadowing loaded as soon as the arc is enabled, before
+-- its trigger is met. Priority 3 = seed tier (mixed into the normal rumor rotation,
+-- slightly favoured over the pool; harmless if never heard). The actionable hooks
+-- (priority 5) live in the hook phase.
+
+local _SEED_RUMORS = {
+    "Whatever's up north past the Boneyard, Concord stopped talking about it years ago.",
+    "Ships that run the Boneyard edge say the drones thin out toward the middle. Nobody's gone far enough to ask why.",
+    "My cousin flew survey for Concord. Won't say where. Points north whenever the subject comes up.",
+    "There's an old Settlement War rumor that Concord buried something up there instead of winning anything.",
+    "Long-range picks up a Concord transponder up north that never moves. It's been there for years.",
+    "Salvagers who go deep into the Boneyard come back quiet. Or don't come back.",
+    "The Free Ship veterans say the war didn't end where the treaty says it did. They look north when they say it.",
+    "Concord keeps flying supply runs up north and logging them as 'training'. Training for what, twenty years on?",
+    "If you want to know what the Boneyard is really for, ask why nobody ever finished clearing it.",
+    "Something up there still sends a signal on a war-era frequency. Concord jams it. Never the other way round.",
+}
+
+-- Seed jobs (priority 3): ordinary-looking deliveries among the north-side stations,
+-- so crews are already moving around Halcyon / Vesper / Arbiter / Galen.
+local _SEED_JOBS = {
+    {"Halcyon Rest",           "Concord Station Arbiter",  "sealed legal pouches",   85, "Halcyon's clerks need these filed with Arbiter's registry office. Don't read them."},
+    {"Port Vesper",            "Concord Waypoint Galen",   "replacement relay cores", 105, "Galen's comms array has been dropping packets for a month. Concord won't pay for the parts; a private buyer will."},
+    {"Concord Station Arbiter","Halcyon Rest",             "inspection stamps",       80, "Arbiter's stamps for Halcyon's yard. Halcyon pays on delivery and tips if you don't make a fuss."},
+    {"Concord Waypoint Galen", "Port Vesper",              "survey data crates",      95, "Galen's survey crews bag data faster than they can ship it. Take a crate to Vesper's archive."},
+    {"Port Vesper",            "Halcyon Rest",             "coolant canisters",       70, "Halcyon burns through coolant. Standard run."},
+}
+
+local function _injectSeedJobs()
+    JOBS.removeCategory("BONEYARD_JOBS")
+    for _, j in ipairs(_SEED_JOBS) do
+        local o, d, cargo, reward, brief = j[1], j[2], j[3], j[4], j[5]
+        JOBS.inject({
+            category = "BONEYARD_JOBS", priority = 3, origin = o,
+            record = function(cs)
+                return JOBS.build("delivery", {origin = cs, dest = d, cargo = cargo,
+                    reward = reward, brief = brief})
+            end,
+        })
+    end
+end
+
+-- Hook job (priority 5): the special salvage contract that sends the crew to the
+-- Boneyard rim, where recovering the buoy reveals the lead to Ashgrave.
+-- (22, -72) is inside the Boneyard (center (36, -96), r 29), ~15U off the Galen-Saint
+-- Brennan's lane.
+local _BUOY_X, _BUOY_Y = 22000, -72000
+
+local function _injectHookJob()
+    JOBS.removeCategory("BONEYARD_SPECIAL")
+    JOBS.inject({
+        category = "BONEYARD_SPECIAL", priority = 5,
+        origin = {"Port Vesper", "Halcyon Rest", "Saint Brennan's Mission"},
+        record = function(cs)
+            return JOBS.build("salvage", {
+                id = "boneyard_buoy",   -- one shared id: taking it at one station hides the others
+                origin = cs, wx = _BUOY_X, wy = _BUOY_Y,
+                cargo = "a Concord survey buoy", reward = 400, story = true,
+                region_name = "the Boneyard",
+                brief = "A Concord survey buoy came off its mooring on the south rim of the Boneyard and drifted. "
+                      .. "Somebody wants it, and wants it quietly: Concord's been in a hurry to retrieve their own.\n\n"
+                      .. "\"Scan the debris, the buoy will read as a sealed container. Don't linger. The drones don't forget.\"",
+                complete_msg = '"This is it. Concord will be sorry they lost it. Don\'t ask what it logged."',
+                accept_log = string.format("Special contract: Concord survey buoy. Debris field at grid %s, Boneyard south rim. Danger: drones. No time limit.",
+                    JOBS.gridRef(_BUOY_X, _BUOY_Y)),
+                on_found = function(m)
+                    RT.flag("boneyard_buoy_found", true)
+                    RT.shipLog(string.format("[Science] Survey buoy memory: a repeating Concord fix, 'ARCHIVE HOLD, ASHGRAVE, grid %s. Do not approach.' The buoy was logging it for someone.",
+                        JOBS.gridRef(_ASHGRAVE_X, _ASHGRAVE_Y)), "#00CCAA")
+                end,
+            })
+        end,
+    })
+end
+
+function M.on_load(st)
+    RUMORS.removeCategory("BONEYARD_SEED")   -- idempotent
+    for _, text in ipairs(_SEED_RUMORS) do
+        RUMORS.add({text = text, priority = 3, category = "BONEYARD_SEED"})
+    end
+    _injectSeedJobs()
+end
+
+function M.on_unload(st)
+    RUMORS.removeCategory("BONEYARD_SEED")
+    JOBS.removeCategory("BONEYARD_JOBS")
+end
+
 -- ── Phases ────────────────────────────────────────────────────────────────────
 
 M.phases = {
@@ -343,13 +437,20 @@ M.phases = {
             -- Re-inject each session (RUMORS resets per run); clear first so a
             -- GM re-entry of this phase doesn't duplicate them.
             RUMORS.removeCategory("BONEYARD_HOOK")
+            _injectHookJob()
+            -- Hooks: few, and nearly actionable. Priority 5 = same tier as other arcs'
+            -- hooks, so a crew with several leads hears all of them.
             RUMORS.add({
-                text     = "Concord assembled a heavy response group at Sentinel Fleet Yard. Destination undisclosed.",
-                priority = 3, category = "BONEYARD_HOOK",
+                text     = "Concord survey tugs have been parking over Ashgrave, deep in the Boneyard. Nobody surveys a dead world for fun.",
+                priority = 5, category = "BONEYARD_HOOK",
             })
             RUMORS.add({
-                text     = "Two Concord battle groups left Lumen system inside a week. That doesn't happen unless something serious is planned.",
-                priority = 3, category = "BONEYARD_HOOK",
+                text     = "Concord pulled two battle groups off the Lumen run and pointed them north. Whatever's sitting at Ashgrave, they want it sealed before anyone else sees it.",
+                priority = 5, category = "BONEYARD_HOOK",
+            })
+            RUMORS.add({
+                text     = "A salvager swears the Boneyard drones go quiet near Ashgrave. Like they're guarding something, or told to leave it alone.",
+                priority = 5, category = "BONEYARD_HOOK",
             })
         end,
         update = function(st, delta, now)
@@ -366,6 +467,7 @@ M.phases = {
         end,
         exit = function(st)
             RUMORS.removeCategory("BONEYARD_HOOK")
+            JOBS.removeCategory("BONEYARD_SPECIAL")
         end,
     },
 

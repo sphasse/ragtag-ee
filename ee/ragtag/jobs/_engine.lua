@@ -37,6 +37,125 @@ JOBS._tick_hooks   = {}   -- functions(now) called each update cycle for post-mi
 -- the engine drains them into the station panel on the next offer refresh.
 JOBS._dynamic_queue = {}
 
+-- ── Injected jobs (story arcs seed the board) ────────────────────────────────
+-- Arcs add jobs with JOBS.inject() from M.on_load / phase enter and remove them
+-- with JOBS.removeCategory() from M.on_unload / exit (same pattern as RUMORS).
+--   priority 5 (hook): shown FIRST at every matching station, outside the normal
+--                      slot count, as soon as when() holds. Use for story contracts.
+--   priority 3 (seed): ordinary-looking board work. Each time a station fills a slot,
+--                      there is a JOBS.SEED_CHANCE chance an eligible seed is used
+--                      instead of a random job. Cached with the slot like any job.
+JOBS.SEED_CHANCE = 0.4
+JOBS._injected   = {}
+local _inject_seq = 0
+
+-- def = {
+--   category = "BONEYARD_JOBS",      -- for removeCategory
+--   priority = 5 | 3,                -- default 3
+--   origin   = "Port Vesper" | {"A","B"} | nil (any station),
+--   when     = function(cs) ... end, -- optional; evaluated each time the board is opened
+--   record   = <mission table> | function(cs) return <mission table> end,
+-- }
+-- Build records with JOBS.build("delivery"|"salvage", opts) (see those modules).
+function JOBS.inject(def)
+    _inject_seq = _inject_seq + 1
+    local e = {
+        id = def.id or ("inj_" .. _inject_seq),
+        category = def.category, priority = def.priority or 3,
+        origin = def.origin, when = def.when, record = def.record, missions = {},
+    }
+    JOBS._injected[#JOBS._injected + 1] = e
+    return e.id
+end
+
+function JOBS.removeCategory(category)
+    for i = #JOBS._injected, 1, -1 do
+        if JOBS._injected[i].category == category then table.remove(JOBS._injected, i) end
+    end
+end
+
+local function _originMatches(e, cs)
+    if e.origin == nil then return true end
+    if type(e.origin) == "string" then return e.origin == cs end
+    for _, o in ipairs(e.origin) do if o == cs then return true end end
+    return false
+end
+
+-- Eligible missions at station cs. hook=true -> priority >= 4; false -> seeds.
+function JOBS._injectedFor(cs, hook)
+    local out = {}
+    for _, e in ipairs(JOBS._injected) do
+        if (e.priority >= 4) == hook and _originMatches(e, cs) then
+            local ok_when = true
+            if e.when then
+                local ok, res = pcall(e.when, cs)
+                ok_when = ok and res and true or false
+            end
+            if ok_when then
+                local m = e.missions[cs]
+                if not m then
+                    local rec = e.record
+                    if type(rec) == "function" then
+                        local ok, res = pcall(rec, cs)
+                        rec = ok and res or nil
+                        if not ok then log("[JOBS] inject record error: " .. tostring(res)) end
+                    end
+                    if rec then
+                        rec.id      = rec.id or (e.id .. ":" .. cs)
+                        rec.origin  = rec.origin or cs
+                        rec._inject = e.id
+                        e.missions[cs] = rec
+                        m = rec
+                    end
+                end
+                if m and not JOBS._done[m.id] then out[#out + 1] = m end
+            end
+        end
+    end
+    return out
+end
+
+-- Build a mission record of the given type through its module's build(opts).
+-- Common story opts, handled for every type:
+--   story=true    bypasses max_active, no expiry timer, no reputation penalty on
+--                 failure, re-offered after a failure, listed as [SPECIAL]
+--   special=true  listed as [SPECIAL] without the story rules
+--   accept_log    text for the accept ship log (replaces the generic "N minutes" line)
+--   on_accept(m), on_complete(m), on_fail(m), on_found(m: salvage cargo picked up)
+function JOBS.build(mtype, o)
+    local mod = JOBS._registry[mtype]
+    assert(mod and mod.build, "JOBS.build: no builder for type " .. tostring(mtype))
+    local m = mod.build(o)
+    m.id = o.id or m.id
+    for _, k in ipairs({"story", "special", "accept_log", "on_accept", "on_complete", "on_fail", "on_found", "category"}) do
+        if o[k] ~= nil then m[k] = o[k] end
+    end
+    if m.story then m.special = true end
+    return m
+end
+
+local function _cb(m, name)
+    if m[name] then
+        local ok, err = pcall(m[name], m)
+        if not ok then log("[JOBS] " .. name .. " error: " .. tostring(err)) end
+    end
+end
+
+-- A job was lost (expired / cargo destroyed). Story jobs come back on the board.
+function JOBS._failed(m)
+    _cb(m, "on_fail")
+    if m.story then
+        JOBS._done[m.id] = nil
+        for _, e in ipairs(JOBS._injected) do
+            if e.id == m._inject and m.origin then e.missions[m.origin] = nil end
+        end
+    end
+end
+
+-- First dock at each station is recorded as flag visited_<callsign> (saved with the
+-- campaign) so arcs can gate on "the crew has been to X".
+function JOBS.hasVisited(cs) return RT.flag("visited_" .. cs) and true or false end
+
 -- ── Shared utilities (used by all job type modules) ───────────────────────────
 
 local _id_seq = 0
@@ -249,7 +368,7 @@ end
 
 -- ── Accept ────────────────────────────────────────────────────────────────────
 function JOBS.accept(m, skip_log, ship)
-    if #JOBS._active >= JOBS.config.max_active then return false end
+    if #JOBS._active >= JOBS.config.max_active and not m.story then return false end
     JOBS._done[m.id] = true
     for i, dm in ipairs(JOBS._dynamic_queue) do
         if dm.id == m.id then table.remove(JOBS._dynamic_queue, i); break end
@@ -257,7 +376,7 @@ function JOBS.accept(m, skip_log, ship)
 
     local mod = JOBS._registry[m.type]
     m._time_limit = mod and mod.duration(m) or (20 * 60)
-    m._expires_at = getScenarioTime() + m._time_limit
+    m._expires_at = (not m.story) and (getScenarioTime() + m._time_limit) or nil
 
     local os_e = RT.find(m.origin)
     if RT.valid(os_e) then m.origin_faction = os_e:getFaction() end
@@ -280,6 +399,7 @@ function JOBS.accept(m, skip_log, ship)
 
     if mod and mod.spawn then mod.spawn(m) end
     JOBS.updateObj()
+    _cb(m, "on_accept")
 
     if not skip_log then
         local line = mod and mod.acceptLog and mod.acceptLog(m)
@@ -314,6 +434,7 @@ function JOBS.complete(entry, completing_ship)
     end
 
     JOBS.updateObj()
+    _cb(entry.mission, "on_complete")
     DIR.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward}, "low")
 end
 
@@ -337,11 +458,12 @@ function JOBS.update()
                 local handled = mod and mod.expire and mod.expire(m)
                 if not handled then
                     RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
-                    if m.origin_faction then
+                    if m.origin_faction and not m.story then
                         RT.addReputation(m.origin_faction, -m.reward, "failed: " .. m.short)
                     end
                 end
                 if mod and mod.cleanup then mod.cleanup(m) end
+                JOBS._failed(m)
                 JOBS.untrack(m.id)
                 table.remove(JOBS._active, i)
                 JOBS.updateObj()
@@ -350,10 +472,11 @@ function JOBS.update()
                 if mod and mod.update then
                     local result = mod.update(m, entry, {now=now, jobs=JOBS})
                     if result == "remove" then
-                        if m.origin_faction then
+                        if m.origin_faction and not m.story then
                             RT.addReputation(m.origin_faction, -m.reward, "failed: " .. m.short)
                         end
                         if mod.cleanup then pcall(mod.cleanup, m) end
+                        JOBS._failed(m)
                         JOBS.untrack(m.id)
                         table.remove(JOBS._active, i)
                         JOBS.updateObj()
@@ -443,12 +566,16 @@ local function _offerMissions(cs)
 
     local offers = {}
 
-    -- Director-pushed missions take priority.
+    -- Story offers (director-pushed + priority-5 injected) are listed first and do
+    -- not use up the station's normal slots; they respect the reputation cap below.
+    local story = {}
     for _, m in ipairs(JOBS._dynamic_queue) do
         if m.origin == cs and not JOBS._done[m.id] then
-            offers[#offers + 1] = m
+            story[#story + 1] = m
         end
     end
+    for _, m in ipairs(JOBS._injectedFor(cs, true)) do story[#story + 1] = m end
+    local seeds = JOBS._injectedFor(cs, false)
 
     -- Cached valid slot missions.
     for sn = 1, n_slots do
@@ -491,6 +618,24 @@ local function _offerMissions(cs)
 
     local slots_failed = 0
     for _, sn in ipairs(slots_to_gen) do
+        -- Injected seed jobs compete for the slot with the random generator.
+        if #seeds > 0 and math.random() < JOBS.SEED_CHANCE then
+            local pick
+            for _, sm in ipairs(seeds) do
+                local dup = false
+                for _, o in ipairs(offers) do if o.id == sm.id then dup = true; break end end
+                if not dup then pick = sm; break end
+            end
+            if pick then
+                if JOBS.config.work_cooldown_enabled then
+                    ss.slots[sn].mission    = pick
+                    ss.slots[sn].offered_at = now
+                    ss.slots[sn].taken_at   = nil
+                end
+                offers[#offers + 1] = pick
+                goto next_slot
+            end
+        end
         ctx.tier = math.min(mt, math.random(0, 1))
         local mtype = JOBS.pickType()
         local mod   = JOBS._registry[mtype]
@@ -519,6 +664,9 @@ local function _offerMissions(cs)
 
     -- Apply reputation cap on displayed offers.
     while #offers > n_offer do table.remove(offers) end
+    if n_offer > 0 then
+        for i = #story, 1, -1 do table.insert(offers, 1, story[i]) end
+    end
 
     if #offers == 0 then
         if _rep_nag and n_offer == 0 then
@@ -550,7 +698,10 @@ local function _offerMissions(cs)
         local dist_u  = math.floor((m.distance_u or 0) / 1000 + 0.5)
         local dur_min = math.floor((mod2 and mod2.duration(m) or 1200) / 60)
         local stats   = string.format("%dU · %dcr · %d min", dist_u, m.reward, dur_min)
-        lines[#lines + 1] = mod2 and mod2.offerText(m, stats) or ("* " .. m.short .. "\n  " .. stats)
+        if m.story then stats = string.format("%dU · %dcr · no time limit", dist_u, m.reward) end
+        local txt = mod2 and mod2.offerText(m, stats) or ("* " .. m.short .. "\n  " .. stats)
+        if m.special then txt = txt:gsub("^%* ", "* [SPECIAL] ", 1) end
+        lines[#lines + 1] = txt
     end
     if slots_failed > 0 then
         local noun = slots_failed == 1 and "contract was" or "contracts were"
@@ -564,7 +715,7 @@ local function _offerMissions(cs)
     for _, m in ipairs(offers) do
         local cap = m
         addCommsReply("Take: " .. cap.short, function(s2, t2)
-            if #JOBS._active >= JOBS.config.max_active then
+            if #JOBS._active >= JOBS.config.max_active and not cap.story then
                 setCommsMessage('"You look pretty busy. I think I\'ll save my work for someone that gets stuff done."')
             else
                 JOBS.accept(cap, true, s2)
@@ -589,6 +740,7 @@ function JOBS.stationHook(source, target)
     if not RT.isPlayer(source) then return end
     if not source:isDocked(target) then return end
     local cs = target:getCallSign()
+    if not RT.flag("visited_" .. cs) then RT.flag("visited_" .. cs, true) end
 
     -- Completion replies for active missions due here.
     for _, entry in ipairs(JOBS._active) do

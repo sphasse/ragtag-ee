@@ -10,6 +10,8 @@ MISSIONS._status     = {}   -- id -> "inactive"|"triggered"|"active"|"done"|"can
 MISSIONS._cur_phase  = {}   -- id -> current phase name (nil when inactive/done)
 MISSIONS._entered_at = {}   -- id -> scenario time when current phase was entered
 MISSIONS._order      = {}   -- insertion order for consistent GM display
+MISSIONS._enabled    = {}   -- id -> bool (false = GM-disabled: no triggers, no seeds)
+MISSIONS._loaded     = {}   -- id -> bool (M.on_load has run and M.on_unload has not)
 
 -- Register a mission module. Called by each mission file at the bottom.
 function MISSIONS.register(M)
@@ -20,6 +22,8 @@ function MISSIONS.register(M)
     MISSIONS._registry[M.id]   = M
     MISSIONS._status[M.id]     = "inactive"
     MISSIONS._state[M.id]      = {}
+    MISSIONS._enabled[M.id]    = true
+    MISSIONS._loaded[M.id]     = false
     MISSIONS._cur_phase[M.id]  = nil
     MISSIONS._order[#MISSIONS._order + 1] = M.id
 end
@@ -30,6 +34,7 @@ function MISSIONS.start(id)
     if not M then return end
     if MISSIONS._status[id] == "active" then return end
 
+    MISSIONS._unload(id)
     MISSIONS._state[id]  = M.init_state and M.init_state() or {}
     MISSIONS._status[id] = "active"
 
@@ -42,6 +47,38 @@ end
 function MISSIONS.phase(id, phase_name)
     if MISSIONS._status[id] ~= "active" then return end
     MISSIONS._enterPhase(id, phase_name)
+end
+
+-- Lifecycle hooks. A mission that is enabled and waiting (inactive/triggered) is
+-- "loaded": M.on_load(st) runs once (seed rumors, ambient set-up) and M.on_unload(st)
+-- runs when it starts, is disabled, or is otherwise no longer waiting. A cancel
+-- returns the mission to waiting, so it loads again. Both hooks must be idempotent
+-- (the engine does not persist across a scenario restart).
+function MISSIONS._load(id)
+    local M = MISSIONS._registry[id]
+    if not M or MISSIONS._loaded[id] then return end
+    MISSIONS._loaded[id] = true
+    if M.on_load then
+        local ok, err = pcall(M.on_load, MISSIONS._state[id] or {})
+        if not ok then log("[MISSIONS] " .. id .. " on_load error: " .. tostring(err)) end
+    end
+end
+
+function MISSIONS._unload(id)
+    local M = MISSIONS._registry[id]
+    if not M or not MISSIONS._loaded[id] then return end
+    MISSIONS._loaded[id] = false
+    if M.on_unload then
+        local ok, err = pcall(M.on_unload, MISSIONS._state[id] or {})
+        if not ok then log("[MISSIONS] " .. id .. " on_unload error: " .. tostring(err)) end
+    end
+end
+
+-- Enable or disable a waiting mission (GM). Disabled: triggers ignored, on_unload runs.
+function MISSIONS.setEnabled(id, on)
+    if not MISSIONS._registry[id] then return end
+    MISSIONS._enabled[id] = on and true or false
+    if not on then MISSIONS._unload(id) end
 end
 
 -- Cancel an active mission (GM action).
@@ -160,8 +197,16 @@ function MISSIONS.update(delta)
         local M      = MISSIONS._registry[id]
         local status = MISSIONS._status[id]
 
+        -- Lifecycle: waiting + enabled missions are loaded (e.g. seed rumors in place).
+        if (status == "inactive" or status == "triggered") and MISSIONS._enabled[id] then
+            MISSIONS._load(id)
+        else
+            MISSIONS._unload(id)
+        end
+
         -- Trigger checking for non-active missions that have trigger conditions.
-        if (status == "inactive" or status == "triggered") and M.triggers then
+        if (status == "inactive" or status == "triggered") and M.triggers
+           and MISSIONS._enabled[id] then
             local met = MISSIONS._checkTriggers(id)
             if met and status == "inactive" then
                 MISSIONS._status[id] = "triggered"
@@ -241,7 +286,8 @@ function MISSIONS._criteriaText(id)
     if t.custom then
         local ok, result = pcall(t.custom, MISSIONS._state[id] or {})
         local met = ok and result
-        lines[#lines+1] = string.format("  %s Custom condition", met and "[MET]" or "[ ? ]")
+        lines[#lines+1] = string.format("  %s %s", met and "[MET]" or "[ ? ]",
+            t.custom_label or "Custom condition")
     end
 
     local overall = MISSIONS._checkTriggers(id)
@@ -323,6 +369,11 @@ function MISSIONS._showDetail(id, backToMainFn)
     end
 
     if status == "inactive" or status == "triggered" then
+        local on = MISSIONS._enabled[id]
+        addGMFunction(on and "Disable arc" or "Enable arc", function()
+            MISSIONS.setEnabled(id, not on)
+            MISSIONS._showDetail(id, backToMainFn)
+        end)
         addGMFunction("Start " .. M.name, function()
             MISSIONS.start(id)
             MISSIONS._showDetail(id, backToMainFn)

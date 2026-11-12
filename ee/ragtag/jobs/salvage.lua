@@ -305,6 +305,27 @@ function M.generate(opts)
     }
 end
 
+-- Hand-written salvage (story/seed jobs): a pod cluster at world position (wx, wy)
+-- with one target pod. o = {origin, wx, wy, cargo, reward, brief, complete_msg,
+-- region_name, + common opts from JOBS.build}. on_found(m) fires when the crew picks
+-- up the target pod (before the return trip), the natural place for a story reveal.
+function M.build(o)
+    local oe = RT.find(o.origin)
+    local dist = 0
+    if RT.valid(oe) then
+        local ox, oy = oe:getPosition()
+        dist = math.sqrt((o.wx-ox)^2 + (o.wy-oy)^2)
+    end
+    return {
+        id = JOBS.nextId(), type = "salvage", tier = o.tier or 0,
+        origin = o.origin, wx = o.wx, wy = o.wy, cargo = o.cargo, reward = o.reward,
+        short = o.cargo, obj = "Recover " .. o.cargo,
+        brief = o.brief or "", complete_msg = o.complete_msg,
+        urgent = false, distance_u = dist, region_name = o.region_name,
+        _found = false,
+    }
+end
+
 function M.duration(m)
     local d = m.distance_u or 60000
     if m.urgent then
@@ -351,6 +372,7 @@ function M.spawn(m)
 end
 
 function M.acceptLog(m)
+    if m.accept_log then return m.accept_log end
     return string.format("Contract: %s. %dm to complete. Head to grid %s.",
         m.short, math.floor(m._time_limit / 60), JOBS.gridRef(m.wx, m.wy))
 end
@@ -391,6 +413,10 @@ function M.update(m, entry, ctx)
                                 RT.shipLog("[Salvage] Cargo collected: " .. mis.cargo
                                     .. ". Return to " .. mis.origin .. " for payment.", "#80FF80")
                                 JOBS.updateObj()
+                                if mis.on_found then
+                                    local okf, errf = pcall(mis.on_found, mis)
+                                    if not okf then log("[JOBS] on_found error: " .. tostring(errf)) end
+                                end
                                 break
                             end
                         end
@@ -412,7 +438,7 @@ end
 function M.expire(m)
     _cleanCluster(m)
     RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
-    if m.origin_faction then
+    if m.origin_faction and not m.story then
         RT.addReputation(m.origin_faction, -2 * m.reward, "failed: " .. m.short)
     end
     return true  -- suppress default engine expiry handling

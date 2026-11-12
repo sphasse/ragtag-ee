@@ -54,7 +54,8 @@ Plugins can be toggled and tuned by the GM at runtime.
 
 **MISSIONS arcs** are multi-phase story events with trigger conditions and GM
 controls. Each arc is a module in `ee/ragtag/missions/`. Arcs can inject and
-remove rumors to set up and tear down quest hooks, and can lock the job board
+remove rumors to set up and tear down quest hooks, can seed the job boards with
+filler work and a special story contract (`JOBS.inject`), and can lock the job board
 while they run. Current arcs: `witness` (the Kael Voss whistleblower arc).
 
 For contributor details see
