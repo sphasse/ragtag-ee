@@ -61,7 +61,7 @@ Test as far as the environment allows, and tell the user what was and wasn't ver
 5. **Traffic check** after changing routes or the map: sample freighter positions every 10 s for 5 minutes over HTTP and confirm ships dock (`getDockedWith()`), depart, and none hover near the same point. Keep each command under a few minutes: start EE detached (`setsid nohup ...`) and log samples to a file rather than running one long blocking command.
 
 ## Delivering
-- Install with `python tools/install.py --ee <EmptyEpsilon folder>` on the **server** machine only; clients don't need the scripts.
+- Install with `python3 tools/install.py --ee <EmptyEpsilon folder>` on the **server** machine only; clients don't need the scripts.
 - The server needs `httpserver=8080` in `options.ini` for the director.
 - When writing a new session, also update `scenarios/<campaign>/bible.md` if new cast or secrets were introduced, and keep `scenarios/longhaul/plan.md` in sync with what was actually built.
 
@@ -97,4 +97,4 @@ All faction reputation consequences must be **reactive** (computed live from the
 ## Universe changes
 Add content as a new file in `ee/ragtag/verse/extensions/` (copy the example); edit `ee/ragtag/verse/drift.lua`
 only to change the base map, and never rename or remove places scenarios depend on. Always finish with
-`python tools/check.py --fix`, which validates data, scenario dependencies and regenerates derived files.
+`python3 tools/check.py --fix`, which validates data, scenario dependencies and regenerates derived files.

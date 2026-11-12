@@ -18,11 +18,11 @@ Contributors add **universe extensions** and **scenarios** independently.
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
 
 ## Commands
-- `python tools/check.py` (add `--fix` to regenerate generated files) — run after every change
-- `python tools/install.py --ee <EmptyEpsilon dir> [--link]` — install into a game
+- `python3 tools/check.py` (add `--fix` to regenerate generated files) — run after every change
+- `python3 tools/install.py --ee <EmptyEpsilon dir> [--link]` — install into a game
 - `EE_DIR=<EmptyEpsilon checkout with _build/EmptyEpsilon> tools/ci_headless.sh` — headless run + smoke test (Linux).
   Without `EE_DIR` it builds EmptyEpsilon at the pinned commits into `.ee-build/` (~20 min first time).
-- `cd director && python main.py --mock --mock-llm` — director + GM console without game or model
+- `cd director && python3 main.py --mock --mock-llm` — director + GM console without game or model
 - Requires `lua5.4`/`luac5.4` for the tools.
 
 ## Contracts (don't break these)
@@ -49,7 +49,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 - **`playSoundFile` is server-only** (plays on the server machine, never on clients). Use `RT.sound(id)` for cues; client/positional sound needs an `sfx` entity and the file on every client. Music can't be driven from Lua.
 
 ## Definition of done
-`python tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error` and the smoke test passes.
+`python3 tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error` and the smoke test passes.
 Say plainly in PR descriptions what was and wasn't tested.
 
 ---

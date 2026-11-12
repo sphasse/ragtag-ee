@@ -16,7 +16,7 @@ The reference implementation is `ee/ragtag/missions/rezkov.lua`; design notes li
 1. Create `ee/ragtag/missions/<name>.lua`.
 2. Create `ee/ragtag/missions/<name>.md` — design notes, state diagram, lore. Arc-specific details go here; don't add them to CLAUDE.md.
 3. Add `require("ragtag/missions/<name>.lua")` to `ee/ragtag/missions.lua`.
-4. Run `python tools/check.py` after any change.
+4. Run `python3 tools/check.py` after any change.
 
 That's the entire integration surface. The arc is self-contained; core gameplay (jobs board, proximity spawns, reputation) keeps working while it's inactive.
 
@@ -74,4 +74,4 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - [ ] Every `M.gm_actions` label is ≤ 18 characters (check function labels at their longest value)
 - [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
 - [ ] Design doc exists at `ee/ragtag/missions/<name>.md`
-- [ ] `python tools/check.py` passes
+- [ ] `python3 tools/check.py` passes
