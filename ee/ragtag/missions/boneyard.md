@@ -87,3 +87,7 @@ If the archive is downloaded, Science gains three locked database entries:
 - `→ Complete arc` sets both `boneyard_hack_done` and `boneyard_drone_flip` for the full outcome
 - Confirm: idle drones go `Derelict` on hack complete; faction `Relic Active` exists before reprogram fires
 - Confirm: `tools/check.py` passes after adding `require` to `missions.lua`
+
+## GM jumps
+
+Every `→` button goes through `MISSIONS.gmJump`: `M.gm_reset` destroys the Annex, Concord group and reinforcement drones, restores flagged drones, cancels timers, removes rumors/jobs, resumes the zone, resets the state table and clears `boneyard_*` flags (`boneyard_buoy_found` only when jumping to Hook, so the lifeboat job is offered again); then `M.completed` replays earlier phases (hook: Annex spawned; annex_hack: drones idled, zone suspended, Concord group spawned); then the target enters. End states skip the replay so the world ends clean. `resolve` pays reputation and credits once (`boneyard_rewarded`), so jumping between end states does not pay twice. Reputation, credits and Science DB unlocks already given cannot be undone.

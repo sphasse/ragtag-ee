@@ -846,6 +846,16 @@ function RT.setObjective(text, silent)
     if DIR then DIR.emit("objective", {text = RT.objective}) end
 end
 
+-- Remove the objective line from the Relay and Operations screens (used when a GM jump lands
+-- in a state that has no objective).
+function RT.clearObjective()
+    RT.objective = ""
+    RT.forEachPlayer(function(p)
+        pcall(function() p:removeCustom("rt_objective") end)
+        pcall(function() p:removeCustom("rt_objective_ops") end)
+    end)
+end
+
 --------------------------------------------------------------------------------
 -- Stations and comms
 --------------------------------------------------------------------------------

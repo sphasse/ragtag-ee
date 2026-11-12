@@ -71,13 +71,28 @@ The engine builds the arc's GM screen. Buttons, in order:
 M.gm_flag_prefixes = {"myarc_"}            -- flags shown in "Mission state" (default: id .. "_")
 M.gm_state_fn = function() return "Hacking" end   -- optional one-line state label
 
--- One "→" button per phase and one per end state. Each jumps from ANY status: the engine
--- starts the arc first if it is inactive or done, then runs fn(st). Clear spawned objects
--- and flags in fn (a shared _clearState) so the jump is clean.
+-- One "→" button per phase and one per end state. Each jumps from ANY status (forward, back,
+-- or from done/inactive) with the full context the target expects, via MISSIONS.gmJump:
+--   1. M.gm_reset(st, target): destroy everything the arc spawned, cancel its timers, remove its
+--      rumors/jobs, reset `st` to init_state in place, clear the objective, clear its flags
+--      (MISSIONS.gmClearFlags; "*_profile_known" flags are always kept).
+--   2. M.completed[p](st) for every phase p BEFORE the target, in phase_order: the lasting effects
+--      of having finished p (stations/ships left in the world, flags, DB entries). Idempotent.
+--   3. setup(st): flags/objects specific to this jump (an end state's outcome flags).
+--   4. the target phase's normal `enter`.
+-- Write M.completed so replaying any prefix of phases yields the world a real run would have.
+-- Resets cannot undo reputation, credits or Science DB entries; make `resolve` pay once
+-- (e.g. a "<id>_rewarded" flag) so GM end-state jumps don't pay twice.
+M.gm_reset = function(st, target) ... end
+M.completed = {
+    meeting = function(st) RT.flag("myarc_met", true) end,
+}
+local function _jump(phase, setup, opts) return function() MISSIONS.gmJump("myarc", phase, setup, opts) end end
 M.gm_states = {
-    {key = "meeting",   label = "→ Meeting",     fn = function(st) _clearState(st); MISSIONS.phase("myarc", "meeting") end},
-    {key = "done_win",  label = "→ Done: Win",   fn = function(st) _clearState(st); RT.flag("myarc_won", true); MISSIONS.phase("myarc", "done") end},
-    {key = "done_lose", label = "→ Done: Lose",  fn = function(st) _clearState(st); MISSIONS.phase("myarc", "done") end},
+    {key = "meeting",   label = "→ Meeting",     fn = _jump("meeting")},
+    {key = "done_win",  label = "→ Done: Win",   fn = _jump("done", function() RT.flag("myarc_won", true) end,
+                                                              {skip_completed = true})},   -- clean end world
+    {key = "done_lose", label = "→ Done: Lose",  fn = _jump("done", nil, {skip = {meeting = true}})},
 }
 -- "→ Inactive" is added by the engine (MISSIONS.gmDeactivate: cancel + disable so criteria
 -- cannot re-trigger it) unless an entry has key = "inactive", which then replaces it.

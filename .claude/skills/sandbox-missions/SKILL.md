@@ -67,7 +67,7 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 ## Checklist before shipping
 
 - [ ] `M.on_cancel` destroys all spawned objects
-- [ ] Every `gm_states` fn calls a `_clearState()` helper first (idempotent skips)
+- [ ] `M.gm_reset` + `M.completed` let every `→` button land with the full context (jump through each phase and back; no leftover ships, timers, flags or state)
 - [ ] `RT.after` timers cancelled with `RT.cancelTimer(name)` in `_clearState` if they shouldn't fire after phase ends
 - [ ] Arc triggers use `not_flagged` to prevent re-triggering after completion
 - [ ] Destruction callbacks registered via `RT.onKill`, never `entity:onDestruction`

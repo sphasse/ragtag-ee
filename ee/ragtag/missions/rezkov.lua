@@ -483,68 +483,98 @@ end
 
 M.gm_state_fn = _gmStateLabel
 
-local function _gmClearFlags(st)
+M.gm_flag_prefixes = {"rezkov_", "kael_"}
+
+-- GM jumps (see MISSIONS.gmJump): reset the arc to a blank slate, replay the lasting effects of
+-- every earlier phase, then enter the target. Reset removes everything this arc spawns or
+-- schedules (Rezkov's station and nebula, the Meridian, Galen's hack level, pending timers, cover
+-- jobs, hook rumors, the objective), restores the state table and clears rezkov_* / kael_* flags.
+-- It cannot undo reputation, credits or Science DB entries already given.
+M.gm_reset = function(st, target)
+    for _, t in ipairs({"rezkov_hack_msg2", "rezkov_meridian_hail", "rezkov_meridian_hail_retry",
+                        "rezkov_meridian_despawn"}) do
+        RT.cancelTimer(t)
+    end
+    -- Galen's frontshield hack level must go back to 0, or m2_active would complete instantly.
+    local galen = st.galen
+    if not RT.valid(galen) then
+        for _, obj in ipairs(getObjectsInRadius(-75000, -52000, 3000)) do
+            if isObjectType(obj, "SpaceStation") then galen = obj; break end
+        end
+    end
+    if RT.valid(galen) then pcall(function() galen:setSystemHackedLevel("frontshield", 0) end) end
     _despawnWaypoint(st)
     if RT.valid(st.meridian) then
         RT.cancelKillTracking(st.meridian)
         st.meridian:setCanBeDestroyed(true)
         st.meridian:destroy()
-        RT.named["CWS Meridian"] = nil
     end
-    st.meridian    = nil
-    st.hack_done   = false
-    st.galen       = nil
-    st.m3_disabled = false
-    st.m3_boarded  = false
-    for _, k in ipairs({"hook","declined","m1_done","m2_done",
-                         "m3_accepted","m3_data","arc_done"}) do
-        RT.clearFlag("rezkov_" .. k)
-    end
-    RT.clearFlag("kael_alive")
+    RT.named["CWS Meridian"] = nil
+    for k in pairs(st) do st[k] = nil end
+    for k, v in pairs(M.init_state()) do st[k] = v end
+    JOBS.removeCategory("REZKOV_COVER")
     RUMORS.removeCategory("REZKOV_HOOK")
+    RT.clearObjective()
+    MISSIONS.gmClearFlags("rezkov")
 end
 
-M.gm_flag_prefixes = {"rezkov_", "kael_"}
+-- Lasting effects of having FINISHED each phase (replayed in order by a jump to a later phase).
+-- Phase ENTER code still runs for the target itself.
+M.completed = {
+    hook        = function(st) RT.flag("rezkov_hook", true);   _addRecords("thresh_profile", "Thresh") end,
+    m1_navigate = function(st) RT.flag("rezkov_m1_done", true); _addRecords("rezkov_profile", "Orlan Rezkov") end,
+    m2_active   = function(st) st.hack_done = true end,
+    m2_deliver  = function(st)
+        RT.flag("rezkov_m2_done", true)
+        _despawnWaypoint(st)                      -- "Rezkov's station has gone dark"
+    end,
+    m3_active   = function(st)                    -- the crew met Kael aboard the Meridian
+        RT.flag("rezkov_m3_accepted", true)
+        _addRecords("kael_profile", "Commander Kael")
+    end,
+}
 
--- GM "→" buttons (labels max 18 chars). Each jumps from any state, clearing the arc's
--- world objects and flags first so the jump is clean. "Done:" states pick the outcome.
-local function _gmJump(phase, flags)
-    return function(st)
-        _gmClearFlags(st)
-        for k, v in pairs(flags or {}) do RT.flag(k, v) end
-        MISSIONS.phase("rezkov", phase)
-    end
+local function _jump(phase, setup, opts)
+    return function() MISSIONS.gmJump("rezkov", phase, setup, opts) end
 end
 
-local function _gmDone(outcome, kael_alive, extra)
-    return function(st)
-        _gmClearFlags(st)
+-- An end state: outcome flags, whether Kael lived, and whether the crew met her (skip the
+-- m3_active effects otherwise: no Kael record). Reputation and credits are NOT applied.
+local function _done(outcome, kael_alive, met_kael, extra)
+    return _jump("done", function(st)
+        RT.flag("rezkov_m3_accepted", true)
         for k, v in pairs(extra or {}) do RT.flag(k, v) end
         RT.flag("rezkov_arc_done", outcome)
         RT.flag("kael_alive", kael_alive)
-        MISSIONS.phase("rezkov", "done")
-    end
+    end, met_kael and {} or {skip = {m3_active = true}})
 end
 
+-- GM "→" buttons (labels max 18 chars). Each jumps from any state with the full context.
 M.gm_states = {
-    {key = "inactive", label = "→ Inactive", fn = function(st)
-        _gmClearFlags(st)
-        RT.flag("rezkov_declined", "gm_inactivated")
-        MISSIONS.phase("rezkov", "hook")   -- suppressed: will not trigger or offer the hook
-    end},
-    {key = "rumors",    label = "→ Rumors",    fn = _gmJump("hook")},
-    {key = "meeting",   label = "→ Meeting",   fn = _gmJump("m1_navigate", {rezkov_hook = true})},
-    {key = "hacking",   label = "→ Hacking",   fn = _gmJump("m2_active",   {rezkov_hook = true, rezkov_m1_done = true})},
-    {key = "intercept", label = "→ Intercept", fn = _gmJump("m3_active",
-        {rezkov_hook = true, rezkov_m1_done = true, rezkov_m2_done = true, rezkov_m3_accepted = true})},
-    {key = "datarun",   label = "→ Data run",  fn = _gmJump("m3_deliver",
-        {rezkov_hook = true, rezkov_m1_done = true, rezkov_m2_done = true, rezkov_m3_accepted = true,
-         rezkov_m3_data = true})},
+    {key = "inactive", label = "→ Inactive", fn = _jump("hook", function()
+        RT.flag("rezkov_declined", "gm_inactivated")   -- suppressed: no hook, no trigger
+    end)},
+    {key = "rumors",    label = "→ Rumors",    fn = _jump("hook")},
+    {key = "meeting",   label = "→ Meeting",   fn = _jump("m1_navigate")},
+    {key = "hacking",   label = "→ Hacking",   fn = _jump("m2_active")},
+    {key = "cardrun",   label = "→ Card run",  fn = _jump("m2_deliver", function(st)
+        _spawnWaypoint(st)                         -- Rezkov's station is still up until the card is delivered
+        _spawnHackTerminal(st)
+        RT.setObjective("Card to Thresh @ Dustmote", true)
+    end)},
+    {key = "intercept", label = "→ Intercept", fn = _jump("m3_active", function()
+        RT.flag("rezkov_m3_accepted", true)
+    end)},
+    {key = "datarun",   label = "→ Data run",  fn = _jump("m3_deliver", function()
+        RT.flag("rezkov_m3_data", true)
+        RT.flag("kael_alive", true)
+        RT.setObjective("Report to Thresh @ Dustmote", true)
+    end)},
     -- End states: the four real outcomes (see the header for what each means).
-    {key = "done_concord",   label = "→ Done: Concord",   fn = _gmDone("concord_won", true)},
-    {key = "done_data",      label = "→ Done: Data",      fn = _gmDone("data_delivered", true, {rezkov_m3_data = true})},
-    {key = "done_destroyed", label = "→ Done: Destroyed", fn = _gmDone("meridian_destroyed", false)},
-    {key = "done_escaped",   label = "→ Done: Escaped",   fn = _gmDone("meridian_escaped", true)},
+    {key = "done_concord",   label = "→ Done: Concord",   fn = _done("concord_won", true, true)},
+    {key = "done_data",      label = "→ Done: Data",      fn = _done("data_delivered", true, true, {rezkov_m3_data = true})},
+    {key = "done_destroyed", label = "→ Done: Destroyed", fn = _done("meridian_destroyed", false, false)},
+    {key = "done_escaped",   label = "→ Done: Escaped",   fn = _done("meridian_escaped", true, false)},
 }
 
 -- State-specific helpers: only shown in the phase they apply to.

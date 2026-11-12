@@ -832,15 +832,21 @@ M.phases = {
 function M.resolve(st)
     RT.flag("boneyard_arc_done", true)
 
-    local concord_delta = -300
-    if RT.flag("boneyard_drone_flip") then
-        concord_delta = concord_delta - 200
-        RT.addReputation("Corsairs", 150, "Enemy of Concord battle group")
-    end
-    RT.addReputation("Concord", concord_delta, "Ashgrave Annex breach")
+    -- Reputation and credits are paid once. A GM jump to another end state (or back to done)
+    -- does not pay again: "boneyard_rewarded" survives a jump to "done" and is cleared by any
+    -- jump to an earlier state, so a replay pays once more.
+    if not RT.flag("boneyard_rewarded") then
+        RT.flag("boneyard_rewarded", true)
+        local concord_delta = -300
+        if RT.flag("boneyard_drone_flip") then
+            concord_delta = concord_delta - 200
+            RT.addReputation("Corsairs", 150, "Enemy of Concord battle group")
+        end
+        RT.addReputation("Concord", concord_delta, "Ashgrave Annex breach")
 
-    if RT.flag("boneyard_hack_done")  then RT.addCredits(600, "Ashgrave research data") end
-    if RT.flag("boneyard_drone_flip") then RT.addCredits(200, "Drone tactical bonus")   end
+        if RT.flag("boneyard_hack_done")  then RT.addCredits(600, "Ashgrave research data") end
+        if RT.flag("boneyard_drone_flip") then RT.addCredits(200, "Drone tactical bonus")   end
+    end
 
     if RT.flag("boneyard_hack_done") then
         _indexAshgraveResearch()   -- normally already done when the download finished
@@ -898,41 +904,57 @@ M.gm_state_fn = function()
     return ph or st
 end
 
--- GM "→" buttons (labels max 18 chars). "→ Inactive" is the engine default (stop and disable).
-local function _gmJump(phase, setup)
-    return function(st)
-        _clearState(st)
-        if setup then setup(st) end
-        MISSIONS.phase("boneyard", phase)
-    end
+-- GM jumps (see MISSIONS.gmJump): reset to a blank slate, replay the lasting effects of every
+-- earlier phase, then enter the target. Reset removes the Annex, the Concord group, every drone
+-- spawned or re-flagged, pending timers, rumors/jobs, the zone suspension, and restores the
+-- state table. It clears boneyard_* flags (the lifeboat's "buoy_found" only when jumping to the
+-- start, so its job is offered again) and cannot undo reputation, credits or Science DB unlocks.
+M.gm_reset = function(st, target)
+    _clearState(st)
+    for k in pairs(st) do st[k] = nil end
+    for k, v in pairs(M.init_state()) do st[k] = v end
+    RT.clearObjective()
+    MISSIONS.gmClearFlags("boneyard", function(name)
+        if name == "boneyard_buoy_found" then return target ~= "hook" end
+        if name == "boneyard_rewarded"   then return target == "done" end
+        return false
+    end)
 end
 
-local function _gmDone(hack, flip)
-    return function(st)
-        _clearState(st)
-        if hack then RT.flag("boneyard_hack_done", true)  else RT.clearFlag("boneyard_hack_done") end
-        if flip then RT.flag("boneyard_drone_flip", true) else RT.clearFlag("boneyard_drone_flip") end
-        MISSIONS.phase("boneyard", "done")
-    end
-end
-
-M.gm_states = {
-    {key = "hook",     label = "→ Hook",          fn = _gmJump("hook")},
-    {key = "hack",     label = "→ Annex hack",    fn = _gmJump("annex_hack", function(st) _spawnAnnex(st) end)},
-    {key = "control",  label = "→ Annex control", fn = _gmJump("annex_control", function(st)
-        _spawnAnnex(st)
+-- Lasting effects of having FINISHED each phase.
+M.completed = {
+    hook       = function(st) _spawnAnnex(st) end,
+    annex_hack = function(st)
+        st.hack_mid_logged = true
         _idleDrones(st)
         PROX.suspendZone("the Boneyard")
         _spawnConcordGroup(st)
-    end)},
-    {key = "extract",  label = "→ Extract",       fn = _gmJump("extract", function(st)
-        PROX.suspendZone("the Boneyard")
-    end)},
+    end,
+}
+
+local function _jump(phase, setup, opts)
+    return function() MISSIONS.gmJump("boneyard", phase, setup, opts) end
+end
+
+-- An end state: which objectives were achieved. The world is left clean (no Annex, no fleet).
+local function _done(hack, flip)
+    return _jump("done", function()
+        if hack then RT.flag("boneyard_hack_done", true) end
+        if flip then RT.flag("boneyard_drone_flip", true) end
+    end, {skip_completed = true})
+end
+
+-- GM "→" buttons (labels max 18 chars). "→ Inactive" is the engine default (stop and disable).
+M.gm_states = {
+    {key = "hook",     label = "→ Hook",          fn = _jump("hook")},
+    {key = "hack",     label = "→ Annex hack",    fn = _jump("annex_hack")},
+    {key = "control",  label = "→ Annex control", fn = _jump("annex_control")},
+    {key = "extract",  label = "→ Extract",       fn = _jump("extract")},
     -- End states: which of the two objectives (Annex data, drone flip) were achieved.
-    {key = "done_full",    label = "→ Done: Full",    fn = _gmDone(true,  true)},
-    {key = "done_data",    label = "→ Done: Data",    fn = _gmDone(true,  false)},
-    {key = "done_drones",  label = "→ Done: Drones",  fn = _gmDone(false, true)},
-    {key = "done_minimal", label = "→ Done: Minimal", fn = _gmDone(false, false)},
+    {key = "done_full",    label = "→ Done: Full",    fn = _done(true,  true)},
+    {key = "done_data",    label = "→ Done: Data",    fn = _done(true,  false)},
+    {key = "done_drones",  label = "→ Done: Drones",  fn = _done(false, true)},
+    {key = "done_minimal", label = "→ Done: Minimal", fn = _done(false, false)},
 }
 
 -- No phase-specific helpers yet.

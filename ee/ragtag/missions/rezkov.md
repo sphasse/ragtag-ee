@@ -121,3 +121,7 @@ injection if the arc has been inactivated.
   (`JOBS.inject{priority=3, ensure=true}`), generated the first time the crew opens the board at
   that station while M2 is active. Deliberately not special: normal rewards, no `[SPECIAL]` tag,
   no story rules. They just read as a lucky break. No jobs are seeded for the Dustmote leg.
+
+## GM jumps
+
+Every `→` button goes through `MISSIONS.gmJump`: `M.gm_reset` wipes the station, nebula, Meridian, Galen's hack level, pending timers, cover jobs, rumors, objective, state and `rezkov_*`/`kael_*` flags (the `*_profile_known` flags stay); then `M.completed` replays the lasting effects of each earlier phase (flags, Thresh/Rezkov/Kael DB profiles, Rezkov's station going dark after the card is delivered); then the target phase enters. End states (`→ Done: …`) set the outcome flags and `kael_alive`; the two outcomes where the crew never met Kael skip her profile. Reputation and credits are not applied by a jump.

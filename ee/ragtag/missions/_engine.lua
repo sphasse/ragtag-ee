@@ -435,6 +435,67 @@ function MISSIONS._ensureActive(id)
     MISSIONS.start(id)
 end
 
+-- Remove the arc's saved flags (those starting with one of M.gm_flag_prefixes, default
+-- "<id>_") so a GM jump starts from a clean slate. `keep(name)` returns true to keep a flag.
+-- Flags that record Science DB profiles ("*_profile_known") are always kept: the entries
+-- cannot be removed from the database once added.
+function MISSIONS.gmClearFlags(id, keep)
+    local M = MISSIONS._registry[id]
+    local prefixes = (M and M.gm_flag_prefixes) or {id .. "_"}
+    local names = {}
+    for name in pairs((RT.campaign and RT.campaign.flags) or {}) do
+        for _, pre in ipairs(prefixes) do
+            if name:sub(1, #pre) == pre then names[#names + 1] = name; break end
+        end
+    end
+    for _, name in ipairs(names) do
+        if not name:find("_profile_known$") and not (keep and keep(name)) then
+            RT.clearFlag(name)
+        end
+    end
+end
+
+-- Jump to a phase from ANY state (forward, back, or from done/inactive) with the whole context
+-- the phase expects:
+--   1. make the mission active;
+--   2. M.gm_reset(st, target): remove everything the arc spawned or scheduled, reset its state
+--      table to init_state, clear its flags and the objective;
+--   3. M.completed[p](st) for every phase p before the target, in M.phase_order: the lasting
+--      effects of having finished p (spawned stations/ships, flags, DB entries);
+--   4. setup(st): extra flags or objects specific to this jump (e.g. an end-state's outcome);
+--   5. enter the target phase normally.
+-- opts.skip_completed = true skips step 3 (end states that should leave a clean world);
+-- opts.skip = {phase=true} skips individual completed hooks.
+function MISSIONS.gmJump(id, phase_name, setup, opts)
+    local M = MISSIONS._registry[id]
+    if not M then return end
+    opts = opts or {}
+    MISSIONS._ensureActive(id)
+    local st = MISSIONS._state[id]
+    MISSIONS._enabled[id] = true
+    -- Starting an arc re-routes by its saved flags (Rezkov's init sends a finished arc straight
+    -- back to "done"), so force it active before the reset clears those flags.
+    MISSIONS._status[id] = "active"
+    if M.gm_reset then
+        local ok, err = pcall(M.gm_reset, st, phase_name)
+        if not ok then log("[MISSIONS] " .. id .. " gm_reset error: " .. tostring(err)) end
+    end
+    if M.completed and not opts.skip_completed then
+        for _, p in ipairs(M.phase_order or {}) do
+            if p == phase_name then break end
+            if M.completed[p] and not (opts.skip and opts.skip[p]) then
+                local ok, err = pcall(M.completed[p], st)
+                if not ok then log("[MISSIONS] " .. id .. ".completed[" .. p .. "] error: " .. tostring(err)) end
+            end
+        end
+    end
+    if setup then
+        local ok, err = pcall(setup, st)
+        if not ok then log("[MISSIONS] " .. id .. " gm setup error: " .. tostring(err)) end
+    end
+    MISSIONS.phase(id, phase_name)
+end
+
 -- Default "-> Inactive": stop the arc and keep it from re-triggering (until re-enabled).
 function MISSIONS.gmDeactivate(id)
     local M = MISSIONS._registry[id]
@@ -501,6 +562,7 @@ function MISSIONS._showDetail(id, backToMainFn)
             addGMFunction(MISSIONS._gmLabel(def.label, id), function()
                 MISSIONS._ensureActive(id)
                 MISSIONS._enabled[id] = true
+                -- fn typically calls MISSIONS.gmJump(id, phase, setup, opts)
                 local ok, err = pcall(def.fn, MISSIONS._state[id])
                 if not ok then log("[MISSIONS] " .. id .. " gm state '" .. tostring(def.label) .. "' error: " .. tostring(err)) end
                 globalMessage("[GM] " .. M.name .. ": " .. tostring(def.label) .. ".", 4)
