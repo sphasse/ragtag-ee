@@ -21,6 +21,9 @@ SR = 44100
 OUT = Path(__file__).resolve().parent.parent / "ee" / "ragtag" / "sfx"
 TAU = 2 * math.pi
 
+# Warp jammer cues play at half their original amplitude (peaks 0.85 / 0.55 / 0.8 before).
+JAMMER_GAIN = 0.5
+
 
 def n(sec):
     return int(sec * SR)
@@ -149,7 +152,7 @@ def jammer_engage():
                               attack=0.002, release=0.02, lowpass=5000)))
     parts = [rise, thud] + [c for _, c in crackle]
     offsets = [0.0, 1.5] + [1.5 + o for o, _ in crackle]
-    return finish(mix(*parts, offsets=offsets), peak=0.85)
+    return finish(mix(*parts, offsets=offsets), peak=0.85 * JAMMER_GAIN)
 
 
 def jammer_bed():
@@ -167,7 +170,7 @@ def jammer_bed():
                + 0.4 * math.sin(TAU * 124 * t + 1.0)) * 0.35 * wob
         whine = 0.08 * math.sin(TAU * (2200 + 160 * math.sin(TAU * 0.6 * t)) * t)
         out.append((hum + whine) * env_ar(i, total, 0.8, 0.8) + hiss[i])
-    return finish(out, peak=0.55, fade=0.2)  # a bed sits under the dialogue
+    return finish(out, peak=0.55 * JAMMER_GAIN, fade=0.2)  # a bed sits under the dialogue
 
 
 def jammer_release():
@@ -176,7 +179,7 @@ def jammer_release():
     fall = sweep(900, 180, 1.5, vol=0.7, attack=0.01, release=0.6, curve=0.6,
                  harmonics=((1, 1.0), (2, 0.25)))
     click = noise(0.05, rng, vol=0.5, attack=0.001, release=0.03, lowpass=3500)
-    return finish(mix(fall, click), peak=0.8)
+    return finish(mix(fall, click), peak=0.8 * JAMMER_GAIN)
 
 
 CUES = {
