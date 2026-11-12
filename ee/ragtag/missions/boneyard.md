@@ -25,7 +25,7 @@ Rumor injection: Concord is mobilising a heavy response group, destination unkno
 ### annex_hack
 Annex comms are encrypted. Relay must hack the `frontshield` system to 100% (hacking is a Relay-screen function; each success adds 50% and it decays over 180 s, so two successes in a row). At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When hack completes:
 - All Relic drones in Boneyard radius set to Derelict/idle (the IFF is offline)
-- Concord battle group spawns ~42U NW (8, -80 verse) and starts flying toward Annex at warp
+- Concord battle group spawns at grid zy6 (30, -130 verse, ~26U NW of the Annex) and attacks the player ship at warp; orders are re-issued every 10 s, and with no living player they defend the Annex instead
 - Proximity spawns for the Boneyard are suspended
 - Timer: warp jammer deploys at Boneyard center 90 seconds after annex_control enters
 

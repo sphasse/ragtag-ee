@@ -39,8 +39,8 @@ local _ASHGRAVE_X   =  39000   -- Ashgrave dead world (hook scan target)
 local _ASHGRAVE_Y   = -96000
 local _ANNEX_X      =  43000   -- Ashgrave Annex deep in the debris field
 local _ANNEX_Y      = -104000
-local _BATTLE_X     =   8000   -- Concord battle group initial position (~42U NW of Annex)
-local _BATTLE_Y     = -80000
+local _BATTLE_X     =  30000   -- Concord battle group arrives at grid zy6 (centre), ~26U NW of the Annex
+local _BATTLE_Y     = -130000
 local _REIN_X       =  43000   -- Reinforcement drone spawn (~35U S of Annex, outside scan range)
 local _REIN_Y       = -139000
 local _BONEYARD_CX  =  36000   -- Boneyard center (for jammer placement and exit check)
@@ -139,6 +139,33 @@ local function _idleDrones(st)
     log("[BONEYARD] idled " .. #found .. " Relic drones")
 end
 
+-- (Re)issue the battle group's orders: attack the first living player ship. With no player to
+-- target they defend the Annex (fly to it and engage anything hostile nearby). Re-issued every
+-- few seconds from the phase updates so a dead or respawned player never leaves them idle.
+-- Note: orderFlyTowards takes coordinates, not an entity; passing the Annex there made the
+-- group roam off toward independent traffic outside the Boneyard.
+local function _orderConcordAttack(st)
+    local target
+    for _, p in ipairs(RT.players or {}) do
+        if RT.valid(p) then target = p; break end
+    end
+    for _, s in ipairs(st.concord_group or {}) do
+        if RT.valid(s) then
+            if target then
+                s:orderAttack(target)
+            elseif RT.valid(st.annex) then
+                s:orderDefendTarget(st.annex)
+            end
+        end
+    end
+end
+
+local function _tickConcordOrders(st, now)
+    if now - (st.concord_ordered_at or 0) < 10 then return end
+    st.concord_ordered_at = now
+    _orderConcordAttack(st)
+end
+
 local function _spawnConcordGroup(st)
     local offsets = {
         {    0,     0},   -- command ship
@@ -159,7 +186,6 @@ local function _spawnConcordGroup(st)
         local s = CpuShip():setTemplate(templates[i]):setFaction("Concord Hostile")
         s:setPosition(_BATTLE_X + o[1], _BATTLE_Y + o[2])
         s:setWarpDrive(true)
-        s:orderFlyTowards(st.annex)
         st.concord_group[#st.concord_group + 1] = s
         if i == 1 then
             s:setCallSign("CNS Vanguard")
@@ -168,6 +194,8 @@ local function _spawnConcordGroup(st)
             st.concord_cmd = s
         end
     end
+
+    _orderConcordAttack(st)
 
     RT.shipLog(
         "[Comms] [CNS Vanguard] All vessels in Boneyard sector: restricted military zone. " ..
@@ -213,7 +241,7 @@ local function _reprogramDrones(st)
     end
 
     RT.shipLog("[Relay] IFF override complete. All drones retargeting Concord transponders.", "#FF8800")
-    RT.shipLog("[Science] Eight Relic contacts inbound from south — fast approach. They are on our side.", "#00FF88")
+    RT.shipLog("[Science] Eight Relic contacts inbound from the north — fast approach. They are on our side.", "#00FF88")
 end
 
 local function _spawnJammer(st)
@@ -665,6 +693,7 @@ M.phases = {
             end
 
             _trackCmdShip(st)
+            _tickConcordOrders(st, now)
 
             -- Advance to extract when player moves >10U from Annex
             local players = RT.players
@@ -691,6 +720,7 @@ M.phases = {
         end,
         update = function(st, delta, now)
             _trackCmdShip(st)
+            _tickConcordOrders(st, now)
 
             local players = RT.players
             if not players or not players[1] then return end
