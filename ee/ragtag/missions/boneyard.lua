@@ -242,6 +242,17 @@ local function _reprogramDrones(st)
     RT.shipLog("[Science] Eight Relic contacts inbound from the north — fast approach. They are on our side.", "#00FF88")
 end
 
+-- Unlock the Ashgrave Science DB entries once the archive has been downloaded (idempotent: the
+-- log line fires only the first time, so resolve() can call it again for GM jumps to a done state).
+local function _indexAshgraveResearch()
+    local L = SCIDB._locked and SCIDB._locked["hollow_true_nature"]
+    if L and L.unlocked then return end
+    SCIDB.unlock("hollow_true_nature")
+    SCIDB.unlock("ashgrave_research")
+    SCIDB.unlock("synthesis_details")
+    RT.shipLog("[Science] Ashgrave research files indexed. Database updated.", "#00CCAA")
+end
+
 local function _setAnnexControlComms(st)
     if not RT.valid(st.annex) then return end
     st.annex:setCommsFunction(function(src, tgt)
@@ -652,6 +663,7 @@ M.phases = {
                     st.download_done = true
                     RT.flag("boneyard_hack_done", true)
                     RT.shipLog("[Relay] Research archive download complete. Data secured.", "#00AAFF")
+                    _indexAshgraveResearch()
                 end
             end
 
@@ -721,10 +733,7 @@ function M.resolve(st)
     if RT.flag("boneyard_drone_flip") then RT.addCredits(200, "Drone tactical bonus")   end
 
     if RT.flag("boneyard_hack_done") then
-        SCIDB.unlock("hollow_true_nature")
-        SCIDB.unlock("ashgrave_research")
-        SCIDB.unlock("synthesis_details")
-        RT.shipLog("[Science] Ashgrave research files indexed. Database updated.", "#00CCAA")
+        _indexAshgraveResearch()   -- normally already done when the download finished
     end
 
     if RT.flag("boneyard_drone_flip") then
