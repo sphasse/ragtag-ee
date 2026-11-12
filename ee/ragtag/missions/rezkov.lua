@@ -214,6 +214,23 @@ local function _spawnMeridian(st)
     RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")
 end
 
+-- The disabled Meridian hails the crew, inviting them aboard. If comms are busy, retry once and
+-- then fall back to a ship-log line, so the hail is never lost.
+local _MERIDIAN_SURRENDER = '"You got us. We give up. But I\'d like to meet you in person to discuss an offer just between us."'
+
+local function _meridianSurrenderHail(st)
+    local m = st.meridian
+    if not RT.valid(m) then return end
+    if RT.hail(m, _MERIDIAN_SURRENDER, "CWS Meridian") then return end
+    RT.after(15, function()
+        local cur = MISSIONS._state["rezkov"]
+        if not (cur and RT.valid(cur.meridian)) or cur.m3_boarded then return end
+        if not RT.hail(cur.meridian, _MERIDIAN_SURRENDER, "CWS Meridian") then
+            RT.shipLog("[CWS Meridian] " .. _MERIDIAN_SURRENDER, "#FFCC80")
+        end
+    end, "rezkov_meridian_hail_retry")
+end
+
 local function _checkMeridianDisabled(st)
     if not RT.valid(st.meridian) or st.m3_disabled then return end
     local ok1, hull     = pcall(function() return st.meridian:getHull() end)
@@ -249,6 +266,10 @@ local function _checkMeridianDisabled(st)
         log("[RZKOV] Meridian disabled — faction=Independent, commsFunction set, m3_disabled=true")
         RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
         RT.setObjective("Board CWS Meridian", true)
+        RT.after(3, function()
+            local cur = MISSIONS._state["rezkov"]
+            if cur and cur.m3_disabled and not cur.m3_boarded then _meridianSurrenderHail(cur) end
+        end, "rezkov_meridian_hail")
     end
 end
 
