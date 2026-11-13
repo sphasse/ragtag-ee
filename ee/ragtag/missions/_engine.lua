@@ -44,9 +44,29 @@ function MISSIONS.start(id)
     MISSIONS._enterPhase(id, M.start_phase)
 end
 
+-- Arcs are linear (see missions_api.md, "Linear arcs"): from a phase the arc may go to the
+-- next phase in phase_order, to "done", or back to an earlier phase (a failure restart).
+-- Leaving "init" (start-of-session routing by saved flags) and GM jumps are exempt.
+-- Anything else is logged as a warning, not refused.
+local function _phaseIndex(M, name)
+    for i, p in ipairs(M.phase_order or {}) do if p == name then return i end end
+end
+
+function MISSIONS._checkLinear(id, from, to)
+    local M = MISSIONS._registry[id]
+    if not M or not M.phase_order or MISSIONS._gm_jumping then return true end
+    if from == nil or from == "init" or to == "done" or from == to then return true end
+    local i, j = _phaseIndex(M, from), _phaseIndex(M, to)
+    if i and j and (j == i + 1 or j < i) then return true end
+    log("[MISSIONS] WARNING: " .. id .. " non-linear transition " .. tostring(from) .. " -> " .. tostring(to)
+        .. " (arcs go to the next phase, done, or back to an earlier phase)")
+    return false
+end
+
 -- Transition to a named phase. Called from comms callbacks or phase update functions.
 function MISSIONS.phase(id, phase_name)
     if MISSIONS._status[id] ~= "active" then return end
+    MISSIONS._checkLinear(id, MISSIONS._cur_phase[id], phase_name)
     MISSIONS._enterPhase(id, phase_name)
 end
 
@@ -493,7 +513,10 @@ function MISSIONS.gmJump(id, phase_name, setup, opts)
         local ok, err = pcall(setup, st)
         if not ok then log("[MISSIONS] " .. id .. " gm setup error: " .. tostring(err)) end
     end
-    MISSIONS.phase(id, phase_name)
+    MISSIONS._gm_jumping = true
+    local ok, err = pcall(MISSIONS.phase, id, phase_name)
+    MISSIONS._gm_jumping = false
+    if not ok then log("[MISSIONS] " .. id .. " gm jump error: " .. tostring(err)) end
 end
 
 -- Default "-> Inactive": stop the arc and keep it from re-triggering (until re-enabled).
@@ -581,7 +604,9 @@ function MISSIONS._showDetail(id, backToMainFn)
             if pdef and not pdef.no_skip and pname ~= phase then
                 local pn = pname
                 addGMFunction("> " .. pn, function()
-                    MISSIONS.phase(id, pn)
+                    MISSIONS._gm_jumping = true   -- legacy GM skip: exempt from the linear check
+                    pcall(MISSIONS.phase, id, pn)
+                    MISSIONS._gm_jumping = false
                     MISSIONS._showDetail(id, backToMainFn)
                 end)
             end

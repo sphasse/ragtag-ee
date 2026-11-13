@@ -58,6 +58,26 @@ M.phases = {
 }
 ```
 
+### Linear arcs (no branching)
+
+Every arc is **one phase path**. From any phase the arc goes to exactly one of:
+
+- the **next** phase in `phase_order`,
+- **`done`**, with the outcome recorded in a flag (`<id>_arc_done = "..."`), or
+- **back** to an earlier phase, as a failure restart (e.g. the Maw's missed shot restarts `staging`).
+
+A crew decision either **ends** the arc with an outcome or **continues** down the path; it never
+picks between two different continuations. Variation lives *inside* a phase as flags: dialogue
+variants (Ledger's `rezkov_ai_planted` briefing), optional objectives that shape the outcome
+(Boneyard's archive download and drone flip; Arc 6's rally wings), and outcome modifiers read in
+`resolve`. If a design needs two genuinely different missions, make them two arcs.
+
+This keeps state management simple: `M.completed` can replay any prefix of `phase_order`, and
+every GM `→` jump has one well-defined world to rebuild.
+
+The engine checks it: `MISSIONS.phase` logs `[MISSIONS] WARNING: <id> non-linear transition a -> b`
+for anything else. Leaving `init` (start-of-session routing by saved flags) and GM jumps are exempt.
+
 ### GM console (every arc has the same screen)
 
 The engine builds the arc's GM screen. Buttons, in order:

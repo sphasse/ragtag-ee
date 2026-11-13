@@ -140,31 +140,33 @@ Gauntlet broadcasting a general distress — half her crew dead, hit by Concord
 Brennan's Mission: wounded Corsairs in the clinic, and the sister who runs it
 asks the crew to carry a warning no one else will.
 
-**Structure sketch** (phases):
+**Structure sketch** (phases; linear, Defend is the one path — decided 2026-11-13):
 1. `hook` — rumor category `CORSAIR_HOOK` + the distress encounter.
 2. `parley` — escorted (blind-jump style: follow a Corsair guide ship) to
    Blackwater; meet the Corsair quartermaster (name her — proposed: **Reva
    Okonkwo**, ex-Free Ship gunnery chief). She doesn't want saving; she wants
-   *options*. Crew chooses a track:
-   - **Evacuate**: convoy of civilian hulls (families, wounded) out of
-     Blackwater through the Gauntlet to Saint Brennan's / the Rim before the
-     hammer falls. Escort mission against Concord Hostile interceptors.
-   - **Defend**: help prep Blackwater — reseed the minefield gap, hack the
-     battle group's targeting relay (reuse hacking mechanics), then fight the
-     vanguard at the Veil.
+   *options*. Two answers:
+   - **Help them**: continue to `prep`.
    - **Walk away / sell them out**: report the Corsair disposition to Concord
-     at Sentinel Fleet Yard. Big Concord rep payoff, permanent Corsair
-     hostility, and the finale loses the escort wing (nothing worse — the
-     finale adds no Corsair hunters; sandbox PROX already hunts low-rep
-     crews). This must be a real, payable choice.
-3. `strike` — the battle group arrives either way; outcome depends on track.
-4. `done`.
+     at Sentinel Fleet Yard. Ends the arc (`betrayed`): big Concord rep payoff,
+     permanent Corsair hostility, and the finale loses the escort wing (nothing
+     worse — sandbox PROX already hunts low-rep crews). This must be a real,
+     payable choice.
+3. `prep` — help prep Blackwater: reseed the minefield gap, hack the battle
+   group's targeting relay (reuse hacking mechanics). Optional objective in the
+   same phase: escort the civilian hulls (families, wounded) out through the
+   Gauntlet to Saint Brennan's before the strike → flag `corsair_civilians_out`
+   (outcome modifier, not a separate path).
+4. `strike` — fight the vanguard at the Veil. Win → `defended`; Blackwater
+   falls → `failed`.
+5. `done`.
 
 **Exports**:
-- `corsair_arc_done` = `"evacuated"` | `"defended"` | `"betrayed"` | `"failed"`
+- `corsair_arc_done` = `"defended"` | `"betrayed"` | `"failed"`
+- `corsair_civilians_out` = true when the optional civilian escort got out before the strike
 - `corsair_battlegroup_destroyed` = true when the crew kills the vanguard at the Veil
   (`defended` path only). Read by Arc 6's trigger.
-- `corsair_ally` = true on evacuated/defended → Corsair comms turn
+- `corsair_ally` = true on defended → Corsair comms turn
   `Corsair Friendly` for the crew (existing faction, already wired); Blackwater
   becomes dockable staging for the Maw run.
 - Rep: Corsairs +400 (ally paths) / set to floor (betrayed); Concord -300 (ally
@@ -576,6 +578,17 @@ If an arc module is lost, rebuild against these rails:
 - Fail state restarts from `staging`, never `hook`.
 - Two arcs eligible at once is acceptable; no trigger staggering.
 - The verse's Maw garrisons are cleared and replaced by the arc's own.
+
+## Decisions made (2026-11-13)
+
+- **Arcs are linear.** One phase path; from a phase an arc goes to the next phase, to `done`
+  with an outcome flag, or back to an earlier phase (failure restart). Decisions end the arc or
+  continue it; variation lives inside phases as flags. Rule and engine warning: missions_api.md,
+  "Linear arcs".
+- Corsair arc: Defend is the single path; Walk away ends the arc (`betrayed`); Evacuate becomes
+  the optional civilian-escort objective inside `prep` (`corsair_civilians_out`).
+- Ledger arc built: rumor → Thresh → Rezkov → three fragments → power drain + audit fleet →
+  Rezkov holds the ledger. The audit sweep and `partial` outcome were dropped.
 
 ## Decisions made (2026-11-12)
 
