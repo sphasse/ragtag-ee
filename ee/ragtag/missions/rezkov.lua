@@ -11,6 +11,7 @@
 --   m2_done           hack + data delivery complete
 --   m3_accepted       intercept accepted
 --   m3_data           data wiped from CWS Meridian
+--   ai_planted        the Galen hack installed the AI (read by the Ledger arc)
 --   arc_done          arc complete (value = outcome string)
 --
 -- Long-term flags (no prefix, available to future arcs):
@@ -184,6 +185,7 @@ local function _checkHack(st, now)
 
     if hack_lvl >= 1.0 then
         st.hack_done = true
+        RT.flag("rezkov_ai_planted", true)   -- read by the Ledger arc
         RT.shipLog("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")
         RT.after(4, function()
             RT.shipLog("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
@@ -523,7 +525,7 @@ end
 M.completed = {
     hook        = function(st) RT.flag("rezkov_hook", true);   _addRecords("thresh_profile", "Thresh") end,
     m1_navigate = function(st) RT.flag("rezkov_m1_done", true); _addRecords("rezkov_profile", "Orlan Rezkov") end,
-    m2_active   = function(st) st.hack_done = true end,
+    m2_active   = function(st) st.hack_done = true; RT.flag("rezkov_ai_planted", true) end,
     m2_deliver  = function(st)
         RT.flag("rezkov_m2_done", true)
         _despawnWaypoint(st)                      -- "Rezkov's station has gone dark"

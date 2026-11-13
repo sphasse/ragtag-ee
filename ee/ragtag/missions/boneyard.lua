@@ -647,6 +647,11 @@ function M.on_load(st)
     end
     _injectSeedJobs()
     if RT.flag("boneyard_buoy_found") then _addSurvivorRecords() end   -- DB is rebuilt each session
+    if RT.flag("boneyard_hack_done") then   -- archive downloaded in an earlier session
+        SCIDB.unlock("hollow_true_nature")
+        SCIDB.unlock("ashgrave_research")
+        SCIDB.unlock("synthesis_details")
+    end
 end
 
 function M.on_unload(st)

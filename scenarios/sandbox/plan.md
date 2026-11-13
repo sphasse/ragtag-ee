@@ -12,7 +12,7 @@ Status at last update (2026-11-12):
 | # | Arc | Status | Module |
 |---|-----|--------|--------|
 | 1 | Rezkov Arc | **BUILT** | `ee/ragtag/missions/rezkov.lua` + `rezkov.md` |
-| 2 | Ledger Arc (accounting AI) | planned | — |
+| 2 | Ledger Arc (accounting AI) | **BUILT** | `ee/ragtag/missions/ledger.lua` + `ledger.md` |
 | 3 | Boneyard Arc | **BUILT** | `ee/ragtag/missions/boneyard.lua` + `boneyard.md` |
 | 4 | Corsair Arc (redemption) | planned | — |
 | 5 | Maw Arc (finale) | planned | — |
@@ -73,50 +73,25 @@ Full detail: `ee/ragtag/missions/rezkov.md`. Summary of what matters downstream.
   relations normalise). Keep her alive-by-default in writing: only the
   `meridian_destroyed` path kills her.
 
-## Arc 2 — Ledger Arc (accounting AI) — PLANNED
+## Arc 2 — Ledger Arc (accounting AI) (BUILT)
 
-**Premise.** Rezkov re-establishes contact: the Galen job was never about a
-traffic log. The hack implanted a rogue AI in the Concord accounting system,
-and it has spent months reading the books. It found a black budget that never
-closed: line items flowing for twenty years to "Maw containment" and "Ashgrave
-remediation" — paying for drone maintenance that officially doesn't happen and
-a research archive that officially doesn't exist. Now a Concord financial audit
-sweep is closing in on the implant. Get the findings out before the AI is found
-and burned — and before Concord traces the implant back to the crew.
+Built 2026-11-13; full design in `ee/ragtag/missions/ledger.md`. Summary:
 
-**Hook by Rezkov outcome** (the arc must work for every `rezkov_arc_done`):
-- `data_delivered` / `meridian_escaped`: Rezkov hails directly (respawn his
-  waypoint, same pattern as M1).
-- `concord_won`: Rezkov is burned and gone. The AI itself makes contact — a
-  stilted, anonymous hail relayed through Dustmote. Thresh brokers.
-- `meridian_destroyed`: as above, but Concord patrol pressure in the arc is
-  elevated (they're already angry).
-
-**Structure sketch** (phases):
-1. `hook` — rumor category `LEDGER_HOOK`: "Concord auditors crawling all over
-   Lumen Exchange", "word is something's wrong with Concord's books".
-2. `contact` — Rezkov/Thresh briefing; accept.
-3. `relay_run` — the AI can't push the full ledger through Concord comms. It
-   stages encrypted fragments at three dead drops (derelicts / a signal buoy —
-   science scan to locate, short time window per drop as the audit sweep
-   advances). Two of three fragments suffice; all three improve the finale
-   evidence quality.
-4. `exfil` — Concord Hostile audit-escort squadron intercepts after the second
-   pickup (spawned at scan edge, comms-first: "surrender the data"). Fight or
-   run; a warp-out escape is legitimate here.
-5. `deliver` — hand the assembled ledger to Thresh at Dustmote → done.
-
-**Exports**:
-- `ledger_arc_done` = `"full"` (3 fragments) | `"partial"` (2) | `"lost"`
-- `ledger_evidence` = true when done with full/partial
-- Rep: Concord -200 on completion (they know *someone* has the books);
-  Independent +200. Credits ~500.
-- SCIDB: add a new locked Lore entry **"The Containment Ledger"** at build time
-  (lock key `ledger_findings`): twenty years of black-budget flows, signed at
-  senior level — the *names* thread the finale's broadcast ending needs.
-
-**Trigger sketch**: `rezkov_arc_done` set (any value), upgrades ≥ 800,
-`not_flagged = {ledger_arc_done}`.
+- **Premise.** The Galen hack planted an AI in the Concord books. It found the twenty-year
+  black budget ("Maw containment", "Ashgrave remediation"), split itself into three fragments
+  inside Concord space, and needs a pickup.
+- **Trigger.** Upgrades ≥ 800, Rezkov arc finished or declined, `ledger_arc_done` unset.
+  Briefing variant on `rezkov_ai_planted` ("you planted it" vs "I had a crew plant it").
+- **Flow.** Vague rumors → Thresh at Dustmote → Rezkov's station (briefing) → fly into three
+  data cores near Valcourt, Ostia and Waypoint Galen → the assembled AI drains 5 energy/s and
+  60 s later a three-ship Concord Audit Service fleet spawns ahead → dock at Rezkov's station.
+  Concord hostility comes from the crew's own reputation (no override).
+- **Exports.** `ledger_arc_done` = `"full"` | `"lost"` (energy hit zero, or surrendered to the
+  audit fleet); `ledger_evidence` on full; 600 cr, Concord −200, Independent +200 on full.
+  SCIDB Lore "The Containment Ledger" (`ledger_findings`) names the signatories: Voss
+  (Treasury), Hale (Fleet Logistics), Tan (Applied Research), the Council's Standing Committee.
+- **Rezkov holds the ledger.** He will not release it until it cannot be buried; the Maw
+  finale's aftermath is where it goes public.
 
 ## Arc 3 — Boneyard Arc (BUILT)
 
@@ -311,8 +286,9 @@ one warhead. The crew gets one shot.
    they just shot, or run the long way on a crippled drive. Relic Active wing
    warps in at 0s if flipped. At 90s the rift collapses (destroy it), all
    remaining Hollow go dormant → `aftermath`.
-6. `aftermath` — Sauvola on comms. Ledger beat (if `ledger_evidence`): Relay
-   transmits the Containment Ledger from Lastchance's relay to every station;
+6. `aftermath` — Sauvola on comms. Ledger beat (if `ledger_evidence`): Rezkov, who has
+   held it since the Ledger arc, releases it, and Relay transmits the Containment Ledger
+   from Lastchance's relay to every station;
    Kael, if turned, sets out for Ostia Highport to put it before the Concord government;
    Imperial hardliners cut her off and she is trapped at Concord Waypoint Galen — her
    last hail to the crew is the hook for Arc 6. Resolve. Seed Arc 6's rumors now (see Arc 6
@@ -537,7 +513,8 @@ Flags any future arc may rely on (never rename these):
 |---|---|---|
 | `rezkov_arc_done` | Rezkov | `concord_won` / `data_delivered` / `meridian_destroyed` / `meridian_escaped` |
 | `kael_alive` | Rezkov | true / false |
-| `ledger_arc_done`, `ledger_evidence` | Ledger | outcome string / bool |
+| `rezkov_ai_planted` | Rezkov | true when the Galen hack installed the AI (Ledger briefing variant) |
+| `ledger_arc_done`, `ledger_evidence` | Ledger | `full` / `lost`; bool |
 | `boneyard_arc_done`, `boneyard_hack_done`, `boneyard_drone_flip`, `boneyard_battlegroup_destroyed` | Boneyard | bool |
 | `corsair_arc_done`, `corsair_ally`, `corsair_battlegroup_destroyed` | Corsair | outcome string / bool / bool |
 | `maw_warhead` | Maw | `fitted` / `spent` (read at player spawn to fit the EMP rack) |
@@ -545,8 +522,7 @@ Flags any future arc may rely on (never rename these):
 | `republic_arc_done`, `republic_wings`, `republic_corsair`, `republic_ashgrave`, `republic_independent` | Republic | `ascendant` / `coalition`; count; bools |
 
 SCIDB lock keys: `hollow_true_nature`, `ashgrave_research`, `synthesis_details`
-(Boneyard); `maw_full` (Maw); `ledger_findings` (Ledger, to be added in
-`ee/ragtag/world/sciencedb.lua`); `kael_profile` (Rezkov M3, to be added) and
+(Boneyard); `maw_full` (Maw); `ledger_findings` (Ledger, built in `ee/ragtag/world/sciencedb.lua`); `kael_profile` (Rezkov M3, to be added) and
 `republic_formed` (Republic, to be added).
 
 Rumor categories: `<ARC>_HOOK` injected in hook enter / removed in hook exit;
@@ -635,5 +611,6 @@ If an arc module is lost, rebuild against these rails:
   three anomaly scans is too slow for Science under fire — playtest numbers.
 - Does the player template's tube accept EMP without `weaponTubeAllowMissle`?
   Verify on the actual `Flavia P.Falcon` template.
-- Ledger arc fragment count and audit-sweep timing need playtest numbers.
+- Ledger arc: drain rate (5/s), audit fleet delay (60 s) and size, and whether energy-zero
+  should be instant loss — playtest numbers. (The audit sweep was dropped 2026-11-13.)
 - Follow-on arc (Kael / normalisation): in scope for this campaign or a new one?

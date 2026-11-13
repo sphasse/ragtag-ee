@@ -342,6 +342,27 @@ local function _build()
         "synthesis_details"
     )
 
+    -- Ledger arc: the AI's findings, unlocked when the AI reaches Rezkov (lock key ledger_findings).
+    SCIDB._entries["lore_ledger"] = _locked(lore, "The Containment Ledger",
+        "[ ENCRYPTED — no matching records recovered ]",
+        "Twenty years of Concord Treasury transfers through one account that never closed, " ..
+        "recovered by a program planted in the Concord accounting system at Waypoint Galen.\n\n" ..
+        "The account is coded CX-0, 'Contingent Reserve'. Its line items read 'Maw containment' " ..
+        "and 'Ashgrave remediation': maintenance for Relic drones that officially stood down " ..
+        "after the Settlement War, upkeep for an archive at Ashgrave that officially does not " ..
+        "exist, and patrol costs for a sector that is officially empty.\n\n" ..
+        "Every transfer is signed. The recurring signatories:\n" ..
+        "- Aurelian Voss, Deputy Secretary of the Treasury (authorising signatory, all twenty years)\n" ..
+        "- Rear Admiral Corin Hale, Fleet Logistics (drone maintenance and Boneyard patrols)\n" ..
+        "- Director Mireille Tan, Applied Research Division (Ashgrave archive upkeep)\n" ..
+        "The original appropriation was approved in closed session by the Concord Council's " ..
+        "Standing Committee on Security. The session minutes are sealed.\n\n" ..
+        "Orlan Rezkov holds the ledger. He has not released it.",
+        { ["Account"] = "CX-0 'Contingent Reserve'", ["Duration"] = "20 years, still open",
+          ["Signatories"] = "Voss, Hale, Tan", ["Status"] = "Held by Rezkov, unreleased" },
+        "ledger_findings"
+    )
+
     -- Re-add entries earned in a previous session (the database is rebuilt every init).
     for key in pairs(SCIDB.PROFILES) do
         local ok, known = pcall(function() return RT and RT.flag and RT.flag(key .. "_known") end)
