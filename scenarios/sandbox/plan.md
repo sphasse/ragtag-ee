@@ -349,7 +349,7 @@ Concord special-operations investigator, and has spent twenty years trying to fi
 truth about what was buried. The entry (lock key `kael_profile`) is unlocked in the
 Rezkov arc as soon as the crew meets her at M3 and `kael_alive` is set, whichever choice
 they make, including "Let the Concord go". **Built** (2026-11-12): `SCIDB.addProfile("kael_profile")` in `sciencedb.lua`, called when the Kael
-comms opens, flag `kael_profile_known` re-adds it each session. The shipped text is a
+comms opens, flag `rezkov_met_kael` (via `SCIDB.meet`) keeps it each session. The shipped text is a
 character sketch only (capable officer; no hint of her later role), shorter than the
 draft below:
 

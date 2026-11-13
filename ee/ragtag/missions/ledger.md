@@ -62,7 +62,7 @@ public.
 
 Rewards (once): `full` → 600 cr, Concord −200, Independent +200; `lost` → nothing.
 Science DB: Lore "The Containment Ledger" (lock key `ledger_findings`, built in
-`sciencedb.lua`), unlocked on `full` and re-unlocked from `on_load` each later session. It
+`sciencedb.lua`), unlocked on `full`; an `SCIDB.rule` keeps it readable exactly while `ledger_evidence` is set (session start, GM jumps). It
 names the signatories the finale needs: Deputy Treasury Secretary Aurelian Voss, Rear Admiral
 Corin Hale (Fleet Logistics), Director Mireille Tan (Applied Research Division), and the
 Council's Standing Committee on Security.

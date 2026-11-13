@@ -646,12 +646,6 @@ function M.on_load(st)
         RUMORS.add({text = text, priority = 3, category = "BONEYARD_SEED"})
     end
     _injectSeedJobs()
-    if RT.flag("boneyard_buoy_found") then _addSurvivorRecords() end   -- DB is rebuilt each session
-    if RT.flag("boneyard_hack_done") then   -- archive downloaded in an earlier session
-        SCIDB.unlock("hollow_true_nature")
-        SCIDB.unlock("ashgrave_research")
-        SCIDB.unlock("synthesis_details")
-    end
 end
 
 function M.on_unload(st)
@@ -906,6 +900,17 @@ end
 
 M.gm_flag_prefixes = {"boneyard_"}
 
+-- Science DB follows the flags (SCIDB.sync at session start and after every GM jump): the
+-- survivor records exist while the lifeboat has been recovered; the Ashgrave research entries
+-- are readable while the archive has been downloaded.
+if SCIDB and SCIDB.rule then
+    SCIDB.rule("boneyard_survivors", {want = function() return RT.flag("boneyard_buoy_found") end,
+                                      add  = function() _addSurvivorRecords() end})
+    for _, k in ipairs({"hollow_true_nature", "ashgrave_research", "synthesis_details"}) do
+        SCIDB.rule(k, {lock = true, want = function() return RT.flag("boneyard_hack_done") end})
+    end
+end
+
 -- Short state label for the "Mission state" popup.
 M.gm_state_fn = function()
     local st = MISSIONS._status["boneyard"]
@@ -927,7 +932,7 @@ M.gm_reset = function(st, target)
     for k in pairs(st) do st[k] = nil end
     for k, v in pairs(M.init_state()) do st[k] = v end
     MISSIONS.gmClearFlags("boneyard", function(name)
-        if name == "boneyard_buoy_found" then return target ~= "hook" end
+        if name == "boneyard_buoy_found" then return target ~= nil and target ~= "hook" end
         if name == "boneyard_rewarded"   then return target == "done" end
         return false
     end)

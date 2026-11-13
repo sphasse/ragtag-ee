@@ -76,10 +76,11 @@ local _NEBULA_POS = {
 -- Concord Waypoint Galen: verse (-75, -52). Terminal spawns slightly NE.
 
 
--- First meeting with someone: add their Science DB profile and tell the crew once.
+-- First meeting with someone: flag "rezkov_met_<who>", add their Science DB profile and tell the
+-- crew once. GM resets clear the flag (rezkov_ prefix) and SCIDB.sync removes the profile.
 local function _addRecords(key, who)
-    if SCIDB and SCIDB.addProfile then
-        local ok, added = pcall(SCIDB.addProfile, key)
+    if SCIDB and SCIDB.meet then
+        local ok, added = pcall(SCIDB.meet, "rezkov", key)
         if ok and added then
             RT.shipLog("[Rezkov Arc] " .. who .. " personnel records added to our database.", "#80C0FF")
         end

@@ -457,8 +457,8 @@ end
 
 -- Remove the arc's saved flags (those starting with one of M.gm_flag_prefixes, default
 -- "<id>_") so a GM jump starts from a clean slate. `keep(name)` returns true to keep a flag.
--- Flags that record Science DB profiles ("*_profile_known") are always kept: the entries
--- cannot be removed from the database once added.
+-- Profiles are recorded as "<arc>_met_<who>" flags, so they clear with the arc's other flags
+-- and SCIDB.sync removes the entry.
 function MISSIONS.gmClearFlags(id, keep)
     local M = MISSIONS._registry[id]
     local prefixes = (M and M.gm_flag_prefixes) or {id .. "_"}
@@ -469,7 +469,7 @@ function MISSIONS.gmClearFlags(id, keep)
         end
     end
     for _, name in ipairs(names) do
-        if not name:find("_profile_known$") and not (keep and keep(name)) then
+        if not (keep and keep(name)) then
             RT.clearFlag(name)
         end
     end
@@ -517,12 +517,28 @@ function MISSIONS.gmJump(id, phase_name, setup, opts)
     local ok, err = pcall(MISSIONS.phase, id, phase_name)
     MISSIONS._gm_jumping = false
     if not ok then log("[MISSIONS] " .. id .. " gm jump error: " .. tostring(err)) end
+    MISSIONS._syncScienceDB()
 end
 
--- Default "-> Inactive": stop the arc and keep it from re-triggering (until re-enabled).
+-- Bring the Science database in line with the campaign flags after a GM state change
+-- (entries for states the arc is no longer in are removed or relocked; see sciencedb.lua).
+function MISSIONS._syncScienceDB()
+    if SCIDB and SCIDB.sync then
+        local ok, err = pcall(SCIDB.sync)
+        if not ok then log("[MISSIONS] SCIDB.sync error: " .. tostring(err)) end
+    end
+end
+
+-- Default "-> Inactive": stop the arc, reset it to "never happened" (M.gm_reset with no target:
+-- world, timers, flags), keep it from re-triggering (until re-enabled), and resync the Science
+-- database so nothing the arc revealed remains.
 function MISSIONS.gmDeactivate(id)
     local M = MISSIONS._registry[id]
     if not M then return end
+    if M.gm_reset then
+        local ok, err = pcall(M.gm_reset, MISSIONS._state[id] or {}, nil)
+        if not ok then log("[MISSIONS] " .. id .. " gm_reset error: " .. tostring(err)) end
+    end
     if MISSIONS._status[id] == "active" then
         MISSIONS.cancel(id)
     elseif MISSIONS._status[id] == "done" then
@@ -532,6 +548,7 @@ function MISSIONS.gmDeactivate(id)
         MISSIONS._state[id]     = {}
     end
     MISSIONS.setEnabled(id, false)
+    MISSIONS._syncScienceDB()
 end
 
 -- GM detail screen, same shape for every arc:

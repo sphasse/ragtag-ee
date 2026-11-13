@@ -67,6 +67,7 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 ## Checklist before shipping
 
 - [ ] The arc is linear: each phase goes to the next phase, `done`, or back to an earlier phase (no branching; see "Linear arcs" in the reference)
+- [ ] Science DB entries the arc reveals follow its flags (`SCIDB.meet` for people, `SCIDB.rule` for lore/runtime entries)
 - [ ] `M.on_cancel` destroys all spawned objects
 - [ ] `M.gm_reset` + `M.completed` let every `→` button land with the full context (jump through each phase and back; no leftover ships, timers, flags or state)
 - [ ] `RT.after` timers cancelled with `RT.cancelTimer(name)` in `_clearState` if they shouldn't fire after phase ends

@@ -78,6 +78,25 @@ every GM `→` jump has one well-defined world to rebuild.
 The engine checks it: `MISSIONS.phase` logs `[MISSIONS] WARNING: <id> non-linear transition a -> b`
 for anything else. Leaving `init` (start-of-session routing by saved flags) and GM jumps are exempt.
 
+### Science database follows the arc state
+
+Arc-dependent Science DB entries are derived from campaign flags, so a GM jump (forward, back,
+to an end state, or `→ Inactive`) leaves the database matching the state it lands in.
+`MISSIONS.gmJump` and `gmDeactivate` call `SCIDB.sync()`, and so does every session start.
+
+- **People**: `SCIDB.meet(arc_id, "thresh_profile")` when the crew meets someone. It sets
+  `<arc_id>_met_<who>` and adds the profile, returning true the first time (log "records added").
+  The profile exists while any arc's met-flag is set, so it disappears when the arcs that met the
+  person are reset, and stays while another arc still has met them.
+- **Locked lore**: `SCIDB.rule("ashgrave_research", {lock = true, want = fn})` is unlocked while
+  `want()` is true and goes back to its placeholder (description and revealed keys) otherwise.
+- **Runtime entries**: `SCIDB.rule("boneyard_survivors", {want = fn, add = fn})`. `add()` creates the
+  entry (store it in `SCIDB._entries[key]`) while `want()` is true. Otherwise it is removed
+  (`SCIDB.removeEntry`; entries are entities and `destroy()` removes them from the database).
+
+Register rules at the bottom of the arc module. Keep the arc's normal unlock/add calls (they
+carry the log lines); the rules only correct the database after state changes.
+
 ### GM console (every arc has the same screen)
 
 The engine builds the arc's GM screen. Buttons, in order:
@@ -95,7 +114,7 @@ M.gm_state_fn = function() return "Hacking" end   -- optional one-line state lab
 -- or from done/inactive) with the full context the target expects, via MISSIONS.gmJump:
 --   1. M.gm_reset(st, target): destroy everything the arc spawned, cancel its timers, remove its
 --      rumors/jobs, reset `st` to init_state in place, clear the objective, clear its flags
---      (MISSIONS.gmClearFlags; "*_profile_known" flags are always kept).
+--      (MISSIONS.gmClearFlags). Afterwards SCIDB.sync() makes the Science DB match the flags.
 --   2. M.completed[p](st) for every phase p BEFORE the target, in phase_order: the lasting effects
 --      of having finished p (stations/ships left in the world, flags, DB entries). Idempotent.
 --   3. setup(st): flags/objects specific to this jump (an end state's outcome flags).
@@ -114,8 +133,9 @@ M.gm_states = {
                                                               {skip_completed = true})},   -- clean end world
     {key = "done_lose", label = "→ Done: Lose",  fn = _jump("done", nil, {skip = {meeting = true}})},
 }
--- "→ Inactive" is added by the engine (MISSIONS.gmDeactivate: cancel + disable so criteria
--- cannot re-trigger it) unless an entry has key = "inactive", which then replaces it.
+-- "→ Inactive" is added by the engine (MISSIONS.gmDeactivate: M.gm_reset(st, nil) so the arc
+-- "never happened" (world, timers, flags, Science DB), then cancel + disable so criteria cannot
+-- re-trigger it) unless an entry has key = "inactive", which then replaces it.
 
 -- State-specific helpers: shown only while the arc is in one of the listed phases.
 M.gm_actions = {

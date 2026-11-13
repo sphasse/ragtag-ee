@@ -8,11 +8,20 @@
 --   SCIDB.get(key)                 -- return entry handle for further edits
 --   SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
 --                                  -- add a child entry at runtime (missions use this)
+--   SCIDB.meet(arc_id, profile_key) -- the crew met someone: flag "<arc>_met_<who>", add profile
+--   SCIDB.rule(key, spec)          -- tie a locked entry or a runtime entry to campaign flags
+--   SCIDB.sync()                   -- make the database match the flags (session start, GM jumps)
+--
+-- State rule: every arc-dependent entry is derived from campaign flags. Profiles exist while any
+-- "<arc>_met_<who>" flag is set; rules say when a locked entry is unlocked or a runtime entry
+-- exists. Arcs add entries as the story happens (with their log lines); SCIDB.sync() then
+-- removes, re-adds, locks or unlocks whatever no longer matches, e.g. after a GM jump back.
 
 SCIDB = SCIDB or {}
 
 SCIDB._entries = {}   -- key → ScienceDatabase handle
-SCIDB._locked  = {}   -- key → {entry, description, kv, on_unlock, unlocked}
+SCIDB._locked  = {}   -- key → {entry, description, kv, locked_desc, on_unlock, unlocked}
+SCIDB._rules   = SCIDB._rules or {}   -- key → spec (see SCIDB.rule); survives _build
 
 -- ─── Public API ──────────────────────────────────────────────────────────────
 
@@ -55,6 +64,7 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
             entry       = entry,
             description = desc,
             kv          = kv,
+            locked_desc = display_desc,
         }
     else
         if kv then
@@ -67,10 +77,12 @@ end
 
 -- Character profiles under Lore, added when the crew first meets someone. Deliberately
 -- character sketches: what a person is like, not what they will do later.
--- SCIDB.addProfile(key) returns true only the first time (so callers can log "records added").
--- The flag "<key>_known" re-adds the entry each session (the database is rebuilt every init).
+-- Arcs call SCIDB.meet(arc_id, key): it sets the flag "<arc_id>_met_<who>" (cleared by that
+-- arc's GM resets like any of its flags) and adds the entry, returning true only the first time
+-- (so callers can log "records added"). A profile exists while any arc's met-flag is set.
 SCIDB.PROFILES = {
     thresh_profile = {
+        who  = "thresh",
         name = "Thresh",
         desc = "Proprietor of Dustmote Salvage, and the usual way to reach people who don't answer " ..
                "hails.\n\n" ..
@@ -84,6 +96,7 @@ SCIDB.PROFILES = {
               ["Manner"] = "Dry, discreet, punctual", ["Standing"] = "Pays on time"},
     },
     rezkov_profile = {
+        who  = "rezkov",
         name = "Orlan Rezkov",
         desc = "Independent operator, and the head of a small network of couriers, salvagers and " ..
                "informants working the lanes around Dustmote.\n\n" ..
@@ -97,6 +110,7 @@ SCIDB.PROFILES = {
               ["Method"] = "In person, never through go-betweens", ["Memory"] = "Total"},
     },
     kael_profile = {
+        who  = "kael",
         name = "Commander Kael",
         desc = "Concord Intelligence, Special Operations Investigations.\n\n" ..
                "Flew for the Concord in the Settlement War, and was one of a handful of officers " ..
@@ -113,15 +127,97 @@ SCIDB.PROFILES = {
     },
 }
 
-function SCIDB.addProfile(key, silent)
+-- Add a profile entry (no flag). Returns true if it was newly added.
+function SCIDB.addProfile(key)
     local p = SCIDB.PROFILES[key]
     if not p or SCIDB._entries[key] or not SCIDB._entries["lore"] then return false end
     SCIDB._entries[key] = SCIDB.addEntry("lore", p.name, p.desc, p.kv)
-    if not silent then RT.flag(key .. "_known", true) end
     return true
 end
 
-function SCIDB.addKaelProfile() return SCIDB.addProfile("kael_profile") end   -- kept for callers
+-- The crew met someone in an arc. Returns true the first time the profile appears.
+function SCIDB.meet(arc_id, key)
+    local p = SCIDB.PROFILES[key]
+    if not p then return false end
+    RT.flag(arc_id .. "_met_" .. p.who, true)
+    return SCIDB.addProfile(key)
+end
+
+-- True while any arc's "<arc>_met_<who>" flag is set.
+function SCIDB.known(key)
+    local p = SCIDB.PROFILES[key]
+    if not p then return false end
+    local suffix = "_met_" .. p.who
+    for name, v in pairs((RT.campaign and RT.campaign.flags) or {}) do
+        if v and name:sub(-#suffix) == suffix then return true end
+    end
+    return false
+end
+
+-- Remove an entry (and any children) from the database.
+function SCIDB.removeEntry(key)
+    local e = SCIDB._entries[key]
+    SCIDB._entries[key] = nil
+    if not e then return false end
+    local function _kill(node)
+        local ok, kids = pcall(function() return node:getEntries() end)
+        for _, c in ipairs(ok and kids or {}) do _kill(c) end
+        pcall(function() node:destroy() end)
+    end
+    _kill(e)
+    log("[SCIDB] removed: " .. key)
+    return true
+end
+
+-- Put an unlocked entry back behind its placeholder (description and revealed keys).
+function SCIDB.relock(key)
+    local L = SCIDB._locked[key]
+    if not L or not L.unlocked then return end
+    L.unlocked = false
+    L.entry:setLongDescription(L.locked_desc or "[ CLASSIFIED — access restricted ]")
+    for k in pairs(L.kv or {}) do pcall(function() L.entry:removeKey(k) end) end
+    log("[SCIDB] relocked: " .. key)
+end
+
+-- Tie an entry to campaign flags. Registered once by its owner (sciencedb or an arc module):
+--   SCIDB.rule("ashgrave_research", {lock = true, want = function() return RT.flag("x") end})
+--   SCIDB.rule("boneyard_survivors", {want = fn, add = function() ... end})   -- runtime entry
+-- lock = true: unlocked while want() is true, relocked otherwise. Otherwise: add() creates the
+-- entry (stored in SCIDB._entries[key]) while want() is true; it is removed otherwise.
+function SCIDB.rule(key, spec)
+    SCIDB._rules[key] = spec
+end
+
+-- Old saves recorded profiles as "<key>_known"; those meetings all happened in the Rezkov arc.
+local function _migrateProfileFlags()
+    for key, p in pairs(SCIDB.PROFILES) do
+        if RT.flag(key .. "_known") then
+            RT.flag("rezkov_met_" .. p.who, true)
+            RT.clearFlag(key .. "_known")
+        end
+    end
+end
+
+-- Make the database match the campaign flags. Quiet (server log only).
+function SCIDB.sync()
+    if not (RT and RT.campaign and SCIDB._entries["lore"]) then return end
+    pcall(_migrateProfileFlags)
+    for key in pairs(SCIDB.PROFILES) do
+        if SCIDB.known(key) then SCIDB.addProfile(key)
+        elseif SCIDB._entries[key] then SCIDB.removeEntry(key) end
+    end
+    for key, spec in pairs(SCIDB._rules) do
+        local ok, want = pcall(spec.want)
+        want = ok and want
+        if spec.lock then
+            if want then SCIDB.unlock(key) else SCIDB.relock(key) end
+        elseif want then
+            if not SCIDB._entries[key] and spec.add then pcall(spec.add) end
+        elseif SCIDB._entries[key] then
+            SCIDB.removeEntry(key)
+        end
+    end
+end
 
 -- ─── Internal builder helpers ─────────────────────────────────────────────────
 
@@ -139,6 +235,7 @@ local function _locked(parent, name, locked_desc, real_desc, real_kv, lock_key)
         entry       = e,
         description = real_desc,
         kv          = real_kv,
+        locked_desc = locked_desc,
     }
     return e
 end
@@ -364,10 +461,7 @@ local function _build()
     )
 
     -- Re-add entries earned in a previous session (the database is rebuilt every init).
-    for key in pairs(SCIDB.PROFILES) do
-        local ok, known = pcall(function() return RT and RT.flag and RT.flag(key .. "_known") end)
-        if ok and known then SCIDB.addProfile(key, true) end
-    end
+    SCIDB.sync()
 
     log("[SCIDB] Drift database built.")
 end

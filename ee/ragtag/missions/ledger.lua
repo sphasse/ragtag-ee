@@ -19,7 +19,8 @@
 --   lost_reason   "power" | "surrender"
 --   evidence      true when the ledger reached Rezkov (Maw finale input)
 --   rewarded      pay-once guard for resolve
--- Reads: rezkov_ai_planted (crew planted the AI at Galen), rezkov_profile_known (met Rezkov).
+-- Reads: rezkov_ai_planted (crew planted the AI at Galen), SCIDB.known("rezkov_profile").
+-- Science DB: ledger_met_thresh / ledger_met_rezkov (profiles), ledger_findings (rule below).
 
 local M = {}
 M.id             = "ledger"
@@ -92,8 +93,8 @@ local function _firstPlayer()
 end
 
 local function _addRecords(key, who)
-    if SCIDB and SCIDB.addProfile then
-        local ok, added = pcall(SCIDB.addProfile, key)
+    if SCIDB and SCIDB.meet then
+        local ok, added = pcall(SCIDB.meet, "ledger", key)
         if ok and added then
             RT.shipLog("[Ledger Arc] " .. who .. " personnel records added to our database.", "#80C0FF")
         end
@@ -430,7 +431,7 @@ local function _dustmoteHook(src, tgt, info)
     if MISSIONS._status["ledger"] ~= "active" or MISSIONS._cur_phase["ledger"] ~= "hook" then return end
     addCommsReply("Heard someone here was asking about us.", function()
         _addRecords("thresh_profile", "Thresh")
-        local met = RT.flag("rezkov_profile_known")
+        local met = SCIDB and SCIDB.known and SCIDB.known("rezkov_profile")
         local lead = met and '"That was me. Got another one for you. Not my job, though. The big guy wants to see you in person again. Same place."'
                           or '"That was me. My associate has work, and he wants to see you in person. Head out at bearing 15 until you hit a nebula cloud. You\'ll find him there."'
         setCommsMessage(lead .. '\n\nThresh turns back to work.')
@@ -455,7 +456,6 @@ local _HOOK_RUMORS = {
 
 function M.on_load(st)
     RUMORS.removeCategory("LEDGER_SEED")
-    if RT.flag("ledger_evidence") then _unlockLedger(true) end   -- DB is rebuilt each session
     if RT.flag("ledger_arc_done") then return end
     for _, text in ipairs(_SEED_RUMORS) do
         RUMORS.add({text = text, priority = 3, category = "LEDGER_SEED"})
@@ -640,7 +640,7 @@ local function _done(outcome, reason)
     return _jump("done", function()
         RT.flag("ledger_arc_done", outcome)
         if reason then RT.flag("ledger_lost_reason", reason) end
-    end, {skip_completed = true})
+    end)   -- earlier phases replay: they only set flags and the Thresh/Rezkov profiles
 end
 
 M.gm_states = {
@@ -671,5 +671,10 @@ M.gm_actions = {
         RT.forEachPlayer(function(p) if RT.valid(p) then p:setEnergyLevel(p:getMaxEnergy()) end end)
     end},
 }
+
+-- The Containment Ledger is readable exactly while the evidence flag is set (SCIDB.sync).
+if SCIDB and SCIDB.rule then
+    SCIDB.rule("ledger_findings", {lock = true, want = function() return RT.flag("ledger_evidence") end})
+end
 
 MISSIONS.register(M)
