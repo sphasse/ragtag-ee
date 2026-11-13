@@ -108,9 +108,11 @@ with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unloa
 - <3 hostiles within 10U (density check)
 - Outside 20U station exclusion zones
 
-**Combat warp jammers**: hostile Concord ships (warrant patrols, shakedowns gone hostile, and arc
-fleets that call `PROX.tickCombatJammers`) drop a warp jammer 0.25U behind the player when within 5U.
-One per ship at a time; it expires after 2 min and the ship can drop the next 2 min after the last.
+**Combat warp jammers**: hostile Concord ships (patrols spawned hostile by reputation, shakedowns gone
+hostile, and arc fleets that call `PROX.tickCombatJammers`) drop a warp jammer on the player when within 5U.
+Like the shakedown jammer it has 1U range and brakes the ship (rides 0.25U behind, impulse forced to 0
+each tick until stopped, then stays put). One per ship at a time; it expires after 2 min and the ship
+can drop the next 2 min after the last.
 All Concord jammers (including the shakedown one) have 10 hull: two 6-damage beam hits. Tuning: `PROX.JAMMER`.
 
 **Leash system**: Ships recall to spawn point when player exits region, despawn after 120s if player doesn't return.

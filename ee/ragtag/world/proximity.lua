@@ -132,11 +132,21 @@ local function _firstPlayer()
 end
 
 -- ── Combat warp jammers ───────────────────────────────────────────────────────
--- Hostile Concord ships (warrant patrols, shakedowns gone hostile, arc fleets) drop a warp
--- jammer behind the player when within PROX.JAMMER.trigger_u. Each ship has one jammer at a
--- time: it lasts `lifetime` seconds, and the ship can drop the next `cooldown` seconds after
--- the last. Every Concord jammer has `hull` hull: two hits from a 6-damage beam destroy it.
-PROX.JAMMER = {trigger_u = 5, cooldown = 120, lifetime = 120, range_u = 4, hull = 10}
+-- Hostile Concord ships (patrols spawned hostile by low reputation, shakedowns gone hostile,
+-- arc fleets) drop a warp jammer behind the player when within PROX.JAMMER.trigger_u. Like the
+-- shakedown jammer it reaches only 1U (a limit of the tech) and brakes the ship: it rides
+-- 0.25U behind the player, forcing impulse to 0 every tick, until the ship is stopped; then it
+-- stays where it is. Each ship has one jammer at a time: it lasts `lifetime` seconds, and the
+-- ship can drop the next `cooldown` seconds after the last. Every Concord jammer has `hull`
+-- hull: two hits from a 6-damage beam destroy it.
+PROX.JAMMER = {trigger_u = 5, cooldown = 120, lifetime = 120, range_u = 1, hull = 10, stop_speed = 25}
+
+local function _behind(player, j)
+    local px, py = player:getPosition()
+    local h = math.rad(player:getHeading())
+    j:setPosition(px - math.sin(h) * 0.25 * U, py + math.cos(h) * 0.25 * U)
+    if j.components.physics then j.components.physics.velocity = {0, 0} end
+end
 
 -- A Concord warp jammer at (x, y), at rest, with the shared low hull.
 function PROX.makeJammer(x, y, range_u, desc)
@@ -150,8 +160,8 @@ function PROX.makeJammer(x, y, range_u, desc)
     return j
 end
 
--- Per-tick driver. `holder` is a table owned by the caller (one per group/fleet); `ships`
--- is a list of ship entities or callsigns.
+-- Per-tick driver (call every frame: the brake must run each tick). `holder` is a table owned
+-- by the caller (one per group/fleet); `ships` is a list of ship entities or callsigns.
 function PROX.tickCombatJammers(holder, ships, player, now)
     local cfg = PROX.JAMMER
     -- Expire jammers (including those of ships that have since died).
@@ -162,6 +172,18 @@ function PROX.tickCombatJammers(holder, ships, player, now)
         end
     end
     if not RT.valid(player) then return end
+    -- Brake: a freshly dropped jammer rides behind the ship and holds impulse at 0 until stopped.
+    for _, rec in pairs(holder) do
+        if rec.holding and RT.valid(rec.jammer) then
+            pcall(function() player:commandImpulse(0) end)
+            _behind(player, rec.jammer)
+            local vx, vy = 0, 0
+            pcall(function() vx, vy = player:getVelocity() end)
+            if math.sqrt(vx * vx + vy * vy) < cfg.stop_speed then rec.holding = false end
+        elseif rec.holding then
+            rec.holding = false
+        end
+    end
     local px, py = player:getPosition()
     for _, ref in ipairs(ships) do
         local s = type(ref) == "string" and RT.named[ref] or ref
@@ -172,11 +194,11 @@ function PROX.tickCombatJammers(holder, ships, player, now)
                 local sx, sy = s:getPosition()
                 local dx, dy = sx - px, sy - py
                 if dx * dx + dy * dy < (cfg.trigger_u * U) ^ 2 then
-                    local h = math.rad(player:getHeading())
-                    local j = PROX.makeJammer(px - math.sin(h) * 0.25 * U, py + math.cos(h) * 0.25 * U)
-                    holder[key] = {jammer = j, at = now}
+                    local j = PROX.makeJammer(px, py)
+                    _behind(player, j)
+                    holder[key] = {jammer = j, at = now, holding = true}
                     RT.sound("jammer_engage", {now = true})
-                    RT.shipLog("[Science] " .. key .. " dropped a warp jammer behind us. Two beam hits will take it out.", "#FF8040")
+                    RT.shipLog("[Science] " .. key .. " dropped a warp jammer on us. Engines are braking. Two beam hits will take it out.", "#FF8040")
                 end
             end
         end
@@ -230,7 +252,7 @@ local _THREAT_MSGS = {
     "Non-compliance logged. This stop is now a detention.",
     "Final notice. After this transmission, we are authorized to use force.",
     "Your cooperation window has closed. Stand by for boarding — or don't.",
-    "Warrant confirmed. Weapons free.",
+    "Your standing is confirmed hostile. Weapons free.",
     "We've been waiting for you. This stop wasn't random.",
 }
 
@@ -265,7 +287,7 @@ local function _makeShakedownComms(group)
             group.shakedown_done    = true
             group.shakedown_hostile = true
             RT.addReputation("Concord", -150, "escalated Concord inspection to hostile")
-            RT.shipLog("[Concord] Warrant issued. Patrol is hostile.", "#FF4444")
+            RT.shipLog("[Concord] Inspection escalated. Patrol is hostile.", "#FF4444")
             if player then
                 for _, cs in ipairs(group.ships) do
                     local s = RT.named[cs]
@@ -458,8 +480,8 @@ local function _spawnGroup(st, region_name, px, py)
                 s:setDescriptions("Concord warship.", "Concord patrol interceptor. Active interdiction assignment.")
                 s:setDescriptionForScanState("fullscan", "Traffic interdiction patrol. Authorized to stop and board civilian vessels. If you're running a hot manifest, now is the time to find a different route.")
             else
-                s:setDescriptions("Concord warship.", "Concord enforcement vessel. Warrant response.")
-                s:setDescriptionForScanState("fullscan", "Responding to an outstanding warrant. This patrol is here for you specifically. Recommend evasive action.")
+                s:setDescriptions("Concord warship.", "Concord enforcement vessel. Hostile-standing response.")
+                s:setDescriptionForScanState("fullscan", "Your Concord standing has this patrol treating you as hostile. It is here for you specifically. Recommend evasive action.")
             end
             s:setScanningParameters(1, 2)
         end
@@ -713,7 +735,7 @@ local function _processGroup(st, group, now, player)
                 local hs_name = group.hailing_ship or "Concord"
                 RT.addReputation("Concord", -100, "failed to comply with Concord inspection")
                 RT.shipLog("[" .. hs_name .. "] You were warned to comply in a timely manner. " .. hostile_line, "#FF4444")
-                local _hmsg = "CONCORD PATROL HOSTILE\n" .. hs_name .. ": \"" .. hostile_line .. "\"\nWarrant issued. -100 Concord standing."
+                local _hmsg = "CONCORD PATROL HOSTILE\n" .. hs_name .. ": \"" .. hostile_line .. "\"\nPatrol hostile. -100 Concord standing."
                 local _hkey = "concord_hostile_" .. math.floor(now)
                 if player then
                     for _, _st2 in ipairs({"Helms","Weapons","Engineering","Engineering+","Science","Relay","Tactical","Operations","AltRelay"}) do
@@ -906,9 +928,8 @@ function _P.update(state, delta, now)
         end
     end
 
-    -- Hostile Concord groups drop combat warp jammers (checked once a second).
-    if now >= (state.next_jam_check or 0) then
-        state.next_jam_check = now + 1
+    -- Hostile Concord groups drop combat warp jammers (every tick: the brake needs it).
+    do
         local player3 = _firstPlayer()
         for _, group in ipairs(state.active) do
             if group.concord and group.cjam

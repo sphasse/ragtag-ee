@@ -425,7 +425,7 @@ local _REP_THRESHOLDS = {
         { 200, "Concord now accepts cargo declarations without proof.",
                 "Concord no longer accepts cargo declarations without proof." },
         {   0, "Concord patrols give benefit of doubt on ignored hails.",
-                "Concord patrols will now issue warrants for ignored inspections." },
+                "Concord patrols will now turn hostile over ignored inspections." },
         {-200, "More work becoming available at Concord ports.",
                 "Very few jobs available at Concord ports." },
         {-400, "Concord ports may offer limited work again.",
