@@ -72,6 +72,7 @@ function M.init_state()
         fleet     = {},    -- audit fleet ships
         fleet_due = nil,   -- scenario time the fleet arrives
         fleet_spawned = false,
+        jammers   = {},    -- audit fleet combat jammers (PROX.tickCombatJammers)
         drain_on  = false,
         warned    = {},
     }
@@ -293,6 +294,7 @@ local function _spawnFleet(st)
 end
 
 local function _despawnFleet(st)
+    if PROX and PROX.clearCombatJammers then PROX.clearCombatJammers(st.jammers) end
     for _, s in ipairs(st.fleet or {}) do
         if RT.valid(s) then pcall(function() s:destroy() end) end
     end
@@ -586,6 +588,10 @@ M.phases.carry = {
             _spawnFleet(st)
         end
         _tickFleet(st)
+        -- The audit fleet drops warp jammers like hostile Concord patrols (2 min cooldown each).
+        if st.fleet_spawned and PROX and PROX.tickCombatJammers then
+            PROX.tickCombatJammers(st.jammers, st.fleet, _firstPlayer(), now)
+        end
     end,
 }
 

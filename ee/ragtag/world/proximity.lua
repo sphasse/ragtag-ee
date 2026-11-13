@@ -131,6 +131,65 @@ local function _firstPlayer()
     end
 end
 
+-- ── Combat warp jammers ───────────────────────────────────────────────────────
+-- Hostile Concord ships (warrant patrols, shakedowns gone hostile, arc fleets) drop a warp
+-- jammer behind the player when within PROX.JAMMER.trigger_u. Each ship has one jammer at a
+-- time: it lasts `lifetime` seconds, and the ship can drop the next `cooldown` seconds after
+-- the last. Every Concord jammer has `hull` hull: two hits from a 6-damage beam destroy it.
+PROX.JAMMER = {trigger_u = 5, cooldown = 120, lifetime = 120, range_u = 4, hull = 10}
+
+-- A Concord warp jammer at (x, y), at rest, with the shared low hull.
+function PROX.makeJammer(x, y, range_u, desc)
+    local j = WarpJammer():setPosition(x, y)
+    if j.components.physics then j.components.physics.velocity = {0, 0} end
+    j:setRange((range_u or PROX.JAMMER.range_u) * U)
+    j:setFaction("Concord Hostile")
+    j:setDescriptions("Concord WarpJammer", desc or
+        "Active Concord warp suppression emitter. Lightly built: a couple of beam hits will knock it out.")
+    pcall(function() j:setHullMax(PROX.JAMMER.hull):setHull(PROX.JAMMER.hull) end)
+    return j
+end
+
+-- Per-tick driver. `holder` is a table owned by the caller (one per group/fleet); `ships`
+-- is a list of ship entities or callsigns.
+function PROX.tickCombatJammers(holder, ships, player, now)
+    local cfg = PROX.JAMMER
+    -- Expire jammers (including those of ships that have since died).
+    for key, rec in pairs(holder) do
+        if rec.jammer and (now - rec.at >= cfg.lifetime or not RT.valid(rec.jammer)) then
+            if RT.valid(rec.jammer) then rec.jammer:destroy() end
+            rec.jammer = nil
+        end
+    end
+    if not RT.valid(player) then return end
+    local px, py = player:getPosition()
+    for _, ref in ipairs(ships) do
+        local s = type(ref) == "string" and RT.named[ref] or ref
+        if RT.valid(s) then
+            local key = s:getCallSign()
+            local rec = holder[key]
+            if not rec or (not rec.jammer and now - rec.at >= cfg.cooldown) then
+                local sx, sy = s:getPosition()
+                local dx, dy = sx - px, sy - py
+                if dx * dx + dy * dy < (cfg.trigger_u * U) ^ 2 then
+                    local h = math.rad(player:getHeading())
+                    local j = PROX.makeJammer(px - math.sin(h) * 0.25 * U, py + math.cos(h) * 0.25 * U)
+                    holder[key] = {jammer = j, at = now}
+                    RT.sound("jammer_engage", {now = true})
+                    RT.shipLog("[Science] " .. key .. " dropped a warp jammer behind us. Two beam hits will take it out.", "#FF8040")
+                end
+            end
+        end
+    end
+end
+
+function PROX.clearCombatJammers(holder)
+    for key, rec in pairs(holder or {}) do
+        if rec.jammer and RT.valid(rec.jammer) then rec.jammer:destroy() end
+        holder[key] = nil
+    end
+end
+
 local _STALL_RESPONSES = {
     "Copy that. Initiating compliance procedures... still initiating.",
     "Transponder's been glitching since the last jump. Tech filed a ticket. We're in the queue.",
@@ -470,6 +529,8 @@ local function _spawnGroup(st, region_name, px, py)
     local group = {
         ships              = ship_names,
         jammer             = nil,
+        concord            = (zone.faction == "Concord"),
+        cjam               = {},   -- combat jammers (PROX.tickCombatJammers)
         cell_key           = _cellKey(px, py),
         region_name        = region_name,
         spawn_x            = sx,
@@ -568,18 +629,10 @@ local function _processGroup(st, group, now, player)
                             -- Spawn jammer 0.25U BEHIND player at zero velocity.
                             -- Dynamic physics; commandImpulse(0) every tick slows the player.
                             local head_rad = math.rad(player:getHeading())
-                            local jammer = WarpJammer():setPosition(
+                            local jammer = PROX.makeJammer(
                                 px2 - math.sin(head_rad) * 0.25 * U,
-                                py2 + math.cos(head_rad) * 0.25 * U)
-                            -- Zero out initial velocity so it doesn't drift from spawn position.
-                            if jammer.components.physics then
-                                jammer.components.physics.velocity = {0, 0}
-                            end
-                            jammer:setRange(1 * U)
-                            jammer:setFaction("Concord Hostile")
-                            jammer:setDescriptions("Concord WarpJammer",
+                                py2 + math.cos(head_rad) * 0.25 * U, 1,
                                 "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
-                            pcall(function() jammer:setHull(100):setHullMax(100) end)
                             group.jammer           = jammer
                             group.hailing_ship     = cs
                             group.shakedown_state  = "pending"
@@ -853,6 +906,18 @@ function _P.update(state, delta, now)
         end
     end
 
+    -- Hostile Concord groups drop combat warp jammers (checked once a second).
+    if now >= (state.next_jam_check or 0) then
+        state.next_jam_check = now + 1
+        local player3 = _firstPlayer()
+        for _, group in ipairs(state.active) do
+            if group.concord and group.cjam
+               and (not group.is_shakedown or group.shakedown_hostile) and not group.recalled then
+                PROX.tickCombatJammers(group.cjam, group.ships, player3, now)
+            end
+        end
+    end
+
     if now < state.next_check then return end
     state.next_check = now + _cfg("check_interval")
 
@@ -863,6 +928,7 @@ function _P.update(state, delta, now)
     local i = #state.active
     while i >= 1 do
         if _processGroup(state, state.active[i], now, player) then
+            PROX.clearCombatJammers(state.active[i].cjam)
             table.remove(state.active, i)
         end
         i = i - 1
@@ -937,6 +1003,7 @@ function _P.cleanup(state)
             if RT.valid(s) then s:destroy() end
         end
         if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
+        PROX.clearCombatJammers(group.cjam)
     end
 end
 
@@ -1054,6 +1121,7 @@ function PROX.clearWantedStatus()
                 if RT.valid(s) then s:destroy() end
             end
             if g.jammer and RT.valid(g.jammer) then g.jammer:destroy() end
+            PROX.clearCombatJammers(g.cjam)
             table.remove(st.active, i)
         end
         i = i - 1
