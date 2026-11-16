@@ -750,7 +750,9 @@ M.phases = {
                     "This is not a standard military installation.", "#FFCC00")
             end
 
-            if hack_lvl >= 1.0 then
+            -- EE decays hacked_level by 1/180 per second before scripts run, so a hack that lands
+            -- at 100% already reads just under 1.0 here; 0.99 leaves a ~2 s window.
+            if hack_lvl >= 0.99 then
                 -- Silence the drones and lock the zone
                 _idleDrones(st)
                 PROX.suspendZone("the Boneyard")
@@ -974,8 +976,27 @@ M.gm_states = {
     {key = "done_minimal", label = "→ Done: Minimal", fn = _done(false, false)},
 }
 
--- No phase-specific helpers yet.
-M.gm_actions = {}
+-- State-specific helpers: only shown in the phase they apply to.
+M.gm_actions = {
+    -- Finish the Relay hack: sets the Annex frontshield to fully hacked, so the annex_hack
+    -- update runs its normal completion next frame (idle drones, suspend the zone, Concord
+    -- battle group) and moves to annex_control. A ship more than 5U out is moved to 2U south
+    -- of the Annex first, where a real hack would have left it (annex_control ends the fight
+    -- as soon as the ship is 10U away).
+    {label = "Complete hack", phases = {"annex_hack"}, fn = function(st)
+        if not RT.valid(st.annex) then return end
+        local ax, ay = st.annex:getPosition()
+        local p = RT.players and RT.players[1]
+        if RT.valid(p) then
+            local px, py = p:getPosition()
+            if _dist(px, py, ax, ay) > 5 * U then
+                p:setPosition(ax, ay + 2 * U)
+                pcall(function() p:commandImpulse(0) end)
+            end
+        end
+        pcall(function() st.annex:setSystemHackedLevel("frontshield", 1.0) end)
+    end},
+}
 
 -- ── Register ──────────────────────────────────────────────────────────────────
 

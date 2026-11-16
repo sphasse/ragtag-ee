@@ -184,7 +184,9 @@ local function _checkHack(st, now)
     local ok, lvl = pcall(function() return st.galen:getSystemHackedLevel("frontshield") end)
     local hack_lvl = (ok and lvl) and lvl or 0
 
-    if hack_lvl >= 1.0 then
+    -- EE decays hacked_level by 1/180 per second before scripts run, so a finished hack reads
+    -- just under 1.0 by the time this runs; 0.99 leaves a ~2 s window.
+    if hack_lvl >= 0.99 then
         st.hack_done = true
         RT.flag("rezkov_ai_planted", true)   -- read by the Ledger arc
         RT.shipLog("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")

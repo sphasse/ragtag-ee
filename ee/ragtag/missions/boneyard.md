@@ -91,3 +91,12 @@ If the archive is downloaded, Science gains three locked database entries:
 ## GM jumps
 
 Every `→` button goes through `MISSIONS.gmJump`: `M.gm_reset` destroys the Annex, Concord group and reinforcement drones, restores flagged drones, cancels timers, removes rumors/jobs, resumes the zone, resets the state table and clears `boneyard_*` flags (`boneyard_buoy_found` only when jumping to Hook, so the lifeboat job is offered again); then `M.completed` replays earlier phases (hook: Annex spawned; annex_hack: drones idled, zone suspended, Concord group spawned); then the target enters. End states skip the replay so the world ends clean. `resolve` pays reputation and credits once (`boneyard_rewarded`), so jumping between end states does not pay twice. Reputation, credits and Science DB unlocks already given cannot be undone.
+
+**Helper (Annex hack state): `Complete hack`.** Sets the Annex frontshield fully hacked, so the
+phase completes normally on the next frame (drones idle, zone suspended, Concord battle group
+inbound) and moves to Annex control. If the ship is more than 5U from the Annex it is first moved
+to 2U south of it, since Annex control hands over to Extract once the ship is 10U away.
+
+**Hack threshold.** EE decays every `hacked_level` by 1/180 per second before scripts run
+(`shipsystemssystem.cpp`), so a finished hack reads just under 1.0 when the arc checks it. The
+arc completes at `>= 0.99` (Rezkov's Galen hack uses the same threshold).
