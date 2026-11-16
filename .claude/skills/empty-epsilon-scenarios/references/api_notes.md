@@ -152,7 +152,8 @@ punctuation (`! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ \` { | } ~`)
 
 ## 12b. Hacking (verified in engine source and a headless run, EE b492ea94)
 - **Hacking is a Relay-screen function.** The only "Start hacking" button is on the Relay screen (`relayScreen.cpp`), shown when the player ship has a hacking device and enabled for any target not friendly to it. Science has no hack control: never tell "Science" to hack in player-facing text.
-- Each minigame success adds the device's `effectiveness` (default 0.5) to the chosen system's `hacked_level`; it decays at 1/180 per second. So 100% needs two successes within a few minutes, and a completed hack should be latched by the arc (check `>= 1.0` every tick and advance), not re-read later.
+- Each minigame success adds the device's `effectiveness` (default 0.5) to the chosen system's `hacked_level`; it decays at 1/180 per second. So 100% needs two successes within a few minutes, and a completed hack should be latched by the arc, not re-read later.
+- **Never test `>= 1.0`.** The decay runs in `ShipSystemsSystem::update` before the scenario's `update()`, so a hack that just hit 100% reads ~0.9999 when the script sees it, and an exact-1.0 check never fires (verified headless: `setSystemHackedLevel(..., 1.0)` then the next script tick reads below 1.0). Use `>= 0.99` (about a 2 s window at 1/180 per second), checked every tick.
 - Stations are hackable: a Small/Medium Station has a `frontshield` system with `can_be_hacked = true` (one shield segment means front only; no rear shield), and no docking is required. Use `entity:getSystemHackedLevel("frontshield")`; note it returns 0.0 (not nil) for a system the entity lacks.
 
 ## 13. Sound (verified in engine source, EE b492ea94)

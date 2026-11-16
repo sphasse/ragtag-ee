@@ -273,6 +273,20 @@ Design notes for each arc: `ee/ragtag/missions/<id>.md`.
 
 ## Common patterns
 
+### Detecting a completed hack
+
+```lua
+-- In the phase update (every tick). EE decays hacked_level before scripts run, so a finished
+-- hack reads just under 1.0 here: >= 1.0 never fires. 0.99 leaves about a 2 s window.
+local ok, lvl = pcall(function() return target:getSystemHackedLevel("frontshield") end)
+if ok and (lvl or 0) >= 0.99 then
+    MISSIONS.phase("myarc", "after_hack")   -- latch: advance now, never re-read later
+end
+```
+
+A GM "Complete hack" helper (`phases = {"hack"}`) just calls
+`target:setSystemHackedLevel("frontshield", 1.0)`; the check above fires on the next frame.
+
 ### Spawning a world object in enter, destroying in on_cancel
 
 ```lua
