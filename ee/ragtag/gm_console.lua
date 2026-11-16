@@ -17,7 +17,7 @@ function GMCONSOLE.add(opts)
         local lines = {"=== CAMPAIGN STATUS ===\n"}
         if RT.campaign then
             table.insert(lines, string.format("Session: %d", (opts.session or 1)))
-            table.insert(lines, string.format("Credits: %d", RT.campaign.credits))
+            table.insert(lines, string.format("Credits: %d", RT.credits()))
 
             -- Upgrades and investment
             local cost_map = {}

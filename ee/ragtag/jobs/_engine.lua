@@ -238,8 +238,22 @@ local _FREIGHTER_NAMES = {
     "Standard Rate", "Passing Through", "Brief Stop", "Short Notice", "Slow Moving",
     "Common Carriage", "Side Channel", "Dark Freight", "Off The Books", "Thin Air",
 }
-function JOBS.corsairName()   return _CORSAIR_NAMES[math.random(#_CORSAIR_NAMES)]   end
-function JOBS.freighterName() return _FREIGHTER_NAMES[math.random(#_FREIGHTER_NAMES)] end
+-- A name from the pool that no live object is using. Jobs find their ships by callsign
+-- (RT.find), so two ships with one name would make a job follow the wrong one: a destroyed
+-- convoy would look alive because an earlier job's convoy of the same name still exists.
+function JOBS.uniqueName(pool)
+    for _ = 1, 40 do
+        local name = pool[math.random(#pool)]
+        if not RT.valid(RT.find(name)) then return name end
+    end
+    for n = 2, 99 do   -- every name is taken: number one
+        local name = pool[math.random(#pool)] .. " " .. n
+        if not RT.valid(RT.find(name)) then return name end
+    end
+    return pool[1] .. " " .. math.random(100, 999)
+end
+function JOBS.corsairName()   return JOBS.uniqueName(_CORSAIR_NAMES)   end
+function JOBS.freighterName() return JOBS.uniqueName(_FREIGHTER_NAMES) end
 
 -- ── Registration ──────────────────────────────────────────────────────────────
 -- Each type module calls JOBS.register(M) with its table at load time.

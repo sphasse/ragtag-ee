@@ -18,7 +18,7 @@ Three Lua libraries that every campaign session requires, plus a Python director
 | `RT.note(text)` | Append a short campaign log line |
 | `RT.completeSession(id, outcome, note)` | Record "success" / "partial" / "failed" and save |
 | `RT.spawnPlayer(x, y, heading)` | Create the crew's ship with all purchased upgrades re-applied; sets `RT.player` |
-| `RT.credits()`, `RT.addCredits(n, reason)` | Currency = player reputation points; logged and saved |
+| `RT.credits(ship)`, `RT.addCredits(n, reason, ship)`, `RT.setCredits(n, ship)` | Currency, one balance per player ship (default: the primary ship), kept by RT and shown as a `Credits: N` line on Relay and Operations; logged and saved. Not EE reputation points (those are per faction and held at 0) |
 | `RT.UPGRADES`, `RT.hasUpgrade(id)`, `RT.grantUpgrade(id, reason)` | Upgrade table (id, name, cost, desc, requires, apply) and free story rewards |
 | `RT.station{template, faction, callsign, x, y, shop, flavor, description}` | Station using the campaign comms menu (shipwright if `shop`, missile restock, "any news?") |
 | `RT.addStationHook(callsign, fn(source, target, info))` | Add session-specific comms replies to a station's menu |

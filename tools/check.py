@@ -224,8 +224,9 @@ def check_jobs() -> None:
         m = RAW_CREDITS.search(code)
         if m:
             errors.append(f"{f.relative_to(ROOT)}:{code.count(chr(10), 0, m.start()) + 1}: use RT.credits(ship) / "
-                          f"RT.addCredits(amount, reason, ship): EmptyEpsilon's reputation points are shared by "
-                          f"every ship of a faction, so `{m.group(0)[1:]}...)` changes all player ships' money")
+                          f"RT.addCredits(amount, reason, ship) / RT.setCredits(amount, ship). Credits are kept by "
+                          f"core.lua; EmptyEpsilon's reputation points are per faction and held at 0, so "
+                          f"`{m.group(0)[1:]}...)` does nothing useful")
 
 
 def check_arc_tests() -> None:

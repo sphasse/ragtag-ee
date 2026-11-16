@@ -41,9 +41,9 @@ local _REP_THRESHOLDS = {
     },
 }
 
--- Standing is kept per ship. The primary ship's standing IS the campaign's (saved, used by
--- story arcs and patrols); every other player ship has its own table for the session, starting
--- at zero. Functions take an optional `ship`; without one they mean the primary ship.
+-- Standing is kept per ship. The primary ship's standing IS the campaign's (used by story arcs
+-- and patrols); every other player ship has its own table, starting at zero and saved with the
+-- campaign under the ship's callsign (campaign.extra_ships). Functions take an optional `ship`; without one they mean the primary ship.
 RT._ship_rep = {}   -- player ship (the object in RT.players) -> {faction -> standing}
 
 local function _repTable(ship)
@@ -51,7 +51,13 @@ local function _repTable(ship)
     if p == nil or p == RT.player then
         return RT.campaign and RT.campaign.reputation, RT.player
     end
-    RT._ship_rep[p] = RT._ship_rep[p] or {}
+    if RT._ship_rep[p] == nil then
+        -- First look at this ship: take up the standing saved under its callsign, if any.
+        local e = RT.extraShipRecord(p)
+        local t = {}
+        for f, v in pairs(e and type(e.reputation) == "table" and e.reputation or {}) do t[f] = v end
+        RT._ship_rep[p] = t
+    end
     return RT._ship_rep[p], p
 end
 
@@ -90,7 +96,7 @@ function RT.addReputation(faction, amount, reason, ship)
         end
     end
 
-    if who == RT.player then RT.saveCampaign() end
+    RT.saveCampaign()
 end
 
 -- A ship's current reputation with a faction (default: the primary ship).

@@ -54,15 +54,31 @@ T.step("paid", function()
 end)
 T.closeComms()
 
-T.step("a second job; the convoy is lost", function() m = T.postJob(T.makeJob("escort", HOME)) end)
+local first = {}
+T.step("a second job; the convoy is lost", function()
+    first = {m.convoy_cs, m.fighter_cs[1], m.fighter_cs[2]}
+    m = T.postJob(T.makeJob("escort", HOME))
+end)
 T.takeJob(function() return m end)
+-- Hold the fighter ships themselves: names come from a small pool, and the first job's dismissed
+-- fighters can still be flying off under the same name.
+local f1, f2
 T.step("destroy the convoy", function()
     rep0 = T.rep(m.origin_faction)
+    f1, f2 = RT.find(m.fighter_cs[1]), RT.find(m.fighter_cs[2])
+    T.check("lost: this job's fighters are out", RT.valid(f1) and RT.valid(f2))
+    local clash = false
+    for _, old in ipairs(first) do
+        for _, new in ipairs({m.convoy_cs, m.fighter_cs[1], m.fighter_cs[2]}) do
+            if old == new and RT.valid(T.find(old)) then clash = true end
+        end
+    end
+    T.check("names: a new job never reuses the name of a ship still flying", not clash)
     convoy():destroy()
 end)
 T.waitFor("lost: no convoy, no contract", function() return T.activeEntry(m) == nil end, 4)
 T.step("lost", function()
     T.eq("lost: standing -2x reward", T.rep(m.origin_faction) - rep0, -2 * m.reward)
-    T.check("lost: fighters removed", T.find(m.fighter_cs[1]) == nil and T.find(m.fighter_cs[2]) == nil)
+    T.check("lost: fighters removed", not RT.valid(f1) and not RT.valid(f2))
 end)
 T.closeComms()

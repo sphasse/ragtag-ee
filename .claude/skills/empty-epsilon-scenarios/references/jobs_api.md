@@ -165,7 +165,7 @@ A comms function on something the job spawned (a convoy taking orders) checks
 
 Two engine facts to know. **Scans are per faction**: every player ship is Independent, so a scan
 made by one ship counts for all of them (`isScannedBy(owner)` is true after another ship's scan).
-**Reputation points are per faction too**: see "Credits" under the reputation section.
+**Reputation points are per faction too**, which is why credits are not kept there: see "Credits" under the reputation section.
 
 ### Injected jobs (story arcs seed the board)
 
@@ -282,11 +282,14 @@ Danger levels: 0=safe, 1=risky, 2=dangerous, 3=deadly, 4=extremely deadly.
 standing, persisted to the save and used by story arcs and patrols; every other player ship has
 its own table for the session, starting at 0. Job modules go through `JOBS.rep(m, ...)`.
 
-**Credits** are per ship as well: `RT.credits(ship)`, `RT.addCredits(amount, reason, ship)`.
-EmptyEpsilon stores reputation points per *faction*, so `ship:get/set/addReputationPoints` moves
-one number shared by every Independent player ship. That number is the primary ship's balance;
-other ships' balances are kept by `RT` and shown on their Relay screen as a `Credits: N` line.
-Never call the `ReputationPoints` methods outside `core.lua` (`check.py` rejects it).
+**Credits** are per ship as well: `RT.credits(ship)`, `RT.addCredits(amount, reason, ship)`,
+`RT.setCredits(amount, ship)` (no ship = the primary ship). They are kept by `core.lua`, not in
+EmptyEpsilon's reputation points: the engine stores those per *faction*, so every Independent
+player ship would share one number. The engine number is unused and held at 0 (the stock
+"Reputation" readout reads 0); each ship shows its balance as a `Credits: N` line on Relay and
+Operations. Saved with the campaign: the primary ship's as `campaign.credits`, other ships'
+balance and standing under `campaign.extra_ships` by callsign, restored when a ship of that name
+joins. Never call the `ReputationPoints` methods outside `core.lua` (`check.py` rejects it).
 
 **Standard amounts:**
 - Job completed: `+mission.reward` (full credit value) with origin faction

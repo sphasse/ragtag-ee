@@ -382,10 +382,14 @@ function M.spawn(m)
     local name_pool = {}
     for _, n in ipairs(_ESCORT_NAMES) do name_pool[#name_pool + 1] = n end
     local function _pickEscortName()
-        local idx = math.random(#name_pool)
-        local n = name_pool[idx]
-        table.remove(name_pool, idx)
-        return n
+        -- Not a name a live ship already has (an earlier job's fighters may still be around).
+        for _ = 1, #name_pool do
+            local idx = math.random(#name_pool)
+            local n = name_pool[idx]
+            table.remove(name_pool, idx)
+            if not RT.valid(RT.find(n)) then return n end
+        end
+        return JOBS.uniqueName(_ESCORT_NAMES)
     end
 
     local fighters = {}

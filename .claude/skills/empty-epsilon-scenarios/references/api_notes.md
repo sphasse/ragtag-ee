@@ -83,7 +83,8 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 - `setImpulseMaxSpeed(forward, reverse)`, `setJumpDrive(true)` + `setJumpDriveRange(min, max)`, `setWarpDrive(true)` + `setWarpSpeed(v)`, `setRepairCrewCount(n)`, `setLongRangeRadarRange(r)`.
 - Missiles: `setWeaponStorageMax("Homing", n)` then `setWeaponStorage("Homing", n)`. Types: "Homing", "Nuke", "Mine", "EMP", "HVLI".
 - System names for `getSystemHealth`/`setSystemHealth`/`hasSystem`: "reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive", "frontshield", "rearshield". Health ranges -1..1.
-- Player reputation points (`getReputationPoints`, `addReputationPoints`, `setReputationPoints`) are shown on Relay and make a natural currency.
+- Player reputation points (`getReputationPoints`, `addReputationPoints`, `setReputationPoints`) are shown on Relay, but they are stored per **faction** (`faction_info.reputation_points`), not per ship: every player ship of a faction reads and writes the same number. Fine as a currency for a single-ship scenario; ragtag keeps credits itself (`RT.credits` / `RT.addCredits`, a `Credits: N` custom info line) and holds the engine number at 0.
+- A ship's custom info lines and buttons can be read back: `ship.components.custom_ship_functions` is the array itself (`#comp`, `comp[i].name`, `comp[i].caption`).
 - Docking: `player:isDocked(station)`; `ship:getDockedWith()` returns the station entity, or **`false` (not nil) when undocked**. Test it with `if ship:getDockedWith() then`, never `~= nil` (older scripts, including well-known community ones, use `~= nil` and silently break on the ECS engine). `player:commandDock(station)` only works within docking range.
 - Scanning: `ship:setScanningParameters(complexity, depth)`, `ship:setDescriptions(unscanned_text, scanned_text)`, `ship:isFullyScannedBy(player)`.
 

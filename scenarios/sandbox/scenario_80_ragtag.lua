@@ -167,8 +167,8 @@ function init()
                 if not used[name] then ship:setCallSign(name); break end
             end
         end
-        -- Credits: the engine's number is the primary ship's (set by RT.spawnPlayer); a ship
-        -- that joins later gets its own balance, starting at 0 (RT.update registers it).
+        -- Credits are per ship and kept by RT (see core.lua, "Credits"): a ship that joins gets
+        -- the balance saved under its name, or 0.
         -- Pre-register so RT.update's sync loop doesn't override the faction next frame.
         -- (RT.spawnPlayer may also insert; the duplicate guard there prevents double-entry.)
         local found = false

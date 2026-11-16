@@ -91,8 +91,9 @@ Say plainly in PR descriptions what was and wasn't tested.
 The board works for more than one player ship. A job belongs to the ship that took it: only that ship advances,
 completes and is paid for it, and gains or loses standing; each ship has its own 2-job cap, credits and standing.
 Story contracts and story arcs are for the primary ship only. Job modules use `JOBS.owner/ships/log/hail/rep`, never
-`RT.players` / `RT.shipLog`. EE keeps reputation points (our credits) per faction, so only `core.lua` touches them:
-use `RT.credits(ship)` / `RT.addCredits(amount, reason, ship)`. Details: `jobs_api.md`, "Ownership".
+`RT.players` / `RT.shipLog`. Credits are kept by `core.lua`, one balance per ship, shown as a `Credits: N` line on Relay and Operations: use
+`RT.credits(ship)` / `RT.addCredits(amount, reason, ship)`. EE's own reputation points are per faction (shared by all
+player ships), so they are unused and held at 0; nothing outside `core.lua` may call the `ReputationPoints` methods. Details: `jobs_api.md`, "Ownership".
 Patrols and shakedowns (`PROX`) still judge every ship by the primary ship's standing.
 
 ### Mission Generation Flow
