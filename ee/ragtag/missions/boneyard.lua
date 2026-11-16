@@ -72,16 +72,12 @@ end
 
 -- ── Helpers ───────────────────────────────────────────────────────────────────
 
-local function _dist(x1, y1, x2, y2)
-    return math.sqrt((x1 - x2)^2 + (y1 - y2)^2)
-end
-
 local function _nearestConcord(st, x, y)
     local best, best_d = nil, math.huge
     for _, s in ipairs(st.concord_group) do
         if RT.valid(s) then
             local cx, cy = s:getPosition()
-            local d = _dist(x, y, cx, cy)
+            local d = ARC.dist(x, y, cx, cy)
             if d < best_d then best_d = d; best = s end
         end
     end
@@ -152,15 +148,8 @@ local function _annexXY(st)
     return _ANNEX_X, _ANNEX_Y
 end
 
-local function _firstPlayer()
-    for _, p in ipairs(RT.players or {}) do
-        if RT.valid(p) then return p end
-    end
-end
-
--- Order the two hunters (re-issued on a timer).
 local function _orderConcordHunters(st)
-    local target = _firstPlayer()
+    local target = ARC.player()
     for i, s in ipairs(st.concord_group or {}) do
         if i <= _HUNTERS and RT.valid(s) then
             if target then
@@ -418,20 +407,12 @@ local function _setAnnexControlComms(st)
 end
 
 local function _cleanupCombat(st)
-    for _, s in ipairs(st.concord_group or {}) do
-        if RT.valid(s) then
-            pcall(function() s:setCanBeDestroyed(true); s:destroy() end)
-        end
-    end
-    for _, s in ipairs(st.rein_drones or {}) do
-        if RT.valid(s) then pcall(function() s:destroy() end) end
-    end
+    ARC.kill(st.concord_group)
+    ARC.kill(st.rein_drones)
 end
 
 local function _clearState(st)
-    if RT.valid(st.annex) then
-        pcall(function() st.annex:setCanBeDestroyed(true); st.annex:destroy() end)
-    end
+    ARC.kill(st.annex)
     st.annex = nil
 
     for _, s in ipairs(st.idle_drones or {}) do
@@ -441,17 +422,11 @@ local function _clearState(st)
     end
     st.idle_drones = {}
 
-    for _, s in ipairs(st.concord_group or {}) do
-        if RT.valid(s) then
-            pcall(function() s:setCanBeDestroyed(true); s:destroy() end)
-        end
-    end
+    ARC.kill(st.concord_group)
     st.concord_group = {}
     st.concord_cmd   = nil
 
-    for _, s in ipairs(st.rein_drones or {}) do
-        if RT.valid(s) then pcall(function() s:destroy() end) end
-    end
+    ARC.kill(st.rein_drones)
     st.rein_drones = {}
 
     RT.cancelTimer("boneyard_cleanup")
@@ -682,19 +657,17 @@ M.phases = {
             })
         end,
         update = function(st, delta, now)
-            local players = RT.players
-            if not players or not players[1] then return end
-            local player = players[1]
-            if not RT.valid(player) then return end
+            local player = ARC.player()
+            if not player then return end
             local px, py = player:getPosition()
             if RT.valid(st.annex) then
                 -- The Annex is out (survivors recovered, or the crew came by Ashgrave): closing
                 -- to 2.5U starts the hack.
                 local ax, ay = st.annex:getPosition()
-                if _dist(px, py, ax, ay) < 2.5 * U then
+                if ARC.dist(px, py, ax, ay) < 2.5 * U then
                     MISSIONS.phase("boneyard", "annex_hack")
                 end
-            elseif _dist(px, py, _ASHGRAVE_X, _ASHGRAVE_Y) < 8 * U then
+            elseif ARC.dist(px, py, _ASHGRAVE_X, _ASHGRAVE_Y) < 8 * U then
                 -- No survivors yet: a crew following the rumors finds it at Ashgrave. 8U clears
                 -- the planet (radius 3.4U) comfortably.
                 _annexSignal(st)
@@ -797,10 +770,8 @@ M.phases = {
             _tickDrones(st, now)
 
             -- Advance to extract when player moves >10U from Annex
-            local players = RT.players
-            if not players or not players[1] then return end
-            local player = players[1]
-            if not RT.valid(player) then return end
+            local player = ARC.player()
+            if not player then return end
             local px, py = player:getPosition()
             local ax, ay
             if RT.valid(st.annex) then
@@ -808,7 +779,7 @@ M.phases = {
             else
                 ax, ay = _ANNEX_X, _ANNEX_Y
             end
-            if _dist(px, py, ax, ay) > 10 * U then
+            if ARC.dist(px, py, ax, ay) > 10 * U then
                 MISSIONS.phase("boneyard", "extract")
             end
         end,
@@ -824,12 +795,10 @@ M.phases = {
             _tickConcordOrders(st, now)
             _tickDrones(st, now)
 
-            local players = RT.players
-            if not players or not players[1] then return end
-            local player = players[1]
-            if not RT.valid(player) then return end
+            local player = ARC.player()
+            if not player then return end
             local px, py = player:getPosition()
-            if _dist(px, py, _BONEYARD_CX, _BONEYARD_CY) > _BONEYARD_R then
+            if ARC.dist(px, py, _BONEYARD_CX, _BONEYARD_CY) > _BONEYARD_R then
                 MISSIONS.phase("boneyard", "done")
             end
         end,
@@ -844,8 +813,7 @@ function M.resolve(st)
     -- Reputation and credits are paid once. A GM jump to another end state (or back to done)
     -- does not pay again: "boneyard_rewarded" survives a jump to "done" and is cleared by any
     -- jump to an earlier state, so a replay pays once more.
-    if not RT.flag("boneyard_rewarded") then
-        RT.flag("boneyard_rewarded", true)
+    ARC.once("boneyard_rewarded", function()
         local concord_delta = -300
         if RT.flag("boneyard_drone_flip") then
             concord_delta = concord_delta - 200
@@ -855,7 +823,7 @@ function M.resolve(st)
 
         if RT.flag("boneyard_hack_done")  then RT.addCredits(600, "Ashgrave research data") end
         if RT.flag("boneyard_drone_flip") then RT.addCredits(200, "Drone tactical bonus")   end
-    end
+    end)
 
     if RT.flag("boneyard_hack_done") then
         _indexAshgraveResearch()   -- normally already done when the download finished
@@ -931,8 +899,7 @@ end
 -- start, so its job is offered again) and cannot undo reputation, credits or Science DB unlocks.
 M.gm_reset = function(st, target)
     _clearState(st)
-    for k in pairs(st) do st[k] = nil end
-    for k, v in pairs(M.init_state()) do st[k] = v end
+    ARC.resetState(M, st)
     MISSIONS.gmClearFlags("boneyard", function(name)
         if name == "boneyard_buoy_found" then return target ~= nil and target ~= "hook" end
         if name == "boneyard_rewarded"   then return target == "done" end
@@ -951,9 +918,7 @@ M.completed = {
     end,
 }
 
-local function _jump(phase, setup, opts)
-    return function() MISSIONS.gmJump("boneyard", phase, setup, opts) end
-end
+local _jump = ARC.jumper("boneyard")
 
 -- An end state: which objectives were achieved. The world is left clean (no Annex, no fleet).
 local function _done(hack, flip)
@@ -986,10 +951,10 @@ M.gm_actions = {
     {label = "Complete hack", phases = {"annex_hack"}, fn = function(st)
         if not RT.valid(st.annex) then return end
         local ax, ay = st.annex:getPosition()
-        local p = RT.players and RT.players[1]
+        local p = ARC.player()
         if RT.valid(p) then
             local px, py = p:getPosition()
-            if _dist(px, py, ax, ay) > 5 * U then
+            if ARC.dist(px, py, ax, ay) > 5 * U then
                 p:setPosition(ax, ay + 2 * U)
                 pcall(function() p:commandImpulse(0) end)
             end
@@ -997,6 +962,16 @@ M.gm_actions = {
         pcall(function() st.annex:setSystemHackedLevel("frontshield", 1.0) end)
     end},
 }
+
+-- ── Achievements (the arc defines its own; stats.lua knows nothing about arcs) ─
+if ACH and ACH.define then
+    ACH.define{id = "first_on_the_scene", name = "First on the Scene", category = "story", hidden = true,
+        desc = "Rescue the lifeboat survivors in the Boneyard.",
+        check = function(s) return RT.flag and RT.flag("boneyard_buoy_found") and true or false end}
+    ACH.define{id = "boneyard_breach", name = "Breaching the Annex", category = "story", hidden = true,
+        desc = "Finish the Boneyard arc.",
+        check = function(s) return s.arcs.boneyard ~= nil and (s.arcs.boneyard.completed or 0) > 0 end}
+end
 
 -- ── Register ──────────────────────────────────────────────────────────────────
 

@@ -171,6 +171,13 @@ function T.jump(key)
     error("no GM state '" .. tostring(key) .. "' on arc " .. tostring(_arc))
 end
 
+-- What the next session does: stop the arc (its world is removed, saved flags stay) and start it
+-- again, so its start phase routes by the flags. Check T.phase() afterwards.
+function T.restart()
+    MISSIONS.cancel(_arc)
+    MISSIONS.start(_arc)
+end
+
 -- Press one of the arc's GM helper buttons by label (only offered in its phases, as in the menu).
 function T.action(label)
     local M = MISSIONS._registry[_arc]

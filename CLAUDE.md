@@ -11,6 +11,8 @@ Contributors add **universe extensions** and **scenarios** independently.
   - `verse/drift.lua` — base universe **data** (no engine calls)
   - `verse/extensions/*.lua` — community universe additions; `index.lua` is generated
   - `director.lua` (DIR: mailbox to the AI director, events, beats, whitelisted actions)
+  - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs), one file per arc.
+    Core never depends on this folder; shared arc code goes in `_helpers.lua`, not `core.lua`.
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tests/arcs/` — one regression test per story arc plus `_harness.lua` (run by `tools/arc_tests.py`; never installed into a played game)

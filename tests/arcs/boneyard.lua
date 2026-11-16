@@ -108,6 +108,7 @@ T.step("resolved", function()
     T.eq("done: Corsairs +150", T.rep("Corsairs") - corsairs0, 150)
     T.check("done: Boneyard patrols resumed", not PROX._suspended_zones["the Boneyard"])
     T.eq("done: two aftermath rumors", T.rumors("BONEYARD_DONE"), 2)
+    T.check("done: the arc's achievement is defined and earned", ACH.defs.boneyard_breach and ACH.defs.boneyard_breach.check(STATS.ensure()))
 end)
 
 -- ── GM states ────────────────────────────────────────────────────────────────

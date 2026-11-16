@@ -96,42 +96,9 @@ end
 
 -- ── Helpers ──────────────────────────────────────────────────────────────────
 
-local function _firstPlayer()
-    for _, p in ipairs(RT.players or {}) do if RT.valid(p) then return p end end
-end
-
-local function _d2(x1, y1, x2, y2) local dx, dy = x1 - x2, y1 - y2 return dx * dx + dy * dy end
-
-local function _near(ent, x, y, r)
-    if not RT.valid(ent) then return false end
-    local ex, ey = ent:getPosition()
-    return _d2(ex, ey, x, y) < r * r
-end
-
-local function _alive(list)
-    local out = {}
-    for _, s in ipairs(list or {}) do if RT.valid(s) then out[#out + 1] = s end end
-    return out
-end
-
-local function _kill(list)
-    for _, s in ipairs(list or {}) do
-        if RT.valid(s) then pcall(function() s:setCanBeDestroyed(true); s:destroy() end) end
-    end
-end
-
 local function _blackwater() return RT.find("Blackwater") end
 
 local function _grid(x, y) return JOBS.gridRef(x, y) end
-
-local function _meetReva()
-    if SCIDB and SCIDB.meet then
-        local ok, added = pcall(SCIDB.meet, "corsair", "reva_profile")
-        if ok and added then
-            RT.shipLog("[Corsair Arc] Reva Okonkwo personnel records added to our database.", "#80C0FF")
-        end
-    end
-end
 
 -- ── Corsair territory: friendly while the arc runs, and for good once allied ─────────────────
 
@@ -201,7 +168,7 @@ local function _deferHook(st)
     -- reset inside that minute (GM jump, cancel) still removes it.
     local g = st.guide
     st.guide = nil
-    _kill({st.guide_leaving})
+    ARC.kill(st.guide_leaving)
     st.guide_leaving = g
     if RT.valid(g) then
         g:orderFlyTowards(_BW_X, _BW_Y)
@@ -267,7 +234,7 @@ local function _spawnDepot(st)
 end
 
 local function _spawnDefenders(st)
-    _kill(st.defenders)
+    ARC.kill(st.defenders)
     st.defenders = {}
     for i, cs in ipairs({"CNS Warden", "CNS Bailiff"}) do
         local s = CpuShip():setTemplate("Phobos T3"):setFaction("Concord Hostile")
@@ -282,9 +249,9 @@ end
 local _escortComms   -- forward
 
 local function _spawnEscorts(st)
-    _kill(st.escorts)
+    ARC.kill(st.escorts)
     st.escorts = {}
-    local p = _firstPlayer()
+    local p = ARC.player()
     for i, cs in ipairs({"CSR Hardtack", "CSR Ninth Life"}) do
         local s = CpuShip():setTemplate("Phobos T3"):setFaction("Corsair Friendly")
         s:setCallSign(cs):setPosition(_BW_X - 3000, _BW_Y + (i == 1 and -1500 or 1500))
@@ -298,8 +265,8 @@ local function _spawnEscorts(st)
 end
 
 local function _orderAttack(st)
-    local targets = _alive(st.defenders)
-    for i, s in ipairs(_alive(st.escorts)) do
+    local targets = ARC.alive(st.defenders)
+    for i, s in ipairs(ARC.alive(st.escorts)) do
         if #targets > 0 then s:orderAttack(targets[((i - 1) % #targets) + 1]) end
     end
 end
@@ -313,11 +280,11 @@ _escortComms = function(src, tgt)
     setCommsMessage('"' .. tgt:getCallSign() .. ' here. Your call, captain."')
     addCommsReply("Form up on me.", function()
         st.attacking, st.boarding = false, false
-        for _, s in ipairs(_alive(st.escorts)) do s:orderDefendTarget(src) end
+        for _, s in ipairs(ARC.alive(st.escorts)) do s:orderDefendTarget(src) end
         setCommsMessage('"Forming up on you."')
     end)
-    local near_depot = _near(src, _DEPOT_X, _DEPOT_Y, 7 * U)
-    if near_depot and #_alive(st.defenders) > 0 then
+    local near_depot = ARC.near(src, _DEPOT_X, _DEPOT_Y, 7 * U)
+    if near_depot and #ARC.alive(st.defenders) > 0 then
         addCommsReply("Attack the Concord defenders.", function()
             st.attacking, st.boarding = true, false
             _orderAttack(st)
@@ -327,7 +294,7 @@ _escortComms = function(src, tgt)
     if st.defenders_down and not st.load_t0 then
         addCommsReply("Board the depot and take the weapons.", function()
             st.attacking, st.boarding = false, true
-            for _, s in ipairs(_alive(st.escorts)) do s:orderFlyTowards(_DEPOT_X, _DEPOT_Y) end
+            for _, s in ipairs(ARC.alive(st.escorts)) do s:orderFlyTowards(_DEPOT_X, _DEPOT_Y) end
             setCommsMessage('"Moving in. Keep an eye out for company while we work."')
         end)
     end
@@ -374,7 +341,7 @@ local function _spawnTrap(st)
 end
 
 local function _clearTrap(st)
-    _kill(st.mines); _kill(st.trap_jammers)
+    ARC.kill(st.mines); ARC.kill(st.trap_jammers)
     st.mines, st.trap_jammers, st.trap_built = {}, {}, false
 end
 
@@ -392,7 +359,7 @@ end
 -- ── The battle ───────────────────────────────────────────────────────────────
 
 local function _spawnAllies(st)
-    _kill(st.allies)
+    ARC.kill(st.allies)
     st.allies = {}
     local function add(tmpl, cs, x, y, desc)
         local s = CpuShip():setTemplate(tmpl):setFaction("Corsair Friendly")
@@ -410,7 +377,7 @@ local function _spawnAllies(st)
     add("Adder MK5", "Hearthstone",   _BW_X - 3 * U, _BW_Y - 2 * U, "A family freighter with guns bolted on. The paint is still wet.")
     add("Adder MK5", "Second Chance", _BW_X - 3 * U, _BW_Y + 2 * U, "A family freighter with guns bolted on. The paint is still wet.")
     -- Raid survivors hold at Blackwater too.
-    for _, s in ipairs(_alive(st.escorts)) do s:orderDefendLocation(_BW_X - 2 * U, _BW_Y) end
+    for _, s in ipairs(ARC.alive(st.escorts)) do s:orderDefendLocation(_BW_X - 2 * U, _BW_Y) end
 end
 
 local function _spawnFleet(st)
@@ -440,7 +407,7 @@ local function _tickWaypoints(st)
         if RT.valid(s) then
             local i = st.wp[s] or 1
             local w = _FLEET_WAYPOINTS[i]
-            if w and _near(s, w[1], w[2], 1.5 * U) and i < #_FLEET_WAYPOINTS then
+            if w and ARC.near(s, w[1], w[2], 1.5 * U) and i < #_FLEET_WAYPOINTS then
                 st.wp[s] = i + 1
                 local n = _FLEET_WAYPOINTS[i + 1]
                 s:orderFlyTowards(n[1], n[2])
@@ -452,7 +419,7 @@ end
 -- ── Blackwater dialogs ───────────────────────────────────────────────────────
 
 local function _briefing(src)
-    _meetReva()
+    ARC.meet("corsair", "reva_profile", "Reva Okonkwo")
     setCommsMessage('"So you\'re the one Long Memory has been shadowing. Reva Okonkwo. I keep the books here, and the guns.\n\n'
         .. 'We have some fierce fighters, out in the Drift and guarding these approaches. But look around you: most of the ships at Blackwater are families. '
         .. 'Free Ship crews\' kids, and their kids.\n\nThe Concord calls what we do piracy. We call it the Corsair tax. We only take back what the "transitional" tariffs took, '
@@ -498,7 +465,7 @@ end
 
 _blackwaterComms = function(src, tgt)
     local phase = MISSIONS._cur_phase["corsair"]
-    local docked = src:isDocked(tgt)
+    local docked = ARC.docked(src, tgt)
     if phase == "briefing" then
         if not docked then setCommsMessage('"Dock and we\'ll talk. Reva\'s waiting."') return end
         _briefing(src)
@@ -521,10 +488,9 @@ end
 -- ── Greywater: the barkeep holds a message ───────────────────────────────────
 
 local _GREYWATER_MEET_X, _GREYWATER_MEET_Y = 24 * U, 45 * U   -- the Gauntlet's north edge, ~9U south of Greywater
-local _greywater_hooked = false
 
 local function _greywaterHook(src, tgt)
-    if not src:isDocked(tgt) then return end
+    if not ARC.docked(src, tgt) then return end
     if MISSIONS._status["corsair"] ~= "active" or MISSIONS._cur_phase["corsair"] ~= "hook" then return end
     local st = MISSIONS._state["corsair"]
     if not st or RT.valid(st.guide) then return end
@@ -569,13 +535,13 @@ end
 local function _clearWorld(st)
     RT.cancelTimer("corsair_cleanup")
     RT.cancelTimer("corsair_guide_leave")
-    _kill({st.guide}); _kill({st.guide_leaving}); st.guide, st.guide_leaving = nil, nil
-    _kill(st.escorts); st.escorts = {}
-    _kill(st.defenders); st.defenders = {}
-    if RT.valid(st.depot) then pcall(function() st.depot:setCanBeDestroyed(true); st.depot:destroy() end) end
+    ARC.kill(st.guide); ARC.kill(st.guide_leaving); st.guide, st.guide_leaving = nil, nil
+    ARC.kill(st.escorts); st.escorts = {}
+    ARC.kill(st.defenders); st.defenders = {}
+    ARC.kill(st.depot)
     st.depot = nil
-    _kill(st.fleet); st.fleet = {}
-    _kill(st.allies); st.allies = {}
+    ARC.kill(st.fleet); st.fleet = {}
+    ARC.kill(st.allies); st.allies = {}
     PROX.clearCombatJammers(st.cjam)
     _clearTrap(st)
     RUMORS.removeCategory("CORSAIR_HOOK")
@@ -594,14 +560,13 @@ function M.resolve(st)
     else
         _unfriend(st)
     end
-    if not RT.flag("corsair_rewarded") then
-        RT.flag("corsair_rewarded", true)
+    ARC.once("corsair_rewarded", function()
         if outcome == "defended" then
             RT.addReputation("Corsairs", 400, "Corsair Arc: held the wall at Blackwater")
             RT.addReputation("Concord", -300, "Corsair Arc: destroyed Concord Battle Group Two")
         end
         RT.shipLog("[Corsair Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "defended" and "#80FF80" or "#FF8080")
-    end
+    end)
     RUMORS.removeCategory("CORSAIR_DONE")
     if outcome == "defended" then
         RUMORS.add({text = "A whole Concord battle group died at Blackwater's mine wall. The Corsairs are calling it the Second Settlement.", priority = 3, category = "CORSAIR_DONE"})
@@ -609,12 +574,12 @@ function M.resolve(st)
         RUMORS.add({text = "Blackwater's burning, they say. The Concord calls it a clean-up. The Corsair families scattered into the Gauntlet.", priority = 3, category = "CORSAIR_DONE"})
     end
     -- Jammers go now (so the crew can warp out); the fleet's remains, allies and mines later.
-    _kill(st.trap_jammers); st.trap_jammers = {}
+    ARC.kill(st.trap_jammers); st.trap_jammers = {}
     PROX.clearCombatJammers(st.cjam)
-    _kill({st.guide}); st.guide = nil
+    ARC.kill(st.guide); st.guide = nil
     RT.after(180, function()
         local cur = MISSIONS._state["corsair"]
-        if cur then _kill(cur.fleet); _kill(cur.allies); _kill(cur.escorts); _clearTrap(cur) end
+        if cur then ARC.kill(cur.fleet); ARC.kill(cur.allies); ARC.kill(cur.escorts); _clearTrap(cur) end
     end, "corsair_cleanup")
 end
 
@@ -630,18 +595,15 @@ M.phases = {}
 M.phases.init = {
     no_skip = true,
     enter = function(st)
-        if not _greywater_hooked then
-            RT.addStationHook("Greywater Depot", _greywaterHook)
-            _greywater_hooked = true
-        end
-        local f = RT.flag
-        if f("corsair_arc_done") then MISSIONS.phase("corsair", "done")
-        elseif f("corsair_joined") then MISSIONS.phase("corsair", "battle")
-        elseif f("corsair_raid_done") then MISSIONS.phase("corsair", "return")
-        elseif f("corsair_briefed") then MISSIONS.phase("corsair", "raid")
-        elseif f("corsair_arrived") then MISSIONS.phase("corsair", "briefing")
-        elseif f("corsair_hook") then MISSIONS.phase("corsair", "escort")
-        else MISSIONS.phase("corsair", "hook") end
+        ARC.stationHook("Greywater Depot", _greywaterHook)
+        ARC.route("corsair", {
+            {"corsair_arc_done", "done"},
+            {"corsair_joined", "battle"},
+            {"corsair_raid_done", "return"},
+            {"corsair_briefed", "raid"},
+            {"corsair_arrived", "briefing"},
+            {"corsair_hook", "escort"},
+        }, "hook")
     end,
 }
 
@@ -661,10 +623,10 @@ M.phases.hook = {
         RUMORS.removeCategory("CORSAIR_HOOK")
     end,
     update = function(st, delta, now)
-        local p = _firstPlayer()
+        local p = ARC.player()
         if not p then return end
         local px, py = p:getPosition()
-        local in_gauntlet = _d2(px, py, _GAUNTLET_X, _GAUNTLET_Y) < _GAUNTLET_R * _GAUNTLET_R
+        local in_gauntlet = ARC.dist(px, py, _GAUNTLET_X, _GAUNTLET_Y) < _GAUNTLET_R
         if RT.valid(st.guide) and st.hail_when_near then
             -- Staged by the Greywater message: waiting at the Gauntlet's edge, hails once close.
             if RT.dist(p, st.guide) < 6 * U then
@@ -688,9 +650,9 @@ M.phases.hook = {
                 RT.hail(st.guide, _HOOK_TEXT, "Long Memory")
                 RT.shipLog("[Relay] Long Memory is waiting for an answer. Hail them back.", "#A0C0FF")
             end
-        elseif _d2(px, py, _GAUNTLET_X, _GAUNTLET_Y) > (_GAUNTLET_R + 20 * U) ^ 2 then
+        elseif ARC.dist(px, py, _GAUNTLET_X, _GAUNTLET_Y) > _GAUNTLET_R + 20 * U then
             -- The crew left without answering: the raider goes back to watching.
-            _kill({st.guide}); st.guide = nil
+            ARC.kill(st.guide); st.guide = nil
         end
     end,
 }
@@ -698,7 +660,7 @@ M.phases.hook = {
 M.phases.escort = {
     enter = function(st)
         _befriend()
-        local p = _firstPlayer()
+        local p = ARC.player()
         if not RT.valid(st.guide) then
             local x, y = _BW_X - 15 * U, _BW_Y - 15 * U
             if p then
@@ -712,7 +674,7 @@ M.phases.escort = {
         RT.setObjective("Follow Long Memory to Blackwater", true, "corsair")
     end,
     update = function(st, delta, now)
-        local p = _firstPlayer()
+        local p = ARC.player()
         if not p then return end
         local bw = _blackwater()
         if RT.valid(bw) and p:isDocked(bw) then
@@ -723,7 +685,7 @@ M.phases.escort = {
         local g = st.guide
         if not RT.valid(g) then return end
         local d = RT.dist(p, g)
-        if not st.guide_waiting and d > _GUIDE_WAIT_D and not _near(g, _BW_X, _BW_Y, 5 * U) then
+        if not st.guide_waiting and d > _GUIDE_WAIT_D and not ARC.near(g, _BW_X, _BW_Y, 5 * U) then
             st.guide_waiting = true
             g:orderIdle()
             if now >= (st.keep_up_at or 0) then
@@ -757,16 +719,16 @@ M.phases.raid = {
             .. ", between Cinder and Tamsin. Two Concord guards. Hardtack and Ninth Life are under your command: hail them for orders.", "#A0C0FF")
     end,
     update = function(st, delta, now)
-        local escorts = _alive(st.escorts)
+        local escorts = ARC.alive(st.escorts)
         if #escorts == 0 then
             RT.shipLog("[Reva Okonkwo] Both ships lost? Damn it. I'm sending two more. The Concord will have re-crewed that depot. Try again.", "#FFCC80")
             MISSIONS.phase("corsair", "raid")   -- failure restart: fresh escorts, fresh defenders
             return
         end
-        if not st.defenders_down and #_alive(st.defenders) == 0 then
+        if not st.defenders_down and #ARC.alive(st.defenders) == 0 then
             st.defenders_down = true
             RT.hail(escorts[1], '"Guards are down. Give the word and we\'ll board the depot."', escorts[1]:getCallSign())
-        elseif st.attacking and #_alive(st.defenders) > 0 then
+        elseif st.attacking and #ARC.alive(st.defenders) > 0 then
             for _, s in ipairs(escorts) do
                 local ok, ord = pcall(function() return s:getOrder() end)
                 if ok and ord ~= "Attack" then _orderAttack(st); break end
@@ -775,7 +737,7 @@ M.phases.raid = {
         if st.boarding then
             if not st.load_t0 then
                 for _, s in ipairs(escorts) do
-                    if _near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then
+                    if ARC.near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then
                         st.load_t0 = now
                         for _, e in ipairs(escorts) do e:orderIdle() end
                         RT.shipLog("[" .. s:getCallSign() .. "] Alongside the depot. Cutting into the cargo bays.", "#FFCC80")
@@ -794,7 +756,7 @@ M.phases.raid = {
 M.phases["return"] = {
     enter = function(st)
         _befriend()
-        for _, s in ipairs(_alive(st.escorts)) do s:orderFlyTowards(_BW_X - 2 * U, _BW_Y) end
+        for _, s in ipairs(ARC.alive(st.escorts)) do s:orderFlyTowards(_BW_X - 2 * U, _BW_Y) end
         RT.setObjective("Return to Blackwater", true, "corsair")
     end,
 }
@@ -812,8 +774,8 @@ M.phases.battle = {
     end,
     update = function(st, delta, now)
         _tickWaypoints(st)
-        if PROX and PROX.tickCombatJammers then PROX.tickCombatJammers(st.cjam, st.fleet, _firstPlayer(), now) end
-        if st.fleet_spawned and #_alive(st.fleet) == 0 then
+        if PROX and PROX.tickCombatJammers then PROX.tickCombatJammers(st.cjam, st.fleet, ARC.player(), now) end
+        if st.fleet_spawned and #ARC.alive(st.fleet) == 0 then
             RT.flag("corsair_arc_done", "defended")
             RT.shipLog("[Reva Okonkwo] That's the last of them. Battle Group Two is gone. Blackwater stands!", "#80FF80")
             MISSIONS.phase("corsair", "done")
@@ -841,7 +803,7 @@ M.gm_state_fn = function()
     end
     local st = MISSIONS._state["corsair"]
     if MISSIONS._cur_phase["corsair"] == "battle" and st then
-        return string.format("Battle (%d Concord left)", #_alive(st.fleet))
+        return string.format("Battle (%d Concord left)", #ARC.alive(st.fleet))
     end
     return MISSIONS._cur_phase["corsair"] or MISSIONS._status["corsair"]
 end
@@ -849,8 +811,7 @@ end
 M.gm_reset = function(st, target)
     _clearWorld(st)
     _unfriend(st)
-    for k in pairs(st) do st[k] = nil end
-    for k, v in pairs(M.init_state()) do st[k] = v end
+    ARC.resetState(M, st)
     MISSIONS.gmClearFlags("corsair", function(name)
         if name == "corsair_rewarded" then return target == "done" end
         return false
@@ -860,14 +821,12 @@ end
 M.completed = {
     hook     = function(st) RT.flag("corsair_hook", true) end,
     escort   = function(st) RT.flag("corsair_arrived", true) end,
-    briefing = function(st) RT.flag("corsair_briefed", true); _meetReva() end,
+    briefing = function(st) RT.flag("corsair_briefed", true); ARC.meet("corsair", "reva_profile", "Reva Okonkwo") end,
     raid     = function(st) RT.flag("corsair_raid_done", true) end,
     ["return"] = function(st) RT.flag("corsair_joined", true) end,
 }
 
-local function _jump(phase, setup, opts)
-    return function() MISSIONS.gmJump("corsair", phase, setup, opts) end
-end
+local _jump = ARC.jumper("corsair")
 
 local function _done(outcome, met)
     return _jump("done", function() RT.flag("corsair_arc_done", outcome) end,
@@ -888,28 +847,28 @@ M.gm_states = {
 
 M.gm_actions = {
     {label = "Raider now", phases = {"hook"}, fn = function(st)
-        local p = _firstPlayer()
+        local p = ARC.player()
         if not p or RT.valid(st.guide) then return end
         local px, py = p:getPosition()
         _spawnGuide(st, px + 4500, py):orderDefendTarget(p)
         st.hook_at = getScenarioTime() + 2
     end},
     {label = "Kill defenders", phases = {"raid"}, fn = function(st)
-        for _, s in ipairs(_alive(st.defenders)) do s:destroy() end
+        for _, s in ipairs(ARC.alive(st.defenders)) do s:destroy() end
     end},
     {label = "Finish loading", phases = {"raid"}, fn = function(st)
-        if not st.defenders_down then for _, s in ipairs(_alive(st.defenders)) do s:destroy() end end
+        if not st.defenders_down then for _, s in ipairs(ARC.alive(st.defenders)) do s:destroy() end end
         st.defenders_down, st.boarding, st.load_t0 = true, true, getScenarioTime() - _LOAD_TIME
     end},
     {label = "Fleet to gap", phases = {"battle"}, fn = function(st)
-        for i, s in ipairs(_alive(st.fleet)) do
+        for i, s in ipairs(ARC.alive(st.fleet)) do
             s:setPosition(_FLEET_WAYPOINTS[3][1] - 2 * U, _FLEET_WAYPOINTS[3][2] + (i - 3) * 1200)
             st.wp[s] = 3
             s:orderFlyTowards(_FLEET_WAYPOINTS[3][1], _FLEET_WAYPOINTS[3][2])
         end
     end},
     {label = "Kill fleet", phases = {"battle"}, fn = function(st)
-        for _, s in ipairs(_alive(st.fleet)) do s:destroy() end
+        for _, s in ipairs(ARC.alive(st.fleet)) do s:destroy() end
     end},
 }
 

@@ -220,6 +220,89 @@ end)
 
 ---
 
+## Arc helpers (ARC)
+
+`ee/ragtag/missions/_helpers.lua` defines `ARC`, the helpers shared by the arcs. It is part of the
+missions layer (loaded by `missions.lua` right after the engine); core (`RT`), the job board and
+world plugins do not know about it. **Use these instead of writing a local version**
+(`check.py` rejects the common re-implementations), and when two arcs need the same new thing,
+add it to `_helpers.lua`, not to `core.lua` and not to both arcs.
+
+| Helper | Use |
+|---|---|
+| `ARC.player()` | The ship the arc acts on: first valid player ship, or nil. |
+| `ARC.dist(x1, y1, x2, y2)` | Distance between two points. (`RT.dist(a, b)` is entity to entity.) |
+| `ARC.near(ent, x, y, r)` | True when a valid entity is within `r` of the point. |
+| `ARC.playerNear(x, y, r)` | The player ship when within `r` of the point, else nil. |
+| `ARC.alive(list)` | New list of the valid entities (`#ARC.alive(st.fleet) == 0`: all dead). |
+| `ARC.kill(x)` | Remove one entity or every entity in a table, indestructible ones too; nil-safe. |
+| `ARC.docked(src, tgt, msg)` | Dialog gate: true when docked; else sets `msg` (if given) and returns false. |
+| `ARC.stationHook(callsign, fn)` | `RT.addStationHook`, once per session however often `init` runs. |
+| `ARC.meet(arc_id, profile_key, who)` | First meeting: `SCIDB.meet` plus the one-time "records added" log line. |
+| `ARC.once(flag, fn)` | Run `fn` the first time only (saved flag). Rewards in `M.resolve`. |
+| `ARC.route(arc_id, rules, default)` | `init` routing by saved flags: first rule `{flag_or_fn, phase}` that holds. |
+| `ARC.jumper(arc_id)` | Builder for `M.gm_states` buttons: `_jump(phase, setup, opts)`. |
+| `ARC.resetState(M, st)` | For `M.gm_reset`: wipe `st` and refill from `M.init_state()`, in place. |
+
+The skeleton they add up to:
+
+```lua
+local _jump = ARC.jumper("myarc")
+
+local function _clearWorld(st)             -- everything the arc spawned or scheduled
+    RT.cancelTimer("myarc_cleanup")
+    ARC.kill(st.fleet);  st.fleet = {}
+    ARC.kill(st.station); st.station = nil
+    RUMORS.removeCategory("MYARC_HOOK")
+    RT.clearObjective("myarc")
+end
+
+M.phases.init = {
+    enter = function(st)
+        ARC.stationHook("Dustmote Salvage", _dustmoteHook)
+        ARC.route("myarc", {                -- furthest progress first
+            {"myarc_arc_done", "done"},
+            {"myarc_accepted", "run"},
+        }, "hook")
+    end,
+}
+
+M.phases.run = {
+    update = function(st, delta, now)
+        local p = ARC.playerNear(_SITE_X, _SITE_Y, 5 * U)
+        if p and #ARC.alive(st.fleet) == 0 then MISSIONS.phase("myarc", "done") end
+    end,
+}
+
+function M.resolve(st)
+    ARC.once("myarc_rewarded", function() RT.addCredits(600, "My Arc") end)
+end
+
+M.on_cancel = _clearWorld
+M.gm_reset = function(st, target)
+    _clearWorld(st)
+    ARC.resetState(M, st)
+    MISSIONS.gmClearFlags("myarc", function(name)
+        return name == "myarc_rewarded" and target == "done"   -- an end state does not pay twice
+    end)
+end
+M.gm_states = { {key = "hook", label = "→ Hook", fn = _jump("hook")}, {key = "run", label = "→ Run", fn = _jump("run")} }
+```
+
+In a comms function: `if not ARC.docked(src, tgt, '"Dock first."') then return end`, then
+`ARC.meet("myarc", "rezkov_profile", "Orlan Rezkov")`.
+
+**Layering.** Arcs call down into `RT`, `JOBS`, `PROX`, `RUMORS`, `SCIDB`, `STATS`/`ACH`; nothing
+below calls up. `check.py` errors if a core file (`core.lua`, `stats.lua`, `verse.lua`, `voice.lua`,
+`ship_templates.lua`) references `MISSIONS` or `ARC`. Two consequences:
+
+- an arc defines its own achievements in its own file
+  (`if ACH and ACH.define then ACH.define{id = ..., check = function(s) return (s.arcs.myarc or {}).completed end} end`);
+- when core needs something from the arcs, the engine hands it over (the statistics report lists
+  arcs through `STATS.arc_source`, which the engine sets) instead of core reading `MISSIONS`.
+
+---
+
 ## Regression tests
 
 Every arc has `tests/arcs/<id>.lua` (`check.py` errors if one is missing), run by
@@ -317,30 +400,25 @@ M.phases = {
     },
 }
 M.on_cancel = function(st)
-    if RT.valid(st.ship) then st.ship:destroy() end
+    ARC.kill(st.ship); st.ship = nil       -- nil-safe; also removes indestructible objects
 end
 ```
 
-### Idempotent GM skip buttons
+### Idempotent GM jumps
 
-Every GM skip action should clean up all prior state before entering the target phase, so
-skipping backward or forward is always safe. Write a single `_clearState(st)` helper and
-call it at the top of every GM action that changes phase:
+A GM jump must be safe from any state, forward or back. Write one `_clearWorld(st)` that removes
+everything the arc spawned or scheduled, and call it from both `M.on_cancel` and `M.gm_reset`
+(see the skeleton under **Arc helpers (ARC)**). `MISSIONS.gmJump` then replays `M.completed[...]`
+for the phases before the target, so each jump starts from a clean, correct world:
 
 ```lua
-local function _clearState(st)
-    if RT.valid(st.target) then st.target:destroy() end
-    st.target   = nil
-    st.step_done = false
-    RT.clearFlag("myarc_step")
-    RT.clearFlag("myarc_done")
+local _jump = ARC.jumper("myarc")
+M.gm_reset = function(st, target)
+    _clearWorld(st)
+    ARC.resetState(M, st)
+    MISSIONS.gmClearFlags("myarc")
 end
-
--- In gm_actions:
-{label = "→ Phase 2", fn = function(st)
-    _clearState(st)
-    MISSIONS.phase("myarc", "phase2")
-end},
+M.gm_states = { {key = "phase2", label = "→ Phase 2", fn = _jump("phase2")} }
 ```
 
 ### RT.clearFlag — clearing persistent flags
@@ -492,27 +570,21 @@ calls every registered fn.
   lets die to damage while applying its own rep consequences (e.g. a story
   target with an explicit `RT.addReputation` outcome).
 
-### Guard against double hook registration on restart
+### Station hooks: register once
 
-If a mission registers station hooks in `init.enter`, guard with a file-level boolean so
-restarting the arc in the same session doesn't double-register:
+Register station hooks in `init.enter` with `ARC.stationHook`, which ignores a second
+registration of the same function (a GM restart re-enters `init`):
 
 ```lua
-local _hook_registered = false
-
-M.phases = {
-    init = {
-        enter = function(st)
-            if _hook_registered then return end
-            _hook_registered = true
-            RT.addStationHook(RT.find("My Station"), function(...)
-                -- ...
-            end)
-        end,
-    },
+M.phases.init = {
+    enter = function(st)
+        ARC.stationHook("My Station", _myStationHook)   -- not RT.addStationHook
+    end,
 }
 ```
 
+The hook itself decides whether to offer anything:
+`if not ARC.docked(src, tgt) then return end`, then check the arc's phase.
 
 ## Rumor tiers (RUMORS.add priority)
 

@@ -17,7 +17,6 @@
 -- Long-term flags (no prefix, available to future arcs):
 --   kael_alive        true if Cmdr Kael survived the arc; false if Meridian was destroyed
 
-local _hook_registered   = false  -- guard against double-registration on GM restart
 
 local M = {}
 M.id          = "rezkov"
@@ -76,17 +75,6 @@ local _NEBULA_POS = {
 -- Concord Waypoint Galen: verse (-75, -52). Terminal spawns slightly NE.
 
 
--- First meeting with someone: flag "rezkov_met_<who>", add their Science DB profile and tell the
--- crew once. GM resets clear the flag (rezkov_ prefix) and SCIDB.sync removes the profile.
-local function _addRecords(key, who)
-    if SCIDB and SCIDB.meet then
-        local ok, added = pcall(SCIDB.meet, "rezkov", key)
-        if ok and added then
-            RT.shipLog("[Rezkov Arc] " .. who .. " personnel records added to our database.", "#80C0FF")
-        end
-    end
-end
-
 -- ── Spawn helpers ────────────────────────────────────────────────────────────
 
 local function _spawnWaypoint(st)
@@ -111,12 +99,11 @@ local function _spawnWaypoint(st)
 
         -- Comms are phase-driven so GM can jump to any phase cleanly.
         if phase == "m1_navigate" then
-            if not src:isDocked(tgt) then
-                setCommsMessage('"Approach and dock. We do not do business at a distance."')
+            if not ARC.docked(src, tgt, '"Approach and dock. We do not do business at a distance."') then
                 addCommsReply("Back", function() setCommsMessage("The channel closes.") end)
                 return
             end
-            _addRecords("rezkov_profile", "Orlan Rezkov")
+            ARC.meet("rezkov", "rezkov_profile", "Orlan Rezkov")
             setCommsMessage('"You found it.\n\nI am Orlan Rezkov. Reputation got you to my door. What you do after the door opens -- that is what matters.\n\nI need something from a Concord station. Not a fleet base, nothing dramatic. Concord Waypoint Galen on the Arbiter Line. I want the traffic log -- ninety days of docking records. I need to know if someone in my organization is talking.\n\nI will tell you this: your name does not raise flags with their patrols. Keep it that way until the job is finished."')
             addCommsReply("We're up for the challenge.", function(s2, t2)
                 local concord_rep = RT.getReputation("Concord") or 0
@@ -294,7 +281,7 @@ local function _setupKaelComms(st)
         tostring(st.m3_boarded), tostring(RT.valid(st.meridian))))
     st.m3_boarded = true
     RT.setObjective("Speak with Commander Kael", true)
-    _addRecords("kael_profile", "Commander Kael")
+    ARC.meet("rezkov", "kael_profile", "Commander Kael")
     st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
         log(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
             tostring(src and src:getCallSign()), tostring(RT.valid(tgt)),
@@ -344,14 +331,14 @@ end
 -- ── Station hooks ─────────────────────────────────────────────────────────
 
 local function _dustmoteHook(src, tgt, info)
-    if not src:isDocked(tgt) then return end
+    if not ARC.docked(src, tgt) then return end
     local phase = MISSIONS._cur_phase["rezkov"]
     local st = MISSIONS._state["rezkov"]
 
     -- M1 hook phase: The Fixer makes contact
     if phase == "hook" and not RT.flag("rezkov_declined") then
         addCommsReply("Heard you were looking for an independent operator.", function(s2, t2)
-            _addRecords("thresh_profile", "Thresh")
+            ARC.meet("rezkov", "thresh_profile", "Thresh")
             setCommsMessage('"Word travels in the Drift, and your name has been mentioned. My name\'s Thresh and I\'m looking for a crew that can take on serious work and keep quiet about it.\n\nInterested in hearing more?"')
             addCommsReply("Sure, what\'s the job?", function(s3, t3)
                 setCommsMessage('"My associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHead out at bearing 15. You\'ll hit a nebula cloud. You\'ll find what you are looking for there.\n\nMind what you say when you get there. He remembers everything."')
@@ -515,8 +502,7 @@ M.gm_reset = function(st, target)
         st.meridian:destroy()
     end
     RT.named["CWS Meridian"] = nil
-    for k in pairs(st) do st[k] = nil end
-    for k, v in pairs(M.init_state()) do st[k] = v end
+    ARC.resetState(M, st)
     JOBS.removeCategory("REZKOV_COVER")
     RUMORS.removeCategory("REZKOV_HOOK")
     RT.clearObjective("main")   -- only this arc's line; other arcs' objectives stay
@@ -526,8 +512,8 @@ end
 -- Lasting effects of having FINISHED each phase (replayed in order by a jump to a later phase).
 -- Phase ENTER code still runs for the target itself.
 M.completed = {
-    hook        = function(st) RT.flag("rezkov_hook", true);   _addRecords("thresh_profile", "Thresh") end,
-    m1_navigate = function(st) RT.flag("rezkov_m1_done", true); _addRecords("rezkov_profile", "Orlan Rezkov") end,
+    hook        = function(st) RT.flag("rezkov_hook", true);   ARC.meet("rezkov", "thresh_profile", "Thresh") end,
+    m1_navigate = function(st) RT.flag("rezkov_m1_done", true); ARC.meet("rezkov", "rezkov_profile", "Orlan Rezkov") end,
     m2_active   = function(st) st.hack_done = true; RT.flag("rezkov_ai_planted", true) end,
     m2_deliver  = function(st)
         RT.flag("rezkov_m2_done", true)
@@ -535,13 +521,11 @@ M.completed = {
     end,
     m3_active   = function(st)                    -- the crew met Kael aboard the Meridian
         RT.flag("rezkov_m3_accepted", true)
-        _addRecords("kael_profile", "Commander Kael")
+        ARC.meet("rezkov", "kael_profile", "Commander Kael")
     end,
 }
 
-local function _jump(phase, setup, opts)
-    return function() MISSIONS.gmJump("rezkov", phase, setup, opts) end
-end
+local _jump = ARC.jumper("rezkov")
 
 -- An end state: outcome flags, whether Kael lived, and whether the crew met her (skip the
 -- m3_active effects otherwise: no Kael record). Reputation and credits are NOT applied.
@@ -606,25 +590,17 @@ M.phases = {}
 M.phases.init = {
     no_skip = true,
     enter = function(st)
-        if not _hook_registered then
-            RT.addStationHook("Dustmote Salvage", _dustmoteHook)
-            _hook_registered = true
-        end
+        ARC.stationHook("Dustmote Salvage", _dustmoteHook)
 
         -- Route to the appropriate phase based on saved flags
-        if RT.flag("rezkov_arc_done") then
-            MISSIONS.phase("rezkov", "done")
-        elseif RT.flag("rezkov_m3_data") then
-            MISSIONS.phase("rezkov", "m3_deliver")
-        elseif RT.flag("rezkov_m3_accepted") or RT.flag("rezkov_m2_done") then
-            MISSIONS.phase("rezkov", "m3_active")
-        elseif RT.flag("rezkov_m1_done") then
-            MISSIONS.phase("rezkov", "m2_active")
-        elseif RT.flag("rezkov_hook") then
-            MISSIONS.phase("rezkov", "m1_navigate")
-        else
-            MISSIONS.phase("rezkov", "hook")
-        end
+        ARC.route("rezkov", {
+            {"rezkov_arc_done", "done"},
+            {"rezkov_m3_data", "m3_deliver"},
+            {"rezkov_m3_accepted", "m3_active"},
+            {"rezkov_m2_done", "m3_active"},
+            {"rezkov_m1_done", "m2_active"},
+            {"rezkov_hook", "m1_navigate"},
+        }, "hook")
     end,
 }
 
@@ -828,5 +804,12 @@ M.phases.m3_deliver = {
     no_skip = true,
     -- Dustmote hook handles the data delivery interaction.
 }
+
+-- Achievements (the arc defines its own; stats.lua knows nothing about arcs).
+if ACH and ACH.define then
+    ACH.define{id = "fixers_friend", name = "The Fixer's Friend", category = "story", hidden = true,
+        desc = "Finish the Rezkov arc.",
+        check = function(s) return s.arcs.rezkov ~= nil and (s.arcs.rezkov.completed or 0) > 0 end}
+end
 
 MISSIONS.register(M)

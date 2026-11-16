@@ -23,6 +23,28 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 
 ---
 
+## Use the shared helpers (ARC)
+
+`ee/ragtag/missions/_helpers.lua` holds what every arc needs. **Read it before writing an arc**
+(it is short) and use it instead of local copies; `check.py` rejects the usual re-implementations.
+
+| Need | Helper |
+|---|---|
+| The player ship / is it near a point | `ARC.player()`, `ARC.playerNear(x, y, r)` |
+| Distances | `ARC.dist(x1, y1, x2, y2)`, `ARC.near(ent, x, y, r)` |
+| Which spawned ships are left / remove them | `ARC.alive(list)`, `ARC.kill(entity_or_table)` |
+| A dialog that needs a dock | `ARC.docked(src, tgt, "message when not docked")` |
+| A station hook | `ARC.stationHook(callsign, fn)` (never a `_hook_registered` boolean) |
+| Meeting a character with a Science DB profile | `ARC.meet(arc_id, profile_key, "Name")` |
+| Paying a reward once | `ARC.once("<arc>_rewarded", fn)` |
+| `init` routing by saved flags | `ARC.route(arc_id, {{flag_or_fn, phase}, ...}, default)` |
+| GM state buttons and reset | `ARC.jumper(arc_id)`, `ARC.resetState(M, st)` |
+
+**Keep the layers apart.** `ARC` belongs to the missions layer. When two arcs need the same new
+helper, add it to `_helpers.lua` (and to the table in `missions_api.md`, "Arc helpers (ARC)").
+Do not add mission helpers to `core.lua` (`RT`), the job board or world plugins: core must not
+know arcs exist. Going the other way is fine: arcs call `RT`, `JOBS`, `PROX`, `RUMORS`, `SCIDB`.
+
 ## What belongs in the arc module
 
 - Phase definitions with `enter`, `update`, `exit` functions
@@ -30,6 +52,7 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - GM buttons: `M.gm_states` (a `→` per phase and one `→ Done:` per end state; the engine adds Mission criteria, Mission state and → Inactive) and `M.gm_actions` for phase helpers
 - World objects spawned in `enter`, cleaned up in `on_cancel`
 - State mutations via `RT.flag`, `RT.addReputation`, `RT.addCredits`
+- The arc's own achievements (`ACH.define{...}` in the arc file, not in `stats.lua`) and Science DB rules (`SCIDB.rule`)
 
 ## What does NOT belong in the arc module
 
@@ -37,6 +60,7 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - Changes to `ee/ragtag/world/` plugins — use a WORLD plugin
 - Changes to `verse/drift.lua` or extensions — use a verse extension
 - Logic in scenario `update()` or `init()` beyond the three MISSIONS wiring calls
+- Mission-only helpers in `ee/ragtag/core.lua` — shared arc code goes in `ee/ragtag/missions/_helpers.lua` (`ARC`)
 
 ---
 
@@ -86,7 +110,9 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 - **`MISSIONS.goto()` doesn't exist** — `goto` is a Lua 5.4 reserved keyword. Use `MISSIONS.phase()`.
 - **`RT.flag("x", nil)` is a no-op read** — it does not clear the flag. Use `RT.clearFlag("x")`.
 - **Not cleaning up in `on_cancel`** — world objects persist across GM restarts.
-- **Double-registering station hooks** — if the GM restarts the arc in the same session, hooks fire twice. Guard with a file-level `_hook_registered` boolean.
+- **Double-registering station hooks** — if the GM restarts the arc in the same session, hooks fire twice. Register with `ARC.stationHook(callsign, fn)`, which ignores the repeat.
+- **Re-implementing a shared helper** — a local `_firstPlayer`, `_dist`, `_alive`, `_kill` or `_addRecords` in an arc. Use `ARC.*` (`check.py` errors on these).
+- **Putting an arc helper in `core.lua`** — shared arc code lives in `ee/ragtag/missions/_helpers.lua`.
 - **Forgetting the require** — the arc never loads and the game throws no error, but `check.py` now errors on any `ee/ragtag/missions/*.lua` not required by `missions.lua`. Intentionally unloaded arcs go in `ee/ragtag/missions/attic/`.
 - **Telling Science to hack** — hacking is a **Relay** function in this engine (no hack control on Science). Say "Relay" in ship logs, comms and design docs; see `api_notes.md` §12b for the mechanics (50% per success, 180 s decay).
 - **Checking a hack with `>= 1.0`** — it never fires. EE lowers every `hacked_level` by 1/180 per second in the system update, *before* the scenario script runs, so a hack that lands at 100% already reads just under 1.0 when your phase `update` checks it. Complete at **`>= 0.99`** (about a 2 s window), check every tick, and latch it (advance the phase or set a flag) rather than re-reading the level later. A GM "Complete hack" helper sets the level to 1.0 and lets the normal check fire next frame. Boneyard (Annex) and Rezkov (Galen) both do this.
@@ -99,7 +125,8 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 
 - [ ] The arc is linear: each phase goes to the next phase, `done`, or back to an earlier phase (no branching; see "Linear arcs" in the reference)
 - [ ] Science DB entries the arc reveals follow its flags (`SCIDB.meet` for people, `SCIDB.rule` for lore/runtime entries)
-- [ ] `M.on_cancel` destroys all spawned objects
+- [ ] `M.on_cancel` destroys all spawned objects (`ARC.kill`)
+- [ ] Uses `ARC` helpers where one exists; anything two arcs share was added to `_helpers.lua`, nothing mission-specific was added to `core.lua`
 - [ ] `M.gm_reset` + `M.completed` let every `→` button land with the full context (jump through each phase and back; no leftover ships, timers, flags or state)
 - [ ] `RT.after` timers cancelled with `RT.cancelTimer(name)` in `_clearState` if they shouldn't fire after phase ends
 - [ ] Arc triggers use `not_flagged` to prevent re-triggering after completion

@@ -12,6 +12,8 @@ Checks:
   * generated files are up to date (director/generated/world.md, docs/verse_map.svg)
   * every missions/jobs/world module file is required by its loader (unloaded files go in attic/)
   * every story arc (missions/<arc>.lua) has a regression test (tests/arcs/<arc>.lua)
+  * arcs use the shared ARC helpers (missions/_helpers.lua) instead of local copies, and core
+    files (core.lua, verse.lua, ...) never reference the missions layer (ARC, MISSIONS)
   * the two skill copies of missions_api.md are identical
   * the director's Python compiles
 """
@@ -198,6 +200,47 @@ def check_arc_tests() -> None:
             errors.append(f"tests/arcs/{f.name} tests an arc that does not exist (ee/ragtag/missions/{f.name})")
 
 
+# Local re-implementations of ARC helpers (ee/ragtag/missions/_helpers.lua) in an arc module.
+ARC_DUPLICATES = [
+    (re.compile(r'local function _(firstPlayer|player)\b'), "ARC.player()"),
+    (re.compile(r'local function _(dist|d2)\b'), "ARC.dist(x1, y1, x2, y2)"),
+    (re.compile(r'local function _near\b'), "ARC.near(ent, x, y, r)"),
+    (re.compile(r'local function _alive\b'), "ARC.alive(list)"),
+    (re.compile(r'local function _kill\b'), "ARC.kill(entity_or_table)"),
+    (re.compile(r'local function _addRecords\b'), "ARC.meet(arc_id, profile_key, who)"),
+    (re.compile(r'RT\.addStationHook\('), "ARC.stationHook(callsign, fn)"),
+    (re.compile(r'MISSIONS\.gmJump\('), "ARC.jumper(arc_id)"),
+    (re.compile(r'pairs\(M\.init_state\(\)\)'), "ARC.resetState(M, st)"),
+]
+# Mission-layer names that must not appear in the layers below it.
+CORE_FILES = ["core.lua", "verse.lua", "voice.lua", "stats.lua", "ship_templates.lua"]
+
+
+def check_arc_helpers() -> None:
+    """Arcs use the shared ARC helpers; core does not reach up into the missions layer."""
+    arcs = ROOT / "ee" / "ragtag" / "missions"
+    for f in sorted(arcs.glob("*.lua")):
+        if f.name.startswith("_"):
+            continue
+        text = f.read_text(encoding="utf-8")
+        for pat, use in ARC_DUPLICATES:
+            m = pat.search(text)
+            if m:
+                line = text.count("\n", 0, m.start()) + 1
+                errors.append(f"ee/ragtag/missions/{f.name}:{line}: use {use} from missions/_helpers.lua "
+                              f"instead of `{m.group(0)}`")
+    for name in CORE_FILES:
+        f = ROOT / "ee" / "ragtag" / name
+        if not f.exists():
+            continue
+        code = "\n".join(line.split("--", 1)[0] for line in f.read_text(encoding="utf-8").splitlines())
+        for m in re.finditer(r'\b(ARC|MISSIONS)\.', code):
+            line = code.count("\n", 0, m.start()) + 1
+            errors.append(f"ee/ragtag/{name}:{line}: core code must not use {m.group(1)} "
+                          f"(the missions layer sits above core; move the code into ee/ragtag/missions/)")
+            break
+
+
 def check_api_md_sync() -> None:
     a, b = API_MD_COPIES
     if a.exists() and b.exists() and a.read_text() != b.read_text():
@@ -240,6 +283,7 @@ def main() -> int:
     check_generated(data, args.fix)
     check_loader_requires()
     check_arc_tests()
+    check_arc_helpers()
     check_api_md_sync()
     check_python()
 

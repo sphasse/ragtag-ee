@@ -13,6 +13,20 @@ MISSIONS._order      = {}   -- insertion order for consistent GM display
 MISSIONS._enabled    = {}   -- id -> bool (false = GM-disabled: no triggers, no seeds)
 MISSIONS._loaded     = {}   -- id -> bool (M.on_load has run and M.on_unload has not)
 
+-- The statistics report lists every arc with its live status. Stats (core) does not read this
+-- engine; the engine hands it a source instead.
+if STATS then
+    STATS.arc_source = function()
+        local out = {}
+        for _, id in ipairs(MISSIONS._order) do
+            local M = MISSIONS._registry[id]
+            out[#out + 1] = {id = id, name = M and M.name or id,
+                             status = MISSIONS._status[id], phase = MISSIONS._cur_phase[id]}
+        end
+        return out
+    end
+end
+
 -- Register a mission module. Called by each mission file at the bottom.
 function MISSIONS.register(M)
     assert(M.id,           "mission module missing .id")

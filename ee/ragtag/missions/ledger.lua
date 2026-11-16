@@ -81,26 +81,6 @@ end
 
 -- ── Helpers ─────────────────────────────────────────────────────────────────
 
-local function _dist(x1, y1, x2, y2)
-    local dx, dy = x1 - x2, y1 - y2
-    return math.sqrt(dx * dx + dy * dy)
-end
-
-local function _firstPlayer()
-    for _, p in ipairs(RT.players or {}) do
-        if RT.valid(p) then return p end
-    end
-end
-
-local function _addRecords(key, who)
-    if SCIDB and SCIDB.meet then
-        local ok, added = pcall(SCIDB.meet, "ledger", key)
-        if ok and added then
-            RT.shipLog("[Ledger Arc] " .. who .. " personnel records added to our database.", "#80C0FF")
-        end
-    end
-end
-
 local function _fragCount()
     local n = 0
     for i = 1, #_FRAGS do if RT.flag("ledger_frag_" .. i) then n = n + 1 end end
@@ -196,10 +176,8 @@ local function _spawnFrags(st)
 end
 
 local function _despawnFrags(st)
-    for n, a in pairs(st.frags or {}) do
-        if RT.valid(a) then pcall(function() a:destroy() end) end
-        st.frags[n] = nil
-    end
+    ARC.kill(st.frags)
+    st.frags = {}
 end
 
 -- ── The AI (assembled) ──────────────────────────────────────────────────────
@@ -274,7 +252,7 @@ end
 
 local function _spawnFleet(st)
     if st.fleet_spawned then return end
-    local p = _firstPlayer()
+    local p = ARC.player()
     if not p then return end
     st.fleet_spawned = true
     local px, py = p:getPosition()
@@ -296,16 +274,14 @@ end
 
 local function _despawnFleet(st)
     if PROX and PROX.clearCombatJammers then PROX.clearCombatJammers(st.jammers) end
-    for _, s in ipairs(st.fleet or {}) do
-        if RT.valid(s) then pcall(function() s:destroy() end) end
-    end
+    ARC.kill(st.fleet)
     st.fleet = {}
 end
 
 -- Ships the crew has outrun leave the board.
 local function _tickFleet(st)
     if not st.fleet_spawned then return end
-    local p = _firstPlayer()
+    local p = ARC.player()
     if not p then return end
     local keep = {}
     for _, s in ipairs(st.fleet) do
@@ -380,11 +356,8 @@ end
 _stationComms = function(src, tgt)
     local phase = MISSIONS._cur_phase["ledger"]
     if phase == "meet" then
-        if not src:isDocked(tgt) then
-            setCommsMessage('"Dock. We do not do business at a distance."')
-            return
-        end
-        _addRecords("rezkov_profile", "Orlan Rezkov")
+        if not ARC.docked(src, tgt, '"Dock. We do not do business at a distance."') then return end
+        ARC.meet("ledger", "rezkov_profile", "Orlan Rezkov")
         setCommsMessage(_briefingText())
         addCommsReply("Where are the fragments?", function()
             setCommsMessage('"Here.\n\n' .. _fragList() .. '\n\nSmall cold cores. Science will have to pick them out; they look like nothing. '
@@ -404,10 +377,7 @@ _stationComms = function(src, tgt)
     elseif phase == "relay_run" then
         setCommsMessage(string.format('"%d of three. Keep going."', _fragCount()))
     elseif phase == "carry" then
-        if not src:isDocked(tgt) then
-            setCommsMessage('"Is it with you? Dock."')
-            return
-        end
+        if not ARC.docked(src, tgt, '"Is it with you? Dock."') then return end
         setCommsMessage('"Rezkov watches the transfer finish, then sits back.\n\nTwenty years of it. Names, dates, signatures."')
         addCommsReply("Hand over the AI.", function()
             local st = MISSIONS._state["ledger"]
@@ -424,13 +394,11 @@ _stationComms = function(src, tgt)
     end
 end
 
-local _hook_registered = false
-
 local function _dustmoteHook(src, tgt, info)
-    if not src:isDocked(tgt) then return end
+    if not ARC.docked(src, tgt) then return end
     if MISSIONS._status["ledger"] ~= "active" or MISSIONS._cur_phase["ledger"] ~= "hook" then return end
     addCommsReply("Heard someone here was asking about us.", function()
-        _addRecords("thresh_profile", "Thresh")
+        ARC.meet("ledger", "thresh_profile", "Thresh")
         local met = SCIDB and SCIDB.known and SCIDB.known("rezkov_profile")
         local lead = met and '"That was me. Got another one for you. Not my job, though. The big guy wants to see you in person again. Same place."'
                           or '"That was me. My associate has work, and he wants to see you in person. Head out at bearing 15 until you hit a nebula cloud. You\'ll find him there."'
@@ -489,15 +457,14 @@ function M.resolve(st)
         RT.flag("ledger_evidence", true)
         _unlockLedger(false)
     end
-    if not RT.flag("ledger_rewarded") then
-        RT.flag("ledger_rewarded", true)
+    ARC.once("ledger_rewarded", function()
         if outcome == "full" then
             RT.addCredits(600, "Ledger Arc: AI delivered to Rezkov")
             RT.addReputation("Concord", -200, "Ledger Arc: Concord's books are in someone else's hands")
             RT.addReputation("Independent", 200, "Ledger Arc: AI delivered to Rezkov")
         end
         RT.shipLog("[Ledger Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "full" and "#80FF80" or "#FF8080")
-    end
+    end)
     RUMORS.removeCategory("LEDGER_DONE")
     if outcome == "full" then
         RUMORS.add({text = "Concord's audit at Lumen just stopped. Nobody closed it. Nobody explains it. The auditors look scared.",
@@ -524,21 +491,13 @@ M.phases = {}
 M.phases.init = {
     no_skip = true,
     enter = function(st)
-        if not _hook_registered then
-            RT.addStationHook("Dustmote Salvage", _dustmoteHook)
-            _hook_registered = true
-        end
-        if RT.flag("ledger_arc_done") then
-            MISSIONS.phase("ledger", "done")
-        elseif _fragCount() >= 3 then
-            MISSIONS.phase("ledger", "carry")
-        elseif RT.flag("ledger_accepted") then
-            MISSIONS.phase("ledger", "relay_run")
-        elseif RT.flag("ledger_thresh") then
-            MISSIONS.phase("ledger", "meet")
-        else
-            MISSIONS.phase("ledger", "hook")
-        end
+        ARC.stationHook("Dustmote Salvage", _dustmoteHook)
+        ARC.route("ledger", {
+            {"ledger_arc_done", "done"},
+            {function() return _fragCount() >= 3 end, "carry"},
+            {"ledger_accepted", "relay_run"},
+            {"ledger_thresh", "meet"},
+        }, "hook")
     end,
 }
 
@@ -590,7 +549,7 @@ M.phases.carry = {
         _tickFleet(st)
         -- The audit fleet drops warp jammers like hostile Concord patrols (2 min cooldown each).
         if st.fleet_spawned and PROX and PROX.tickCombatJammers then
-            PROX.tickCombatJammers(st.jammers, st.fleet, _firstPlayer(), now)
+            PROX.tickCombatJammers(st.jammers, st.fleet, ARC.player(), now)
         end
     end,
 }
@@ -610,8 +569,7 @@ end
 
 M.gm_reset = function(st, target)
     _clearWorld(st)
-    for k in pairs(st) do st[k] = nil end
-    for k, v in pairs(M.init_state()) do st[k] = v end
+    ARC.resetState(M, st)
     MISSIONS.gmClearFlags("ledger", function(name)
         if name == "ledger_rewarded" then return target == "done" end
         return false
@@ -621,20 +579,18 @@ end
 M.completed = {
     hook = function(st)
         RT.flag("ledger_thresh", true)
-        _addRecords("thresh_profile", "Thresh")
+        ARC.meet("ledger", "thresh_profile", "Thresh")
     end,
     meet = function(st)
         RT.flag("ledger_accepted", true)
-        _addRecords("rezkov_profile", "Orlan Rezkov")
+        ARC.meet("ledger", "rezkov_profile", "Orlan Rezkov")
     end,
     relay_run = function(st)
         for i = 1, #_FRAGS do RT.flag("ledger_frag_" .. i, true) end
     end,
 }
 
-local function _jump(phase, setup, opts)
-    return function() MISSIONS.gmJump("ledger", phase, setup, opts) end
-end
+local _jump = ARC.jumper("ledger")
 
 local function _done(outcome, reason)
     return _jump("done", function()

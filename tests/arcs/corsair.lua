@@ -214,9 +214,14 @@ T.gmWalk({
     {key = "raid",     phase = "raid", check = function()
         T.check("GM raid: depot, guards, escorts", RT.valid(T.st().depot) and T.alive(T.st().defenders) == 2 and T.alive(T.st().escorts) == 2)
         T.check("GM raid: Reva met", SCIDB.known("reva_profile"))
+        T.restart()
+        T.eq("next session resumes the raid", T.phase(), "raid")
+        T.eq("next session: Blackwater still friendly", hostileAt("Blackwater"), "Corsair Friendly")
     end},
     {key = "return",   phase = "return", check = function()
         T.check("GM return: raid flag replayed", T.flag("corsair_raid_done"))
+        T.restart()
+        T.eq("next session resumes at the debrief", T.phase(), "return")
     end},
     {key = "battle",   phase = "battle", check = function()
         T.eq("GM battle: fleet out", T.alive(T.st().fleet), 6)

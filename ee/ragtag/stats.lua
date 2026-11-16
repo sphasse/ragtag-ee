@@ -15,6 +15,8 @@
 --   STATS.jobAccepted(m) / jobCompleted(m) / jobFailed(m)     jobs/_engine.lua
 --   STATS.regionEntered(name, first_ever)                     verse.lua
 --   STATS.arcEvent(id, "started"|"completed"|"cancelled")     missions/_engine.lua
+--   STATS.arc_source = function() return {{id, name, status, phase}, ...} end   (set by the
+--       missions engine: the live arc list for STATS.summary; stats never reads MISSIONS)
 --   STATS.noteCredits(amount, reason)                         RT.addCredits
 --   STATS.update(delta)                                       RT.update (play time, credit deltas, achievements)
 -- Free-form: STATS.inc("kills_corsair", 1), STATS.get("kills_corsair").
@@ -226,21 +228,18 @@ function STATS.summary()
         sum.regions.visited[#sum.regions.visited + 1] = {name = n, visits = s.regions[n].visits}
     end
     sum.regions.total = (VERSE and VERSE.REGIONS and #VERSE.REGIONS) or 0
-    -- Arcs: every registered arc, with its live status.
-    if MISSIONS and MISSIONS._order then
-        for _, id in ipairs(MISSIONS._order) do
-            local M = MISSIONS._registry[id]
-            local a = s.arcs[id] or {started = 0, completed = 0, cancelled = 0}
-            local live = MISSIONS._status[id]
-            local status
-            if live == "active" then status = "in progress (" .. tostring(MISSIONS._cur_phase[id]) .. ")"
-            elseif live == "done" or a.last == "completed" then status = "completed"
-            elseif live == "triggered" then status = "available"
-            elseif a.last == "cancelled" then status = "cancelled"
-            else status = "not started" end
-            sum.arcs[#sum.arcs + 1] = {id = id, name = M and M.name or id, status = status,
-                outcome = a.outcome, started = a.started, completed = a.completed, cancelled = a.cancelled}
-        end
+    -- Arcs: whatever the layer that runs them reports (STATS.arc_source, set by the missions
+    -- engine), merged with the saved counters. Core does not know what an arc is beyond this.
+    for _, live in ipairs(STATS.arc_source and STATS.arc_source() or {}) do
+        local a = s.arcs[live.id] or {started = 0, completed = 0, cancelled = 0}
+        local status
+        if live.status == "active" then status = "in progress (" .. tostring(live.phase) .. ")"
+        elseif live.status == "done" or a.last == "completed" then status = "completed"
+        elseif live.status == "triggered" then status = "available"
+        elseif a.last == "cancelled" then status = "cancelled"
+        else status = "not started" end
+        sum.arcs[#sum.arcs + 1] = {id = live.id, name = live.name or live.id, status = status,
+            outcome = a.outcome, started = a.started, completed = a.completed, cancelled = a.cancelled}
     end
     for _, id in ipairs(ACH.order) do
         local def = ACH.defs[id]
@@ -387,12 +386,4 @@ ACH.define{id = "into_the_teeth", name = "Into the Teeth", category = "explorati
         end
         return false
     end}
-ACH.define{id = "fixers_friend", name = "The Fixer's Friend", category = "story", hidden = true,
-    desc = "Finish the Rezkov arc.",
-    check = function(s) return s.arcs.rezkov ~= nil and (s.arcs.rezkov.completed or 0) > 0 end}
-ACH.define{id = "first_on_the_scene", name = "First on the Scene", category = "story", hidden = true,
-    desc = "Rescue the lifeboat survivors in the Boneyard.",
-    check = function(s) return RT.flag and RT.flag("boneyard_buoy_found") and true or false end}
-ACH.define{id = "boneyard_breach", name = "Breaching the Annex", category = "story", hidden = true,
-    desc = "Finish the Boneyard arc.",
-    check = function(s) return s.arcs.boneyard ~= nil and (s.arcs.boneyard.completed or 0) > 0 end}
+-- Story-arc achievements are defined by the arcs themselves (ee/ragtag/missions/<arc>.lua).

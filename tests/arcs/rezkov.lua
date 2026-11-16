@@ -150,6 +150,8 @@ T.gmWalk({
         T.check("GM hacking: m1 replayed", T.flag("rezkov_m1_done"))
         T.check("GM hacking: hack not done", not T.st().hack_done)
         T.eq("GM hacking: still hacking a second later", T.phase(), "m2_active")
+        T.restart()
+        T.eq("next session resumes the hack", T.phase(), "m2_active")
     end},
     {key = "cardrun",   phase = "m2_deliver", check = function()
         T.check("GM cardrun: AI planted replayed", T.flag("rezkov_ai_planted"))
@@ -163,6 +165,8 @@ T.gmWalk({
     {key = "datarun",   phase = "m3_deliver", check = function()
         T.check("GM datarun: data flag", T.flag("rezkov_m3_data"))
         T.check("GM datarun: Kael profile known", SCIDB.known("kael_profile"))
+        T.restart()
+        T.eq("next session resumes the data run", T.phase(), "m3_deliver")
     end},
     {key = "done_concord",   done = true, check = function()
         T.eq("GM done_concord: outcome", T.flag("rezkov_arc_done"), "concord_won")

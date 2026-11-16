@@ -97,6 +97,10 @@ T.step("delivered", function()
     T.eq("done: Concord -200", T.rep("Concord") - concord0, -200)
     T.eq("done: Independent +200", T.rep("Independent") - indep0, 200)
     T.eq("done: objective cleared", RT.objectives.ledger, nil)
+    local line
+    for _, a in ipairs(STATS.summary().arcs) do if a.id == "ledger" then line = a end end
+    T.check("done: statistics report lists the arc as completed", line and line.status == "completed" and line.name == "Ledger Arc",
+        line and line.status)
 end)
 T.closeComms()
 
@@ -140,10 +144,15 @@ T.gmWalk({
     {key = "meet",      phase = "meet", check = function()
         T.check("GM meet: station out", RT.valid(T.st().station))
         T.check("GM meet: thresh flag replayed", T.flag("ledger_thresh"))
+        T.restart()
+        T.eq("next session resumes at the meeting", T.phase(), "meet")
     end},
     {key = "relay_run", phase = "relay_run", check = function()
         T.eq("GM relay_run: three cores", T.alive(T.st().frags), 3)
         T.check("GM relay_run: accepted replayed", T.flag("ledger_accepted"))
+        T.restart()
+        T.eq("next session resumes the relay run", T.phase(), "relay_run")
+        T.eq("next session: cores are back out", T.alive(T.st().frags), 3)
     end},
     {key = "carry",     phase = "carry", check = function()
         T.check("GM carry: fragments replayed", T.flag("ledger_frag_3"))
