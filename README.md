@@ -226,7 +226,7 @@ tools/ci_headless.sh
 python tools/smoke_test.py --ee http://localhost:8080
 
 # Story-arc regression tests (starts its own headless EmptyEpsilon per arc, ~1 min)
-python3 tools/arc_tests.py --ee <EmptyEpsilon dir>
+python3 tools/game_tests.py --ee <EmptyEpsilon dir>
 ```
 
 The smoke test modifies the campaign save—don't run it against your real campaign. The arc tests

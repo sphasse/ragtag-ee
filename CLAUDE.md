@@ -19,8 +19,8 @@ Contributors add **universe extensions** and **scenarios** independently.
     their saved flags in `M.flags` / `M.reads` (`check.py` rejects undeclared flag names).
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
-- `tests/arcs/` — one regression test per story arc plus `_harness.lua` (run by `tools/arc_tests.py`; never installed into a played game)
-- `tools/` — `check.py`, `install.py`, `smoke_test.py`, `arc_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
+- `tests/arcs/` — one regression test per story arc plus `_harness.lua` (run by `tools/game_tests.py`; never installed into a played game)
+- `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
 - `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse) and `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements), both loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
 
@@ -29,7 +29,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 - `python3 tools/install.py --ee <EmptyEpsilon dir> [--link]` — install into a game
 - `EE_DIR=<EmptyEpsilon checkout with _build/EmptyEpsilon> tools/ci_headless.sh` — headless run + smoke test (Linux).
   Without `EE_DIR` it builds EmptyEpsilon at the pinned commits into `.ee-build/` (~20 min first time).
-- `python3 tools/arc_tests.py --ee <EmptyEpsilon dir> [arc ...] [-v]` — story-arc regression tests
+- `python3 tools/game_tests.py --ee <EmptyEpsilon dir> [arc ...] [-v]` — story-arc regression tests
   (`tests/arcs/<arc>.lua`): each arc is played headless through its real comms and GM states (~1 min, in parallel).
   Run after any change to an arc, the missions engine, `core.lua`, proximity or the Science DB.
 - `cd director && python3 main.py --mock --mock-llm` — director + GM console without game or model
@@ -60,7 +60,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 
 ## Definition of done
 `python3 tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error`, the smoke test passes
-and `tools/arc_tests.py` passes. A change to an arc's behaviour comes with a change to its `tests/arcs/<arc>.lua`.
+and `tools/game_tests.py` passes. A change to an arc's behaviour comes with a change to its `tests/arcs/<arc>.lua`.
 Say plainly in PR descriptions what was and wasn't tested.
 
 ---

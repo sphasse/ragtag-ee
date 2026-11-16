@@ -359,10 +359,10 @@ below calls up. `check.py` errors if a core file (`core.lua`, `stats.lua`, `vers
 ## Regression tests
 
 Every arc has `tests/arcs/<id>.lua` (`check.py` errors if one is missing), run by
-`python3 tools/arc_tests.py --ee <EmptyEpsilon dir> [arc ...]`. A test runs inside a headless
+`python3 tools/game_tests.py --ee <EmptyEpsilon dir> [arc ...]`. A test runs inside a headless
 EmptyEpsilon on top of the real sandbox scenario and drives the arc with real comms, forced docks,
 teleports, the arc's `gm_states` and `gm_actions`; the API is documented at the top of
-`tests/arcs/_harness.lua`. Three engine facts the tests lean on, which arcs must keep true:
+`tests/_harness.lua`. Three engine facts the tests lean on, which arcs must keep true:
 
 - every state a GM can jump to is in `M.gm_states` with a `key` (`T.gmWalk` presses each one and
   fails if one is not listed in the test);

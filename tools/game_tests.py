@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
-"""Run the story-arc regression tests (tests/arcs/*.lua) against a headless EmptyEpsilon.
+"""Run the in-game regression tests against a headless EmptyEpsilon:
+story arcs (tests/arcs/*.lua) and the job board (tests/jobs/*.lua).
 
-    python3 tools/arc_tests.py --ee <EmptyEpsilon dir>            # every arc
-    python3 tools/arc_tests.py --ee <EmptyEpsilon dir> ledger -v  # one arc, every check listed
-    EE_DIR=<EmptyEpsilon dir> python3 tools/arc_tests.py
+    python3 tools/game_tests.py --ee <EmptyEpsilon dir>            # everything
+    python3 tools/game_tests.py --ee <EmptyEpsilon dir> ledger -v  # one test, every check listed
+    python3 tools/game_tests.py --ee <EmptyEpsilon dir> jobs       # one folder (arcs | jobs)
+    EE_DIR=<EmptyEpsilon dir> python3 tools/game_tests.py
 
 --ee is what tools/install.py takes (the folder with scripts/), or an EmptyEpsilon checkout with
-a _build/ in it. Each arc runs in its own EmptyEpsilon process with its own empty HOME, so tests
+a _build/ in it. Each test file runs in its own EmptyEpsilon process with its own empty HOME, so tests
 start from a fresh campaign and never touch a real save. The repo is installed into that
 EmptyEpsilon first (same as tools/install.py); the test files are copied in for the run and
 removed afterwards.
 
-How it works: for each tests/arcs/<arc>.lua a scenario is generated that loads the real sandbox
-scenario, then tests/arcs/_harness.lua, then the test. The harness drives the game from inside
+How it works: for each test file a scenario is generated that loads the real sandbox
+scenario, then tests/_harness.lua, then the test. The harness drives the game from inside
 (GM jumps, teleports, real comms) and prints "[ARCTEST] PASS|FAIL ..." lines, which this script
 collects from the log. A LUA-Error anywhere in the log fails the arc. Tests run in real time:
-about one to two minutes per arc, in parallel.
+about one minute per file, in parallel.
 """
 
 from __future__ import annotations
@@ -32,7 +34,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TESTS = ROOT / "tests" / "arcs"
+TESTS = ROOT / "tests"
+SUITES = ("arcs", "jobs")     # tests/<suite>/<name>.lua; names are unique across suites
 BASE_SCENARIO = ROOT / "scenarios" / "sandbox" / "scenario_80_ragtag.lua"
 SCRIPT_DIR_NAME = "ragtag_arctests"          # under EmptyEpsilon's scripts/
 SCENARIO_PREFIX = "scenario_97_arctest_"     # 97: not a number check.py hands out
@@ -114,7 +117,7 @@ def run_arc(arc: str, res: Path, binary: Path, port: int, timeout: float, log_di
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("arcs", nargs="*", help="arcs to test (default: every tests/arcs/<arc>.lua)")
+    ap.add_argument("arcs", nargs="*", help="tests to run: names or a folder (arcs, jobs); default everything")
     ap.add_argument("--ee", default=os.environ.get("EE_DIR"), help="EmptyEpsilon folder (or set EE_DIR)")
     ap.add_argument("--jobs", type=int, default=4, help="EmptyEpsilon processes to run at once (default 4)")
     ap.add_argument("--timeout", type=float, default=420, help="seconds before one arc's run is abandoned")
@@ -126,8 +129,11 @@ def main() -> int:
     if not args.ee:
         ap.error("give --ee <EmptyEpsilon folder> or set EE_DIR")
 
-    available = sorted(p.stem for p in TESTS.glob("*.lua") if not p.name.startswith("_"))
-    arcs = args.arcs or available
+    by_suite = {su: sorted(p.stem for p in (TESTS / su).glob("*.lua") if not p.name.startswith("_")) for su in SUITES}
+    available = [n for su in SUITES for n in by_suite[su]]
+    arcs = []
+    for a in (args.arcs or available):
+        arcs += by_suite[a] if a in by_suite else [a]
     unknown = [a for a in arcs if a not in available]
     if unknown:
         raise SystemExit(f"No test for: {', '.join(unknown)}. Available: {', '.join(available)}")
@@ -148,10 +154,14 @@ def main() -> int:
     try:
         if test_dir.exists():
             shutil.rmtree(test_dir)
-        shutil.copytree(TESTS, test_dir)
+        test_dir.mkdir()
+        shutil.copy2(TESTS / "_harness.lua", test_dir / "_harness.lua")
+        for su in SUITES:
+            for f in (TESTS / su).glob("*.lua"):
+                shutil.copy2(f, test_dir / f.name)
         for arc, path in zip(arcs, generated):
             path.write_text(scenario_text(arc), encoding="utf-8")
-        print(f"Arc tests: {', '.join(arcs)}  (EmptyEpsilon: {binary})")
+        print(f"Game tests: {', '.join(arcs)}  (EmptyEpsilon: {binary})")
         with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
             futures = [pool.submit(run_arc, arc, res, binary, args.port + i, args.timeout, log_dir)
                        for i, arc in enumerate(arcs)]
@@ -178,7 +188,7 @@ def main() -> int:
             print(f"  log: {r['log']}")
     if ok and not args.logs:
         shutil.rmtree(log_dir, ignore_errors=True)
-    print("\nAll arc tests passed." if ok else "\nArc tests FAILED.")
+    print("\nAll game tests passed." if ok else "\nGame tests FAILED.")
     return 0 if ok else 1
 
 

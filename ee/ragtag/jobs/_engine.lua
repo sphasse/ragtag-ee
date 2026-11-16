@@ -516,6 +516,40 @@ function JOBS.stationSlots(cs)
     return JOBS.config.station_slots
 end
 
+-- The context a job type's prepareOpts(ctx) gets for a station: where the station is, the
+-- distance band, and a shuffled supply of other friendly stations (nextCandidate). ctx.tier is
+-- set by the caller per slot.
+function JOBS.offerContext(cs)
+    local station_e = RT.find(cs)
+    local dmin, dmax = JOBS.getDistanceRange()
+    local candidates = {}
+    for _, d in ipairs(VERSE.STATIONS) do
+        if d.cs ~= cs and d.fac ~= "Corsairs" and d.fac ~= "Hollow" then
+            candidates[#candidates + 1] = d.cs
+        end
+    end
+    for i = #candidates, 2, -1 do
+        local j = math.random(i); candidates[i], candidates[j] = candidates[j], candidates[i]
+    end
+    local cand_idx = 1
+
+    local ctx = {
+        station_cs     = cs,
+        station_e      = station_e,
+        tier           = 0,               -- re-set per slot below
+        distanceRange  = {min=dmin, max=dmax},
+        nextCandidate  = function()
+            if cand_idx > #candidates then return nil end
+            local c = candidates[cand_idx]; cand_idx = cand_idx + 1; return c
+        end,
+        spawnInVerse   = function(rx, ry) return JOBS.spawnInVerse(rx, ry) end,
+        nearbyStations = function(wx, wy, r) return JOBS.nearbyStations(wx, wy, r) end,
+        findStation    = RT.find,
+        valid          = RT.valid,
+    }
+    return ctx
+end
+
 local function _offerMissions(cs)
     local now     = getScenarioTime()
     local mt      = JOBS.maxTier()
@@ -632,34 +666,7 @@ local function _offerMissions(cs)
         end
     end
 
-    -- Build context passed to prepareOpts.
-    local station_e = RT.find(cs)
-    local dmin, dmax = JOBS.getDistanceRange()
-    local candidates = {}
-    for _, d in ipairs(VERSE.STATIONS) do
-        if d.cs ~= cs and d.fac ~= "Corsairs" and d.fac ~= "Hollow" then
-            candidates[#candidates + 1] = d.cs
-        end
-    end
-    for i = #candidates, 2, -1 do
-        local j = math.random(i); candidates[i], candidates[j] = candidates[j], candidates[i]
-    end
-    local cand_idx = 1
-
-    local ctx = {
-        station_cs     = cs,
-        station_e      = station_e,
-        tier           = 0,               -- re-set per slot below
-        distanceRange  = {min=dmin, max=dmax},
-        nextCandidate  = function()
-            if cand_idx > #candidates then return nil end
-            local c = candidates[cand_idx]; cand_idx = cand_idx + 1; return c
-        end,
-        spawnInVerse   = function(rx, ry) return JOBS.spawnInVerse(rx, ry) end,
-        nearbyStations = function(wx, wy, r) return JOBS.nearbyStations(wx, wy, r) end,
-        findStation    = RT.find,
-        valid          = RT.valid,
-    }
+    local ctx = JOBS.offerContext(cs)
 
     -- Two jobs with the same summary (type + short text) must not both be offered.
     local function _key(m) return tostring(m.type) .. "|" .. tostring(m.short) end

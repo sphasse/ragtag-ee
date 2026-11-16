@@ -6,7 +6,7 @@ Start a ragtag scenario on the server first (httpserver=8080 in options.ini).
 Stop the director before running this: both write the same mailbox key.
 
 It checks the universe was built and sends every director action once, checking
-the game's replies. Story arcs have their own tests: tools/arc_tests.py.
+the game's replies. Story arcs have their own tests: tools/game_tests.py.
 """
 
 from __future__ import annotations

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build EmptyEpsilon (pinned), install this repo into it, run a scenario
 # headless and drive it with tools/smoke_test.py, then run the story-arc
-# regression tests (tools/arc_tests.py). Used by CI; works locally too.
+# regression tests (tools/game_tests.py). Used by CI; works locally too.
 #
 #   tools/ci_headless.sh                         # build EE into .ee-build/ (about 20 min the first time)
 #   EE_DIR=~/src/EmptyEpsilon tools/ci_headless.sh   # use an existing build (needs _build/EmptyEpsilon)
@@ -56,6 +56,6 @@ kill $EE_PID 2>/dev/null || true
 
 # Story arcs: one EmptyEpsilon per arc, each with its own empty HOME. ARC_TESTS=0 skips them.
 if [ "${ARC_TESTS:-1}" = "1" ]; then
-  python3 "$ROOT/tools/arc_tests.py" --ee "$EE_DIR" --no-install || status=1
+  python3 "$ROOT/tools/game_tests.py" --ee "$EE_DIR" --no-install || status=1
 fi
 exit $status

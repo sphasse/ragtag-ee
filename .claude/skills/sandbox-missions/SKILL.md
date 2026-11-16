@@ -17,7 +17,7 @@ The reference implementation is `ee/ragtag/missions/rezkov.lua`; design notes li
 2. Create `ee/ragtag/missions/<name>.md` — design notes, state diagram, lore. Arc-specific details go here; don't add them to CLAUDE.md.
 3. Add `require("ragtag/missions/<name>.lua")` to `ee/ragtag/missions.lua`.
 4. Create `tests/arcs/<name>.lua` — the arc's regression test (`check.py` errors without it). See "Testing an arc" below.
-5. Run `python3 tools/check.py` after any change, and `python3 tools/arc_tests.py --ee <EmptyEpsilon dir> <name>` after any change to the arc.
+5. Run `python3 tools/check.py` after any change, and `python3 tools/game_tests.py --ee <EmptyEpsilon dir> <name>` after any change to the arc.
 
 That's the entire integration surface. The arc is self-contained; core gameplay (jobs board, proximity spawns, reputation) keeps working while it's inactive.
 
@@ -95,7 +95,7 @@ prefix (`<id>_`). Details: `missions_api.md`, "Flags".
 ## Testing an arc
 
 `tests/arcs/<name>.lua` plays the arc inside a headless EmptyEpsilon running the real sandbox
-scenario (`tools/arc_tests.py`; about a minute per arc). Read `tests/arcs/_harness.lua` for the
+scenario (`tools/game_tests.py`; about a minute per arc). Read `tests/_harness.lua` for the
 API and copy the shape of `tests/arcs/ledger.lua`:
 
 1. **The real path, start to finish.** `T.jump("hook")`, then drive every transition the way a
@@ -155,5 +155,5 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 - [ ] Every `M.gm_states` / `M.gm_actions` label is ≤ 18 characters (check function labels at their longest value)
 - [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
 - [ ] Design doc exists at `ee/ragtag/missions/<name>.md`
-- [ ] `tests/arcs/<name>.lua` plays the real path, every ending, every GM state and "-> Inactive"; `tools/arc_tests.py` passes
+- [ ] `tests/arcs/<name>.lua` plays the real path, every ending, every GM state and "-> Inactive"; `tools/game_tests.py` passes
 - [ ] `python3 tools/check.py` passes

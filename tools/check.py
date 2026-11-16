@@ -188,7 +188,7 @@ API_MD_COPIES = [
 
 
 def check_arc_tests() -> None:
-    """Every story arc needs tests/arcs/<arc>.lua (run by tools/arc_tests.py)."""
+    """Every story arc needs tests/arcs/<arc>.lua (run by tools/game_tests.py)."""
     arcs = ROOT / "ee" / "ragtag" / "missions"
     tests = ROOT / "tests" / "arcs"
     for f in sorted(arcs.glob("*.lua")):
@@ -196,7 +196,7 @@ def check_arc_tests() -> None:
             continue
         if not (tests / f.name).exists():
             errors.append(f"ee/ragtag/missions/{f.name} has no regression test: add tests/arcs/{f.name} "
-                          f"(see tests/arcs/_harness.lua; run with tools/arc_tests.py)")
+                          f"(see tests/_harness.lua; run with tools/game_tests.py)")
     for f in sorted(tests.glob("*.lua")):
         if not f.name.startswith("_") and not (arcs / f.name).exists():
             errors.append(f"tests/arcs/{f.name} tests an arc that does not exist (ee/ragtag/missions/{f.name})")

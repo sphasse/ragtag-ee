@@ -1,5 +1,5 @@
--- tests/arcs/_harness.lua
--- Test harness for story-arc regression tests. Run by tools/arc_tests.py, which copies this
+-- tests/_harness.lua
+-- Test harness for story-arc regression tests. Run by tools/game_tests.py, which copies this
 -- folder into EmptyEpsilon's scripts/ and starts the real sandbox scenario headless with one
 -- test file loaded on top of it. Nothing here is installed into a played game.
 --
@@ -36,6 +36,7 @@ local _queue, _qi = {}, 1
 local _started, _finished = false, false
 local _pass, _fail = 0, 0
 local _arc = nil
+local _suite = nil
 local _replies = {}          -- labels of the comms replies currently on offer
 local _wait_until = nil      -- scenario time a wait/waitFor item ends
 
@@ -75,6 +76,8 @@ function T.waitFor(name, pred, timeout) _push({kind = "waitFor", name = name, pr
 function T.P() return RT.players[1] end
 
 function T.arc(id) _arc = id end
+-- A test that is not about an arc (the job board): every arc is switched off.
+function T.suite(name) _suite = name end
 function T.st() return MISSIONS._state[_arc] end
 function T.phase() return MISSIONS._cur_phase[_arc] end
 function T.status() return MISSIONS._status[_arc] end
@@ -219,7 +222,47 @@ function T.action(label)
     error("no GM action '" .. tostring(label) .. "' on arc " .. tostring(_arc))
 end
 
+-- ── Jobs (call from inside a step) ───────────────────────────────────────────
+
+-- Generate a job of one type at a station exactly as the board would (the module's own
+-- prepareOpts + generate), without waiting for the random draw to produce that type.
+function T.makeJob(jtype, station_cs, tier)
+    local mod = JOBS._registry[jtype]
+    if not mod then error("no job type " .. tostring(jtype)) end
+    for _ = 1, 20 do
+        local ctx = JOBS.offerContext(station_cs)
+        ctx.tier = tier or 0
+        local opts = mod.prepareOpts(ctx)
+        if opts then
+            local m = mod.generate(opts)
+            if m then return m end
+        end
+    end
+    error("could not generate a " .. jtype .. " job at " .. station_cs)
+end
+
+-- Put a job on its origin station's board as ordinary work (guaranteed to be listed).
+function T.postJob(m)
+    JOBS.inject({category = "TEST_JOBS", priority = 3, ensure = true, origin = m.origin, record = m})
+    return m
+end
+
+-- The active-job entry for a job record (nil once it is completed, failed or expired).
+function T.activeEntry(m)
+    for _, e in ipairs(JOBS._active) do
+        if e.mission == m then return e end
+    end
+end
+
 -- ── Queued helpers ───────────────────────────────────────────────────────────
+
+-- Take a posted job at its origin station through the real board. `job` is a function returning
+-- the record (it does not exist yet when the test file is read). Docks first.
+function T.takeJob(job)
+    T.dock(function() return T.find(job().origin) end)
+    T.talk(function() return T.find(job().origin) end,
+           {"Any work available?", function() return "Take: " .. job().short end}, {name = "the origin station"})
+end
 
 -- Dock the player ship at a station or ship (callsign, entity, or function returning one).
 function T.dock(target)
@@ -298,8 +341,10 @@ function T.talk(target, labels, opts)
         end)
     end
     T.waitFor("channel open to " .. who, function() return _commsState() == "open" end, 10)
-    for _, label in ipairs(labels or {}) do
-        T.step("reply: " .. label, function()
+    for _, lbl in ipairs(labels or {}) do
+        -- A label may be a function, for text only known when the step runs (a job's name).
+        T.step("reply: " .. (type(lbl) == "string" and lbl or "(computed)"), function()
+            local label = type(lbl) == "function" and lbl() or lbl
             for i, l in ipairs(_replies) do
                 if l:find(label, 1, true) then
                     _replies = {}
@@ -307,7 +352,7 @@ function T.talk(target, labels, opts)
                     return
                 end
             end
-            error("no reply '" .. label .. "'; on offer: [" .. table.concat(_replies, " | ") .. "]")
+            error("no reply '" .. tostring(label) .. "'; on offer: [" .. table.concat(_replies, " | ") .. "]")
         end)
     end
 end
@@ -375,15 +420,18 @@ end
 -- ── Runner ───────────────────────────────────────────────────────────────────
 
 local function _setup()
-    if not _arc or not MISSIONS._registry[_arc] then
-        error("test did not call T.arc(<registered arc id>)")
+    if _arc and not MISSIONS._registry[_arc] then
+        error("T.arc: no such arc '" .. tostring(_arc) .. "'")
     end
-    for _, id in ipairs(MISSIONS._order) do
+    if not _arc and not _suite then
+        error("test did not call T.arc(<arc id>) or T.suite(<name>)")
+    end
+    for _, id in ipairs(MISSIONS._order) do      -- only the arc under test (none for a job test)
         if id ~= _arc then MISSIONS.setEnabled(id, false) end
     end
     WORLD.disable("proximity")                 -- no ambient patrols or shakedowns
     T.P():setCanBeDestroyed(false)
-    _out("START " .. _arc)
+    _out("START " .. (_arc or _suite))
 end
 
 local function _finish()
