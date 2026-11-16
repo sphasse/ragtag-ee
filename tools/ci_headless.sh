@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build EmptyEpsilon (pinned), install this repo into it, run a scenario
-# headless and drive it with tools/smoke_test.py. Used by CI; works locally too.
+# headless and drive it with tools/smoke_test.py, then run the story-arc
+# regression tests (tools/arc_tests.py). Used by CI; works locally too.
 #
 #   tools/ci_headless.sh                         # build EE into .ee-build/ (about 20 min the first time)
 #   EE_DIR=~/src/EmptyEpsilon tools/ci_headless.sh   # use an existing build (needs _build/EmptyEpsilon)
@@ -12,7 +13,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EE_COMMIT="${EE_COMMIT:-310bebd12f14d82239070445ad190d13680f124b}"  # EE-2026.09.22PR
 SP_COMMIT="${SP_COMMIT:-bbe714aac5a855108ccedb43a99d8334b18ce792}"
 SCENARIO="${SCENARIO:-scenario_80_ragtag.lua}"
-PLAYTHROUGH="${PLAYTHROUGH:-0}"
 PORT="${PORT:-8080}"
 
 if [ -z "${EE_DIR:-}" ]; then
@@ -45,12 +45,17 @@ done
 sleep 3
 
 ARGS=(--ee "http://127.0.0.1:$PORT")
-[ "$PLAYTHROUGH" = "1" ] && ARGS+=(--playthrough)
 status=0
 python3 "$ROOT/tools/smoke_test.py" "${ARGS[@]}" || status=$?
 
 if grep -q "LUA-Error" "$HOME/ee.log"; then
   echo "Lua errors in the EmptyEpsilon log:"; grep -A4 "LUA-Error" "$HOME/ee.log" | head -40
   status=1
+fi
+kill $EE_PID 2>/dev/null || true
+
+# Story arcs: one EmptyEpsilon per arc, each with its own empty HOME. ARC_TESTS=0 skips them.
+if [ "${ARC_TESTS:-1}" = "1" ]; then
+  python3 "$ROOT/tools/arc_tests.py" --ee "$EE_DIR" --no-install || status=1
 fi
 exit $status

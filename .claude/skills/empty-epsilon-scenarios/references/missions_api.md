@@ -220,6 +220,23 @@ end)
 
 ---
 
+## Regression tests
+
+Every arc has `tests/arcs/<id>.lua` (`check.py` errors if one is missing), run by
+`python3 tools/arc_tests.py --ee <EmptyEpsilon dir> [arc ...]`. A test runs inside a headless
+EmptyEpsilon on top of the real sandbox scenario and drives the arc with real comms, forced docks,
+teleports, the arc's `gm_states` and `gm_actions`; the API is documented at the top of
+`tests/arcs/_harness.lua`. Three engine facts the tests lean on, which arcs must keep true:
+
+- every state a GM can jump to is in `M.gm_states` with a `key` (`T.gmWalk` presses each one and
+  fails if one is not listed in the test);
+- `M.gm_reset(st, nil)` followed by cancel leaves no flags with the arc's `gm_flag_prefixes`, no
+  spawned objects and no objective line (`T.deactivate`);
+- errors inside `enter` / `exit` / `completed` / `gm_reset` are caught and logged as
+  `[MISSIONS] ... error`; the tests turn those log lines into failures.
+
+---
+
 ## GM menu
 
 The engine provides a three-level GM UI with one button per scenario:

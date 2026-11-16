@@ -197,11 +197,19 @@ local function _deferHook(st)
     st.deferred_until = getScenarioTime() + _REASK_DELAY
     st.hook_hailed, st.hail_when_near, st.hook_at = false, false, nil
     RT.clearObjective("corsair")
+    -- The raider flies off and is removed a minute later. It stays in st.guide_leaving so a
+    -- reset inside that minute (GM jump, cancel) still removes it.
     local g = st.guide
     st.guide = nil
+    _kill({st.guide_leaving})
+    st.guide_leaving = g
     if RT.valid(g) then
         g:orderFlyTowards(_BW_X, _BW_Y)
-        RT.after(60, function() if RT.valid(g) then g:destroy() end end, "corsair_guide_leave")
+        RT.after(60, function()
+            if RT.valid(g) then g:destroy() end
+            local cur = MISSIONS._state["corsair"]
+            if cur and cur.guide_leaving == g then cur.guide_leaving = nil end
+        end, "corsair_guide_leave")
     end
 end
 
@@ -561,7 +569,7 @@ end
 local function _clearWorld(st)
     RT.cancelTimer("corsair_cleanup")
     RT.cancelTimer("corsair_guide_leave")
-    _kill({st.guide}); st.guide = nil
+    _kill({st.guide}); _kill({st.guide_leaving}); st.guide, st.guide_leaving = nil, nil
     _kill(st.escorts); st.escorts = {}
     _kill(st.defenders); st.defenders = {}
     if RT.valid(st.depot) then pcall(function() st.depot:setCanBeDestroyed(true); st.depot:destroy() end) end
@@ -651,7 +659,6 @@ M.phases.hook = {
     end,
     exit = function(st)
         RUMORS.removeCategory("CORSAIR_HOOK")
-        RT.cancelTimer("corsair_guide_leave")
     end,
     update = function(st, delta, now)
         local p = _firstPlayer()
@@ -905,7 +912,5 @@ M.gm_actions = {
         for _, s in ipairs(_alive(st.fleet)) do s:destroy() end
     end},
 }
-
-M._guideComms = _guideComms   -- exposed for headless tests
 
 MISSIONS.register(M)

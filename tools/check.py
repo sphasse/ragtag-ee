@@ -11,6 +11,7 @@ Checks:
     no stock factions (Human Navy / Exuari / Ghosts) in campaign content
   * generated files are up to date (director/generated/world.md, docs/verse_map.svg)
   * every missions/jobs/world module file is required by its loader (unloaded files go in attic/)
+  * every story arc (missions/<arc>.lua) has a regression test (tests/arcs/<arc>.lua)
   * the two skill copies of missions_api.md are identical
   * the director's Python compiles
 """
@@ -182,6 +183,21 @@ API_MD_COPIES = [
 ]
 
 
+def check_arc_tests() -> None:
+    """Every story arc needs tests/arcs/<arc>.lua (run by tools/arc_tests.py)."""
+    arcs = ROOT / "ee" / "ragtag" / "missions"
+    tests = ROOT / "tests" / "arcs"
+    for f in sorted(arcs.glob("*.lua")):
+        if f.name.startswith("_"):
+            continue
+        if not (tests / f.name).exists():
+            errors.append(f"ee/ragtag/missions/{f.name} has no regression test: add tests/arcs/{f.name} "
+                          f"(see tests/arcs/_harness.lua; run with tools/arc_tests.py)")
+    for f in sorted(tests.glob("*.lua")):
+        if not f.name.startswith("_") and not (arcs / f.name).exists():
+            errors.append(f"tests/arcs/{f.name} tests an arc that does not exist (ee/ragtag/missions/{f.name})")
+
+
 def check_api_md_sync() -> None:
     a, b = API_MD_COPIES
     if a.exists() and b.exists() and a.read_text() != b.read_text():
@@ -223,6 +239,7 @@ def main() -> int:
     check_scenarios(data["places"] or {})
     check_generated(data, args.fix)
     check_loader_requires()
+    check_arc_tests()
     check_api_md_sync()
     check_python()
 

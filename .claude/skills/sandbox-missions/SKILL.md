@@ -16,7 +16,8 @@ The reference implementation is `ee/ragtag/missions/rezkov.lua`; design notes li
 1. Create `ee/ragtag/missions/<name>.lua`.
 2. Create `ee/ragtag/missions/<name>.md` — design notes, state diagram, lore. Arc-specific details go here; don't add them to CLAUDE.md.
 3. Add `require("ragtag/missions/<name>.lua")` to `ee/ragtag/missions.lua`.
-4. Run `python3 tools/check.py` after any change.
+4. Create `tests/arcs/<name>.lua` — the arc's regression test (`check.py` errors without it). See "Testing an arc" below.
+5. Run `python3 tools/check.py` after any change, and `python3 tools/arc_tests.py --ee <EmptyEpsilon dir> <name>` after any change to the arc.
 
 That's the entire integration surface. The arc is self-contained; core gameplay (jobs board, proximity spawns, reputation) keeps working while it's inactive.
 
@@ -51,6 +52,35 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 
 ---
 
+## Testing an arc
+
+`tests/arcs/<name>.lua` plays the arc inside a headless EmptyEpsilon running the real sandbox
+scenario (`tools/arc_tests.py`; about a minute per arc). Read `tests/arcs/_harness.lua` for the
+API and copy the shape of `tests/arcs/ledger.lua`:
+
+1. **The real path, start to finish.** `T.jump("hook")`, then drive every transition the way a
+   crew would: `T.dock(station)` + `T.talk(target, {"reply label", ...})` for dialogs (real comms:
+   the arc's own comms functions and station hooks run), `T.moveTo` / `T.moveNear` for proximity
+   triggers, `T.waitFor(name, predicate, seconds)` for anything the phase `update` decides.
+   After each transition assert the phase, the flags, what was spawned, the objective, and
+   rewards (measure credits and reputation right around the paying step: flying into a new
+   region pays survey credits).
+2. **Every other ending** (losses, declines), by jumping back with `T.jump(key)` and playing the
+   last step differently.
+3. **`T.gmWalk{...}`**: every GM state in turn, with a check per state. It fails if a GM state is
+   not listed, so a new state needs a test.
+4. **`T.deactivate{gone = {...}}`**: "-> Inactive" leaves no flags, no named objects, no objective.
+
+Use the arc's GM helpers (`T.action("Complete hack")`) for things a headless game cannot do
+(a Relay hack, winning a fight) and move timers back (`T.st().download_start = ... - 58`) rather
+than waiting them out. Docking is forced and movement is teleporting; say at the top of the
+test file what it does not cover. Compare against a baseline taken before the arc starts when
+counting things the universe also has (mines, Derelict wrecks).
+
+Errors the engine catches and logs (`[MISSIONS] ... error`, non-linear transition warnings) and
+any `LUA-Error` in the log fail the test, so a test that only walks the states still catches a
+crash in `enter`, `gm_reset` or a `completed` hook.
+
 ## Common mistakes
 
 - **`MISSIONS.goto()` doesn't exist** — `goto` is a Lua 5.4 reserved keyword. Use `MISSIONS.phase()`.
@@ -77,4 +107,5 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 - [ ] Every `M.gm_states` / `M.gm_actions` label is ≤ 18 characters (check function labels at their longest value)
 - [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
 - [ ] Design doc exists at `ee/ragtag/missions/<name>.md`
+- [ ] `tests/arcs/<name>.lua` plays the real path, every ending, every GM state and "-> Inactive"; `tools/arc_tests.py` passes
 - [ ] `python3 tools/check.py` passes

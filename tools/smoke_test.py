@@ -1,15 +1,12 @@
 """Smoke test for ragtag scenarios against a running EmptyEpsilon server.
 
     python tools/smoke_test.py --ee http://127.0.0.1:8080
-    python tools/smoke_test.py --ee http://127.0.0.1:8080 --playthrough
 
 Start a ragtag scenario on the server first (httpserver=8080 in options.ini).
 Stop the director before running this: both write the same mailbox key.
 
-The default test sends every director action once and checks the game's
-replies. --playthrough additionally teleports the ship through scripted beats
-(currently only works for deleted Long Haul Session 1). It cheats, so only
-use it on a test server.
+It checks the universe was built and sends every director action once, checking
+the game's replies. Story arcs have their own tests: tools/arc_tests.py.
 """
 
 from __future__ import annotations
@@ -112,68 +109,6 @@ def test_actions(b: Bridge) -> None:
             check(name, bool(r["ok"]) == expect, r["msg"])
 
 
-def playthrough(b: Bridge) -> None:
-    print("Session 1 playthrough (teleporting):")
-    P = "local p = getPlayerShip(-1)\n"
-
-    def obj(cs: str) -> str:
-        return (f'local function find(cs) for _, o in ipairs(getObjectsInRadius(0, 0, 200000)) do '
-                f'if o:getCallSign() == cs then return o end end end\nlocal o = find("{cs}")\n')
-
-    def beat_fired(beat_id: str) -> bool:
-        st = b.sync().get("state") or {}
-        return any(x["id"] == beat_id and x["fired"] for x in st.get("beats", []))
-
-    def wait_beat(beat_id: str, timeout: float = 40) -> bool:
-        end = time.time() + timeout
-        while time.time() < end:
-            if beat_fired(beat_id):
-                return True
-            time.sleep(1)
-        return False
-
-    check("briefing fired", wait_beat("briefing", 15))
-
-    b.lua(P + obj("Port Vesper") + "local x, y = o:getPosition() p:setPosition(x + 1300, y) p:commandDock(o) return 'ok'")
-    check("cargo_loaded after docking", wait_beat("cargo_loaded", 40))
-
-    b.lua(P + "p:commandUndock() return 'ok'")
-    time.sleep(2)
-    b.lua(P + obj("CPV Diligence") + "local x, y = o:getPosition() p:setPosition(x + 5000, y) return 'ok'")
-    check("inspection fallback near patrol", wait_beat("inspection", 15))
-
-    # Ignore the hail and leave: should count as running, then escaping.
-    b.lua(P + obj("CPV Diligence") + "local x, y = o:getPosition() p:setPosition(x + 16000, y + 2000) return 'ok'")
-    ev = b.wait_event(lambda e: e["type"] == "choice" and e["data"].get("choice") == "run", 40)
-    check("ignoring the hail counts as running", ev is not None)
-    b.lua(P + obj("CPV Diligence") + "local x, y = o:getPosition() p:setPosition(x + 26000, y - 9000) return 'ok'")
-    ev = b.wait_event(lambda e: e["type"] == "choice" and e["data"].get("choice") == "escaped", 20)
-    check("patrol gives up when outrun", ev is not None)
-
-    check("ambush fallback near Halcyon", wait_beat("ambush", 20))
-    st = b.sync()["state"]
-    raiders = [n for n in st["player"]["nearby"] if n["faction"] == "Corsairs" and n["callsign"].startswith(("Grinning", "Teeth"))]
-    check("raiders spawned", len(raiders) >= 1, ", ".join(n["callsign"] for n in raiders))
-    b.lua('for _, o in ipairs(getObjectsInRadius(0, 0, 200000)) do local c = o:getCallSign() '
-          'if c == "Grinning Teeth" or c:find("^Teeth") then o:destroy() end end return "ok"')
-
-    b.lua(P + obj("Halcyon Rest") + "local x, y = o:getPosition() p:setPosition(x + 1000, y) p:commandDock(o) return 'ok'")
-    check("delivery on docking at Halcyon", wait_beat("delivery", 40))
-    credits = b.sync()["state"]["player"]["credits"]
-    check("payout received", credits >= 400, f"credits {credits}")
-
-    b.lua(P + "p:commandUndock() return 'ok'")
-    b.lua(obj("Wren's Folly") + 'o:setScanStateByFaction("Independent", "full") return "ok"')
-    check("scanning the derelict reveals the core", wait_beat("folly_secret", 10))
-
-    b.lua(P + obj("Sealed data core") + "local x, y = o:getPosition() p:setPosition(x, y) return 'ok'")
-    ev = b.wait_event(lambda e: e["type"] == "pickup", 15)
-    check("data core picked up", ev is not None)
-    camp = json.loads(b.ee.get_key("ragtag.campaign.sandbox") or "{}")
-    check("campaign flags saved", camp.get("flags", {}).get("lantern_core") is True and camp["flags"].get("ran_from_concord") is True,
-          json.dumps(camp.get("flags")))
-
-
 def test_verse(b: Bridge) -> None:
     print("The verse:")
     r = b.lua(
@@ -205,7 +140,6 @@ def test_verse(b: Bridge) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ee", default="http://127.0.0.1:8080")
-    ap.add_argument("--playthrough", action="store_true")
     args = ap.parse_args()
     ee = EELink(args.ee)
     try:
@@ -219,8 +153,6 @@ def main() -> int:
     print(f"Scenario run {b.msg['run']}")
     test_verse(b)
     test_actions(b)
-    if args.playthrough:
-        playthrough(b)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
     return 0 if not FAIL else 1
 
