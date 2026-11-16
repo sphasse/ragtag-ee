@@ -111,6 +111,21 @@ SCIDB.PROFILES = {
         kv = {["Role"] = "Independent operator", ["Base"] = "Nebula station near Dustmote",
               ["Method"] = "In person, never through go-betweens", ["Memory"] = "Total"},
     },
+    reva_profile = {
+        who  = "reva",
+        name = "Reva Okonkwo",
+        desc = "Quartermaster of Blackwater, which in practice means she runs it.\n\n" ..
+               "Served as a gunnery chief on Free Ship cruisers in the Settlement War and was still " ..
+               "at her station when the surrender order came through. She did not surrender; she " ..
+               "took her crew and two damaged hulls into the Gauntlet instead, and most of " ..
+               "Blackwater's first families came with her.\n\n" ..
+               "Keeps the books, the guns and the peace among people who do not like being told " ..
+               "what to do. Blunt, fair, and slow to trust anyone flying a clean transponder. " ..
+               "Her crews follow her because she has never once asked them to do something she " ..
+               "would not do first.",
+        kv = {["Role"] = "Quartermaster, Blackwater", ["War record"] = "Free Ship gunnery chief",
+              ["Manner"] = "Blunt, fair, wary", ["Known for"] = "Never asking first what she won't do herself"},
+    },
     kael_profile = {
         who  = "kael",
         name = "Commander Kael",

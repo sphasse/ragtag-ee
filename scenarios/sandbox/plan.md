@@ -14,7 +14,7 @@ Status at last update (2026-11-12):
 | 1 | Rezkov Arc | **BUILT** | `ee/ragtag/missions/rezkov.lua` + `rezkov.md` |
 | 2 | Ledger Arc (accounting AI) | **BUILT** | `ee/ragtag/missions/ledger.lua` + `ledger.md` |
 | 3 | Boneyard Arc | **BUILT** | `ee/ragtag/missions/boneyard.lua` + `boneyard.md` |
-| 4 | Corsair Arc (redemption) | planned | — |
+| 4 | Corsair Arc (redemption) | **BUILT** | `ee/ragtag/missions/corsair.lua` + `corsair.md` |
 | 5 | Maw Arc (finale) | planned | — |
 | 6 | Concord Republic Arc (optional serial) | planned | — |
 
@@ -123,7 +123,7 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   - Rep: Concord -300 (-500 with drone flip); Corsairs +150 with drone flip.
     Credits 600 (data) + 200 (flip).
 
-## Arc 4 — Corsair Arc (redemption) — PLANNED (design 2026-11-15)
+## Arc 4 — Corsair Arc (redemption) — BUILT 2026-11-15 (details: `ee/ragtag/missions/corsair.md`)
 
 **Premise.** The Concord's second battle group (seeded by the Boneyard hook rumors: two groups
 left Lumen) is coming for Blackwater Reach, to settle the Corsair problem quietly while the Drift
