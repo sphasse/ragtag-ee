@@ -190,6 +190,21 @@ end
 
 -- ── The guide (Long Memory) ──────────────────────────────────────────────────
 
+-- The crew said "not right now": the raider leaves, the hook stays open. Another contact (the
+-- Greywater message, or entering the Gauntlet again) can try after _REASK_DELAY.
+local _REASK_DELAY = 10 * 60
+local function _deferHook(st)
+    st.deferred_until = getScenarioTime() + _REASK_DELAY
+    st.hook_hailed, st.hail_when_near, st.hook_at = false, false, nil
+    RT.clearObjective("corsair")
+    local g = st.guide
+    st.guide = nil
+    if RT.valid(g) then
+        g:orderFlyTowards(_BW_X, _BW_Y)
+        RT.after(60, function() if RT.valid(g) then g:destroy() end end, "corsair_guide_leave")
+    end
+end
+
 local _HOOK_TEXT = '"Easy. If we wanted you dead you\'d have noticed.\n\nWe watch things in the Drift, and we know you are someone capable of taking on the Concord. '
     .. 'Somebody at Blackwater wants to talk to you. Follow us in, and nobody out here will touch you."'
 
@@ -202,7 +217,12 @@ local function _guideComms(src, tgt)
             MISSIONS.phase("corsair", "escort")
             setCommsMessage('"Stay on my tail. Blackwater\'s through the Veil."')
         end)
-        addCommsReply("Not interested.", function()
+        addCommsReply("Not right now.", function()
+            local st = MISSIONS._state["corsair"]
+            if st then _deferHook(st) end
+            setCommsMessage('"Fair enough. We\'ll be around. Ask at Greywater when you\'re ready."')
+        end)
+        addCommsReply("Tell your people to forget us.", function()
             RT.flag("corsair_arc_done", "declined")
             MISSIONS.phase("corsair", "done")
             setCommsMessage('"Your call. The Drift\'s going to get very loud, very soon. Remember we asked."')
@@ -490,6 +510,32 @@ _blackwaterComms = function(src, tgt)
     end
 end
 
+-- ── Greywater: the barkeep holds a message ───────────────────────────────────
+
+local _GREYWATER_MEET_X, _GREYWATER_MEET_Y = 24 * U, 45 * U   -- the Gauntlet's north edge, ~9U south of Greywater
+local _greywater_hooked = false
+
+local function _greywaterHook(src, tgt)
+    if not src:isDocked(tgt) then return end
+    if MISSIONS._status["corsair"] ~= "active" or MISSIONS._cur_phase["corsair"] ~= "hook" then return end
+    local st = MISSIONS._state["corsair"]
+    if not st or RT.valid(st.guide) then return end
+    addCommsReply("Heard you're holding a message for us.", function()
+        if getScenarioTime() < (st.deferred_until or 0) then
+            setCommsMessage('"They said you weren\'t ready. Come back in a bit and I\'ll pass word along again."')
+            return
+        end
+        local g = _spawnGuide(st, _GREYWATER_MEET_X, _GREYWATER_MEET_Y)
+        g:orderIdle()
+        st.hail_when_near, st.hook_hailed = true, false
+        RT.setObjective("Meet Long Memory at the Gauntlet's edge", true, "corsair")
+        RT.shipLog("[Greywater] Message for you: Long Memory is waiting at grid " .. _grid(_GREYWATER_MEET_X, _GREYWATER_MEET_Y) .. ", the edge of the Gauntlet.", "#A0C0FF")
+        setCommsMessage('The barkeep wipes the same glass for a while, then slides a data chip across the bar.\n\n'
+            .. '"Friend of yours at Blackwater wants a word. There\'s a ship called Long Memory waiting at the edge of the Gauntlet, grid '
+            .. _grid(_GREYWATER_MEET_X, _GREYWATER_MEET_Y) .. '. Fly out, they\'ll find you.\n\nI never saw the chip. You never saw me."')
+    end)
+end
+
 -- ── Rumors ───────────────────────────────────────────────────────────────────
 
 local _SEED_RUMORS = {
@@ -514,6 +560,7 @@ end
 
 local function _clearWorld(st)
     RT.cancelTimer("corsair_cleanup")
+    RT.cancelTimer("corsair_guide_leave")
     _kill({st.guide}); st.guide = nil
     _kill(st.escorts); st.escorts = {}
     _kill(st.defenders); st.defenders = {}
@@ -575,6 +622,10 @@ M.phases = {}
 M.phases.init = {
     no_skip = true,
     enter = function(st)
+        if not _greywater_hooked then
+            RT.addStationHook("Greywater Depot", _greywaterHook)
+            _greywater_hooked = true
+        end
         local f = RT.flag
         if f("corsair_arc_done") then MISSIONS.phase("corsair", "done")
         elseif f("corsair_joined") then MISSIONS.phase("corsair", "battle")
@@ -586,17 +637,38 @@ M.phases.init = {
     end,
 }
 
+local _HOOK_RUMORS = {
+    "The barkeep at Greywater is holding a message for a freighter crew. Sounds a lot like yours.",
+    "Corsairs have been asking around Greywater about you. Asking, not shooting. That's new.",
+    "Somebody at Blackwater wants to meet you. Word is, you start at Greywater.",
+}
+
 M.phases.hook = {
     enter = function(st)
         st.hook_hailed = false
+        RUMORS.removeCategory("CORSAIR_HOOK")
+        for _, t in ipairs(_HOOK_RUMORS) do RUMORS.add({text = t, priority = 5, category = "CORSAIR_HOOK"}) end
+    end,
+    exit = function(st)
+        RUMORS.removeCategory("CORSAIR_HOOK")
+        RT.cancelTimer("corsair_guide_leave")
     end,
     update = function(st, delta, now)
         local p = _firstPlayer()
         if not p then return end
         local px, py = p:getPosition()
         local in_gauntlet = _d2(px, py, _GAUNTLET_X, _GAUNTLET_Y) < _GAUNTLET_R * _GAUNTLET_R
+        if RT.valid(st.guide) and st.hail_when_near then
+            -- Staged by the Greywater message: waiting at the Gauntlet's edge, hails once close.
+            if RT.dist(p, st.guide) < 6 * U then
+                st.hail_when_near = false
+                st.guide:orderDefendTarget(p)
+                st.hook_at = now + 2
+            end
+            return
+        end
         if not RT.valid(st.guide) then
-            if not in_gauntlet then return end
+            if not in_gauntlet or now < (st.deferred_until or 0) then return end
             local a = math.rad(p:getRotation() or 0)
             local g = _spawnGuide(st, px + math.cos(a) * 4500, py + math.sin(a) * 4500)
             g:orderDefendTarget(p)
@@ -833,5 +905,7 @@ M.gm_actions = {
         for _, s in ipairs(_alive(st.fleet)) do s:destroy() end
     end},
 }
+
+M._guideComms = _guideComms   -- exposed for headless tests
 
 MISSIONS.register(M)

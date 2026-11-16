@@ -135,7 +135,10 @@ jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don
 **Trigger:** upgrades >= 1000, `corsair_arc_done` unset, and the crew enters the Gauntlet.
 
 **Phases:** `hook` -> `escort` -> `briefing` -> `raid` -> `return` -> `battle` -> `done`
-1. `hook` — entering the Gauntlet: the raider *Long Memory* closes without attacking and hails:
+1. `hook` — rumors point to Greywater Depot, where the barkeep passes a message: *Long Memory*
+   waits at the Gauntlet's edge (fallback: entering the Gauntlet). Replies: Follow / Not right
+   now (hook stays open, re-offered after 10 min) / Tell your people to forget us (`declined`).
+   The raider closes without attacking and hails:
    "We watch things in the Drift, and we know you're someone capable of taking on the Concord.
    Somebody at Blackwater wants to talk to you. Follow us." Follow / Not interested
    (-> `declined`). Only this hook (no distress call, no Saint Brennan's hook).
