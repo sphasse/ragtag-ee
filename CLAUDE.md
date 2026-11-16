@@ -30,6 +30,8 @@ Contributors add **universe extensions** and **scenarios** independently.
 - `python3 tools/install.py --ee <EmptyEpsilon dir> [--link]` — install into a game
 - `EE_DIR=<EmptyEpsilon checkout with _build/EmptyEpsilon> tools/ci_headless.sh` — headless run + smoke test (Linux).
   Without `EE_DIR` it builds EmptyEpsilon at the pinned commits into `.ee-build/` (~20 min first time).
+- `python3 tools/smoke_test.py --launch <EmptyEpsilon dir>` — smoke test in one command on any platform: installs, starts the
+  sandbox headless with its own empty save, checks the universe and the director bridge, fails on any `LUA-Error`, stops the game.
 - `python3 tools/game_tests.py --ee <EmptyEpsilon dir> [name | arcs | jobs ...] [-v]` — in-game regression tests:
   each story arc and each job type is played headless through its real comms (~1 min, in parallel).
   Run after any change to an arc, a job, the missions or jobs engine, `core.lua`, proximity or the Science DB.

@@ -1,23 +1,36 @@
-"""Smoke test for ragtag scenarios against a running EmptyEpsilon server.
+"""Smoke test for ragtag scenarios: the universe is built and the director bridge answers.
 
-    python tools/smoke_test.py --ee http://127.0.0.1:8080
+    python3 tools/smoke_test.py --launch <EmptyEpsilon dir>   # start a headless game, test it, stop it
+    python3 tools/smoke_test.py --ee http://127.0.0.1:8080    # test a server that is already running
 
-Start a ragtag scenario on the server first (httpserver=8080 in options.ini).
-Stop the director before running this: both write the same mailbox key.
+--launch does everything in one command (any platform): installs this repo into that
+EmptyEpsilon (as tools/install.py does), starts the sandbox scenario headless with its own
+empty HOME (so no real campaign save is touched), runs the checks, fails on any LUA-Error in
+the log, and stops the game. <EmptyEpsilon dir> is what tools/install.py takes, or a checkout
+with a _build/ in it (EE_DIR works too).
 
-It checks the universe was built and sends every director action once, checking
-the game's replies. Story arcs have their own tests: tools/game_tests.py.
+With --ee, start a ragtag scenario on the server first (httpserver=8080 in options.ini) and
+stop the director: both write the same mailbox key. That mode changes the running campaign.
+
+It checks the universe was built and sends every director action once, checking the game's
+replies. Story arcs and jobs have their own tests: tools/game_tests.py.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "director"))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "director"))
+sys.path.insert(0, str(ROOT / "tools"))
 from ee_link import EELink, EEError  # noqa: E402
 
 
@@ -137,11 +150,8 @@ def test_verse(b: Bridge) -> None:
     check("region reported", st["extra"].get("region") not in (None, ""), st["extra"].get("region"))
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--ee", default="http://127.0.0.1:8080")
-    args = ap.parse_args()
-    ee = EELink(args.ee)
+def run_checks(url: str) -> int:
+    ee = EELink(url)
     try:
         info = ee.probe()
     except EEError as e:
@@ -155,6 +165,85 @@ def main() -> int:
     test_actions(b)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
     return 0 if not FAIL else 1
+
+
+def launch_and_test(ee_dir: str, scenario: str, port: int, install: bool, keep_log: str | None) -> int:
+    """Start a headless EmptyEpsilon on `scenario`, run the checks against it, stop it."""
+    from game_tests import find_ee   # same folder resolution as the game tests
+
+    res, binary = find_ee(Path(ee_dir))
+    if install:
+        r = subprocess.run([sys.executable, str(ROOT / "tools" / "install.py"), "--ee", str(res)],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            print(r.stdout + r.stderr)
+            return 1
+    home = Path(tempfile.mkdtemp(prefix="smoke_home_"))      # own empty save
+    (home / ".emptyepsilon").mkdir()
+    log_path = Path(keep_log).expanduser() if keep_log else home / "ee.log"
+    env = dict(os.environ, HOME=str(home), SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
+    url = f"http://127.0.0.1:{port}"
+    print(f"Starting {binary} headless={scenario} (http {port})")
+    status = 1
+    with open(log_path, "wb") as log:
+        proc = subprocess.Popen(
+            [str(binary), f"headless={scenario}", f"httpserver={port}", f"server_port={port + 1}"],
+            cwd=res, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            up = False
+            for _ in range(60):
+                if proc.poll() is not None:
+                    break
+                try:
+                    EELink(url, timeout=2).probe()
+                    up = True
+                    break
+                except EEError:
+                    time.sleep(1)
+            if not up:
+                print("EmptyEpsilon did not come up" + (f" (exit code {proc.returncode})" if proc.poll() is not None else " within 60 s"))
+            else:
+                time.sleep(4)                                  # let the scenario build the universe
+                status = run_checks(url)
+        finally:
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+    lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    lua_errors = [" / ".join(s.strip() for s in lines[i:i + 3]) for i, line in enumerate(lines) if "LUA-Error" in line]
+    if lua_errors:
+        status = 1
+        print(f"\n{len(lua_errors)} LUA-Error line(s) in the EmptyEpsilon log:")
+        for e in lua_errors[:10]:
+            print("  " + e[:300])
+    else:
+        print("No LUA-Error in the EmptyEpsilon log.")
+    if status != 0 and not keep_log:
+        kept = Path(tempfile.gettempdir()) / "smoke_ee.log"
+        shutil.copy2(log_path, kept)
+        print(f"log: {kept}")
+    shutil.rmtree(home, ignore_errors=True)
+    return status
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--ee", default="http://127.0.0.1:8080", help="URL of a running server (default mode)")
+    ap.add_argument("--launch", nargs="?", const=os.environ.get("EE_DIR", ""), metavar="EE_DIR",
+                    help="start a headless EmptyEpsilon from this folder (or $EE_DIR), test it, stop it")
+    ap.add_argument("--scenario", default="scenario_80_ragtag.lua", help="scenario for --launch")
+    ap.add_argument("--port", type=int, default=35990, help="HTTP port for --launch (game port is the next one)")
+    ap.add_argument("--no-install", action="store_true", help="--launch: skip tools/install.py")
+    ap.add_argument("--log", help="--launch: keep the EmptyEpsilon log here")
+    args = ap.parse_args()
+    if args.launch is not None:
+        if not args.launch:
+            ap.error("--launch needs an EmptyEpsilon folder (or set EE_DIR)")
+        return launch_and_test(args.launch, args.scenario, args.port, not args.no_install, args.log)
+    return run_checks(args.ee)
 
 
 if __name__ == "__main__":

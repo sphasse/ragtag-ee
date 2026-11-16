@@ -222,15 +222,18 @@ python tools/check.py
 # Full headless test (Linux)
 tools/ci_headless.sh
 
-# Smoke test against running server
+# Smoke test: start a headless game with a throwaway save, test it, stop it (any platform)
+python3 tools/smoke_test.py --launch <EmptyEpsilon dir>
+
+# Smoke test against a server that is already running
 python tools/smoke_test.py --ee http://localhost:8080
 
 # In-game regression tests: story arcs and jobs (starts its own headless EmptyEpsilon per test file, ~1 min)
 python3 tools/game_tests.py --ee <EmptyEpsilon dir>
 ```
 
-The smoke test modifies the campaign save—don't run it against your real campaign. The arc tests
-use a throwaway save of their own.
+Against a running server (`--ee`) the smoke test modifies that server's campaign save, so don't
+point it at your real campaign. `--launch` and the game tests use a throwaway save of their own.
 
 ---
 
