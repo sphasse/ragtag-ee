@@ -21,13 +21,13 @@ JOBS.config = {
     work_cooldown_secs    = 10 * 60,
     mission_distance_mode = "medium",   -- "short"|"medium"|"long"
     jobboard_locked       = false,       -- set true during Witness arc
-    max_active            = 2,
+    max_active            = 2,           -- per ship
     station_slots         = 2,
 }
 
 -- Internal state.
 JOBS._registry     = {}   -- type_string → module table
-JOBS._active       = {}   -- list of {mission, phase}
+JOBS._active       = {}   -- list of {mission, phase, ship}: every ship's jobs; see JOBS.activeFor
 JOBS._done         = {}   -- mission id → true (taken or completed this session)
 JOBS._station_work = {}   -- callsign → {slots = [...]}
 JOBS._panel_next   = 0
@@ -353,11 +353,60 @@ function JOBS.nearbyStations(wx, wy, radius_u)
     return result
 end
 
+-- ── Ownership ─────────────────────────────────────────────────────────────────
+-- A job belongs to the ship that took it (m.ship). Only that ship advances it, completes it,
+-- is paid for it, hears about it in its log, and gains or loses standing over it. Other player
+-- ships can neither help nor sabotage. Each ship has its own cap (config.max_active), credits
+-- and standing; the board itself is shared, so a job one ship takes is gone for the others.
+-- Story contracts (story = true, priority-5 injected, director-pushed) are offered to the
+-- primary ship only: story arcs belong to that ship.
+-- Job modules use the helpers below and never RT.players / RT.shipLog / RT.hail.
+
+-- The job's owner while it is alive, else nil.
+function JOBS.owner(m)
+    if RT.valid(m.ship) then return m.ship end
+end
+
+-- The ships whose position, docking and scans count for this job: {owner}, or {} when it is
+-- gone. For loops in job modules:  for _, p in ipairs(JOBS.ships(m)) do ... end
+function JOBS.ships(m)
+    return {JOBS.owner(m)}
+end
+
+-- Ship log line for the job's owner.
+function JOBS.log(m, text, color)
+    local p = JOBS.owner(m)
+    if p then p:addToShipLog(text, color or "#FFFFFF") end
+end
+
+-- Hail the job's owner from `from`. Returns true when the hail went out.
+function JOBS.hail(m, from, text)
+    local p = JOBS.owner(m)
+    if not p or not RT.valid(from) then return false end
+    return from:sendCommsMessage(p, text) and true or false
+end
+
+-- Change the owner's standing with a faction.
+function JOBS.rep(m, faction, amount, reason)
+    RT.addReputation(faction, amount, reason, m.ship)
+end
+
+-- A ship's active jobs (entries of JOBS._active), in the order taken.
+function JOBS.activeFor(ship)
+    local out = {}
+    for _, e in ipairs(JOBS._active) do
+        if e.ship == ship then out[#out + 1] = e end
+    end
+    return out
+end
+
 -- ── Panel ─────────────────────────────────────────────────────────────────────
+-- Each ship's Relay screen lists its own jobs.
 function JOBS.refreshPanel()
     RT.forEachPlayer(function(p)
+        local mine = JOBS.activeFor(p)
         for slot = 1, JOBS.config.max_active do
-            local entry = JOBS._active[slot]
+            local entry = mine[slot]
             local txt = (entry and entry.phase == "active")
                         and ("Job: " .. entry.mission.short)
                         or  ("Job " .. slot .. ": (none)")
@@ -372,8 +421,12 @@ function JOBS.updateObj()
 end
 
 -- ── Accept ────────────────────────────────────────────────────────────────────
+-- `ship` takes the job (default: the primary ship). Returns false when that ship is at its cap.
 function JOBS.accept(m, skip_log, ship)
-    if #JOBS._active >= JOBS.config.max_active and not m.story then return false end
+    ship = RT.playerShip(ship) or RT.player
+    if not RT.valid(ship) then return false end
+    if #JOBS.activeFor(ship) >= JOBS.config.max_active and not m.story then return false end
+    m.ship = ship
     JOBS._done[m.id] = true
     for i, dm in ipairs(JOBS._dynamic_queue) do
         if dm.id == m.id then table.remove(JOBS._dynamic_queue, i); break end
@@ -388,7 +441,7 @@ function JOBS.accept(m, skip_log, ship)
     local os_e = RT.find(m.origin)
     if RT.valid(os_e) then m.origin_faction = os_e:getFaction() end
 
-    JOBS._active[#JOBS._active + 1] = {mission = m, phase = "active"}
+    JOBS._active[#JOBS._active + 1] = {mission = m, phase = "active", ship = ship}
 
     if m.origin and JOBS.config.work_cooldown_enabled then
         local ss = JOBS._station_work[m.origin]
@@ -416,13 +469,15 @@ function JOBS.accept(m, skip_log, ship)
             line = string.format("Contract: %s. %dm to complete. Head to %s.",
                 m.short, math.floor(m._time_limit / 60), dest)
         end
-        RT.shipLog(line, "#60CCFF")
+        JOBS.log(m, line, "#60CCFF")
     end
     return true
 end
 
 -- ── Complete ──────────────────────────────────────────────────────────────────
-function JOBS.complete(entry, completing_ship)
+-- Pays the job's owner. (The second argument is kept for callers; the owner is who is paid.)
+function JOBS.complete(entry, _ship)
+    local completing_ship = entry.ship
     entry.phase = "done"
     for i, a in ipairs(JOBS._active) do
         if a == entry then table.remove(JOBS._active, i); break end
@@ -438,7 +493,7 @@ function JOBS.complete(entry, completing_ship)
         if RT.valid(os_e) then fac = os_e:getFaction() end
     end
     if fac then
-        RT.addReputation(fac, entry.mission.reward, "completed: " .. entry.mission.short)
+        JOBS.rep(entry.mission, fac, entry.mission.reward, "completed: " .. entry.mission.short)
     end
 
     JOBS.updateObj()
@@ -461,14 +516,21 @@ function JOBS.update()
     while i >= 1 do
         local entry = JOBS._active[i]
         local m = entry.mission
-        if entry.phase == "active" then
+        if entry.phase == "active" and not RT.valid(entry.ship) then
+            -- The ship that held the contract is gone: the job goes with it, at no cost to anyone.
+            local mod = JOBS._registry[m.type]
+            if mod and mod.cleanup then pcall(mod.cleanup, m) end
+            JOBS._failed(m)
+            table.remove(JOBS._active, i)
+            JOBS.updateObj()
+        elseif entry.phase == "active" then
             if m._expires_at and now > m._expires_at then
                 local mod = JOBS._registry[m.type]
                 local handled = mod and mod.expire and mod.expire(m)
                 if not handled then
-                    RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
+                    JOBS.log(m, "[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
                     if m.origin_faction and not m.story then
-                        RT.addReputation(m.origin_faction, -m.reward, "failed: " .. m.short)
+                        JOBS.rep(m, m.origin_faction, -m.reward, "failed: " .. m.short)
                     end
                 end
                 if mod and mod.cleanup then mod.cleanup(m) end
@@ -482,7 +544,7 @@ function JOBS.update()
                     local result = mod.update(m, entry, {now=now, jobs=JOBS})
                     if result == "remove" then
                         if m.origin_faction and not m.story then
-                            RT.addReputation(m.origin_faction, -m.reward, "failed: " .. m.short)
+                            JOBS.rep(m, m.origin_faction, -m.reward, "failed: " .. m.short)
                         end
                         if mod.cleanup then pcall(mod.cleanup, m) end
                         JOBS._failed(m)
@@ -550,8 +612,9 @@ function JOBS.offerContext(cs)
     return ctx
 end
 
-local function _offerMissions(cs)
+local function _offerMissions(cs, ship)
     local now     = getScenarioTime()
+    local primary = (ship == RT.player)
     local mt      = JOBS.maxTier()
     local n_slots = JOBS.stationSlots(cs)
 
@@ -561,7 +624,7 @@ local function _offerMissions(cs)
     do
         local se = RT.find(cs)
         local sfac = RT.valid(se) and se:getFaction() or nil
-        local rep = sfac and RT.getReputation(sfac) or 0
+        local rep = sfac and RT.getReputation(sfac, ship) or 0   -- the asking ship's own standing
         local penalty
         if rep < -400 then
             penalty  = n_slots
@@ -611,13 +674,16 @@ local function _offerMissions(cs)
 
     -- Story offers (director-pushed + priority-5 injected) do not use up the station's
     -- normal slots; they respect the reputation cap below. (The final list is shuffled.)
+    -- Story contracts are for the primary ship only (story arcs belong to that ship).
     local story = {}
-    for _, m in ipairs(JOBS._dynamic_queue) do
-        if m.origin == cs and not JOBS._done[m.id] then
-            story[#story + 1] = m
+    if primary then
+        for _, m in ipairs(JOBS._dynamic_queue) do
+            if m.origin == cs and not JOBS._done[m.id] then
+                story[#story + 1] = m
+            end
         end
+        for _, m in ipairs(JOBS._injectedFor(cs, true)) do story[#story + 1] = m end
     end
-    for _, m in ipairs(JOBS._injectedFor(cs, true)) do story[#story + 1] = m end
     local seeds = JOBS._injectedFor(cs, false)
 
     -- Cached valid slot missions.
@@ -804,7 +870,9 @@ local function _offerMissions(cs)
     for _, m in ipairs(offers) do
         local cap = m
         addCommsReply("Take: " .. cap.short, function(s2, t2)
-            if #JOBS._active >= JOBS.config.max_active and not cap.story then
+            if JOBS._done[cap.id] then
+                setCommsMessage('"Sorry. Another crew just took that one."')
+            elseif #JOBS.activeFor(RT.playerShip(s2) or s2) >= JOBS.config.max_active and not cap.story then
                 setCommsMessage('"You look pretty busy. I think I\'ll save my work for someone that gets stuff done."')
             else
                 JOBS.accept(cap, true, s2)
@@ -817,7 +885,7 @@ local function _offerMissions(cs)
                     log_line = string.format("Contract: %s. %dm to complete. Head to %s.",
                         cap.short, math.floor(cap._time_limit / 60), dest)
                 end
-                RT.shipLog(log_line, "#60CCFF")
+                JOBS.log(cap, log_line, "#60CCFF")
             end
             addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
         end)
@@ -831,9 +899,9 @@ function JOBS.stationHook(source, target)
     local cs = target:getCallSign()
     if not RT.flag("visited_" .. cs) then RT.flag("visited_" .. cs, true) end
 
-    -- Completion replies for active missions due here.
+    -- Completion replies for this ship's own jobs due here.
     for _, entry in ipairs(JOBS._active) do
-        if entry.phase == "active" then
+        if entry.phase == "active" and entry.ship == source then
             local m   = entry.mission
             local mod = JOBS._registry[m.type]
             if mod and mod.completable and mod.completable(m, cs) then
@@ -851,7 +919,7 @@ function JOBS.stationHook(source, target)
     if JOBS.config.jobboard_locked then return end
 
     addCommsReply("Any work available?", function(s, t)
-        local ok, err = pcall(_offerMissions, cs)
+        local ok, err = pcall(_offerMissions, cs, RT.playerShip(s) or s)
         if not ok then
             log("[JOBS] offer error at " .. cs .. ": " .. tostring(err))
             setCommsMessage('"System error. Please report to the dockmaster."')

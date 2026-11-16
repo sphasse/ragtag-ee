@@ -225,7 +225,7 @@ tools/ci_headless.sh
 # Smoke test against running server
 python tools/smoke_test.py --ee http://localhost:8080
 
-# Story-arc regression tests (starts its own headless EmptyEpsilon per arc, ~1 min)
+# In-game regression tests: story arcs and jobs (starts its own headless EmptyEpsilon per test file, ~1 min)
 python3 tools/game_tests.py --ee <EmptyEpsilon dir>
 ```
 

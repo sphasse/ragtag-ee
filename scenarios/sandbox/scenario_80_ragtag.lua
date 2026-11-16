@@ -167,9 +167,8 @@ function init()
                 if not used[name] then ship:setCallSign(name); break end
             end
         end
-        if RT.campaign then
-            ship:setReputationPoints(RT.campaign.credits or 150)
-        end
+        -- Credits: the engine's number is the primary ship's (set by RT.spawnPlayer); a ship
+        -- that joins later gets its own balance, starting at 0 (RT.update registers it).
         -- Pre-register so RT.update's sync loop doesn't override the faction next frame.
         -- (RT.spawnPlayer may also insert; the duplicate guard there prevents double-entry.)
         local found = false

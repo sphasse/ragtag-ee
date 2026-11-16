@@ -339,6 +339,10 @@ function M.spawn(m)
     DIR.registerKill(convoy)
     local mission_ref = m
     convoy:setCommsFunction(function(src, tgt)
+        if src ~= mission_ref.ship then   -- the convoy answers to the ship under contract
+            setCommsMessage('"We have our escort, thank you. Fly safe."')
+            return
+        end
         if mission_ref._convoy_arrived then
             setCommsMessage('"We\'ve docked at ' .. mission_ref.dest .. '. Thank you for the escort."')
             return
@@ -349,7 +353,7 @@ function M.spawn(m)
             if RT.valid(dest_e) then
                 mission_ref._convoy_waiting = false
                 tgt:orderFlyTowards(mission_ref.dx, mission_ref.dy)
-                RT.shipLog("[Escort] " .. mission_ref.convoy_cs .. " is underway to " .. mission_ref.dest .. ".", "#60CCFF")
+                JOBS.log(mission_ref, "[Escort] " .. mission_ref.convoy_cs .. " is underway to " .. mission_ref.dest .. ".", "#60CCFF")
                 setCommsMessage('"Copy. Setting course for ' .. mission_ref.dest .. '. Stay close."')
             else
                 setCommsMessage('"Cannot plot course — destination not found."')
@@ -401,6 +405,10 @@ function M.spawn(m)
         DIR.allowControl(f)
         local cname = convoy_name
         f:setCommsFunction(function(src, tgt)
+            if src ~= mission_ref.ship then
+                setCommsMessage('"We take our orders from the escort lead."')
+                return
+            end
             setCommsMessage('"Standing by, Captain. Your orders?"')
             addCommsReply("Defend " .. cname, function(s2, t2)
                 local cv = RT.find(cname)
@@ -450,7 +458,7 @@ function M.update(m, entry, ctx)
 
     if not RT.valid(convoy) then
         m._convoy_lost = true
-        RT.shipLog("[Escort] " .. (m.convoy_cs or "convoy") .. " has been destroyed. Contract failed.", "#FF4444")
+        JOBS.log(m, "[Escort] " .. (m.convoy_cs or "convoy") .. " has been destroyed. Contract failed.", "#FF4444")
         m.obj = "Mission failed — convoy lost"
         JOBS.updateObj()
         m._expires_at = ctx.now - 1
@@ -497,7 +505,7 @@ function M.update(m, entry, ctx)
                     if RT.valid(s) then s:orderFlyTowardsBlind(interc.sx, interc.sy) end
                 end
                 _dismissFighters(m)
-                RT.shipLog("[Escort] " .. m.convoy_cs .. " has docked at " .. m.dest .. ". Dock to collect payment.", "#80FF80")
+                JOBS.log(m, "[Escort] " .. m.convoy_cs .. " has docked at " .. m.dest .. ". Dock to collect payment.", "#80FF80")
                 m.obj = "Dock at " .. m.dest .. " to collect payment"
                 JOBS.updateObj()
             end
@@ -522,12 +530,12 @@ function M.update(m, entry, ctx)
             if not m._ambush1 and prog >= 0.33 then
                 _spawnInterceptors(m, cx, cy)
                 m._ambush1 = true
-                RT.shipLog("[Escort] Looks like someone is trying to intercept us!", "#FF8080")
+                JOBS.log(m, "[Escort] Looks like someone is trying to intercept us!", "#FF8080")
                 DIR.emit("escort_ambush", {wave=1, convoy=m.convoy_cs}, "normal")
             elseif m._ambush1 and not m._ambush2 and prog >= 0.67 then
                 _spawnInterceptors(m, cx, cy)
                 m._ambush2 = true
-                RT.shipLog("[Escort] Another intercept wave is inbound!", "#FF8080")
+                JOBS.log(m, "[Escort] Another intercept wave is inbound!", "#FF8080")
                 DIR.emit("escort_ambush", {wave=2, convoy=m.convoy_cs}, "normal")
             end
         end
@@ -539,7 +547,7 @@ end
 function M.expire(m)
     if m._convoy_lost then
         if m.origin_faction then
-            RT.addReputation(m.origin_faction, -2 * m.reward, "failed: " .. m.short)
+            JOBS.rep(m, m.origin_faction, -2 * m.reward, "failed: " .. m.short)
         end
         return true  -- suppress generic "time expired" message
     end

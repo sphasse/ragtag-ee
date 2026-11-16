@@ -82,8 +82,9 @@ function T.st() return MISSIONS._state[_arc] end
 function T.phase() return MISSIONS._cur_phase[_arc] end
 function T.status() return MISSIONS._status[_arc] end
 function T.flag(name) return RT.flag(name) end
-function T.credits() return RT.credits() end
-function T.rep(faction) return RT.getReputation(faction) end
+-- Credits and standing of a ship (default: the primary ship).
+function T.credits(ship) return RT.credits(ship) end
+function T.rep(faction, ship) return RT.getReputation(faction, ship) end
 function T.now() return getScenarioTime() end
 
 -- Anything with this callsign, anywhere on the map (RT.find only looks 100U around the ship).

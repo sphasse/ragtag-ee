@@ -389,7 +389,7 @@ function M.update(m, entry, ctx)
 
     local target = RT.find(m.target_cs)
     if not RT.valid(target) then
-        RT.shipLog("[Hack] Relay destroyed before extraction -- contract lost.", "#FF8080")
+        JOBS.log(m, "[Hack] Relay destroyed before extraction -- contract lost.", "#FF8080")
         return "remove"
     end
 
@@ -410,7 +410,7 @@ function M.update(m, entry, ctx)
         m._hacked = true
         target:setCanBeDestroyed(true)
         m.obj = "Return " .. m.cargo .. " to " .. m.origin
-        RT.shipLog("[Hack] " .. (hacked_sys or "system") .. " breach successful! Data extracted from "
+        JOBS.log(m, "[Hack] " .. (hacked_sys or "system") .. " breach successful! Data extracted from "
             .. m.target_cs .. ". Return to " .. m.origin .. ".", "#80FF80")
         JOBS.updateObj()
     end

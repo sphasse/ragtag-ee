@@ -458,20 +458,20 @@ function M.update(m, entry, ctx)
     local target = RT.find(m.target_cs)
     if not RT.valid(target) then
         m._destroyed = true
-        RT.addReputation("Corsairs", -200, "destroyed " .. (m.target_cs or "unknown"))
+        JOBS.rep(m, "Corsairs", -200, "destroyed " .. (m.target_cs or "unknown"))
         m.obj = "Return to " .. m.origin
-        RT.shipLog("[Target] " .. (m.target_cs or "target") .. " destroyed. Return to " .. m.origin .. ".", "#80FF80")
+        JOBS.log(m, "[Target] " .. (m.target_cs or "target") .. " destroyed. Return to " .. m.origin .. ".", "#80FF80")
         JOBS.updateObj()
         return nil
     end
 
     if not m._attacking then
-        for _, p in ipairs(RT.players) do
+        for _, p in ipairs(JOBS.ships(m)) do
             if RT.valid(p) and RT.dist(target, p) < 8000 then
                 target:setFaction("Corsairs")
                 target:orderAttack(p)
                 m._attacking = true
-                RT.shipLog("[Target] " .. m.target_cs .. " detected our approach and is engaging!", "#FF8080")
+                JOBS.log(m, "[Target] " .. m.target_cs .. " detected our approach and is engaging!", "#FF8080")
                 break
             end
         end

@@ -12,6 +12,8 @@ Checks:
   * generated files are up to date (director/generated/world.md, docs/verse_map.svg)
   * every missions/jobs/world module file is required by its loader (unloaded files go in attic/)
   * every story arc (missions/<arc>.lua) has a regression test (tests/arcs/<arc>.lua)
+  * jobs: every job type has tests/jobs/<type>.lua; job modules address the job's owning ship
+    (JOBS.owner/ships/log/hail/rep), and nothing but core touches EE reputation points directly
   * arc flags: every saved-flag literal is declared in an arc's M.flags; flags of another arc
     are listed in M.reads and never written (a typo in a flag name is an error, not a silent no-op)
   * arcs use the shared ARC helpers (missions/_helpers.lua) instead of local copies, and core
@@ -185,6 +187,45 @@ API_MD_COPIES = [
     ROOT / ".claude" / "skills" / "sandbox-missions" / "references" / "missions_api.md",
     ROOT / ".claude" / "skills" / "empty-epsilon-scenarios" / "references" / "missions_api.md",
 ]
+
+
+# Job modules work for whichever ship owns the job, never "all player ships".
+JOB_OWNER_RULES = [
+    (re.compile(r'RT\.players\b'), "JOBS.ships(m) / JOBS.owner(m) (a job reacts to its owning ship only)"),
+    (re.compile(r'RT\.forEachPlayer\('), "JOBS.owner(m)"),
+    (re.compile(r'RT\.shipLog\('), "JOBS.log(m, text, color) (job news goes to the owning ship)"),
+    (re.compile(r'RT\.hail\('), "JOBS.hail(m, from, text)"),
+    (re.compile(r'RT\.addReputation\('), "JOBS.rep(m, faction, amount, reason) (standing is per ship)"),
+]
+# EmptyEpsilon keeps reputation points per faction, so the raw calls move every player ship's money.
+RAW_CREDITS = re.compile(r'[:.](get|set|add|take)ReputationPoints\(')
+
+
+def check_jobs() -> None:
+    """Every job type has a test; job modules address the owning ship; credits go through RT."""
+    jobs = ROOT / "ee" / "ragtag" / "jobs"
+    tests = ROOT / "tests" / "jobs"
+    for f in sorted(jobs.glob("*.lua")):
+        if f.name.startswith("_"):
+            continue
+        rel = f"ee/ragtag/jobs/{f.name}"
+        if not (tests / f.name).exists():
+            errors.append(f"{rel} has no regression test: add tests/jobs/{f.name} "
+                          f"(see tests/_harness.lua; run with tools/game_tests.py)")
+        code = _strip_lua_comments(f.read_text(encoding="utf-8"))
+        for pat, use in JOB_OWNER_RULES:
+            m = pat.search(code)
+            if m:
+                errors.append(f"{rel}:{code.count(chr(10), 0, m.start()) + 1}: use {use} instead of `{m.group(0)}`")
+    for f in sorted((ROOT / "ee" / "ragtag").rglob("*.lua")) + sorted((ROOT / "scenarios").rglob("*.lua")):
+        if f.name == "core.lua" and f.parent.name == "ragtag":
+            continue
+        code = _strip_lua_comments(f.read_text(encoding="utf-8"))
+        m = RAW_CREDITS.search(code)
+        if m:
+            errors.append(f"{f.relative_to(ROOT)}:{code.count(chr(10), 0, m.start()) + 1}: use RT.credits(ship) / "
+                          f"RT.addCredits(amount, reason, ship): EmptyEpsilon's reputation points are shared by "
+                          f"every ship of a faction, so `{m.group(0)[1:]}...)` changes all player ships' money")
 
 
 def check_arc_tests() -> None:
@@ -412,6 +453,7 @@ def main() -> int:
     check_generated(data, args.fix)
     check_loader_requires()
     check_arc_tests()
+    check_jobs()
     check_arc_helpers()
     check_arc_flags()
     check_api_md_sync()

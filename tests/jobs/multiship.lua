@@ -1,0 +1,240 @@
+-- Several ships working the board. A job belongs to the ship that took it: only that ship can
+-- advance it, complete it, be paid for it, or lose standing over it. Each ship has its own cap,
+-- credits and standing. Story contracts go to the primary ship only. A = the primary ship (the
+-- Magpie), B = a second freighter.
+
+T.suite("jobs")
+
+local HOME = "Port Vesper"
+local A, B
+local m, m2, m3
+local a_c0, b_c0, a_rep0, b_rep0
+
+local function job(jtype, tier) return T.postJob(T.makeJob(jtype, HOME, tier)) end
+local function asA() T.actAs(nil) end
+local function asB() T.actAs(function() return B end) end
+local function note(faction)
+    a_c0, b_c0 = T.credits(A), T.credits(B)
+    a_rep0, b_rep0 = T.rep(faction, A), T.rep(faction, B)
+end
+
+T.step("two ships", function()
+    A = T.P()
+    local before = T.credits(A)
+    B = T.secondShip()
+    T.eq("setup: a ship joining does not touch A's credits", T.credits(A), before)
+    T.eq("setup: B starts with no credits of its own", T.credits(B), 0)
+    T.check("setup: B is a second player ship", RT.valid(B) and B ~= A and RT.players[2] == B)
+    T.eq("setup: B starts with no standing of its own", T.rep("Independent", B), 0)
+    m = job("delivery")
+end)
+
+-- ── Ownership: the taker completes and is paid ───────────────────────────────
+asB()
+T.takeJob(function() return m end)
+T.step("B owns it", function()
+    T.check("own: the job records its ship", m.ship == B)
+    T.eq("own: B has one active job", #JOBS.activeFor(B), 1)
+    T.eq("own: A has none", #JOBS.activeFor(A), 0)
+end)
+asA()
+T.dock(HOME)
+T.talk(HOME, {"Any work available?"})
+T.step("the board is shared", function()
+    T.check("board: a job B took is not offered to A", not T.hasReply("Take: " .. m.short))
+end)
+T.dock(function() return T.find(m.dest) end)
+T.talk(function() return T.find(m.dest) end, {})
+T.step("A cannot hand off B's cargo", function()
+    T.check("own: no hand-off for another ship", not T.hasReply("Hand off"), table.concat(T.replies(), " | "))
+end)
+asB()
+T.dock(function() return T.find(m.dest) end)
+T.wait(1.5)
+T.step("note", function() note(m.origin_faction) end)
+T.talk(function() return T.find(m.dest) end, {"Hand off"})
+T.step("B is paid, A is not", function()
+    T.eq("pay: B's credits +reward", T.credits(B) - b_c0, m.reward)
+    T.eq("pay: A's credits unchanged", T.credits(A) - a_c0, 0)
+    T.eq("pay: B's standing +reward", T.rep(m.origin_faction, B) - b_rep0, m.reward)
+    T.eq("pay: A's standing unchanged", T.rep(m.origin_faction, A) - a_rep0, 0)
+end)
+
+-- ── Each ship has its own cap ────────────────────────────────────────────────
+T.step("A fills its cap", function()
+    T.check("cap: A takes one", JOBS.accept(T.makeJob("delivery", HOME), true, A))
+    T.check("cap: A takes two", JOBS.accept(T.makeJob("delivery", HOME), true, A))
+    T.check("cap: A is refused a third", not JOBS.accept(T.makeJob("delivery", HOME), true, A))
+    T.eq("cap: A has two", #JOBS.activeFor(A), 2)
+    T.check("cap: B can still take work", JOBS.accept(T.makeJob("delivery", HOME), true, B))
+    T.eq("cap: B has one", #JOBS.activeFor(B), 1)
+end)
+
+-- ── Failure costs the owner ──────────────────────────────────────────────────
+T.step("B's job runs out", function()
+    m = JOBS.activeFor(B)[1].mission
+    note(m.origin_faction)
+    m._expires_at = T.now() - 1
+end)
+T.waitFor("fail: B's overdue job is dropped", function() return #JOBS.activeFor(B) == 0 end, 3)
+T.step("only B pays for it", function()
+    T.eq("fail: B's standing -reward", T.rep(m.origin_faction, B) - b_rep0, -m.reward)
+    T.eq("fail: A's standing unchanged", T.rep(m.origin_faction, A) - a_rep0, 0)
+    T.eq("fail: A's jobs untouched", #JOBS.activeFor(A), 2)
+    for _, e in ipairs(JOBS.activeFor(A)) do e.mission._expires_at = nil end   -- park A's two for the rest
+end)
+
+-- ── Only the owner advances a job: destroy ───────────────────────────────────
+local function target() return RT.find(m.target_cs) end
+T.step("B takes a destroy job", function()
+    m = T.makeJob("destroy", HOME, 2)
+    T.check("destroy: accepted for B", JOBS.accept(m, true, B))
+end)
+asA()
+T.step("A flies up to B's target", function() T.moveNear(target(), 6000) end)
+T.wait(2)
+T.step("the target ignores A", function()
+    T.check("destroy: another ship does not provoke the target", not m._attacking)
+    T.moveNear(target(), 60000)
+end)
+asB()
+T.step("B flies up", function() T.moveNear(target(), 6000) end)
+T.waitFor("destroy: the owner provokes it", function() return m._attacking end, 3)
+T.step("kill", function() note("Corsairs"); target():destroy() end)
+T.waitFor("destroy: kill noticed", function() return m._destroyed end, 3)
+T.step("the Corsairs blame B", function()
+    T.eq("destroy: B's Corsair standing -200", T.rep("Corsairs", B) - b_rep0, -200)
+    T.eq("destroy: A's Corsair standing unchanged", T.rep("Corsairs", A) - a_rep0, 0)
+end)
+asA()
+T.dock(HOME)
+T.talk(HOME, {})
+T.step("A cannot claim the kill", function() T.check("destroy: no claim for another ship", not T.hasReply("Submit ")) end)
+asB()
+T.dock(HOME)
+T.step("note", function() note("Independent") end)
+T.talk(HOME, {"Submit "})
+T.step("B claims it", function()
+    T.eq("destroy: B paid", T.credits(B) - b_c0, m.reward)
+    T.eq("destroy: A not paid", T.credits(A) - a_c0, 0)
+end)
+
+-- ── Boarding: only the owner boards ──────────────────────────────────────────
+T.step("B takes a boarding job and cripples the target", function()
+    m = T.makeJob("boarding", HOME, 2)
+    JOBS.accept(m, true, B)
+    T.moveNear(target(), 6000)
+end)
+T.waitFor("boarding: provoked", function() return m._attacking end, 3)
+T.step("cripple", function() target():setHull(target():getHullMax() * 0.2) end)
+T.waitFor("boarding: surrendered", function() return m._disabled end, 3)
+asA()
+T.dock(target)
+T.wait(1.5)
+T.step("A docking does not board", function() T.check("boarding: another ship cannot board for the owner", not m._boarded) end)
+T.undock()
+asB()
+T.dock(target)
+T.waitFor("boarding: the owner boards", function() return m._boarded end, 3)
+
+-- ── Salvage: another ship cannot take the cargo ──────────────────────────────
+local function tpod() for _, ce in ipairs(m2._cluster) do if ce.is_target then return ce end end end
+T.step("B takes a salvage job; the cargo is identified", function()
+    m2 = T.makeJob("salvage", HOME)
+    JOBS.accept(m2, true, B)
+    tpod().marker:setScannedByFaction("Independent", true)
+end)
+T.waitFor("salvage: container out", function() return RT.valid(m2.cargo_obj) end, 3)
+asA()
+T.step("A flies into B's container", function() T.moveTo(m2.cargo_obj:getPosition()) end)
+T.wait(3)
+T.step("it is still B's to collect", function()
+    T.check("salvage: another ship does not collect it", not m2._found)
+    T.check("salvage: the contract survives", T.activeEntry(m2) ~= nil)
+    T.moveTo(0, 30000)
+end)
+T.waitFor("salvage: the container is back once the other ship has moved off", function() return RT.valid(m2.cargo_obj) end, 3)
+asB()
+T.step("B flies into it", function() T.moveTo(m2.cargo_obj:getPosition()) end)
+T.waitFor("salvage: the owner collects it", function() return m2._found end, 8)
+
+-- ── Tailing: another ship cannot spook the target ────────────────────────────
+T.step("finish B's open jobs; B takes a tailing job", function()
+    for _, e in ipairs(JOBS.activeFor(B)) do JOBS.complete(e, B) end
+    m3 = T.makeJob("tailing", HOME, 1)
+    JOBS.accept(m3, true, B)
+    B:setPosition(0, 4000)
+end)
+asA()
+T.step("A blunders up to the target", function() T.moveNear(function() return RT.find(m3.target_cs) end, 8000) end)
+T.wait(2)
+T.step("B's contract survives", function()
+    T.check("tailing: another ship does not spook the target", T.activeEntry(m3) ~= nil)
+    T.moveTo(0, 30000)
+end)
+
+-- ── Escort: the convoy takes orders from its escort only ─────────────────────
+T.step("B drops the tailing job and takes an escort", function()
+    JOBS.complete(T.activeEntry(m3), B)
+    m = T.makeJob("escort", HOME)
+    JOBS.accept(m, true, B)
+end)
+T.talk(function() return RT.find(m.convoy_cs) end, {}, {name = "the convoy"})
+T.step("A gets no say", function()
+    T.check("escort: another ship cannot order the convoy", not T.hasReply("Proceed to"), table.concat(T.replies(), " | "))
+end)
+asB()
+T.talk(function() return RT.find(m.convoy_cs) end, {"Proceed to"}, {name = "the convoy"})
+T.step("B gives the order", function() T.check("escort: the owner releases the convoy", not m._convoy_waiting) end)
+T.closeComms()
+
+-- ── Story contracts go to the primary ship ───────────────────────────────────
+T.step("post a story contract", function()
+    for _, e in ipairs(JOBS.activeFor(B)) do JOBS.complete(e, B) end
+    JOBS.inject({category = "TEST_STORY", priority = 5, origin = HOME, record = JOBS.build("delivery", {
+        id = "test_story", origin = HOME, dest = "Calder's Reach", cargo = "test relics", reward = 111, story = true, brief = "A test."})})
+end)
+asB()
+T.dock(HOME)
+T.talk(HOME, {"Any work available?"})
+T.step("not for B", function()
+    T.check("story: not offered to another ship", not T.hasReply("Take: test relics"), table.concat(T.replies(), " | "))
+end)
+asA()
+T.dock(HOME)
+T.talk(HOME, {"Any work available?"})
+T.step("for A", function() T.check("story: offered to the primary ship", T.hasReply("Take: test relics"), table.concat(T.replies(), " | ")) end)
+
+-- ── Standing is per ship at the board ────────────────────────────────────────
+T.step("B makes a bad name for itself", function()
+    RT.addReputation("Independent", -450 - T.rep("Independent", B), "test", B)
+    T.check("rep: B below -400", T.rep("Independent", B) < -400, T.rep("Independent", B))
+    T.check("rep: A's standing is its own", T.rep("Independent", A) > -400, T.rep("Independent", A))
+end)
+asB()
+T.talk(HOME, {"Any work available?"})
+T.step("B is turned away", function()
+    T.check("rep: no work for B", T.msg():find("nothing for someone with your reputation", 1, true) ~= nil, T.msg())
+end)
+asA()
+T.talk(HOME, {"Any work available?"})
+T.step("A is not", function() T.check("rep: A still gets the board", T.msg():find("Work out of", 1, true) ~= nil, T.msg()) end)
+T.closeComms()
+
+-- ── A ship that is lost drops its jobs ───────────────────────────────────────
+local old_target
+T.step("B takes a destroy job, then B is lost", function()
+    RT.addReputation("Independent", 100 - T.rep("Independent", B), "test", B)
+    m = T.makeJob("destroy", HOME, 2)
+    JOBS.accept(m, true, B)
+    old_target = RT.find(m.target_cs)
+    a_rep0 = T.rep(m.origin_faction, A)
+    B:setCanBeDestroyed(true)
+    B:destroy()
+end)
+T.waitFor("lost ship: its job is dropped", function() return T.activeEntry(m) == nil end, 3)
+T.step("cleaned up", function()
+    T.check("lost ship: the job's target is removed", not RT.valid(old_target))
+    T.eq("lost ship: A's standing unchanged", T.rep(m.origin_faction, A) - a_rep0, 0)
+    T.eq("lost ship: A's jobs untouched", #JOBS.activeFor(A), 2)
+end)

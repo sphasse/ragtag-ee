@@ -444,11 +444,11 @@ local function _surrenderHail(m)
     local function send()
         local tgt = RT.find(cs)
         if not RT.valid(tgt) or m._boarded then return true end
-        return RT.hail(tgt, line, cs)
+        return JOBS.hail(m, tgt, line)
     end
     if send() then return end
     RT.after(15, function()
-        if not send() then RT.shipLog("[" .. cs .. "] " .. line, "#FFCC80") end
+        if not send() then JOBS.log(m, "[" .. cs .. "] " .. line, "#FFCC80") end
     end, "boarding_surrender_retry_" .. tostring(cs))
 end
 
@@ -459,17 +459,17 @@ function M.update(m, entry, ctx)
 
     if not m._disabled then
         if not RT.valid(target) then
-            RT.shipLog("[Boarding] Target destroyed before boarding -- contract lost.", "#FF8080")
+            JOBS.log(m, "[Boarding] Target destroyed before boarding -- contract lost.", "#FF8080")
             return "remove"
         end
 
         if not m._attacking then
-            for _, p in ipairs(RT.players) do
+            for _, p in ipairs(JOBS.ships(m)) do
                 if RT.valid(p) and RT.dist(target, p) < 8000 then
                     target:setFaction("Corsairs")
                     target:orderAttack(p)
                     m._attacking = true
-                    RT.shipLog("[Target] " .. m.target_cs .. " detected our approach and is engaging!", "#FF8080")
+                    JOBS.log(m, "[Target] " .. m.target_cs .. " detected our approach and is engaging!", "#FF8080")
                     break
                 end
             end
@@ -479,7 +479,7 @@ function M.update(m, entry, ctx)
         local hull_pct  = target:getHull() / target:getHullMax()
         if impulse_h < 0.3 or hull_pct < 0.25 then
             m._disabled = true
-            RT.addReputation("Corsairs", -100, "boarded " .. m.target_cs)
+            JOBS.rep(m, "Corsairs", -100, "boarded " .. m.target_cs)
             target:setCanBeDestroyed(false)
             target:orderIdle()
             -- Switch faction away from Corsairs so the player's dock button is not blocked by enemy-faction check.
@@ -490,7 +490,7 @@ function M.update(m, entry, ctx)
                 addCommsReply("Understood. Stand by.", function() setCommsMessage("Channel open.") end)
             end)
             m.obj = "Dock with " .. m.target_cs
-            RT.shipLog("[Target] " .. m.target_cs .. " disabled. Close to within 1U and request docking to board.", "#FFCC80")
+            JOBS.log(m, "[Target] " .. m.target_cs .. " disabled. Close to within 1U and request docking to board.", "#FFCC80")
             JOBS.updateObj()
             RT.after(3, function() _surrenderHail(m) end, "boarding_surrender_" .. tostring(cs))
         end
@@ -498,11 +498,11 @@ function M.update(m, entry, ctx)
 
     -- Phase 2: watch for the player to dock with the disabled target.
     if m._disabled and not m._boarded then
-        for _, p in ipairs(RT.players) do
+        for _, p in ipairs(JOBS.ships(m)) do
             if RT.valid(p) and p:isDocked(target) then
                 m._boarded = true
                 m.obj = "Return " .. m.cargo .. " to " .. m.origin
-                RT.shipLog("[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
+                JOBS.log(m, "[Boarding] " .. m.cargo .. " secured. Return to " .. m.origin .. ".", "#80FF80")
                 JOBS.updateObj()
                 break
             end

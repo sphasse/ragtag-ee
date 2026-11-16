@@ -19,7 +19,8 @@ Contributors add **universe extensions** and **scenarios** independently.
     their saved flags in `M.flags` / `M.reads` (`check.py` rejects undeclared flag names).
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
-- `tests/arcs/` — one regression test per story arc plus `_harness.lua` (run by `tools/game_tests.py`; never installed into a played game)
+- `tests/` — in-game regression tests run by `tools/game_tests.py` (never installed into a played game): `_harness.lua`,
+  `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua` and `jobs/multiship.lua`
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
 - `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse) and `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements), both loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
@@ -29,9 +30,9 @@ Contributors add **universe extensions** and **scenarios** independently.
 - `python3 tools/install.py --ee <EmptyEpsilon dir> [--link]` — install into a game
 - `EE_DIR=<EmptyEpsilon checkout with _build/EmptyEpsilon> tools/ci_headless.sh` — headless run + smoke test (Linux).
   Without `EE_DIR` it builds EmptyEpsilon at the pinned commits into `.ee-build/` (~20 min first time).
-- `python3 tools/game_tests.py --ee <EmptyEpsilon dir> [arc ...] [-v]` — story-arc regression tests
-  (`tests/arcs/<arc>.lua`): each arc is played headless through its real comms and GM states (~1 min, in parallel).
-  Run after any change to an arc, the missions engine, `core.lua`, proximity or the Science DB.
+- `python3 tools/game_tests.py --ee <EmptyEpsilon dir> [name | arcs | jobs ...] [-v]` — in-game regression tests:
+  each story arc and each job type is played headless through its real comms (~1 min, in parallel).
+  Run after any change to an arc, a job, the missions or jobs engine, `core.lua`, proximity or the Science DB.
 - `cd director && python3 main.py --mock --mock-llm` — director + GM console without game or model
 - Requires `lua5.4`/`luac5.4` for the tools.
 
@@ -60,7 +61,8 @@ Contributors add **universe extensions** and **scenarios** independently.
 
 ## Definition of done
 `python3 tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error`, the smoke test passes
-and `tools/game_tests.py` passes. A change to an arc's behaviour comes with a change to its `tests/arcs/<arc>.lua`.
+and `tools/game_tests.py` passes. A change to an arc's or job's behaviour comes with a change to its test
+(`tests/arcs/<arc>.lua`, `tests/jobs/<type>.lua`).
 Say plainly in PR descriptions what was and wasn't tested.
 
 ---
@@ -83,6 +85,15 @@ Say plainly in PR descriptions what was and wasn't tested.
 
 **Example**: A boarding mission (1.8x) 30U away in danger level 2 space pays:
 `base * 1.8 * (1 + 20% distance) * (1 + 30% danger) ≈ 2.8x base reward`
+
+### Several ships
+
+The board works for more than one player ship. A job belongs to the ship that took it: only that ship advances,
+completes and is paid for it, and gains or loses standing; each ship has its own 2-job cap, credits and standing.
+Story contracts and story arcs are for the primary ship only. Job modules use `JOBS.owner/ships/log/hail/rep`, never
+`RT.players` / `RT.shipLog`. EE keeps reputation points (our credits) per faction, so only `core.lua` touches them:
+use `RT.credits(ship)` / `RT.addCredits(amount, reason, ship)`. Details: `jobs_api.md`, "Ownership".
+Patrols and shakedowns (`PROX`) still judge every ship by the primary ship's standing.
 
 ### Mission Generation Flow
 

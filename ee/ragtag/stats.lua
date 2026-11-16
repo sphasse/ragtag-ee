@@ -103,7 +103,7 @@ local function _pollCredits()
     for _, p in ipairs(RT.players or {}) do
         if RT.valid(p) then
             local cs = p:getCallSign()
-            local bal = math.floor(p:getReputationPoints())
+            local bal = RT.credits(p)
             local last = STATS._bal[cs]
             if last ~= nil then
                 if bal > last then s.credits_earned = s.credits_earned + (bal - last)

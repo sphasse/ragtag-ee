@@ -236,6 +236,34 @@ local function _cleanCluster(m)
     end
 end
 
+-- The cargo container. Any player ship that flies into a SupplyDrop takes it, so the callback
+-- sorts out who it was: the job's owner collects the cargo; any other ship just knocks it loose
+-- and M.update puts a new container back once that ship has moved off.
+local function _cargoDrop(m, x, y)
+    local drop = SupplyDrop():setFaction("Independent"):setPosition(x, y)
+    RT.register(drop)
+    local cargo_name = m.cargo:gsub("^%l", string.upper)
+    drop:setDescriptions("Salvage Container", m.cargo):setCallSign(cargo_name)
+    drop:onPickUp(function(self, player)
+        if player ~= m.ship then
+            m._cargo_adrift = {x = x, y = y, by = RT.playerShip(player)}
+            return
+        end
+        m._found = true
+        m.obj    = "Return " .. m.cargo .. " to " .. m.origin
+        JOBS.log(m, "[Salvage] Cargo collected: " .. m.cargo
+            .. ". Return to " .. m.origin .. " for payment.", "#80FF80")
+        JOBS.updateObj()
+        if m.on_found then
+            local okf, errf = pcall(m.on_found, m)
+            if not okf then log("[JOBS] on_found error: " .. tostring(errf)) end
+        end
+    end)
+    m.cargo_obj = drop
+    m._cargo_adrift = nil
+    return drop
+end
+
 local M = {}
 M.type      = "salvage"
 M.weight    = 7
@@ -378,9 +406,21 @@ function M.acceptLog(m)
 end
 
 function M.update(m, entry, ctx)
+    -- Another ship ran into the container: put it back once that ship is 1.5U clear.
+    if m._cargo_adrift and not m._found then
+        local a = m._cargo_adrift
+        local clear = true
+        if RT.valid(a.by) then
+            local bx, by = a.by:getPosition()
+            clear = (bx - a.x) ^ 2 + (by - a.y) ^ 2 > 1500 * 1500
+        end
+        if clear then _cargoDrop(m, a.x, a.y) end
+        return nil
+    end
+
     -- Cargo pod destroyed before pickup → mission lost.
     if m.cargo_obj and not RT.valid(m.cargo_obj) and not m._found then
-        RT.shipLog("[Salvage] Cargo destroyed — contract lost.", "#FF8080")
+        JOBS.log(m, "[Salvage] Cargo destroyed — contract lost.", "#FF8080")
         _cleanCluster(m)
         return "remove"
     end
@@ -392,41 +432,22 @@ function M.update(m, entry, ctx)
     for _, ce in ipairs(m._cluster) do
         if not ce._materialized and RT.valid(ce.marker) then
             local scanned = false
-            for _, p in ipairs(RT.players) do
+            for _, p in ipairs(JOBS.ships(m)) do
                 if ce.marker:isFullyScannedBy(p) then scanned = true; break end
             end
             if scanned then
                 local mx, my = ce.marker:getPosition()
                 ce.marker:setCanBeDestroyed(true); ce.marker:destroy()
                 ce._materialized = true
-                local drop = SupplyDrop():setFaction("Independent"):setPosition(mx, my)
-                RT.register(drop)
                 if ce.is_target then
-                    local cargo_name = m.cargo:gsub("^%l", string.upper)
-                    drop:setDescriptions("Salvage Container", m.cargo):setCallSign(cargo_name)
-                    drop:onPickUp(function(self, player)
-                        for _, ae in ipairs(JOBS._active) do
-                            local mis = ae.mission
-                            if mis.type == "salvage" and mis.cargo_obj == self then
-                                mis._found = true
-                                mis.obj    = "Return " .. mis.cargo .. " to " .. mis.origin
-                                RT.shipLog("[Salvage] Cargo collected: " .. mis.cargo
-                                    .. ". Return to " .. mis.origin .. " for payment.", "#80FF80")
-                                JOBS.updateObj()
-                                if mis.on_found then
-                                    local okf, errf = pcall(mis.on_found, mis)
-                                    if not okf then log("[JOBS] on_found error: " .. tostring(errf)) end
-                                end
-                                break
-                            end
-                        end
-                    end)
-                    m.cargo_obj = drop
+                    _cargoDrop(m, mx, my)
                 else
+                    local drop = SupplyDrop():setFaction("Independent"):setPosition(mx, my)
+                    RT.register(drop)
                     local label = ce.cargo or "Salvage Debris"
                     drop:setDescriptions("Standard Salvage", label):setCallSign(label)
                     drop:onPickUp(function(self, player)
-                        player:setReputationPoints(player:getReputationPoints() + math.random(25, 50))
+                        RT.addCredits(math.random(25, 50), "salvage", player)
                     end)
                 end
             end
@@ -437,9 +458,9 @@ end
 
 function M.expire(m)
     _cleanCluster(m)
-    RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
+    JOBS.log(m, "[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
     if m.origin_faction and not m.story then
-        RT.addReputation(m.origin_faction, -2 * m.reward, "failed: " .. m.short)
+        JOBS.rep(m, m.origin_faction, -2 * m.reward, "failed: " .. m.short)
     end
     return true  -- suppress default engine expiry handling
 end

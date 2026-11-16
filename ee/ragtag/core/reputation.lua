@@ -41,51 +41,63 @@ local _REP_THRESHOLDS = {
     },
 }
 
--- Modify reputation with a faction. Unbounded.
-function RT.addReputation(faction, amount, reason)
-    if not RT.campaign or not RT.campaign.reputation then return end
-    if not RT.campaign.reputation[faction] then
-        RT.campaign.reputation[faction] = 0
+-- Standing is kept per ship. The primary ship's standing IS the campaign's (saved, used by
+-- story arcs and patrols); every other player ship has its own table for the session, starting
+-- at zero. Functions take an optional `ship`; without one they mean the primary ship.
+RT._ship_rep = {}   -- player ship (the object in RT.players) -> {faction -> standing}
+
+local function _repTable(ship)
+    local p = RT.playerShip(ship)
+    if p == nil or p == RT.player then
+        return RT.campaign and RT.campaign.reputation, RT.player
     end
+    RT._ship_rep[p] = RT._ship_rep[p] or {}
+    return RT._ship_rep[p], p
+end
 
-    local old_rep = RT.campaign.reputation[faction]
+-- Modify a ship's reputation with a faction (default: the primary ship). Unbounded.
+function RT.addReputation(faction, amount, reason, ship)
+    local rtbl, who = _repTable(ship)
+    if not rtbl then return end
+    local old_rep = rtbl[faction] or 0
     local new_rep = old_rep + amount
-    RT.campaign.reputation[faction] = new_rep
+    rtbl[faction] = new_rep
 
-    if amount ~= 0 then
+    if amount ~= 0 and RT.valid(who) then
+        local function say(msg, color) who:addToShipLog(msg, color or "#FFFFFF") end
         -- Line 1: what changed and why
         local sign = amount > 0 and "+" or ""
         local why  = reason and (" — " .. reason) or ""
-        RT.shipLog(string.format("%s reputation %s%d%s", faction, sign, amount, why),
-                   amount > 0 and "#80C0FF" or "#FF8080")
+        say(string.format("%s reputation %s%d%s", faction, sign, amount, why),
+            amount > 0 and "#80C0FF" or "#FF8080")
 
         -- Line 2: current standings for the three main factions
-        local rtbl = RT.campaign.reputation
         local function _s(f)
             local r = rtbl[f] or 0
             return f .. ": " .. (r >= 0 and "+" or "") .. r
         end
-        RT.shipLog("Current reputation: " .. _s("Independent") .. " | " .. _s("Concord") .. " | " .. _s("Corsairs"), "#888888")
+        say("Current reputation: " .. _s("Independent") .. " | " .. _s("Concord") .. " | " .. _s("Corsairs"), "#888888")
 
         -- Line 3 (optional): threshold-crossing notification
         local thresholds = _REP_THRESHOLDS[faction] or _REP_THRESHOLDS._default
         for _, t in ipairs(thresholds) do
             local val, msg_up, msg_down = t[1], t[2], t[3]
             if old_rep < val and new_rep >= val then
-                RT.shipLog("[Rep] " .. msg_up, "#80FF80")
+                say("[Rep] " .. msg_up, "#80FF80")
             elseif old_rep >= val and new_rep < val then
-                RT.shipLog("[Rep] " .. msg_down, "#FF8040")
+                say("[Rep] " .. msg_down, "#FF8040")
             end
         end
     end
 
-    RT.saveCampaign()
+    if who == RT.player then RT.saveCampaign() end
 end
 
--- Get current reputation with a faction
-function RT.getReputation(faction)
-    if not RT.campaign or not RT.campaign.reputation then return 0 end
-    return RT.campaign.reputation[faction] or 0
+-- A ship's current reputation with a faction (default: the primary ship).
+function RT.getReputation(faction, ship)
+    local rtbl = _repTable(ship)
+    if not rtbl then return 0 end
+    return rtbl[faction] or 0
 end
 
 -- Destruction callbacks. EE's onDestruction holds a single callback per entity,

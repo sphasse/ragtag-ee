@@ -114,6 +114,16 @@ function RT.anyPlayerAlive()
     return false
 end
 
+-- The entry of RT.players equal to `ship` (script calls can hand out different Lua objects for
+-- the same ship, so per-ship tables are keyed by the one in RT.players). nil for anything else.
+function RT.playerShip(ship)
+    if ship == nil then return nil end
+    for _, p in ipairs(RT.players) do
+        if p == ship then return p end
+    end
+    return nil
+end
+
 function RT.isPlayer(entity)
     if not RT.valid(entity) then return false end
     for _, p in ipairs(RT.players) do
@@ -305,7 +315,7 @@ function RT.saveCampaign()
         if RT.valid(p) then
             local entry = RT.campaign.extra_ships[i-1] or {}
             entry.name    = p:getCallSign()
-            entry.credits = math.floor(p:getReputationPoints())
+            entry.credits = RT.credits(p)
             RT.campaign.extra_ships[i-1] = entry
         end
     end
@@ -400,22 +410,47 @@ end
 -- Credits (reputation points on the player ship)
 --------------------------------------------------------------------------------
 
--- Returns the current credit balance (reputation points) of a specific ship.
--- If no ship provided, returns the first player ship's balance (backward compat).
-function RT.credits(ship)
-    ship = ship or RT.player
-    if not RT.valid(ship) then return 0 end
-    return math.floor(ship:getReputationPoints())
+-- Credits are kept per ship. EmptyEpsilon stores "reputation points" per FACTION, not per ship,
+-- so every Independent player ship reads and writes the same number. That number is the PRIMARY
+-- ship's balance (saved with the campaign, shown on its Relay screen). Every other player ship
+-- has a balance kept here, shown on its Relay screen as a "Credits: N" line (the stock
+-- reputation readout on that ship still shows the primary ship's balance).
+RT._ship_credits = {}   -- player ship (the object in RT.players) -> balance; non-primary ships only
+
+local function _showCredits(p)
+    pcall(function() p:addCustomInfo("relay", "rt_credits", "Credits: " .. (RT._ship_credits[p] or 0), 0) end)
 end
 
--- Add credits to a specific ship. If no ship provided, affects only the first player ship.
--- Ships maintain independent credit pools - no automatic syncing.
+-- A ship's credit balance (default: the primary ship).
+function RT.credits(ship)
+    local p = RT.playerShip(ship)
+    if p == nil or p == RT.player then
+        if not RT.valid(RT.player) then return 0 end
+        return math.floor(RT.player:getReputationPoints())
+    end
+    return RT._ship_credits[p] or 0
+end
+
+-- Set a non-primary ship's balance (a ship joining mid-session, a restored save).
+function RT.setShipCredits(ship, amount)
+    local p = RT.playerShip(ship)
+    if p == nil or p == RT.player then return end
+    RT._ship_credits[p] = math.max(0, math.floor(amount or 0))
+    _showCredits(p)
+end
+
+-- Add (or with a negative amount, take) credits. Default: the primary ship. Balances never go
+-- below zero.
 function RT.addCredits(amount, reason, ship)
-    ship = ship or RT.player
+    ship = RT.playerShip(ship) or RT.player
     if not RT.valid(ship) then return end
     amount = math.floor(amount)
     local new_total
-    if amount >= 0 then
+    if ship ~= RT.player then
+        new_total = math.max(0, (RT._ship_credits[ship] or 0) + amount)
+        RT._ship_credits[ship] = new_total
+        _showCredits(ship)
+    elseif amount >= 0 then
         ship:addReputationPoints(amount)
         new_total = math.floor(ship:getReputationPoints())
     else
@@ -437,8 +472,8 @@ end
 
 -- opts (optional 4th arg): {callsign, template, faction}
 -- First call creates the primary ship (RT.player alias). Subsequent calls add
--- a second crew ship. Extra ships get their own callsign (opts.callsign or
--- primary_name.."-2", "-3", …) and share the campaign's credit balance.
+-- another ship. Extra ships get their own callsign (opts.callsign or
+-- primary_name.."-2", "-3", …) and their own credits (opts.credits, default 0) and standing.
 function RT.spawnPlayer(x, y, heading, opts)
     opts = opts or {}
     local c = RT.campaign or RT.loadCampaign()
@@ -462,7 +497,11 @@ function RT.spawnPlayer(x, y, heading, opts)
         p:setShields(cm_f * cond.front_shield_pct, cm_r * cond.rear_shield_pct)
         p:setEnergy(p:getMaxEnergy() * cond.energy_pct)
     end
-    p:setReputationPoints(opts.credits ~= nil and opts.credits or c.credits or 0)
+    -- The engine's credit number belongs to the primary ship (see "Credits"); never let another
+    -- ship overwrite it.
+    if is_primary then
+        p:setReputationPoints(opts.credits ~= nil and opts.credits or c.credits or 0)
+    end
     -- onNewPlayerShip fires during setTemplate above and may have already registered
     -- the ship (e.g. to preserve a non-Independent faction). Guard against duplicates.
     local already = false
@@ -471,6 +510,7 @@ function RT.spawnPlayer(x, y, heading, opts)
     end
     if not already then table.insert(RT.players, p) end
     RT.player = RT.players[1]   -- backward-compat alias always points to first ship
+    if not is_primary then RT.setShipCredits(p, opts.credits or 0) end
     RT.named[cs] = p
     return p
 end
@@ -563,8 +603,9 @@ function RT.update(delta)
                 for _, id in ipairs(RT.campaign.upgrades) do
                     RT.applyUpgrade(ship, id)
                 end
-                -- New ships start with 0 credits - they earn their own way
-                ship:setReputationPoints(0)
+                -- New ships start with 0 credits of their own (RT.credits keeps them per ship;
+                -- the engine's number is the primary ship's and must not be reset here).
+                if ship ~= RT.player then RT.setShipCredits(ship, 0) end
             end
             log("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ", 0 credits)")
         end

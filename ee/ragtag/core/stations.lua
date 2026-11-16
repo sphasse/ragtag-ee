@@ -30,7 +30,7 @@ end
 -- Returns a one-line reputation-flavored aside appended to the station greeting,
 -- or nil when standing is neutral. Only Concord and Independent have voiced drift.
 local function _repDrift(source, faction)
-    local rep = RT.getReputation(faction)
+    local rep = RT.getReputation(faction, source)   -- the hailing ship's own standing
     local cs  = source:getCallSign()
     if faction == "Concord" then
         if     rep >  1000 then return '"Your record here is noted, ' .. cs .. '. We appreciate crews that keep their word."'

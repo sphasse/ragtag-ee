@@ -451,13 +451,13 @@ function M.update(m, entry, ctx)
 
     if not m._meeting then
         if not RT.valid(tgt) then
-            RT.shipLog("[Tailing] Target lost -- contract failed.", "#FF8080")
+            JOBS.log(m, "[Tailing] Target lost -- contract failed.", "#FF8080")
             return "remove"
         end
 
         -- Detection en route: player or probe within 10U spooks the target.
         local spook = nil
-        for _, p in ipairs(RT.players) do
+        for _, p in ipairs(JOBS.ships(m)) do
             if RT.valid(p) and RT.dist(p, tgt) < 10000 then
                 spook = "target spotted the ship"; break
             end
@@ -471,7 +471,7 @@ function M.update(m, entry, ctx)
             end
         end
         if spook then
-            RT.shipLog("[Tailing] Contract failed — looks like they got spooked. (" .. spook .. ")", "#FF8080")
+            JOBS.log(m, "[Tailing] Contract failed — looks like they got spooked. (" .. spook .. ")", "#FF8080")
             _disperse(m)
             return "remove"
         end
@@ -491,7 +491,7 @@ function M.update(m, entry, ctx)
             tgt:orderIdle()
             rdv:orderIdle()
             local mx, my = tgt:getPosition()
-            RT.shipLog("[Tailing] Meeting in progress at " .. JOBS.gridRef(mx, my)
+            JOBS.log(m, "[Tailing] Meeting in progress at " .. JOBS.gridRef(mx, my)
                 .. ". Science: scan both ships. 90 seconds.", "#FFCC80")
             m.obj = "Scan both ships at meeting"
             JOBS.updateObj()
@@ -499,7 +499,7 @@ function M.update(m, entry, ctx)
 
         -- Rendezvous deadline: 120s grace past T.
         if ctx.now > m._meet_at + 120 and not m._meeting then
-            RT.shipLog("[Tailing] Ships completed their rendezvous unobserved. Contract failed.", "#FF8080")
+            JOBS.log(m, "[Tailing] Ships completed their rendezvous unobserved. Contract failed.", "#FF8080")
             _disperse(m)
             return "remove"
         end
@@ -507,7 +507,7 @@ function M.update(m, entry, ctx)
     else
         -- Meeting in progress: watch for detection.
         local spook = nil
-        for _, p in ipairs(RT.players) do
+        for _, p in ipairs(JOBS.ships(m)) do
             if RT.valid(p) and RT.valid(tgt) and RT.dist(p, tgt) < 10000 then
                 spook = "ship got too close during the meeting"; break
             end
@@ -521,40 +521,40 @@ function M.update(m, entry, ctx)
             end
         end
         if spook then
-            RT.shipLog("[Tailing] Contract failed — looks like they got spooked. (" .. spook .. ")", "#FF8080")
+            JOBS.log(m, "[Tailing] Contract failed — looks like they got spooked. (" .. spook .. ")", "#FF8080")
             _disperse(m)
             return "remove"
         end
 
         -- 90-second scan window.
         if ctx.now - m._meeting_at > 90 then
-            RT.shipLog("[Tailing] Meeting ended — not scanned in time. Contract lost.", "#FF8080")
+            JOBS.log(m, "[Tailing] Meeting ended — not scanned in time. Contract lost.", "#FF8080")
             _disperse(m)
             return "remove"
         end
 
         if RT.valid(tgt) and RT.valid(rdv) then
-            for _, p in ipairs(RT.players) do
+            for _, p in ipairs(JOBS.ships(m)) do
                 if RT.valid(p) then
                     if not m._tgt_scanned then
                         local ok, s = pcall(function() return tgt:isScannedBy(p) end)
                         if ok and s then
                             m._tgt_scanned = true
-                            RT.shipLog("[Tailing] " .. m.target_cs .. " identified. Scan the contact.", "#FFCC80")
+                            JOBS.log(m, "[Tailing] " .. m.target_cs .. " identified. Scan the contact.", "#FFCC80")
                         end
                     end
                     if not m._rdv_scanned then
                         local ok, s = pcall(function() return rdv:isScannedBy(p) end)
                         if ok and s then
                             m._rdv_scanned = true
-                            RT.shipLog("[Tailing] Contact ship " .. m.rendezvous_cs .. " identified.", "#FFCC80")
+                            JOBS.log(m, "[Tailing] Contact ship " .. m.rendezvous_cs .. " identified.", "#FFCC80")
                         end
                     end
                     if m._tgt_scanned and m._rdv_scanned then
                         m._scanned = true
                         m.obj = "Return intel to " .. m.origin
                         local cx, cy = tgt:getPosition()
-                        RT.shipLog("[Tailing] Both ships identified at " .. JOBS.gridRef(cx, cy)
+                        JOBS.log(m, "[Tailing] Both ships identified at " .. JOBS.gridRef(cx, cy)
                             .. ". Return to " .. m.origin .. ".", "#80FF80")
                         JOBS.updateObj()
                         _disperse(m)
@@ -572,9 +572,9 @@ function M.expire(m)
     local rdv = RT.find(m.rendezvous_cs or "")
     if RT.valid(tgt) then tgt:destroy() end
     if RT.valid(rdv) then rdv:destroy() end
-    RT.shipLog("[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
+    JOBS.log(m, "[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")
     if m.origin_faction then
-        RT.addReputation(m.origin_faction, -2 * m.reward, "failed: " .. m.short)
+        JOBS.rep(m, m.origin_faction, -2 * m.reward, "failed: " .. m.short)
     end
     return true  -- suppress engine default
 end

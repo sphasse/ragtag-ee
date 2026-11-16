@@ -132,6 +132,41 @@ JOBS.inject(def) / JOBS.removeCategory(cat) / JOBS.build(type, opts) / JOBS.hasV
                              -- story-arc injection, see "Injected jobs" below
 ```
 
+### Ownership: several ships on one board
+
+More than one player ship can work the board. **A job belongs to the ship that took it**
+(`m.ship`, set by `JOBS.accept(m, skip_log, ship)`; `entry.ship` in `JOBS._active`):
+
+- only the owner advances the job (its position, docking and scans are the ones that count),
+  completes it, is paid, gets the job's log lines and hails, and gains or loses standing;
+- other player ships can neither help nor sabotage: flying up to another ship's target does
+  not provoke or spook it, docking with it does not board it, and a salvage container another
+  ship runs into is put back once that ship has moved off;
+- each ship has its own cap (`JOBS.config.max_active`), its own Relay job panel, its own
+  credits and its own standing; the board is shared, so a job one ship takes is gone for the rest;
+- story contracts (`story = true`, priority-5 injected, director-pushed) are offered to the
+  primary ship only, because story arcs belong to that ship;
+- a job whose ship is destroyed is dropped and cleaned up, at no cost to anyone.
+
+In a job module, never use `RT.players`, `RT.forEachPlayer`, `RT.shipLog`, `RT.hail` or
+`RT.addReputation` (`check.py` rejects them). Use:
+
+```lua
+JOBS.owner(m)                 -- the owning ship while it is alive, else nil
+JOBS.ships(m)                 -- {owner} or {}: for _, p in ipairs(JOBS.ships(m)) do ... end
+JOBS.log(m, text, color)      -- ship log line for the owner
+JOBS.hail(m, from, text)      -- hail the owner from an entity; false when comms are busy
+JOBS.rep(m, faction, amount, reason)   -- change the owner's standing
+JOBS.activeFor(ship)          -- that ship's active entries
+```
+
+A comms function on something the job spawned (a convoy taking orders) checks
+`if src ~= m.ship then ... return end` before offering choices.
+
+Two engine facts to know. **Scans are per faction**: every player ship is Independent, so a scan
+made by one ship counts for all of them (`isScannedBy(owner)` is true after another ship's scan).
+**Reputation points are per faction too**: see "Credits" under the reputation section.
+
 ### Injected jobs (story arcs seed the board)
 
 Arcs add jobs to the board with `JOBS.inject()` and remove them with
@@ -242,7 +277,16 @@ Danger levels: 0=safe, 1=risky, 2=dangerous, 3=deadly, 4=extremely deadly.
 
 ## Reputation system
 
-`RT.addReputation(faction, amount, reason)` — unbounded (no clamp). Persisted to campaign save.
+`RT.addReputation(faction, amount, reason, ship)` / `RT.getReputation(faction, ship)` — unbounded
+(no clamp). Standing is per ship: without `ship` (or with the primary ship) it is the campaign's
+standing, persisted to the save and used by story arcs and patrols; every other player ship has
+its own table for the session, starting at 0. Job modules go through `JOBS.rep(m, ...)`.
+
+**Credits** are per ship as well: `RT.credits(ship)`, `RT.addCredits(amount, reason, ship)`.
+EmptyEpsilon stores reputation points per *faction*, so `ship:get/set/addReputationPoints` moves
+one number shared by every Independent player ship. That number is the primary ship's balance;
+other ships' balances are kept by `RT` and shown on their Relay screen as a `Credits: N` line.
+Never call the `ReputationPoints` methods outside `core.lua` (`check.py` rejects it).
 
 **Standard amounts:**
 - Job completed: `+mission.reward` (full credit value) with origin faction
