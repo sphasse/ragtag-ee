@@ -13,6 +13,8 @@ Contributors add **universe extensions** and **scenarios** independently.
   - `director.lua` (DIR: mailbox to the AI director, events, beats, whitelisted actions)
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs), one file per arc.
     Core never depends on this folder; shared arc code goes in `_helpers.lua`, not `core.lua`.
+    Arcs belong to the primary ship only (`ARC.player()`; other player ships just work the job board), and declare
+    their saved flags in `M.flags` / `M.reads` (`check.py` rejects undeclared flag names).
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tests/arcs/` — one regression test per story arc plus `_harness.lua` (run by `tools/arc_tests.py`; never installed into a played game)

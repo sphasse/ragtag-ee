@@ -105,7 +105,7 @@ local function _unlockLedger(quiet)
     if not L or L.unlocked then return end
     SCIDB.unlock("ledger_findings")
     if not quiet then
-        RT.shipLog("[Science] The Containment Ledger indexed. Database updated: Lore, The Containment Ledger.", "#00CCAA")
+        ARC.log("[Science] The Containment Ledger indexed. Database updated: Lore, The Containment Ledger.", "#00CCAA")
     end
 end
 
@@ -124,7 +124,8 @@ local function _spawnStation(st)
     wp:setCanBeDestroyed(false)
     wp:orderIdle()
     wp:setRotationMaxSpeed(0):setSpin(6)
-    wp:setCommsScript(""):setCommsFunction(function(src, tgt) _stationComms(src, tgt) end)
+    wp:setCommsScript(""):setCommsFunction(ARC.comms(function(src, tgt) _stationComms(src, tgt) end,
+        "[Rezkov's station] No response on this frequency."))
     RT.register(wp)
     st.station = wp
 end
@@ -150,7 +151,7 @@ local function _onFragment(n)
     local st = MISSIONS._state["ledger"]
     if st then st.frags[n] = nil end
     local got = _fragCount()
-    RT.shipLog(string.format("[Ledger Arc] AI fragment %d recovered (%d/3).", n, got), "#80FF80")
+    ARC.log(string.format("[Ledger Arc] AI fragment %d recovered (%d/3).", n, got), "#80FF80")
     if got >= 3 then
         if MISSIONS._status["ledger"] == "active" and MISSIONS._cur_phase["ledger"] == "relay_run" then
             MISSIONS.phase("ledger", "carry")
@@ -202,7 +203,7 @@ local function _aiVoice()
 end
 
 local function _setDrainUI(on)
-    RT.forEachPlayer(function(p)
+    ARC.withPlayer(function(p)
         if not RT.valid(p) then return end
         if on then
             p:addCustomInfo("engineering", "ledger_drain", string.format("Unknown process: -%d energy/s", _DRAIN_PER_S), 5)
@@ -231,7 +232,7 @@ local _FLEET_HAIL = '"This is the Concord Audit Service vessel Double Entry. Our
 local function _surrender(st)
     RT.flag("ledger_lost_reason", "surrender")
     RT.flag("ledger_arc_done", "lost")
-    RT.shipLog("[Ledger Arc] Data transmitted to the Concord Audit Service. The AI is gone.", "#FF8080")
+    ARC.log("[Ledger Arc] Data transmitted to the Concord Audit Service. The AI is gone.", "#FF8080")
     for _, s in ipairs(st.fleet or {}) do
         if RT.valid(s) then s:setFaction("Concord"):orderFlyTowards(-133000, -75000) end
     end
@@ -262,13 +263,13 @@ local function _spawnFleet(st)
         local s = CpuShip():setTemplate(f.tmpl):setFaction("Concord Hostile")
         s:setCallSign(f.cs):setPosition(px + math.cos(a) * _FLEET_DIST, py + math.sin(a) * _FLEET_DIST)
         s:setWarpDrive(true)
-        s:setCommsScript(""):setCommsFunction(_fleetComms)
+        s:setCommsScript(""):setCommsFunction(ARC.comms(_fleetComms, '"Concord Audit Service. This matter does not concern you. Stand clear."'))
         s:orderAttack(p)
         st.fleet[#st.fleet + 1] = s
     end
     RT.setObjective("Deliver the AI to Rezkov", true, "ledger")
-    if not RT.hail(st.fleet[1], _FLEET_HAIL, "CAS Double Entry") then
-        RT.shipLog("[CAS Double Entry] " .. _FLEET_HAIL, "#FF6666")
+    if not ARC.hail(st.fleet[1], _FLEET_HAIL, "CAS Double Entry") then
+        ARC.log("[CAS Double Entry] " .. _FLEET_HAIL, "#FF6666")
     end
 end
 
@@ -296,7 +297,7 @@ local function _tickFleet(st)
     st.fleet = keep
     if #keep == 0 and not st.fleet_gone then
         st.fleet_gone = true
-        RT.shipLog("[Science] No audit ships on our scopes. They've lost us, or they're done.", "#00CCAA")
+        ARC.log("[Science] No audit ships on our scopes. They've lost us, or they're done.", "#00CCAA")
     end
 end
 
@@ -305,7 +306,7 @@ end
 local function _tickDrain(st, delta)
     if not st.drain_on then return end
     local zero = false
-    RT.forEachPlayer(function(p)
+    ARC.withPlayer(function(p)
         if not RT.valid(p) then return end
         -- Docked ships recharge from the station; the AI still draws, but the dock keeps up.
         local e = math.max(0, p:getEnergy() - _DRAIN_PER_S * delta)
@@ -314,10 +315,10 @@ local function _tickDrain(st, delta)
         local frac = mx > 0 and e / mx or 1
         if frac <= 0.25 and not st.warned.low then
             st.warned.low = true
-            RT.voice.log("ledger_ai", '"Your energy is at a quarter. I am still here."')
+            ARC.log('[Unidentified Signal] "Your energy is at a quarter. I am still here."', "#C0E0FF")
         elseif frac <= 0.10 and not st.warned.critical then
             st.warned.critical = true
-            RT.voice.log("ledger_ai", '"Ten percent. Please."')
+            ARC.log('[Unidentified Signal] "Ten percent. Please."', "#C0E0FF")
         elseif frac > 0.40 then
             st.warned.low, st.warned.critical = false, false
         end
@@ -327,8 +328,8 @@ local function _tickDrain(st, delta)
         _drainOff(st)
         RT.flag("ledger_lost_reason", "power")
         RT.flag("ledger_arc_done", "lost")
-        RT.shipLog("[Engineering] Reactor at zero. The process drawing power has stopped.", "#FF4040")
-        RT.shipLog("[Ledger Arc] The AI is gone. The fragments are noise now.", "#FF8080")
+        ARC.log("[Engineering] Reactor at zero. The process drawing power has stopped.", "#FF4040")
+        ARC.log("[Ledger Arc] The AI is gone. The fragments are noise now.", "#FF8080")
         MISSIONS.phase("ledger", "done")
     end
 end
@@ -349,7 +350,7 @@ end
 
 local function _accept()
     RT.flag("ledger_accepted", true)
-    RT.shipLog("[Ledger Arc] Recover three AI fragments in Concord space, then bring the AI to Rezkov's station.\n" .. _fragList(), "#A0C0FF")
+    ARC.log("[Ledger Arc] Recover three AI fragments in Concord space, then bring the AI to Rezkov's station.\n" .. _fragList(), "#A0C0FF")
     MISSIONS.phase("ledger", "relay_run")
 end
 
@@ -463,7 +464,7 @@ function M.resolve(st)
             RT.addReputation("Concord", -200, "Ledger Arc: Concord's books are in someone else's hands")
             RT.addReputation("Independent", 200, "Ledger Arc: AI delivered to Rezkov")
         end
-        RT.shipLog("[Ledger Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "full" and "#80FF80" or "#FF8080")
+        ARC.log("[Ledger Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "full" and "#80FF80" or "#FF8080")
     end)
     RUMORS.removeCategory("LEDGER_DONE")
     if outcome == "full" then
@@ -537,7 +538,9 @@ M.phases.carry = {
         _setDrainUI(true)
         RT.setObjective("Keep power up, deliver AI to Rezkov", true, "ledger")
         _aiVoice()
-        RT.voice.hail("ledger_ai", _AI_HELLO)
+        if not ARC.hail(RT.voice.get("ledger_ai"), _AI_HELLO, "Unidentified Signal") then
+            ARC.log("[Unidentified Signal] " .. _AI_HELLO, "#C0E0FF")   -- comms busy: never lose the hello
+        end
         st.fleet_due = getScenarioTime() + _FLEET_DELAY
     end,
     update = function(st, delta, now)
@@ -557,6 +560,21 @@ M.phases.carry = {
 -- ── GM console ──────────────────────────────────────────────────────────────
 
 M.gm_flag_prefixes = {"ledger_"}
+
+-- Saved flags this arc owns: every RT.flag name it sets, with what it means (a "*" suffix covers
+-- a family of names). M.reads lists other arcs' flags it looks at. check.py and the arc tests
+-- reject any flag that is not declared here. See missions_api.md, "Flags".
+M.flags = {
+    ledger_thresh      = "Thresh passed on Rezkov's invitation (hook finished)",
+    ledger_accepted    = "took the pickup from Rezkov",
+    ["ledger_frag_*"]  = "AI fragment N recovered (ledger_frag_1 .. ledger_frag_3)",
+    ledger_arc_done    = 'outcome: "full" (AI delivered to Rezkov) | "lost"',
+    ledger_lost_reason = '"power" (reactor hit zero) | "surrender" (data transmitted to the auditors)',
+    ledger_evidence    = "Rezkov holds the Containment Ledger (set on full; unlocks the Science DB entry)",
+    ledger_rewarded    = "reputation and credits were paid (an end state pays once)",
+    ["ledger_met_*"]   = "Science DB profile met in this arc (thresh, rezkov), set by ARC.meet",
+}
+M.reads = {"rezkov_ai_planted", "rezkov_m2_done", "rezkov_arc_done", "rezkov_declined"}
 
 M.gm_state_fn = function()
     local ph = MISSIONS._cur_phase["ledger"]
@@ -624,7 +642,7 @@ M.gm_actions = {
         if st.drain_on then _drainOff(st) else st.drain_on = true; _setDrainUI(true) end
     end},
     {label = "Refill energy", phases = {"carry"}, fn = function(st)
-        RT.forEachPlayer(function(p) if RT.valid(p) then p:setEnergyLevel(p:getMaxEnergy()) end end)
+        ARC.withPlayer(function(p) if RT.valid(p) then p:setEnergyLevel(p:getMaxEnergy()) end end)
     end},
 }
 

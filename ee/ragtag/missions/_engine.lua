@@ -40,6 +40,44 @@ function MISSIONS.register(M)
     MISSIONS._loaded[M.id]     = false
     MISSIONS._cur_phase[M.id]  = nil
     MISSIONS._order[#MISSIONS._order + 1] = M.id
+    -- Declared flags must carry one of the arc's prefixes, or a GM reset would not clear them.
+    for name in pairs(M.flags or {}) do
+        local ok = false
+        for _, pre in ipairs(M.gm_flag_prefixes or {M.id .. "_"}) do
+            if name:sub(1, #pre) == pre then ok = true end
+        end
+        assert(ok, "mission " .. M.id .. ": flag '" .. name .. "' does not start with one of its gm_flag_prefixes")
+    end
+end
+
+-- ── Flag declarations ─────────────────────────────────────────────────────────
+-- Arcs declare the saved flags they own in M.flags = {name = "meaning", ["family_*"] = "..."}
+-- and the other arcs' flags they read in M.reads = {"name", ...}. tools/check.py checks every
+-- flag literal in the code against these, and the arc tests check every flag set at run time.
+
+local function _declares(M, name)
+    for key, desc in pairs(M.flags or {}) do
+        if key == name then return desc end
+        if key:sub(-1) == "*" and name:sub(1, #key - 1) == key:sub(1, -2) then return desc end
+    end
+end
+
+-- The arc that declares this flag, and the declared meaning. nil when no arc declares it.
+function MISSIONS.flagOwner(name)
+    for _, id in ipairs(MISSIONS._order) do
+        local desc = _declares(MISSIONS._registry[id], name)
+        if desc then return id, desc end
+    end
+end
+
+-- The arc whose flag prefix this name carries (it "looks like" that arc's flag), declared or not.
+function MISSIONS.flagNamespace(name)
+    for _, id in ipairs(MISSIONS._order) do
+        local M = MISSIONS._registry[id]
+        for _, pre in ipairs(M.gm_flag_prefixes or {id .. "_"}) do
+            if name:sub(1, #pre) == pre then return id end
+        end
+    end
 end
 
 -- Start a mission (GM or auto_start).
@@ -438,6 +476,7 @@ function MISSIONS._stateText(id)
     if #flags == 0 then lines[#lines+1] = "  (none set)" end
     for _, name in ipairs(flags) do
         lines[#lines+1] = string.format("  %s = %s", name, tostring(RT.campaign.flags[name]))
+        if not _declares(M, name) then lines[#lines+1] = "      (not declared in M.flags)" end
     end
 
     local rows = {}

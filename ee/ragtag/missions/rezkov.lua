@@ -93,7 +93,7 @@ local function _spawnWaypoint(st)
     -- Slow tumble, a little faster than the hacking Comms Relays (spin 4), so a Science scan
     -- of the station shows it turning.
     wp:setRotationMaxSpeed(0):setSpin(6)
-    wp:setCommsFunction(function(src, tgt)
+    wp:setCommsFunction(ARC.comms(function(src, tgt)
         local phase = MISSIONS._cur_phase["rezkov"]
         local art = MISSIONS._state["rezkov"]
 
@@ -112,7 +112,7 @@ local function _spawnWaypoint(st)
                     addCommsReply("Understood.", function(s3, t3) setCommsMessage("The channel closes.") end)
                     return
                 end
-                RT.shipLog("[Rezkov] Job accepted: Concord Waypoint Galen (grid " .. JOBS.gridRef(-75000, -52000) .. "), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
+                ARC.log("[Rezkov] Job accepted: Concord Waypoint Galen (grid " .. JOBS.gridRef(-75000, -52000) .. "), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
                 RT.setObjective("Hack Waypoint Galen", true)
                 RT.flag("rezkov_m1_done", true)
                 MISSIONS.phase("rezkov", "m2_active")
@@ -136,7 +136,7 @@ local function _spawnWaypoint(st)
         else
             setCommsMessage("[Rezkov's station] No response on this frequency.")
         end
-    end)
+    end, "[Rezkov's station] No response on this frequency."))
     RT.register(wp)
     st.waypoint = wp
 end
@@ -176,24 +176,25 @@ local function _checkHack(st, now)
     if hack_lvl >= 0.99 then
         st.hack_done = true
         RT.flag("rezkov_ai_planted", true)   -- read by the Ledger arc
-        RT.shipLog("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")
+        ARC.log("[Hack] Rogue AI successfully installed in the Concord accounting systems.", "#80FF80")
         RT.after(4, function()
-            RT.shipLog("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
-            RT.shipLog("[Mission] Deliver the storage card to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#A0C0FF")
+            ARC.log("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
+            ARC.log("[Mission] Deliver the storage card to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#A0C0FF")
             RT.setObjective("Card to Thresh @ Dustmote", true)
             MISSIONS.phase("rezkov", "m2_deliver")
         end, "rezkov_hack_msg2")
     end
 end
 
+-- Meridian comms: the arc ship only (ARC.comms), and an error never leaves the channel dead.
 local function _safeComms(fn)
-    return function(src, tgt)
+    return ARC.comms(function(src, tgt)
         local ok, err = pcall(fn, src, tgt)
         if not ok then
             log("[RZKOV][COMMS] pcall error: " .. tostring(err))
             setCommsMessage("[Meridian comms error — check server log]")
         end
-    end
+    end, '"CWS Meridian. This is a restricted Concord vessel. Stand clear."')
 end
 
 local function _spawnMeridian(st)
@@ -214,7 +215,7 @@ local function _spawnMeridian(st)
     RT.register(meridian)
     st.meridian = meridian
     st.m3_hostile = false
-    RT.shipLog("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")
+    ARC.log("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")
 end
 
 -- The disabled Meridian hails the crew, inviting them aboard. If comms are busy, retry once and
@@ -224,12 +225,12 @@ local _MERIDIAN_SURRENDER = '"You got us. We give up. But I\'d like to meet you 
 local function _meridianSurrenderHail(st)
     local m = st.meridian
     if not RT.valid(m) then return end
-    if RT.hail(m, _MERIDIAN_SURRENDER, "CWS Meridian") then return end
+    if ARC.hail(m, _MERIDIAN_SURRENDER, "CWS Meridian") then return end
     RT.after(15, function()
         local cur = MISSIONS._state["rezkov"]
         if not (cur and RT.valid(cur.meridian)) or cur.m3_boarded then return end
-        if not RT.hail(cur.meridian, _MERIDIAN_SURRENDER, "CWS Meridian") then
-            RT.shipLog("[CWS Meridian] " .. _MERIDIAN_SURRENDER, "#FFCC80")
+        if not ARC.hail(cur.meridian, _MERIDIAN_SURRENDER, "CWS Meridian") then
+            ARC.log("[CWS Meridian] " .. _MERIDIAN_SURRENDER, "#FFCC80")
         end
     end, "rezkov_meridian_hail_retry")
 end
@@ -267,7 +268,7 @@ local function _checkMeridianDisabled(st)
             end)
         end))
         log("[RZKOV] Meridian disabled — faction=Independent, commsFunction set, m3_disabled=true")
-        RT.shipLog("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
+        ARC.log("[CWS Meridian] Ship disabled. Close to within 1U and dock to board.", "#FFCC80")
         RT.setObjective("Board CWS Meridian", true)
         RT.after(3, function()
             local cur = MISSIONS._state["rezkov"]
@@ -294,7 +295,7 @@ local function _setupKaelComms(st)
                 log("[RZKOV] kael-comms: 'Understood' (let go) clicked")
                 RT.addReputation("Independent", -1000, "Rezkov Arc: cooperated with Concord against Rezkov")
                 RT.addReputation("Concord", 500, "Rezkov Arc: cooperated with Concord investigator")
-                RT.shipLog("[Rezkov Arc] Done. Concord proceeds with investigation.", "#FF8080")
+                ARC.log("[Rezkov Arc] Done. Concord proceeds with investigation.", "#FF8080")
                 RT.flag("kael_alive", true)
                 RT.flag("rezkov_arc_done", "concord_won")
                 if RT.valid(st.meridian) then
@@ -308,7 +309,7 @@ local function _setupKaelComms(st)
         addCommsReply("Wipe the data.", function(s2, t2)
             log("[RZKOV] kael-comms: 'Wipe the data' clicked")
             RT.addReputation("Concord", -1000, "Rezkov Arc: wiped Concord investigation data")
-            RT.shipLog("[Rezkov Arc] Data wiped. Let Thresh know at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
+            ARC.log("[Rezkov Arc] Data wiped. Let Thresh know at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
             RT.flag("kael_alive", true)
             RT.flag("rezkov_m3_data", true)
             RT.setObjective("Report to Thresh @ Dustmote", true)
@@ -321,11 +322,11 @@ local function _setupKaelComms(st)
             addCommsReply("We like our odds, Kael.", function(s3, t3)
                 log("[RZKOV] kael-comms: 'We like our odds Kael' clicked")
                 setCommsMessage('"Meridian out."')
-                RT.shipLog("[Rezkov Arc] Report the data wipe to Thresh at Dustmote Salvage.", "#FFCC80")
+                ARC.log("[Rezkov Arc] Report the data wipe to Thresh at Dustmote Salvage.", "#FFCC80")
             end)
         end)
     end))
-    RT.shipLog("[CWS Meridian] Docked. Hail Commander Kael.", "#FFCC80")
+    ARC.log("[CWS Meridian] Docked. Hail Commander Kael.", "#FFCC80")
 end
 
 -- ── Station hooks ─────────────────────────────────────────────────────────
@@ -343,7 +344,7 @@ local function _dustmoteHook(src, tgt, info)
             addCommsReply("Sure, what\'s the job?", function(s3, t3)
                 setCommsMessage('"My associate likes to meet people in person. Doesn\'t do business through go-betweens. If you are interested, he has arranged a meeting.\n\nHead out at bearing 15. You\'ll hit a nebula cloud. You\'ll find what you are looking for there.\n\nMind what you say when you get there. He remembers everything."')
                 addCommsReply("We\'ll head out.", function(s4, t4)
-                    RT.shipLog("[Navigation] Bearing 15. Nebula field. Find the contact.", "#A0C0FF")
+                    ARC.log("[Navigation] Bearing 15. Nebula field. Find the contact.", "#A0C0FF")
                     RT.setObjective("Find the waypoint", true)
                     RT.flag("rezkov_hook", true)
                     MISSIONS.phase("rezkov", "m1_navigate")
@@ -371,14 +372,14 @@ local function _dustmoteHook(src, tgt, info)
             setCommsMessage('"Thresh takes the card and pockets it without looking at it.\n\n"Good. Payment\'s being arranged--"\n\nHis comm unit chirps. He glances at it, expression unreadable.\n\n"Urgent call. Give me a moment. Don\'t go anywhere."')
             addCommsReply("Sure.", function(s3, t3)
                 RT.addCredits(600, "Rezkov Arc M2: data delivery")
-                RT.shipLog("[Rezkov Arc] M2 complete. 600cr received. Rezkov's station has gone dark.", "#80FF80")
+                ARC.log("[Rezkov Arc] M2 complete. 600cr received. Rezkov's station has gone dark.", "#80FF80")
                 RT.flag("rezkov_m2_done", true)
                 if st then _despawnWaypoint(st) end
                 MISSIONS.phase("rezkov", "m3_active")
                 setCommsMessage('"Thresh comes back. His jaw is set.\n\n"We have a problem.\n\nThe Concord had a monitoring ship running surveillance on Dustmote. They have traffic logs, comms intercepts -- yours and mine both. That ship, the CWS Meridian, is burning for Concord space right now. If she makes it there we\'re all humped.\n\nWe need to board her and wipe that data before she gets there. No credits for this one -- you\'re doing it to keep yourself out of a Concord cell as much as anything.\n\nShe was spotted at grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed toward Concord Station Arbiter. Move fast."')
                 addCommsReply("We\'re on it.", function(s4, t4)
                     RT.flag("rezkov_m3_accepted", true)
-                    RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian. Last spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", burning for the Arbiter Line. Disable and board before she gets there.", "#A0C0FF")
+                    ARC.log("[Rezkov Arc] M3: Intercept CWS Meridian. Last spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", burning for the Arbiter Line. Disable and board before she gets there.", "#A0C0FF")
                     RT.setObjective("Disable and board CWS Meridian", true)
                     setCommsMessage("Thresh disappears into the back.")
                 end)
@@ -397,7 +398,7 @@ local function _dustmoteHook(src, tgt, info)
             setCommsMessage('"She\'s still running. Last grid ' .. JOBS.gridRef(_MX, _MY) .. ', headed for Concord Station Arbiter. You need to move."')
             addCommsReply("We\'re on it.", function(s3, t3)
                 RT.flag("rezkov_m3_accepted", true)
-                RT.shipLog("[Rezkov Arc] M3: Intercept CWS Meridian before she reaches the Arbiter Line. Disable and board.", "#A0C0FF")
+                ARC.log("[Rezkov Arc] M3: Intercept CWS Meridian before she reaches the Arbiter Line. Disable and board.", "#A0C0FF")
                 RT.setObjective("Disable and board CWS Meridian", true)
                 setCommsMessage('"Move."\n\nThresh disappears into the back.')
             end)
@@ -413,7 +414,7 @@ local function _dustmoteHook(src, tgt, info)
     if phase == "m3_deliver" and RT.flag("rezkov_m3_data") and not RT.flag("rezkov_arc_done") then
         addCommsReply("Thresh -- the Meridian data is wiped.", function(s2, t2)
             RT.addReputation("Independent", 200, "Rezkov Arc: reported Meridian data wipe to Thresh")
-            RT.shipLog("[Rezkov Arc] Mission complete.", "#80FF80")
+            ARC.log("[Rezkov Arc] Mission complete.", "#80FF80")
             RT.flag("rezkov_arc_done", "data_delivered")
             MISSIONS.phase("rezkov", "done")
             setCommsMessage('"We barely got out of that. Concord space is going to be tough to navigate for a while. I\'m going to lay low and I suggest you do the same. But you\'ve proved yourself, more work is headed your way. Fly safe Magpie."')
@@ -426,7 +427,7 @@ end
 -- ── Resolve and cancel ────────────────────────────────────────────────────
 
 function M.resolve(st)
-    RT.shipLog("[Rezkov Arc] Arc complete. Outcome: " .. tostring(RT.flag("rezkov_arc_done")), "#80FF80")
+    ARC.log("[Rezkov Arc] Arc complete. Outcome: " .. tostring(RT.flag("rezkov_arc_done")), "#80FF80")
     globalMessage("Rezkov Arc complete.", 8)
     -- Despawn Meridian 90s after arc ends (she may still be flying away on concord_won path)
     RT.after(90, function()
@@ -476,6 +477,22 @@ end
 M.gm_state_fn = _gmStateLabel
 
 M.gm_flag_prefixes = {"rezkov_", "kael_"}
+
+-- Saved flags this arc owns: every RT.flag name it sets, with what it means (a "*" suffix covers
+-- a family of names). M.reads lists other arcs' flags it looks at. check.py and the arc tests
+-- reject any flag that is not declared here. See missions_api.md, "Flags".
+M.flags = {
+    rezkov_hook        = "the crew took Thresh's invitation (hook finished)",
+    rezkov_declined    = '"player_declined": the crew turned Thresh down; "gm_inactivated": parked by the GM. Suppresses the arc; Phase II arcs treat it like a finished arc',
+    rezkov_m1_done     = "took the Galen job from Rezkov",
+    rezkov_ai_planted  = "the Galen hack finished: Rezkov's AI is in the Concord accounting system (read by the Ledger arc)",
+    rezkov_m2_done     = "storage card delivered to Thresh; Rezkov's station has gone dark",
+    rezkov_m3_accepted = "agreed to intercept the CWS Meridian",
+    rezkov_m3_data     = "the Meridian's data was wiped; report to Thresh pending",
+    rezkov_arc_done    = 'outcome: "concord_won" | "data_delivered" | "meridian_destroyed" | "meridian_escaped"',
+    kael_alive         = "true unless the Meridian was destroyed (false then); unset before M3 resolves",
+    ["rezkov_met_*"]   = "Science DB profile met in this arc (thresh, rezkov, kael), set by ARC.meet",
+}
 
 -- GM jumps (see MISSIONS.gmJump): reset the arc to a blank slate, replay the lasting effects of
 -- every earlier phase, then enter the target. Reset removes everything this arc spawns or
@@ -646,7 +663,7 @@ M.phases.m1_navigate = {
     enter = function(st)
         RUMORS.removeCategory("REZKOV_HOOK")
         _spawnWaypoint(st)
-        RT.shipLog("[Navigation] Bearing 15. Nebula field. Find the contact.", "#A0C0FF")
+        ARC.log("[Navigation] Bearing 15. Nebula field. Find the contact.", "#A0C0FF")
         RT.setObjective("Find the waypoint", true)
     end,
 }
@@ -681,7 +698,7 @@ end
 -- had its job yet, add that station's job. getDockedWith() returns false when undocked.
 local function _watchCoverDocks(st)
     st.cover_given = st.cover_given or {}
-    for _, p in ipairs(RT.players) do
+    for _, p in ipairs({ARC.player()}) do   -- the arc ship only
         if RT.valid(p) then
             local d = p:getDockedWith()
             if d and RT.valid(d) then
@@ -738,7 +755,7 @@ M.phases.m3_active = {
         if st.meridian and not RT.valid(st.meridian) and not st.m3_disabled then
             RT.addReputation("Concord", -1000, "Rezkov Arc: destroyed Concord investigation vessel")
             RT.addReputation("Independent", 200, "Rezkov Arc: destroyed Concord investigation vessel")
-            RT.shipLog("[Rezkov Arc] CWS Meridian destroyed. All data lost.", "#FF8080")
+            ARC.log("[Rezkov Arc] CWS Meridian destroyed. All data lost.", "#FF8080")
             RT.flag("kael_alive", false)
             RT.flag("rezkov_arc_done", "meridian_destroyed")
             MISSIONS.phase("rezkov", "done")
@@ -752,7 +769,7 @@ M.phases.m3_active = {
             if dx * dx + dy * dy < 10000 * 10000 then
                 RT.addReputation("Concord", -1000, "Rezkov Arc: Concord investigation data reached Concord space")
                 RT.addReputation("Independent", -500, "Rezkov Arc: Concord investigation completed, Rezkov network compromised")
-                RT.shipLog("[Rezkov Arc] CWS Meridian reached the Arbiter Line. Data delivered to Concord.", "#FF8080")
+                ARC.log("[Rezkov Arc] CWS Meridian reached the Arbiter Line. Data delivered to Concord.", "#FF8080")
                 RT.flag("kael_alive", true)
                 RT.flag("rezkov_arc_done", "meridian_escaped")
                 MISSIONS.phase("rezkov", "done")
@@ -766,7 +783,7 @@ M.phases.m3_active = {
         -- While Concord she is neutral and ignores all traffic; Concord Hostile makes her targetable.
         if not st.m3_hostile and not st.m3_disabled and RT.valid(st.meridian) then
             local mx, my = st.meridian:getPosition()
-            for _, p in ipairs(RT.players) do
+            for _, p in ipairs({ARC.player()}) do   -- the arc ship only
                 if RT.valid(p) then
                     local px, py = p:getPosition()
                     local dx, dy = px - mx, py - my
@@ -789,7 +806,7 @@ M.phases.m3_active = {
         _checkMeridianDisabled(st)
 
         if st.m3_disabled and not st.m3_boarded and RT.valid(st.meridian) then
-            for _, p in ipairs(RT.players) do
+            for _, p in ipairs({ARC.player()}) do   -- the arc ship only
                 if RT.valid(p) and p:isDocked(st.meridian) then
                     log(string.format("[RZKOV] docking detected: player=%s — calling _setupKaelComms", p:getCallSign()))
                     _setupKaelComms(st)

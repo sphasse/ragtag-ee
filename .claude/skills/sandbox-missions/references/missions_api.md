@@ -220,6 +220,38 @@ end)
 
 ---
 
+## Flags
+
+Saved flags (`RT.flag`) are how arcs remember progress across sessions and how later arcs read
+earlier outcomes. They are plain strings, so every arc **declares** the ones it owns:
+
+```lua
+M.gm_flag_prefixes = {"myarc_"}          -- GM resets clear everything with these prefixes
+M.flags = {
+    myarc_accepted    = "took the job from the contact",
+    myarc_arc_done    = 'outcome: "won" | "lost"',
+    myarc_rewarded    = "rewards were paid (an end state pays once)",
+    ["myarc_part_*"]  = "part N recovered (myarc_part_1 .. 3)",       -- a family of names
+    ["myarc_met_*"]   = "Science DB profile met, set by ARC.meet",    -- needed when the arc uses ARC.meet
+}
+M.reads = {"rezkov_arc_done", "rezkov_declined"}   -- other arcs' flags this arc looks at
+```
+
+Rules, enforced by `check.py` (statically, on every flag literal in `RT.flag`, `RT.clearFlag`,
+`ARC.once`, `ARC.route` rules, `flagged` / `not_flagged` triggers) and by the arc tests (at run
+time, on every flag written):
+
+- a flag that no arc declares is an error (this is what catches typos);
+- a declared flag must start with one of the arc's `gm_flag_prefixes`, and must be used;
+- another arc's flag must be listed in `M.reads`, and is read-only: only the owner sets or clears it;
+- arc flags used outside the arcs (other layers, scenarios, tests) must be declared too.
+
+The meaning string is the documentation: write what the flag being set tells a later arc, and
+list the values when it is not a boolean. `MISSIONS.flagOwner(name)` returns the owning arc id
+and that string. The GM "Mission state" popup marks set flags that are not declared.
+
+---
+
 ## Arc helpers (ARC)
 
 `ee/ragtag/missions/_helpers.lua` defines `ARC`, the helpers shared by the arcs. It is part of the
@@ -230,14 +262,19 @@ add it to `_helpers.lua`, not to `core.lua` and not to both arcs.
 
 | Helper | Use |
 |---|---|
-| `ARC.player()` | The ship the arc acts on: first valid player ship, or nil. |
+| `ARC.player()` | The arc ship: the campaign's primary ship (`RT.players[1]`), or nil while it is destroyed. |
+| `ARC.isArcShip(ship)` | True for the arc ship only. |
+| `ARC.withPlayer(fn)` | Run `fn(ship)` on the arc ship (instead of `RT.forEachPlayer`). |
+| `ARC.log(msg, color)` | Ship log line on the arc ship only (instead of `RT.shipLog`). |
+| `ARC.hail(from, text, speaker)` | Hail the arc ship only (instead of `RT.hail`); false when comms are busy. |
+| `ARC.comms(fn, other)` | Wrap a comms function: the arc ship gets the dialog, any other ship gets `other`. |
 | `ARC.dist(x1, y1, x2, y2)` | Distance between two points. (`RT.dist(a, b)` is entity to entity.) |
 | `ARC.near(ent, x, y, r)` | True when a valid entity is within `r` of the point. |
 | `ARC.playerNear(x, y, r)` | The player ship when within `r` of the point, else nil. |
 | `ARC.alive(list)` | New list of the valid entities (`#ARC.alive(st.fleet) == 0`: all dead). |
 | `ARC.kill(x)` | Remove one entity or every entity in a table, indestructible ones too; nil-safe. |
-| `ARC.docked(src, tgt, msg)` | Dialog gate: true when docked; else sets `msg` (if given) and returns false. |
-| `ARC.stationHook(callsign, fn)` | `RT.addStationHook`, once per session however often `init` runs. |
+| `ARC.docked(src, tgt, msg)` | Dialog gate: true when `src` is the arc ship and docked; else sets `msg` (if given) and returns false. |
+| `ARC.stationHook(callsign, fn)` | `RT.addStationHook`, once per session however often `init` runs; runs for the arc ship only. |
 | `ARC.meet(arc_id, profile_key, who)` | First meeting: `SCIDB.meet` plus the one-time "records added" log line. |
 | `ARC.once(flag, fn)` | Run `fn` the first time only (saved flag). Rewards in `M.resolve`. |
 | `ARC.route(arc_id, rules, default)` | `init` routing by saved flags: first rule `{flag_or_fn, phase}` that holds. |
@@ -291,6 +328,22 @@ M.gm_states = { {key = "hook", label = "→ Hook", fn = _jump("hook")}, {key = "
 
 In a comms function: `if not ARC.docked(src, tgt, '"Dock first."') then return end`, then
 `ARC.meet("myarc", "rezkov_profile", "Orlan Rezkov")`.
+
+### One ship per campaign story
+
+Story arcs belong to the campaign's primary ship (the Magpie, `RT.players[1]`). Other player
+ships may be in the game working the job board; arcs must not react to them. In an arc:
+
+- never loop over ships: no `RT.players`, `RT.forEachPlayer`, `RT.shipLog`, `RT.hail`,
+  `RT.voice.hail/log` (`check.py` rejects them). Use `ARC.player()`, `ARC.withPlayer`, `ARC.log`,
+  `ARC.hail`;
+- wrap every comms function that offers a choice or changes arc state in `ARC.comms(fn, other)`;
+  station hooks registered with `ARC.stationHook` and dialogs gated with `ARC.docked` are already
+  arc-ship only;
+- while the arc ship is destroyed `ARC.player()` is nil and the arc waits; no other ship takes over.
+
+Still shared by every ship (core features, not arc code): objective lines (`RT.setObjective`),
+`RT.voice` conversation trees, rumors, reputation, and story contracts on the job board.
 
 **Layering.** Arcs call down into `RT`, `JOBS`, `PROX`, `RUMORS`, `SCIDB`, `STATS`/`ACH`; nothing
 below calls up. `check.py` errors if a core file (`core.lua`, `stats.lua`, `verse.lua`, `voice.lua`,

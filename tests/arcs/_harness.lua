@@ -135,22 +135,47 @@ end
 
 -- ── Acting on the game (call from inside a step) ─────────────────────────────
 
-local function _resolve(target)
+-- The ship the test drives (moves, docks, talks from): the arc ship unless T.actAs chose another.
+-- T.P() is always the arc ship, for assertions.
+local _actor = nil
+local function A() return _actor or T.P() end
+local _resolve
+
+-- A second player ship (another crew working the job board). Returns it; also RT.players[2].
+function T.secondShip()
+    if RT.valid(RT.players[2]) then return RT.players[2] end
+    local x, y = T.P():getPosition()
+    local s = RT.spawnPlayer(x - 4000, y, 0, {callsign = "Kestrel"})
+    s:setCanBeDestroyed(false)
+    return RT.players[2]
+end
+
+-- Queue: from here on T.moveTo / T.dock / T.talk drive `ship` (an entity or a function returning
+-- one). T.actAs(nil) goes back to the arc ship. Use it to check that an arc ignores other ships.
+function T.actAs(ship)
+    T.step(ship and "act as another ship" or "act as the arc ship", function()
+        if _actor then pcall(function() _actor:commandCloseTextComm() end) end
+        _actor = ship and _resolve(ship) or nil
+        if ship and not RT.valid(_actor) then error("actAs: no such ship") end
+    end)
+end
+
+_resolve = function(target)
     if type(target) == "function" then return target() end
     if type(target) == "string" then return T.find(target) end
     return target
 end
 
 local function _undockNow()
-    local p = T.P()
+    local p = A()
     local dp = p.components.docking_port
     if dp and dp.state ~= "not_docking" then p:commandUndock() end
 end
 
 function T.moveTo(x, y)
     _undockNow()
-    T.P():setPosition(x, y)
-    pcall(function() T.P():commandImpulse(0) end)
+    A():setPosition(x, y)
+    pcall(function() A():commandImpulse(0) end)
 end
 
 function T.moveNear(target, dist)
@@ -203,14 +228,14 @@ function T.dock(target)
         if not RT.valid(e) then error("no such object to dock at: " .. tostring(target)) end
         _undockNow()
         local x, y = e:getPosition()
-        T.P():setPosition(x + 1500, y)
-        local dp = T.P().components.docking_port
+        A():setPosition(x + (_actor and -1500 or 1500), y)
+        local dp = A().components.docking_port
         dp.target = e
         dp.state = "docked"
     end)
     T.waitFor("docked", function()
         local e = _resolve(target)
-        return RT.valid(e) and T.P():isDocked(e)
+        return RT.valid(e) and A():isDocked(e)
     end, 3)
 end
 
@@ -220,13 +245,13 @@ function T.undock()
 end
 
 local function _commsState()
-    local ct = T.P().components.comms_transmitter
+    local ct = A().components.comms_transmitter
     return ct and tostring(ct.state) or "?"
 end
 
 -- The text currently shown in the player's comms window.
 function T.msg()
-    local ct = T.P().components.comms_transmitter
+    local ct = A().components.comms_transmitter
     return ct and tostring(ct.incomming_message or "") or ""
 end
 
@@ -253,14 +278,14 @@ function T.talk(target, labels, opts)
     opts = opts or {}
     local who = type(target) == "string" and target or (opts.name or "target")
     if opts.answer then
-        T.waitFor("hailed by " .. who, function() return T.P():isCommsBeingHailed() end, opts.timeout or 15)
+        T.waitFor("hailed by " .. who, function() return A():isCommsBeingHailed() end, opts.timeout or 15)
         T.step("answer the hail", function()
             _replies = {}
-            T.P():commandAnswerCommHail(true)
+            A():commandAnswerCommHail(true)
         end)
     else
         T.step("clear comms", function()
-            local p = T.P()
+            local p = A()
             if p:isCommsBeingHailed() then p:commandAnswerCommHail(false) end
             p:commandCloseTextComm()
         end)
@@ -269,7 +294,7 @@ function T.talk(target, labels, opts)
             local e = _resolve(target)
             if not RT.valid(e) then error("no such object to hail: " .. tostring(target)) end
             _replies = {}
-            T.P():commandOpenTextComm(e)
+            A():commandOpenTextComm(e)
         end)
     end
     T.waitFor("channel open to " .. who, function() return _commsState() == "open" end, 10)
@@ -278,7 +303,7 @@ function T.talk(target, labels, opts)
             for i, l in ipairs(_replies) do
                 if l:find(label, 1, true) then
                     _replies = {}
-                    T.P():commandSendComm(i - 1)
+                    A():commandSendComm(i - 1)
                     return
                 end
             end
@@ -289,7 +314,7 @@ end
 
 function T.closeComms()
     T.step("close comms", function()
-        local p = T.P()
+        local p = A()
         if p:isCommsBeingHailed() then p:commandAnswerCommHail(false) end
         p:commandCloseTextComm()
     end)
@@ -414,6 +439,24 @@ log = function(msg, ...)
         T.check("no mission engine errors", false, s)
     end
     return _log(msg, ...)
+end
+
+-- Every flag set or cleared in an arc's namespace must be declared by that arc (M.flags).
+local function _guardFlag(name)
+    if type(name) ~= "string" then return end
+    if MISSIONS.flagNamespace(name) and not MISSIONS.flagOwner(name) then
+        T.check("flag '" .. name .. "' is declared", false,
+            "written at run time but in no arc's M.flags (typo, or add it to " .. MISSIONS.flagNamespace(name) .. ")")
+    end
+end
+local _flag, _clearFlag = RT.flag, RT.clearFlag
+RT.flag = function(name, value)
+    if value ~= nil then _guardFlag(name) end
+    return _flag(name, value)
+end
+RT.clearFlag = function(name)
+    _guardFlag(name)
+    return _clearFlag(name)
 end
 
 local _update = update

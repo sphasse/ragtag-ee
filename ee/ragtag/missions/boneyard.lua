@@ -110,11 +110,11 @@ local function _annexSignal(st, quiet)
     RUMORS.removeCategory("BONEYARD_HOOK")      -- the lead has paid off
     JOBS.removeCategory("BONEYARD_SPECIAL")
     if not quiet then
-        RT.shipLog(
+        ARC.log(
             "[Science] Anomalous signal from deep in the Boneyard. " ..
             "Source: Ashgrave Annex. Bearing inside the debris field.", "#FFCC00")
     end
-    RT.shipLog("[Nav] Waypoint set: Ashgrave Annex.", "#AAAAFF")
+    ARC.log("[Nav] Waypoint set: Ashgrave Annex.", "#AAAAFF")
 end
 
 local function _idleDrones(st)
@@ -216,7 +216,7 @@ local function _spawnConcordGroup(st)
 
     _orderConcordAttack(st)
 
-    RT.shipLog(
+    ARC.log(
         "[Comms] [CNS Vanguard] All vessels in Boneyard sector: restricted military zone. " ..
         "Stand down and prepare for boarding. Non-compliance will be treated as hostility.", "#FF6666")
 end
@@ -286,7 +286,7 @@ local function _tickDrones(st, now)
             st.drone_respawns = (st.drone_respawns or 0) + 1
             _spawnReinDrone(st, st.drone_respawns)
             if st.drone_respawns == 1 then
-                RT.shipLog("[Science] More Relic contacts warping in from the north. The Annex is feeding them in.", "#00FF88")
+                ARC.log("[Science] More Relic contacts warping in from the north. The Annex is feeding them in.", "#00FF88")
             end
         end
     end
@@ -310,8 +310,8 @@ local function _reprogramDrones(st)
     st.drone_respawns = 0
     st.drone_target   = math.min(_DRONE_TARGET_CAP, #_aliveDrones(st))
 
-    RT.shipLog("[Relay] IFF override complete. All drones retargeting Concord transponders.", "#FF8800")
-    RT.shipLog("[Science] Eight Relic contacts inbound from the north — fast approach. They are on our side.", "#00FF88")
+    ARC.log("[Relay] IFF override complete. All drones retargeting Concord transponders.", "#FF8800")
+    ARC.log("[Science] Eight Relic contacts inbound from the north — fast approach. They are on our side.", "#00FF88")
 end
 
 -- Unlock the Ashgrave Science DB entries once the archive has been downloaded (idempotent: the
@@ -322,7 +322,7 @@ local function _indexAshgraveResearch()
     SCIDB.unlock("hollow_true_nature")
     SCIDB.unlock("ashgrave_research")
     SCIDB.unlock("synthesis_details")
-    RT.shipLog("[Science] Ashgrave research files indexed. Database updated.", "#00CCAA")
+    ARC.log("[Science] Ashgrave research files indexed. Database updated.", "#00CCAA")
 end
 
 -- The two Annex operations (archive download, drone IFF reprogram) run one at a time: while
@@ -336,7 +336,7 @@ end
 
 local function _setAnnexControlComms(st)
     if not RT.valid(st.annex) then return end
-    st.annex:setCommsFunction(function(src, tgt)
+    st.annex:setCommsFunction(ARC.comms(function(src, tgt)
         local now = getScenarioTime()
         setCommsMessage(
             "[Ashgrave Annex — Admin Access Granted]\n\n" ..
@@ -367,7 +367,7 @@ local function _setAnnexControlComms(st)
                 end
                 st.downloading    = true
                 st.download_start = getScenarioTime()
-                RT.shipLog("[Relay] Archive download initiated. 60 seconds to complete.", "#00AAFF")
+                ARC.log("[Relay] Archive download initiated. 60 seconds to complete.", "#00AAFF")
                 setCommsMessage("Transfer started. Stand by for 60 seconds.")
             end)
         end
@@ -395,7 +395,7 @@ local function _setAnnexControlComms(st)
                 end
                 st.reprogramming    = true
                 st.reprogram_start  = getScenarioTime()
-                RT.shipLog("[Relay] Drone IFF override sequence initiated. 30 seconds.", "#FF8800")
+                ARC.log("[Relay] Drone IFF override sequence initiated. 30 seconds.", "#FF8800")
                 setCommsMessage("Override started. Stand by for 30 seconds.")
             end)
         end
@@ -403,7 +403,7 @@ local function _setAnnexControlComms(st)
         addCommsReply("Disconnect", function()
             setCommsMessage("Channel closed.")
         end)
-    end)
+    end, "[Ashgrave Annex]\n\nAdmin session in use by another vessel."))
 end
 
 local function _cleanupCombat(st)
@@ -444,7 +444,7 @@ local function _trackCmdShip(st)
     if not RT.valid(st.concord_cmd) then
         st.concord_cmd = nil
         RT.flag("boneyard_battlegroup_destroyed", true)
-        RT.shipLog("[Science] CNS Vanguard destroyed. Battle group leaderless.", "#FF4444")
+        ARC.log("[Science] CNS Vanguard destroyed. Battle group leaderless.", "#FF4444")
         return
     end
     if not st.cmd_vulnerable then
@@ -453,7 +453,7 @@ local function _trackCmdShip(st)
         if ok and ok2 and max_hul and max_hul > 0 and hull / max_hul < 0.2 then
             st.cmd_vulnerable = true
             st.concord_cmd:setCanBeDestroyed(true)
-            RT.shipLog("[Science] CNS Vanguard hull critical — command ship attempting withdrawal.", "#FFCC00")
+            ARC.log("[Science] CNS Vanguard hull critical — command ship attempting withdrawal.", "#FFCC00")
         end
     end
 end
@@ -554,10 +554,12 @@ local function _survivorHail()
             },
         },
     })
-    RT.voice.hail("boneyard_survivors", _SURVIVOR_MSG)
+    if not ARC.hail(RT.voice.get("boneyard_survivors"), _SURVIVOR_MSG, "Lifeboat Survivors") then
+        ARC.log("[Lifeboat Survivors] " .. _SURVIVOR_MSG, "#C0E0FF")   -- comms busy: never lose it
+    end
     RT.after(5, function()
         _addSurvivorRecords()
-        RT.shipLog("[Science] Survivor records received. Science database updated: Lore, Boneyard Survivor Records.", "#00CCAA")
+        ARC.log("[Science] Survivor records received. Science database updated: Lore, Boneyard Survivor Records.", "#00CCAA")
     end, "boneyard_survivor_records")
 end
 
@@ -600,8 +602,8 @@ local function _injectHookJob()
                     JOBS.gridRef(_BUOY_X, _BUOY_Y)),
                 on_found = function(m)
                     RT.flag("boneyard_buoy_found", true)
-                    RT.shipLog("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
-                    RT.shipLog(string.format("[Science] Survivor lifeboat telemetry: launched from the Annex, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ANNEX_X, _ANNEX_Y)), "#00CCAA")
+                    ARC.log("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
+                    ARC.log(string.format("[Science] Survivor lifeboat telemetry: launched from the Annex, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ANNEX_X, _ANNEX_Y)), "#00CCAA")
                     _survivorHail()
                     RT.setObjective("Hack the Annex", true, "boneyard")   -- a second objective line
                     local bst = MISSIONS._state["boneyard"]
@@ -691,7 +693,7 @@ M.phases = {
                 end)
             end
             RT.setObjective("Hack the Annex", true, "boneyard")
-            RT.shipLog("[Science] Ashgrave Annex: encrypted lockdown. Relay, that is a hacking job: breach any system.", "#FFAA44")
+            ARC.log("[Science] Ashgrave Annex: encrypted lockdown. Relay, that is a hacking job: breach any system.", "#FFAA44")
             -- Diagnostics (EmptyEpsilon.log): is the Annex a valid hack target?
             if RT.valid(st.annex) then
                 local okf, fac = pcall(function() return st.annex:getFaction() end)
@@ -718,7 +720,7 @@ M.phases = {
 
             if not st.hack_mid_logged and hack_lvl >= 0.5 then
                 st.hack_mid_logged = true
-                RT.shipLog(
+                ARC.log(
                     "[Science] Partial decryption. These files are marked Concord Level 5. " ..
                     "This is not a standard military installation.", "#FFCC00")
             end
@@ -741,8 +743,8 @@ M.phases = {
     annex_control = {
         enter = function(st)
             RT.setObjective("Defend the Annex", true, "boneyard")   -- replaces "Hack the Annex"
-            RT.shipLog("[Relay] Ashgrave Annex: access granted. Concord battle group inbound.", "#00FF88")
-            RT.shipLog("[Science] All Relic drones idle. That won't last.", "#FFCC00")
+            ARC.log("[Relay] Ashgrave Annex: access granted. Concord battle group inbound.", "#00FF88")
+            ARC.log("[Science] All Relic drones idle. That won't last.", "#FFCC00")
             _setAnnexControlComms(st)
         end,
         update = function(st, delta, now)
@@ -751,7 +753,7 @@ M.phases = {
                 if now - st.download_start >= 60 then
                     st.download_done = true
                     RT.flag("boneyard_hack_done", true)
-                    RT.shipLog("[Relay] Research archive download complete. Data secured.", "#00AAFF")
+                    ARC.log("[Relay] Research archive download complete. Data secured.", "#00AAFF")
                     _indexAshgraveResearch()
                 end
             end
@@ -788,7 +790,7 @@ M.phases = {
     extract = {
         enter = function(st)
             RT.clearObjective("boneyard")   -- the Annex fight is over
-            RT.shipLog("[Nav] Exit the Boneyard. Warp is available; the battle group will pursue.", "#FFAA44")
+            ARC.log("[Nav] Exit the Boneyard. Warp is available; the battle group will pursue.", "#FFAA44")
         end,
         update = function(st, delta, now)
             _trackCmdShip(st)
@@ -857,7 +859,7 @@ function M.resolve(st)
                  or RT.flag("boneyard_hack_done")  and "data_only"
                  or RT.flag("boneyard_drone_flip")  and "drones_only"
                  or "minimal"
-    RT.shipLog("[Mission] Boneyard arc resolved. Outcome: " .. outcome .. ".", "#80FF80")
+    ARC.log("[Mission] Boneyard arc resolved. Outcome: " .. outcome .. ".", "#80FF80")
 end
 
 -- ── Cancel ────────────────────────────────────────────────────────────────────
@@ -869,6 +871,19 @@ end
 -- ── GM actions ────────────────────────────────────────────────────────────────
 
 M.gm_flag_prefixes = {"boneyard_"}
+
+-- Saved flags this arc owns: every RT.flag name it sets, with what it means (a "*" suffix covers
+-- a family of names). M.reads lists other arcs' flags it looks at. check.py and the arc tests
+-- reject any flag that is not declared here. See missions_api.md, "Flags".
+M.flags = {
+    boneyard_buoy_found            = "the lifeboat survivors were recovered (their records are in the Science DB)",
+    boneyard_hack_done             = "the Ashgrave research archive was downloaded",
+    boneyard_drone_flip            = "the Relic drones were reprogrammed against the Concord",
+    boneyard_battlegroup_destroyed = "the battle group's command ship (CNS Vanguard) was destroyed",
+    boneyard_arc_done              = "true once the crew has left the Boneyard after the Annex fight",
+    boneyard_rewarded              = "reputation and credits were paid (an end state pays once)",
+}
+M.reads = {"rezkov_arc_done", "rezkov_declined"}
 
 -- Science DB follows the flags (SCIDB.sync at session start and after every GM jump): the
 -- survivor records exist while the lifeboat has been recovered; the Ashgrave research entries

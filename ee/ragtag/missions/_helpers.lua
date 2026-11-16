@@ -10,11 +10,45 @@ ARC = ARC or {}
 
 -- ── Players and distance ─────────────────────────────────────────────────────
 
--- The ship an arc acts on: the first valid player ship (nil when none is alive).
+-- Story arcs belong to ONE ship: the campaign's primary ship (the Magpie, RT.players[1]). Other
+-- player ships in the game can work the job board, but arcs do not react to them: they are not
+-- offered arc dialogs, do not trip arc triggers, and do not get arc logs, hails or effects.
+-- Arc code therefore never loops over RT.players (check.py rejects RT.players, RT.forEachPlayer,
+-- RT.shipLog and RT.hail in an arc); it uses the helpers below.
+
+-- The arc ship, or nil while it is destroyed (arcs then wait; no other ship takes over).
 function ARC.player()
-    for _, p in ipairs(RT.players or {}) do
-        if RT.valid(p) then return p end
+    local p = RT.players and RT.players[1]
+    if RT.valid(p) then return p end
+end
+
+-- Run fn(ship) on the arc ship when it is alive (instead of RT.forEachPlayer).
+function ARC.withPlayer(fn)
+    local p = ARC.player()
+    if p then return fn(p) end
+end
+
+function ARC.isArcShip(ship)
+    return ship ~= nil and ship == ARC.player()
+end
+
+-- Ship log line on the arc ship only (RT.shipLog writes to every player ship).
+function ARC.log(msg, color)
+    local p = ARC.player()
+    if p then p:addToShipLog(msg, color or "#FFFFFF") end
+end
+
+-- Hail the arc ship only. Returns true when the crew got the text, false when it did not (comms
+-- busy, or no arc ship): the caller then retries or falls back to ARC.log. With no valid sender
+-- the line goes straight to the arc ship's log under `speaker`.
+function ARC.hail(from, text, speaker)
+    local p = ARC.player()
+    if not p then return false end
+    if RT.valid(from) then
+        return from:sendCommsMessage(p, text) and true or false
     end
+    p:addToShipLog("[" .. (speaker or "Unknown") .. "] " .. text, "#C0E0FF")
+    return true
 end
 
 function ARC.dist(x1, y1, x2, y2)
@@ -67,23 +101,40 @@ end
 
 -- ── Dialogs ──────────────────────────────────────────────────────────────────
 
--- For dialogs that only happen docked. Returns true when src is docked at tgt; otherwise sets
--- `message` (when given) as the comms text and returns false:
+-- Wrap a comms function so only the arc ship gets the dialog; any other ship gets `other`
+-- (default: no answer). Use it for every arc comms function that offers a choice or changes
+-- arc state:
+--     ship:setCommsFunction(ARC.comms(function(src, tgt) ... end))
+function ARC.comms(fn, other)
+    return function(src, tgt)
+        if not ARC.isArcShip(src) then
+            setCommsMessage(other or "No response on this channel.")
+            return
+        end
+        return fn(src, tgt)
+    end
+end
+
+-- For dialogs that only happen docked. Returns true when src is the arc ship and is docked at
+-- tgt; otherwise sets `message` (when given) as the comms text and returns false:
 --     if not ARC.docked(src, tgt, '"Dock. We do not do business at a distance."') then return end
 function ARC.docked(src, tgt, message)
-    if RT.valid(src) and RT.valid(tgt) and src:isDocked(tgt) then return true end
+    if ARC.isArcShip(src) and RT.valid(tgt) and src:isDocked(tgt) then return true end
     if message then setCommsMessage(message) end
     return false
 end
 
 -- Register a station hook once per session, however often the arc's init phase runs (a GM
--- restart re-enters it). Keyed by callsign and function.
+-- restart re-enters it). Keyed by callsign and function. The hook only runs for the arc ship:
+-- other ships get the station's ordinary menu.
 local _hooked = {}
 function ARC.stationHook(callsign, fn)
     _hooked[callsign] = _hooked[callsign] or {}
     if _hooked[callsign][fn] then return end
     _hooked[callsign][fn] = true
-    RT.addStationHook(callsign, fn)
+    RT.addStationHook(callsign, function(src, ...)
+        if ARC.isArcShip(src) then return fn(src, ...) end
+    end)
 end
 
 -- First meeting with a Science DB profile: sets "<arc>_met_<who>" (SCIDB.meet), adds the profile
@@ -94,7 +145,7 @@ function ARC.meet(arc_id, profile_key, who)
     local ok, added = pcall(SCIDB.meet, arc_id, profile_key)
     if ok and added then
         local M = MISSIONS._registry[arc_id]
-        RT.shipLog("[" .. (M and M.name or arc_id) .. "] " .. who .. " personnel records added to our database.", "#80C0FF")
+        ARC.log("[" .. (M and M.name or arc_id) .. "] " .. who .. " personnel records added to our database.", "#80C0FF")
         return true
     end
     return false

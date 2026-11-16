@@ -12,6 +12,8 @@ Checks:
   * generated files are up to date (director/generated/world.md, docs/verse_map.svg)
   * every missions/jobs/world module file is required by its loader (unloaded files go in attic/)
   * every story arc (missions/<arc>.lua) has a regression test (tests/arcs/<arc>.lua)
+  * arc flags: every saved-flag literal is declared in an arc's M.flags; flags of another arc
+    are listed in M.reads and never written (a typo in a flag name is an error, not a silent no-op)
   * arcs use the shared ARC helpers (missions/_helpers.lua) instead of local copies, and core
     files (core.lua, verse.lua, ...) never reference the missions layer (ARC, MISSIONS)
   * the two skill copies of missions_api.md are identical
@@ -211,6 +213,12 @@ ARC_DUPLICATES = [
     (re.compile(r'RT\.addStationHook\('), "ARC.stationHook(callsign, fn)"),
     (re.compile(r'MISSIONS\.gmJump\('), "ARC.jumper(arc_id)"),
     (re.compile(r'pairs\(M\.init_state\(\)\)'), "ARC.resetState(M, st)"),
+    # Arcs belong to the primary ship only; these address every player ship.
+    (re.compile(r'RT\.players\b'), "ARC.player() (arcs act on the arc ship only)"),
+    (re.compile(r'RT\.forEachPlayer\('), "ARC.withPlayer(fn) (arcs act on the arc ship only)"),
+    (re.compile(r'RT\.shipLog\('), "ARC.log(msg, color) (arc logs go to the arc ship only)"),
+    (re.compile(r'RT\.hail\('), "ARC.hail(from, text, speaker) (arc hails go to the arc ship only)"),
+    (re.compile(r'RT\.voice\.(hail|log)\('), "ARC.hail(RT.voice.get(id), text, name) / ARC.log (arc ship only)"),
 ]
 # Mission-layer names that must not appear in the layers below it.
 CORE_FILES = ["core.lua", "verse.lua", "voice.lua", "stats.lua", "ship_templates.lua"]
@@ -239,6 +247,126 @@ def check_arc_helpers() -> None:
             errors.append(f"ee/ragtag/{name}:{line}: core code must not use {m.group(1)} "
                           f"(the missions layer sits above core; move the code into ee/ragtag/missions/)")
             break
+
+
+# ── Arc flags ────────────────────────────────────────────────────────────────
+# Saved flags are plain strings shared between arcs, so a typo fails silently in play. Each arc
+# declares the flags it owns (M.flags) and the other arcs' flags it reads (M.reads); every flag
+# literal in the code is checked against those declarations.
+FLAG_KEY = re.compile(r'^\s*(?:([a-z0-9_]+)|\["([a-z0-9_*]+)"\])\s*=\s*[\'"]', re.M)
+FLAG_CALL = re.compile(r'(RT\.flag|RT\.clearFlag|ARC\.once|T\.flag)\(\s*"([a-z0-9_]+)"\s*(\.\.)?\s*(,)?')
+FLAG_LIST = re.compile(r'\b(?:not_)?flagged\s*=\s*\{([^}]*)\}')
+FLAG_ROUTE = re.compile(r'ARC\.route\((.*?)\n\s*\}\s*,\s*"[a-z0-9_]+"\s*\)', re.S)
+FLAG_ROUTE_RULE = re.compile(r'\{\s*"([a-z0-9_]+)"\s*,\s*"[a-z0-9_]+"\s*\}')
+FLAG_KEEP = re.compile(r'\bname\s*==\s*"([a-z0-9_]+)"')
+
+
+def _strip_lua_comments(text: str) -> str:
+    return "\n".join(line.split("--", 1)[0] for line in text.splitlines())
+
+
+def _lua_table_body(text: str, start: str) -> str | None:
+    """Body of `start = { ... }` (balanced braces), or None."""
+    m = re.search(re.escape(start) + r'\s*=\s*\{', text)
+    if not m:
+        return None
+    depth, i = 1, m.end()
+    while i < len(text) and depth:
+        depth += {"{": 1, "}": -1}.get(text[i], 0)
+        i += 1
+    return text[m.end():i - 1]
+
+
+def _flag_uses(code: str) -> list[tuple[str, bool, bool, int]]:
+    """(name, is_family_prefix, is_write, line) for every flag literal in Lua code."""
+    out = []
+    def line_of(pos): return code.count("\n", 0, pos) + 1
+    for m in FLAG_CALL.finditer(code):
+        fn, name, concat, comma = m.groups()
+        write = fn in ("RT.clearFlag", "ARC.once") or (fn == "RT.flag" and bool(comma) and not concat)
+        out.append((name, bool(concat), write, line_of(m.start())))
+    for m in FLAG_LIST.finditer(code):
+        for name in re.findall(r'"([a-z0-9_]+)"', m.group(1)):
+            out.append((name, False, False, line_of(m.start())))
+    for m in FLAG_ROUTE.finditer(code):
+        for r in FLAG_ROUTE_RULE.finditer(m.group(1)):
+            out.append((r.group(1), False, False, line_of(m.start(1) + r.start())))
+    for m in FLAG_KEEP.finditer(code):
+        out.append((m.group(1), False, False, line_of(m.start())))
+    return out
+
+
+def check_arc_flags() -> None:
+    arcs_dir = ROOT / "ee" / "ragtag" / "missions"
+    arcs = {}   # id -> {file, flags, reads, prefixes, code}
+    for f in sorted(arcs_dir.glob("*.lua")):
+        if f.name.startswith("_"):
+            continue
+        rel = f"ee/ragtag/missions/{f.name}"
+        code = _strip_lua_comments(f.read_text(encoding="utf-8"))
+        body = _lua_table_body(code, "M.flags")
+        if body is None:
+            errors.append(f"{rel}: no M.flags table: declare every saved flag the arc sets "
+                          f"(name = \"meaning\"); see missions_api.md, \"Flags\"")
+            continue
+        flags = [a or b for a, b in FLAG_KEY.findall(body)]
+        reads = re.findall(r'"([a-z0-9_]+)"', _lua_table_body(code, "M.reads") or "")
+        pre = re.findall(r'"([a-z0-9_]+)"', _lua_table_body(code, "M.gm_flag_prefixes") or "") or [f.stem + "_"]
+        arcs[f.stem] = {"rel": rel, "flags": flags, "reads": reads, "prefixes": pre, "code": code}
+
+    def declared_by(name: str, family: bool = False) -> str | None:
+        for aid, a in arcs.items():
+            for key in a["flags"]:
+                if key == name and not family:
+                    return aid
+                if key.endswith("*") and name.startswith(key[:-1]) and (not family or name == key[:-1]):
+                    return aid
+        return None
+
+    def namespace(name: str) -> str | None:
+        for aid, a in arcs.items():
+            if any(name.startswith(p) for p in a["prefixes"]):
+                return aid
+        return None
+
+    for aid, a in arcs.items():
+        rel = a["rel"]
+        for key in a["flags"]:
+            if not any(key.startswith(p) for p in a["prefixes"]):
+                errors.append(f"{rel}: flag '{key}' does not start with one of the arc's gm_flag_prefixes "
+                              f"({', '.join(a['prefixes'])}), so a GM reset would not clear it")
+        uses = _flag_uses(a["code"])
+        used = {name for name, *_ in uses}
+        for name, family, write, line in uses:
+            owner = declared_by(name, family)
+            shown = name + ("*" if family else "")
+            if owner is None:
+                errors.append(f"{rel}:{line}: flag '{shown}' is not declared in any arc's M.flags "
+                              f"(typo, or add it to M.flags with its meaning)")
+            elif owner != aid:
+                if name not in a["reads"]:
+                    errors.append(f"{rel}:{line}: flag '{shown}' belongs to the {owner} arc: list it in M.reads")
+                if write:
+                    errors.append(f"{rel}:{line}: flag '{shown}' belongs to the {owner} arc: only its owner sets or clears it")
+        for key in a["flags"]:
+            if not key.endswith("*") and key not in used:
+                errors.append(f"{rel}: flag '{key}' is declared in M.flags but never used in the arc")
+        for name in a["reads"]:
+            owner = declared_by(name)
+            if owner is None or owner == aid:
+                errors.append(f"{rel}: M.reads lists '{name}', which no other arc declares")
+            elif name not in used:
+                errors.append(f"{rel}: M.reads lists '{name}' but the arc never reads it")
+
+    # Arc flags used outside the arcs (other layers, scenarios, arc tests) must exist too.
+    others = [f for f in sorted((ROOT / "ee" / "ragtag").rglob("*.lua")) if arcs_dir not in f.parents]
+    others += sorted((ROOT / "scenarios").rglob("*.lua")) + sorted((ROOT / "tests").rglob("*.lua"))
+    for f in others:
+        code = _strip_lua_comments(f.read_text(encoding="utf-8"))
+        for name, family, _write, line in _flag_uses(code):
+            if namespace(name) and declared_by(name, family) is None:
+                errors.append(f"{f.relative_to(ROOT)}:{line}: flag '{name}{'*' if family else ''}' looks like a "
+                              f"{namespace(name)} arc flag but is not declared in its M.flags")
 
 
 def check_api_md_sync() -> None:
@@ -284,6 +412,7 @@ def main() -> int:
     check_loader_requires()
     check_arc_tests()
     check_arc_helpers()
+    check_arc_flags()
     check_api_md_sync()
     check_python()
 

@@ -31,6 +31,8 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 | Need | Helper |
 |---|---|
 | The player ship / is it near a point | `ARC.player()`, `ARC.playerNear(x, y, r)` |
+| Do something to the ship / log / hail | `ARC.withPlayer(fn)`, `ARC.log(msg, color)`, `ARC.hail(from, text, speaker)` |
+| A comms function with choices | `ship:setCommsFunction(ARC.comms(fn, "line for other ships"))` |
 | Distances | `ARC.dist(x1, y1, x2, y2)`, `ARC.near(ent, x, y, r)` |
 | Which spawned ships are left / remove them | `ARC.alive(list)`, `ARC.kill(entity_or_table)` |
 | A dialog that needs a dock | `ARC.docked(src, tgt, "message when not docked")` |
@@ -40,10 +42,24 @@ That's the entire integration surface. The arc is self-contained; core gameplay 
 | `init` routing by saved flags | `ARC.route(arc_id, {{flag_or_fn, phase}, ...}, default)` |
 | GM state buttons and reset | `ARC.jumper(arc_id)`, `ARC.resetState(M, st)` |
 
+**One ship.** Arcs belong to the campaign's primary ship (the Magpie). Other player ships can be
+in the game working the job board, and an arc must not react to them. So arcs never use
+`RT.players`, `RT.forEachPlayer`, `RT.shipLog` or `RT.hail` (`check.py` rejects them): `ARC.player()`
+is the arc ship, `ARC.log` / `ARC.hail` reach only it, and `ARC.comms`, `ARC.docked` and
+`ARC.stationHook` keep arc dialogs away from other ships.
+
 **Keep the layers apart.** `ARC` belongs to the missions layer. When two arcs need the same new
 helper, add it to `_helpers.lua` (and to the table in `missions_api.md`, "Arc helpers (ARC)").
 Do not add mission helpers to `core.lua` (`RT`), the job board or world plugins: core must not
 know arcs exist. Going the other way is fine: arcs call `RT`, `JOBS`, `PROX`, `RUMORS`, `SCIDB`.
+
+## Declare the arc's flags
+
+Every saved flag the arc sets goes in `M.flags = {name = "meaning", ...}`; other arcs' flags it
+reads go in `M.reads = {...}`. `check.py` rejects any `RT.flag` name that is not declared (a typo
+is an error instead of a silent no-op), a write to another arc's flag, and an unused declaration;
+the arc tests reject undeclared flags written at run time. Flag names start with the arc's
+prefix (`<id>_`). Details: `missions_api.md`, "Flags".
 
 ## What belongs in the arc module
 
@@ -111,6 +127,9 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 - **`RT.flag("x", nil)` is a no-op read** — it does not clear the flag. Use `RT.clearFlag("x")`.
 - **Not cleaning up in `on_cancel`** — world objects persist across GM restarts.
 - **Double-registering station hooks** — if the GM restarts the arc in the same session, hooks fire twice. Register with `ARC.stationHook(callsign, fn)`, which ignores the repeat.
+- **Undeclared or misspelled flags** — `RT.flag("myarc_acepted")` used to fail silently. Declare flags in `M.flags`; `check.py` catches the rest.
+- **Writing another arc's flag** — flags listed in `M.reads` are read-only. If two arcs need to agree, the owner sets the flag.
+- **Talking to every ship** — `RT.shipLog` / `RT.hail` reach all player ships. Arcs use `ARC.log` / `ARC.hail`.
 - **Re-implementing a shared helper** — a local `_firstPlayer`, `_dist`, `_alive`, `_kill` or `_addRecords` in an arc. Use `ARC.*` (`check.py` errors on these).
 - **Putting an arc helper in `core.lua`** — shared arc code lives in `ee/ragtag/missions/_helpers.lua`.
 - **Forgetting the require** — the arc never loads and the game throws no error, but `check.py` now errors on any `ee/ragtag/missions/*.lua` not required by `missions.lua`. Intentionally unloaded arcs go in `ee/ragtag/missions/attic/`.
@@ -126,6 +145,8 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 - [ ] The arc is linear: each phase goes to the next phase, `done`, or back to an earlier phase (no branching; see "Linear arcs" in the reference)
 - [ ] Science DB entries the arc reveals follow its flags (`SCIDB.meet` for people, `SCIDB.rule` for lore/runtime entries)
 - [ ] `M.on_cancel` destroys all spawned objects (`ARC.kill`)
+- [ ] `M.flags` declares every flag the arc sets, with its meaning; `M.reads` lists other arcs' flags it reads
+- [ ] Reacts to the arc ship only: no `RT.players` / `RT.forEachPlayer` / `RT.shipLog` / `RT.hail`; choice-bearing comms wrapped in `ARC.comms`
 - [ ] Uses `ARC` helpers where one exists; anything two arcs share was added to `_helpers.lua`, nothing mission-specific was added to `core.lua`
 - [ ] `M.gm_reset` + `M.completed` let every `→` button land with the full context (jump through each phase and back; no leftover ships, timers, flags or state)
 - [ ] `RT.after` timers cancelled with `RT.cancelTimer(name)` in `_clearState` if they shouldn't fire after phase ends

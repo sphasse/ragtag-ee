@@ -125,7 +125,7 @@ local function _befriend()
     local bw = _blackwater()
     if RT.valid(bw) then
         bw:setFaction("Corsair Friendly")
-        bw:setCommsFunction(function(src, tgt) _blackwaterComms(src, tgt) end)
+        bw:setCommsFunction(ARC.comms(function(src, tgt) _blackwaterComms(src, tgt) end, '"Blackwater."'))
     end
     PROX.suspendZone("the Gauntlet")
     PROX.suspendZone("Blackwater Reach")
@@ -216,7 +216,7 @@ local function _spawnGuide(st, x, y)
     g:setWarpDrive(true)
     g:setDescriptions("Corsair raider.", "Corsair raider Long Memory, running friendly colours. Weapons cold.")
     g:setScanningParameters(1, 1)
-    g:setCommsScript(""):setCommsFunction(_guideComms)
+    g:setCommsScript(""):setCommsFunction(ARC.comms(_guideComms, '"Long Memory. Not looking for you."'))
     st.guide = g
     return g
 end
@@ -258,7 +258,7 @@ local function _spawnEscorts(st)
         s:setWarpDrive(true)
         s:setDescriptions("Corsair warship.", "Corsair warship " .. cs .. ", lent by Blackwater for the depot raid.")
         s:setScanningParameters(1, 1)
-        s:setCommsScript(""):setCommsFunction(function(src, tgt) _escortComms(src, tgt) end)
+        s:setCommsScript(""):setCommsFunction(ARC.comms(function(src, tgt) _escortComms(src, tgt) end, '"We take our orders from someone else."'))
         if RT.valid(p) then s:orderDefendTarget(p) end
         st.escorts[#st.escorts + 1] = s
     end
@@ -348,12 +348,12 @@ end
 local function _giveMines(st)
     if st.mines_given then return end
     st.mines_given = true
-    RT.forEachPlayer(function(p)
+    ARC.withPlayer(function(p)
         if RT.valid(p) then
             p:setWeaponStorageMax("Mine", _PLAYER_MINES):setWeaponStorage("Mine", _PLAYER_MINES)
         end
     end)
-    RT.shipLog(string.format("[Weapons] %d mines from the depot haul loaded in the rear tube racks.", _PLAYER_MINES), "#FFCC80")
+    ARC.log(string.format("[Weapons] %d mines from the depot haul loaded in the rear tube racks.", _PLAYER_MINES), "#FFCC80")
 end
 
 -- ── The battle ───────────────────────────────────────────────────────────────
@@ -398,7 +398,7 @@ local function _spawnFleet(st)
         st.wp[s] = 1
         s:orderFlyTowards(_FLEET_WAYPOINTS[1][1], _FLEET_WAYPOINTS[1][2])
     end
-    RT.shipLog("[CNS Retribution] Blackwater Reach, this is Concord Battle Group Two. Your haven is declared a pirate installation under the Settlement Accords. Stand down and prepare to be boarded.", "#FF6666")
+    ARC.log("[CNS Retribution] Blackwater Reach, this is Concord Battle Group Two. Your haven is declared a pirate installation under the Settlement Accords. Stand down and prepare to be boarded.", "#FF6666")
 end
 
 -- Advance each ship to its next waypoint once within 1.5U of the current one.
@@ -503,7 +503,7 @@ local function _greywaterHook(src, tgt)
         g:orderIdle()
         st.hail_when_near, st.hook_hailed = true, false
         RT.setObjective("Meet Long Memory at the Gauntlet's edge", true, "corsair")
-        RT.shipLog("[Greywater] Message for you: Long Memory is waiting at grid " .. _grid(_GREYWATER_MEET_X, _GREYWATER_MEET_Y) .. ", the edge of the Gauntlet.", "#A0C0FF")
+        ARC.log("[Greywater] Message for you: Long Memory is waiting at grid " .. _grid(_GREYWATER_MEET_X, _GREYWATER_MEET_Y) .. ", the edge of the Gauntlet.", "#A0C0FF")
         setCommsMessage('The barkeep wipes the same glass for a while, then slides a data chip across the bar.\n\n'
             .. '"Friend of yours at Blackwater wants a word. There\'s a ship called Long Memory waiting at the edge of the Gauntlet, grid '
             .. _grid(_GREYWATER_MEET_X, _GREYWATER_MEET_Y) .. '. Fly out, they\'ll find you.\n\nI never saw the chip. You never saw me."')
@@ -565,7 +565,7 @@ function M.resolve(st)
             RT.addReputation("Corsairs", 400, "Corsair Arc: held the wall at Blackwater")
             RT.addReputation("Concord", -300, "Corsair Arc: destroyed Concord Battle Group Two")
         end
-        RT.shipLog("[Corsair Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "defended" and "#80FF80" or "#FF8080")
+        ARC.log("[Corsair Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "defended" and "#80FF80" or "#FF8080")
     end)
     RUMORS.removeCategory("CORSAIR_DONE")
     if outcome == "defended" then
@@ -642,13 +642,13 @@ M.phases.hook = {
             local g = _spawnGuide(st, px + math.cos(a) * 4500, py + math.sin(a) * 4500)
             g:orderDefendTarget(p)
             st.hook_at = now + 4
-            RT.shipLog("[Science] Corsair raider closing. Weapons cold, shields down. They're not attacking.", "#00CCAA")
+            ARC.log("[Science] Corsair raider closing. Weapons cold, shields down. They're not attacking.", "#00CCAA")
         elseif not st.hook_hailed and now >= (st.hook_at or 0) then
             st.hook_hailed = true
             local ok, opened = pcall(function() return st.guide:openCommsTo(p) end)
             if not (ok and opened) then
-                RT.hail(st.guide, _HOOK_TEXT, "Long Memory")
-                RT.shipLog("[Relay] Long Memory is waiting for an answer. Hail them back.", "#A0C0FF")
+                ARC.hail(st.guide, _HOOK_TEXT, "Long Memory")
+                ARC.log("[Relay] Long Memory is waiting for an answer. Hail them back.", "#A0C0FF")
             end
         elseif ARC.dist(px, py, _GAUNTLET_X, _GAUNTLET_Y) > _GAUNTLET_R + 20 * U then
             -- The crew left without answering: the raider goes back to watching.
@@ -690,7 +690,7 @@ M.phases.escort = {
             g:orderIdle()
             if now >= (st.keep_up_at or 0) then
                 st.keep_up_at = now + 60
-                RT.hail(g, '"Keep up. These rocks eat the careless."', "Long Memory")
+                ARC.hail(g, '"Keep up. These rocks eat the careless."', "Long Memory")
             end
         elseif st.guide_waiting and d < 4 * U then
             st.guide_waiting = false
@@ -715,19 +715,19 @@ M.phases.raid = {
         _spawnDefenders(st)
         _spawnEscorts(st)
         RT.setObjective("Raid the Concord forward depot", true, "corsair")
-        RT.shipLog("[Corsair Arc] Concord forward depot at grid " .. _grid(_DEPOT_X, _DEPOT_Y)
+        ARC.log("[Corsair Arc] Concord forward depot at grid " .. _grid(_DEPOT_X, _DEPOT_Y)
             .. ", between Cinder and Tamsin. Two Concord guards. Hardtack and Ninth Life are under your command: hail them for orders.", "#A0C0FF")
     end,
     update = function(st, delta, now)
         local escorts = ARC.alive(st.escorts)
         if #escorts == 0 then
-            RT.shipLog("[Reva Okonkwo] Both ships lost? Damn it. I'm sending two more. The Concord will have re-crewed that depot. Try again.", "#FFCC80")
+            ARC.log("[Reva Okonkwo] Both ships lost? Damn it. I'm sending two more. The Concord will have re-crewed that depot. Try again.", "#FFCC80")
             MISSIONS.phase("corsair", "raid")   -- failure restart: fresh escorts, fresh defenders
             return
         end
         if not st.defenders_down and #ARC.alive(st.defenders) == 0 then
             st.defenders_down = true
-            RT.hail(escorts[1], '"Guards are down. Give the word and we\'ll board the depot."', escorts[1]:getCallSign())
+            ARC.hail(escorts[1], '"Guards are down. Give the word and we\'ll board the depot."', escorts[1]:getCallSign())
         elseif st.attacking and #ARC.alive(st.defenders) > 0 then
             for _, s in ipairs(escorts) do
                 local ok, ord = pcall(function() return s:getOrder() end)
@@ -740,12 +740,12 @@ M.phases.raid = {
                     if ARC.near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then
                         st.load_t0 = now
                         for _, e in ipairs(escorts) do e:orderIdle() end
-                        RT.shipLog("[" .. s:getCallSign() .. "] Alongside the depot. Cutting into the cargo bays.", "#FFCC80")
+                        ARC.log("[" .. s:getCallSign() .. "] Alongside the depot. Cutting into the cargo bays.", "#FFCC80")
                         break
                     end
                 end
             elseif now - st.load_t0 >= _LOAD_TIME then
-                RT.hail(escorts[1], '"We\'re loading up the haul now: mines, missiles, jammers, the lot. Meet you back at Blackwater."', escorts[1]:getCallSign())
+                ARC.hail(escorts[1], '"We\'re loading up the haul now: mines, missiles, jammers, the lot. Meet you back at Blackwater."', escorts[1]:getCallSign())
                 RT.flag("corsair_raid_done", true)
                 MISSIONS.phase("corsair", "return")
             end
@@ -777,7 +777,7 @@ M.phases.battle = {
         if PROX and PROX.tickCombatJammers then PROX.tickCombatJammers(st.cjam, st.fleet, ARC.player(), now) end
         if st.fleet_spawned and #ARC.alive(st.fleet) == 0 then
             RT.flag("corsair_arc_done", "defended")
-            RT.shipLog("[Reva Okonkwo] That's the last of them. Battle Group Two is gone. Blackwater stands!", "#80FF80")
+            ARC.log("[Reva Okonkwo] That's the last of them. Battle Group Two is gone. Blackwater stands!", "#80FF80")
             MISSIONS.phase("corsair", "done")
             return
         end
@@ -786,7 +786,7 @@ M.phases.battle = {
             local ok, frac = pcall(function() return bw:getHull() / bw:getHullMax() end)
             if ok and frac < _BW_FALLS_AT then
                 RT.flag("corsair_arc_done", "failed")
-                RT.shipLog("[Reva Okonkwo] Blackwater's breached. Everyone out! Scatter into the Gauntlet!", "#FF4040")
+                ARC.log("[Reva Okonkwo] Blackwater's breached. Everyone out! Scatter into the Gauntlet!", "#FF4040")
                 MISSIONS.phase("corsair", "done")
             end
         end
@@ -796,6 +796,22 @@ M.phases.battle = {
 -- ── GM console ───────────────────────────────────────────────────────────────
 
 M.gm_flag_prefixes = {"corsair_"}
+
+-- Saved flags this arc owns: every RT.flag name it sets, with what it means (a "*" suffix covers
+-- a family of names). M.reads lists other arcs' flags it looks at. check.py and the arc tests
+-- reject any flag that is not declared here. See missions_api.md, "Flags".
+M.flags = {
+    corsair_hook      = "told Long Memory to lead the way",
+    corsair_arrived   = "docked at Blackwater",
+    corsair_briefed   = "took the depot raid from Reva",
+    corsair_raid_done = "the escorts loaded the depot haul",
+    corsair_joined    = "agreed to hold the wall",
+    corsair_arc_done  = 'outcome: "defended" | "failed" | "declined"',
+    corsair_ally      = "set on defended: Gauntlet and Blackwater Corsairs stay friendly, Blackwater is dockable",
+    corsair_battlegroup_destroyed = "set on defended: Concord Battle Group Two is gone",
+    corsair_rewarded  = "reputation was paid (an end state pays once)",
+    ["corsair_met_*"] = "Science DB profile met in this arc (reva), set by ARC.meet",
+}
 
 M.gm_state_fn = function()
     if MISSIONS._status["corsair"] == "done" then
