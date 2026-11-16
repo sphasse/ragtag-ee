@@ -2,8 +2,8 @@
 -- Science station encyclopedia for the Drift universe.
 -- Runs in init(): removes the stock sections listed in SCIDB.REMOVE_STOCK (EE builds the stock
 -- database before the scenario starts), then builds the Drift's top-level sections: "The Drift"
--- (overview), Regions, Factions and Lore, beside the stock Natural, Technologies, Weapons, Ships
--- and Stations.
+-- (overview), Factions, Regions, Ports (one entry per friendly/neutral universe station, from
+-- VERSE.STATIONS) and Lore, beside the stock Natural, Technologies, Weapons, Ships and Stations.
 --
 -- API:
 --   SCIDB.unlock(key)              -- reveal a locked entry
@@ -243,6 +243,82 @@ local function _locked(parent, name, locked_desc, real_desc, real_kv, lock_key)
     return e
 end
 
+-- ─── Ports directory ──────────────────────────────────────────────────────────
+-- One entry per universe station (VERSE.STATIONS, so extension stations appear automatically).
+-- Hostile havens (Corsairs, Hollow) are left out: the crew has no directory entry for them.
+-- Stations spawned by story arcs (Rezkov's station, the Ashgrave Annex) are not universe
+-- stations and never appear here.
+SCIDB.PORT_EXCLUDE_FACTIONS = {Corsairs = true, Hollow = true}
+
+local _PORT_U = 1000
+
+-- The named area a port sits in: the smallest region containing it that is not just the port's
+-- own namesake pocket (e.g. the "Calder's Reach" region around Calder's Reach). Ports outside
+-- every other region get "Near <closest region>".
+local function _portArea(d)
+    local own = d.cs:lower()
+    local best, best_r, near, near_gap
+    for _, r in ipairs(VERSE.REGIONS or {}) do
+        local name = r.name:lower():gsub("^the ", "")
+        if not own:find(name, 1, true) and r.r > 1 then
+            local dist = math.sqrt((d.x - r.x) ^ 2 + (d.y - r.y) ^ 2)
+            if dist <= r.r then
+                if not best_r or r.r < best_r then best, best_r = r, r.r end
+            elseif not near_gap or dist - r.r < near_gap then
+                near, near_gap = r, dist - r.r
+            end
+        end
+    end
+    if best then return best.name end
+    if near then return "near " .. near.name end
+    return "open space"
+end
+
+local function _cap(s) return (s:gsub("^%l", string.upper)) end
+
+local function _buildPorts()
+    if not (VERSE and VERSE.STATIONS) then return end
+    local ports = {}
+    for _, d in ipairs(VERSE.STATIONS) do
+        if not SCIDB.PORT_EXCLUDE_FACTIONS[d.fac] then ports[#ports + 1] = d end
+    end
+    if #ports == 0 then return end
+    table.sort(ports, function(a, b) return a.cs < b.cs end)
+
+    local root = _entry(nil, "Ports",
+        "Stations of the Drift that will take a freighter's docking request, with where to find " ..
+        "them and what they offer. Grid references are the same ones the job board uses.")
+    SCIDB._entries["ports"] = root
+
+    for _, d in ipairs(ports) do
+        local grid = getSectorName(d.x * _PORT_U, d.y * _PORT_U)
+        local area = _cap(_portArea(d))
+        local shop = {}
+        for _, id in ipairs(d.shop or {}) do
+            local u = RT and RT.upgradeById and RT.upgradeById(id)
+            shop[#shop + 1] = u and u.name or id
+        end
+        local services = {"Job board", "Repairs and resupply"}
+        if #shop > 0 then services[#services + 1] = "Shipwright" end
+        if d.concord then services[#services + 1] = "Concord customs" end
+
+        local lines = {d.desc or "", "",
+            "LOCATION\nGrid " .. grid .. ", " .. area .. ".", "",
+            "SERVICES\n" .. table.concat(services, ", ") .. "."}
+        if #shop > 0 then
+            lines[#lines + 1] = ""
+            lines[#lines + 1] = "SHIPWRIGHT\n" .. table.concat(shop, "\n")
+        end
+        if d.concord then
+            lines[#lines + 1] = ""
+            lines[#lines + 1] = "STANDING\nA Concord port. Work here dries up as your Concord standing falls: few jobs below -200, none below -400."
+        end
+        local kv = {["Grid"] = grid, ["Area"] = area, ["Authority"] = d.fac,
+                    ["Shipwright"] = #shop > 0 and (#shop .. " upgrades") or "None"}
+        SCIDB._entries["port_" .. d.cs] = _entry(root, d.cs, table.concat(lines, "\n"), kv)
+    end
+end
+
 -- ─── Database construction ────────────────────────────────────────────────────
 
 local function _build()
@@ -386,6 +462,8 @@ local function _build()
     )
 
     -- ── Lore ─────────────────────────────────────────────────────────────────
+
+    _buildPorts()
 
     local lore = _entry(nil, "Lore",
         "Historical records, research summaries, and recovered documents. " ..
