@@ -1,7 +1,9 @@
 -- ee/ragtag/world/sciencedb.lua
 -- Science station encyclopedia for the Drift universe.
--- Runs in init(): clears auto-populated ship-template entries (best-effort),
--- then builds the Drift lore database.
+-- Runs in init(): removes the stock sections listed in SCIDB.REMOVE_STOCK (EE builds the stock
+-- database before the scenario starts), then builds the Drift's top-level sections: "The Drift"
+-- (overview), Regions, Factions and Lore, beside the stock Natural, Technologies, Weapons, Ships
+-- and Stations.
 --
 -- API:
 --   SCIDB.unlock(key)              -- reveal a locked entry
@@ -222,14 +224,15 @@ end
 -- ─── Internal builder helpers ─────────────────────────────────────────────────
 
 local function _entry(parent, name, desc, kv)
-    local e = parent:addEntry(name)
+    -- parent == nil makes a top-level section (the Science screen's first column).
+    local e = parent and parent:addEntry(name) or ScienceDatabase():setName(name)
     if desc then e:setLongDescription(desc) end
     if kv then for k, v in pairs(kv) do e:setKeyValue(k, v) end end
     return e
 end
 
 local function _locked(parent, name, locked_desc, real_desc, real_kv, lock_key)
-    local e = parent:addEntry(name)
+    local e = parent and parent:addEntry(name) or ScienceDatabase():setName(name)
     e:setLongDescription(locked_desc)
     SCIDB._locked[lock_key] = {
         entry       = e,
@@ -256,7 +259,9 @@ local function _build()
 
     -- ── Regions ──────────────────────────────────────────────────────────────
 
-    local regions = _entry(root, "Regions",
+    -- Regions, Factions and Lore are top-level sections beside the stock Natural / Technologies /
+    -- Weapons / Ships / Stations ones; "The Drift" above is the overview entry.
+    local regions = _entry(nil, "Regions",
         "The Drift is divided into named regions with distinct hazard profiles and " ..
         "political climates. Knowing where you are matters."
     )
@@ -324,7 +329,7 @@ local function _build()
 
     -- ── Factions ─────────────────────────────────────────────────────────────
 
-    local factions = _entry(root, "Factions",
+    local factions = _entry(nil, "Factions",
         "Known groups operating in the Drift. Reputation with each faction affects " ..
         "how they respond to your ship."
     )
@@ -382,7 +387,7 @@ local function _build()
 
     -- ── Lore ─────────────────────────────────────────────────────────────────
 
-    local lore = _entry(root, "Lore",
+    local lore = _entry(nil, "Lore",
         "Historical records, research summaries, and recovered documents. " ..
         "Updated as new information is retrieved."
     )
@@ -474,15 +479,33 @@ _P.name             = "Science Database"
 _P.default_enabled  = true
 _P.defaults         = {}
 
-function _P.init(state)
-    -- Best-effort: clear auto-populated ship-template entries.
-    -- getAllObjects() only returns entities with positions, so ScienceDatabase
-    -- entries may not appear. This is harmless if they're not returned.
-    for _, obj in ipairs(getAllObjects()) do
-        if isObjectType(obj, "ScienceDatabase") then
-            obj:destroy()
+-- Stock top-level sections the Drift replaces (EE builds the stock database in science_db.lua
+-- before the scenario's init). The stock Factions list the stock universe (Human Navy, Kraylor,
+-- Exuari...); the Drift has its own top-level Factions. Natural, Technologies, Weapons, Ships and
+-- Stations stay: generic gameplay help, and Science's "Database" button on a scanned ship looks
+-- its template up in Ships/Stations.
+SCIDB.REMOVE_STOCK = {"Factions"}
+
+local function _destroyTree(node)
+    local ok, kids = pcall(function() return node:getEntries() end)
+    for _, c in ipairs(ok and kids or {}) do _destroyTree(c) end
+    pcall(function() node:destroy() end)
+end
+
+local function _removeStockSections()
+    local remove = {}
+    for _, n in ipairs(SCIDB.REMOVE_STOCK) do remove[n] = true end
+    for _, top in ipairs(getScienceDatabases() or {}) do
+        local ok, name = pcall(function() return top:getName() end)
+        if ok and remove[name] then
+            _destroyTree(top)
+            log("[SCIDB] removed stock section: " .. name)
         end
     end
+end
+
+function _P.init(state)
+    _removeStockSections()
     _build()
 end
 
