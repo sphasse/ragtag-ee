@@ -11,7 +11,11 @@ VERSE.extend({
         {cs = "Juniper Waystation", tmpl = "Small Station", fac = "Independent", x = -72, y = 64,
          shop = {"missile_racks", "engine_tune"},
          flavor = "Juniper Waystation. Hot coffee, cold storage, no manifests.",
-         desc = "A smugglers' rest stop in the dark behind the red sun Cinder."},
+         desc = "A smugglers' rest stop in the dark behind the red sun Cinder.",
+         -- Optional: a short narrative for the Science database's Ports section.
+         lore = "Juniper started as a fuel cache for Free Ship raiders during the Settlement War. "
+             .. "Nobody ever told the Concord it existed, and nobody intends to.\n\n"
+             .. "The coffee is excellent. The cold storage is not for coffee."},
     },
     regions = {
         {name = "Juniper Reach", x = -72, y = 64, r = 10, danger = 0,

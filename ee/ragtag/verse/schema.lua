@@ -10,6 +10,8 @@
 --       id = "my_extension",            -- required, unique
 --       title = "What this adds",
 --       stations = { {cs = "New Station", tmpl = "Small Station", fac = "Independent", x = 10, y = 20, ...} },
+--                  -- optional: desc (one line, the station's scan text), lore (paragraphs for the
+--                  -- Science database's Ports section; "\n\n" between paragraphs), shop, flavor
 --       regions = { ... }, planets = { ... }, stars = { ... },
 --       nebula_fields = { ... }, asteroid_fields = { ... }, garrisons = { ... },
 --       minefields = { ... }, hazards = { ... }, wreck_fields = { ... },

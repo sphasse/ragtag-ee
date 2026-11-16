@@ -302,9 +302,11 @@ local function _buildPorts()
         if #shop > 0 then services[#services + 1] = "Shipwright" end
         if d.concord then services[#services + 1] = "Concord customs" end
 
-        local lines = {d.desc or "", "",
+        local lines = {d.desc or "", ""}
+        if d.lore then lines[#lines + 1] = d.lore; lines[#lines + 1] = "" end
+        for _, l in ipairs({
             "LOCATION\nGrid " .. grid .. ", " .. area .. ".", "",
-            "SERVICES\n" .. table.concat(services, ", ") .. "."}
+            "SERVICES\n" .. table.concat(services, ", ") .. "."}) do lines[#lines + 1] = l end
         if #shop > 0 then
             lines[#lines + 1] = ""
             lines[#lines + 1] = "SHIPWRIGHT\n" .. table.concat(shop, "\n")
