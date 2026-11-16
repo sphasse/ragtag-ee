@@ -7,7 +7,7 @@
 Cues are mono 44.1 kHz 16-bit WAV (EmptyEpsilon plays WAV; there is no OGG
 encoder on the dev machine). Mono so any cue can also be used positionally.
 Edit the recipes below, rerun, then update RT.SOUNDS `seconds` in
-ee/ragtag/core.lua if a length changed (the script prints the numbers).
+ee/ragtag/core/sound.lua if a length changed (the script prints the numbers).
 """
 import argparse
 import math

@@ -6,7 +6,9 @@ Contributors add **universe extensions** and **scenarios** independently.
 
 ## Layout
 - `ee/ragtag/` — Lua framework, installed to EmptyEpsilon `scripts/ragtag/`
-  - `core.lua` (RT: campaign saves, ship, upgrades, credits, stations, objectives)
+  - `core.lua` (RT: campaign saves, flags, credits, player ships, objectives, timers) + `core/*.lua`, loaded by it:
+    `sound`, `reputation`, `upgrades`, `stations` (comms menu, shipwright, restock), `gm_tools` (backup/restore)
+  - `gm_console.lua` (GMCONSOLE: the campaign GM menus; top layer, loaded by the scenario, not by core)
   - `verse.lua` (VERSE engine: builds the universe from data) + `verse/schema.lua` (VERSE.extend, validation)
   - `verse/drift.lua` — base universe **data** (no engine calls)
   - `verse/extensions/*.lua` — community universe additions; `index.lua` is generated
@@ -101,7 +103,7 @@ with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unloa
 
 ### Proximity Spawn System (Replaced Intercepts)
 
-**Ambient faction patrols** spawn based on player location, not mission progress. System in `ee/ragtag/proximity.lua`.
+**Ambient faction patrols** spawn based on player location, not mission progress. System in `ee/ragtag/world/proximity.lua`.
 
 **Zone-based spawns**:
 - **Concord Core / Arbiter Line**: Concord shake-downs (comms-first, not immediate attack)

@@ -237,10 +237,11 @@ def check_arc_helpers() -> None:
                 line = text.count("\n", 0, m.start()) + 1
                 errors.append(f"ee/ragtag/missions/{f.name}:{line}: use {use} from missions/_helpers.lua "
                               f"instead of `{m.group(0)}`")
-    for name in CORE_FILES:
-        f = ROOT / "ee" / "ragtag" / name
+    core = [ROOT / "ee" / "ragtag" / name for name in CORE_FILES] + sorted((ROOT / "ee" / "ragtag" / "core").glob("*.lua"))
+    for f in core:
         if not f.exists():
             continue
+        name = str(f.relative_to(ROOT / "ee" / "ragtag"))
         code = "\n".join(line.split("--", 1)[0] for line in f.read_text(encoding="utf-8").splitlines())
         for m in re.finditer(r'\b(ARC|MISSIONS)\.', code):
             line = code.count("\n", 0, m.start()) + 1

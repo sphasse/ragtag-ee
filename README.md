@@ -43,7 +43,7 @@ Progressive difficulty and compensation:
 
 ### Proximity Spawn System
 
-Ambient faction patrols are driven by `ee/ragtag/proximity.lua`, not hard-coded encounter tables. Every 8 seconds the system checks which zone the player is in and whether conditions allow a new spawn.
+Ambient faction patrols are driven by `ee/ragtag/world/proximity.lua`, not hard-coded encounter tables. Every 8 seconds the system checks which zone the player is in and whether conditions allow a new spawn.
 
 **Spawn strength** is the sum of two numbers:
 - **Player tier**: 0 (0–1 upgrades) · 1 (2–4 upgrades) · 2 (5+ upgrades)
@@ -200,7 +200,7 @@ An AI director on a separate PC voices characters, answers hails, and times enco
 | Path | What | Who edits |
 |---|---|---|
 | `ee/ragtag/` | Lua framework (installed to `scripts/ragtag/`) | Framework contributors |
-| `ee/ragtag/proximity.lua` | Proximity spawn system (zone patrols, Concord shake-down) | Framework contributors |
+| `ee/ragtag/world/proximity.lua` | Proximity spawn system (zone patrols, Concord shake-down) | Framework contributors |
 | `ee/ragtag/verse/drift.lua` | Base universe data | Rarely (see CONTRIBUTING.md) |
 | `ee/ragtag/verse/extensions/` | Community universe additions | Anyone |
 | `scenarios/sandbox/` | Sandbox campaign scenario | Contributors |
