@@ -123,59 +123,83 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   - Rep: Concord -300 (-500 with drone flip); Corsairs +150 with drone flip.
     Credits 600 (data) + 200 (flip).
 
-## Arc 4 — Corsair Arc (redemption) — PLANNED
+## Arc 4 — Corsair Arc (redemption) — PLANNED (design 2026-11-15)
 
-**Premise.** The second battle group (seeded by the Boneyard hook rumors: two
-groups left Lumen) gets its destination: Blackwater Reach. Concord has decided
-to solve its Corsair problem permanently — and quietly, while the Drift is
-distracted. The arc humanizes the Corsairs: many crews are Settlement War Free
-Ship veterans and their children, pushed into the Gauntlet by the "transitional"
-tariffs that never transitioned. The crew learns the strike is coming before
-the Corsairs do.
+**Premise.** The Concord's second battle group (seeded by the Boneyard hook rumors: two groups
+left Lumen) is coming for Blackwater Reach, to settle the Corsair problem quietly while the Drift
+is distracted. Many Corsairs are Settlement War Free Ship veterans and their children, pushed into
+raiding by the "transitional" tariffs. A raider who has been watching the crew brings them in;
+the crew raids a Concord forward depot so the Corsairs can build a trap from its mines and
+jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don't do it.
 
-**Hook.** A Corsair ship *doesn't* attack: a damaged raider limps out of the
-Gauntlet broadcasting a general distress — half her crew dead, hit by Concord
-"survey pickets" that are actually the battle group's vanguard. Rendering aid
-(or even just hearing her out) opens the arc. Alternative hook at Saint
-Brennan's Mission: wounded Corsairs in the clinic, and the sister who runs it
-asks the crew to carry a warning no one else will.
+**Trigger:** upgrades >= 1000, `corsair_arc_done` unset, and the crew enters the Gauntlet.
 
-**Structure sketch** (phases; linear, Defend is the one path — decided 2026-11-13):
-1. `hook` — rumor category `CORSAIR_HOOK` + the distress encounter.
-2. `parley` — escorted (blind-jump style: follow a Corsair guide ship) to
-   Blackwater; meet the Corsair quartermaster (name her — proposed: **Reva
-   Okonkwo**, ex-Free Ship gunnery chief). She doesn't want saving; she wants
-   *options*. Two answers:
-   - **Help them**: continue to `prep`.
-   - **Walk away / sell them out**: report the Corsair disposition to Concord
-     at Sentinel Fleet Yard. Ends the arc (`betrayed`): big Concord rep payoff,
-     permanent Corsair hostility, and the finale loses the escort wing (nothing
-     worse — sandbox PROX already hunts low-rep crews). This must be a real,
-     payable choice.
-3. `prep` — help prep Blackwater: reseed the minefield gap, hack the battle
-   group's targeting relay (reuse hacking mechanics). Optional objective in the
-   same phase: escort the civilian hulls (families, wounded) out through the
-   Gauntlet to Saint Brennan's before the strike → flag `corsair_civilians_out`
-   (outcome modifier, not a separate path).
-4. `strike` — fight the vanguard at the Veil. Win → `defended`; Blackwater
-   falls → `failed`.
-5. `done`.
+**Phases:** `hook` -> `escort` -> `briefing` -> `raid` -> `return` -> `battle` -> `done`
+1. `hook` — entering the Gauntlet: the raider *Long Memory* closes without attacking and hails:
+   "We watch things in the Drift, and we know you're someone capable of taking on the Concord.
+   Somebody at Blackwater wants to talk to you. Follow us." Follow / Not interested
+   (-> `declined`). Only this hook (no distress call, no Saint Brennan's hook).
+2. `escort` — follow the *Long Memory* to Blackwater. Corsair territory is temporarily friendly
+   (garrisons + Blackwater), Corsair PROX spawns suspended. Straying > ~8U: warning hail, guide waits.
+3. `briefing` — docked at Blackwater, quartermaster **Reva Okonkwo** (ex-Free Ship gunnery chief):
+   "We have some fierce fighters out in the Drift and guarding Blackwater, but most of the ships
+   here are families." The Corsair tax: "we only take back what the tariffs took, and only from
+   Concord hulls or to defend our territory." The Concord has provisioned a forward depot for the
+   invasion between Cinder and Tamsin (~(-60, 62)): mines, missiles and a handful of warp
+   jammers, guarded by two Concord ships. Reva gives the crew two decent Corsair ships to take it.
+4. `raid` — the two Corsair ships are commanded through comms like escort-job ships, with the
+   orders unlocking in sequence: "Form up on me" -> (within ~5U of the depot) "Attack the Concord
+   defenders" -> (defenders dead) "Board the depot and take the weapons". The crew does not
+   board: the Corsairs dock, load (~30 s) and hail: "We're loading up the haul. Meet you back at
+   Blackwater." Defenders are `Concord Hostile` (no auto rep penalty; the arc applies its own).
+5. `return` — dock at Blackwater. Reva thanks the crew: the mines are already laid as a trap,
+   warp jammers included, and family freighters are being retrofitted as gunboats. **The trap
+   spawns now** (see below); the crew's ship gets a few mines from the haul. Then: "And just in
+   time too. News is the Concord attack fleet was just detected at <grid west of the wall> and
+   is closing fast. I know you have not always seen eye to eye with us Corsairs, but will you fly
+   out and join our defense?" Join / Decline (-> `declined`).
+6. `battle` — a Concord fleet about the size of the Boneyard group spawns west of the wall, far
+   from the gap, and follows **scripted waypoints** (orderFlyTowards, one leg at a time) along
+   the wall's west face, through the gap, then attacks. The long traverse gives Science time to
+   scan and Relay time to hack. Corsair missile raiders are placed beside the gap on the
+   Blackwater side; the retrofitted gunboats and any raid survivors hold near Blackwater. Fewer
+   allies than the Boneyard fight. All Concord ships destroyed -> `defended`; Blackwater
+   destroyed -> `failed`. Balance by playtest.
 
-**Exports**:
-- `corsair_arc_done` = `"defended"` | `"betrayed"` | `"failed"`
-- `corsair_civilians_out` = true when the optional civilian escort got out before the strike
-- `corsair_battlegroup_destroyed` = true when the crew kills the vanguard at the Veil
-  (`defended` path only). Read by Arc 6's trigger.
-- `corsair_ally` = true on defended → Corsair comms turn
-  `Corsair Friendly` for the crew (existing faction, already wired); Blackwater
-  becomes dockable staging for the Maw run.
-- Rep: Corsairs +400 (ally paths) / set to floor (betrayed); Concord -300 (ally
-  paths) / +400 (betrayed).
+**The trap (spawned in `return`).**
+- Mine walls of stock scripted `Mine()`s laid "pirate style": jittered, not straight, but never
+  more than **0.7U** between neighbours (trigger radius 0.6U, so there is no way through).
+- One **3U gap**. The wall mines get a smaller AI avoid bubble (`avoid_object.range` ~0.8U
+  instead of the stock 1.2U; trigger 0.6U and blast 1U unchanged) so the AI can use the gap; the
+  stock bubbles would cover 2.4U of a 3U gap.
+- Corsair warp jammers along the approach and at the gap, so the fleet makes the traverse at
+  impulse instead of warping.
+- Crew mines (from the haul) can be laid in or near the gap. Risk: sealing the gap could leave
+  the AI with no route; decide at playtest whether that is a feature.
+- Size: wall length and the fleet's spawn distance from the gap set how long the traverse takes
+  (~20U of wall is ~30 mines per section). Placement west of Blackwater (55, 99), facing the
+  Concord's approach from the west; exact geometry decided when built.
+
+**Flags:** `corsair_hook`, `corsair_briefed`, `corsair_raid_done`, `corsair_joined`,
+`corsair_arc_done`, `corsair_battlegroup_destroyed`, `corsair_ally`, `corsair_rewarded`,
+`corsair_met_reva` (new SCIDB profile via `SCIDB.meet`).
+
+**Exports / outcomes (`corsair_arc_done`):**
+- `"defended"` — `corsair_ally` (Corsairs `Corsair Friendly` for the crew; Blackwater dockable
+  staging for the Maw run) and `corsair_battlegroup_destroyed` (Arc 6 trigger input).
+  Corsairs +400, Concord -300.
+- `"failed"` — Blackwater falls. No ally, no Arc 6.
+- `"declined"` — turned down the hook or the final battle. No ally.
 - Rumor category `CORSAIR_DONE` seeds the finale either way.
 
-**Trigger sketch**: upgrades ≥ 1000, `not_flagged = {corsair_arc_done}`;
-Corsairs rep > -400 for the ally hooks (below that, only the Saint Brennan's
-hook works — the sister vouches for the crew).
+**Open (2026-11-15):**
+1. A second prep mission? Candidates: scout the attack fleet (Science scans a Concord picket;
+   composition and arrival grid revealed in the briefing), or bring the outlying families in
+   before the trap is laid. Or the raid alone.
+2. Both raid escorts lost: Reva sends two more (restart `raid`), or the crew finishes alone
+   with no haul?
+3. Declining the final battle after the raid: `declined`, or Blackwater falls off-screen
+   (`failed`)?
 
 ## Arc 5 — Maw Arc (finale) — PLANNED
 
@@ -235,8 +259,7 @@ one warhead. The crew gets one shot.
   but the Drift never learns why.
 - **Corsairs** (`corsair_ally`): a Corsair escort wing (3–4 ships, `Corsair
   Friendly`) joins at Lastchance and flies the whole run; Blackwater is a
-  repair/rearm stop on the way. `"betrayed"` → no wing, nothing else (no
-  Corsair hunters in the finale — the betrayal was already paid).
+  repair/rearm stop on the way. `"failed"` / `"declined"` → no wing, nothing else.
 - **Drones** (`boneyard_drone_flip`): a `Relic Active` wing warps in at the
   start of `cascade` to cover the exit. Pure payoff.
 - **Kael** (`kael_alive`): she meets the crew at Lastchance in `staging` with
@@ -483,7 +506,7 @@ already stop on `liberation`; on `mercy` this finishes the job); Core prices dro
    *Plan:* fixed in the Maw section above (she is intercepted and cornered at Galen).
 5. **Independent reputation can be deeply negative.** Rezkov `concord_won` is -1000.
    *Plan:* the Independent wing is a task chain, not a reputation gate.
-6. **The Corsair ally may not exist.** `corsair_ally` is false on `betrayed`/`failed`, but
+6. **The Corsair ally may not exist.** `corsair_ally` is false on `failed`/`declined`, but
    Arc 6 needs `corsair_battlegroup_destroyed`, which only the `defended` path sets, so
    `corsair_ally` is always true when Arc 6 runs. The Corsair wing is always available.
 7. **The Annex is destroyed when the Boneyard arc ends.** *Plan:* respawn it for Arc 6
@@ -574,10 +597,18 @@ If an arc module is lost, rebuild against these rails:
   The 90 seconds is the escape (`cascade`).
 - Concord is absent from the climax; Kael (she/her) is a small staging beat and
   the follow-on lead.
-- Corsair "betrayed" costs the escort wing only; no hunters in the finale.
+- Corsair `failed`/`declined` costs the escort wing only; no hunters in the finale (2026-11-15: the betrayal branch was dropped).
 - Fail state restarts from `staging`, never `hook`.
 - Two arcs eligible at once is acceptable; no trigger staggering.
 - The verse's Maw garrisons are cleared and replaced by the arc's own.
+
+## Decisions made (2026-11-15)
+
+- Corsair arc reworked: single hook (non-hostile raider hail on entering the Gauntlet), escort to
+  Blackwater, Reva's briefing, a forward-depot raid with commandable Corsair escorts, a mine-wall
+  trap with a 3U gap, and the battle at the wall. No betrayal branch: defend or decline.
+- Wall mines use a smaller AI avoid bubble (~0.8U); trigger and blast stay stock. The attack
+  fleet follows scripted waypoints along the wall, never free pathfinding.
 
 ## Decisions made (2026-11-13)
 
@@ -585,8 +616,8 @@ If an arc module is lost, rebuild against these rails:
   with an outcome flag, or back to an earlier phase (failure restart). Decisions end the arc or
   continue it; variation lives inside phases as flags. Rule and engine warning: missions_api.md,
   "Linear arcs".
-- Corsair arc: Defend is the single path; Walk away ends the arc (`betrayed`); Evacuate becomes
-  the optional civilian-escort objective inside `prep` (`corsair_civilians_out`).
+- Corsair arc: Defend is the single path (superseded 2026-11-15 by the Corsair design: no
+  betrayal branch; defend or decline).
 - Ledger arc built: rumor → Thresh → Rezkov → three fragments → power drain + audit fleet →
   Rezkov holds the ledger. The audit sweep and `partial` outcome were dropped.
 
