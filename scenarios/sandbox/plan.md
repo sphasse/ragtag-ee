@@ -157,7 +157,7 @@ jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don
    spawns now** (see below); the crew's ship gets a few mines from the haul. Then: "And just in
    time too. News is the Concord attack fleet was just detected at <grid west of the wall> and
    is closing fast. I know you have not always seen eye to eye with us Corsairs, but will you fly
-   out and join our defense?" Join / Decline (-> `declined`).
+   out and join our defense?" Join / Decline (-> `failed`: the defense started without them).
 6. `battle` — a Concord fleet about the size of the Boneyard group spawns west of the wall, far
    from the gap, and follows **scripted waypoints** (orderFlyTowards, one leg at a time) along
    the wall's west face, through the gap, then attacks. The long traverse gives Science time to
@@ -188,18 +188,17 @@ jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don
 - `"defended"` — `corsair_ally` (Corsairs `Corsair Friendly` for the crew; Blackwater dockable
   staging for the Maw run) and `corsair_battlegroup_destroyed` (Arc 6 trigger input).
   Corsairs +400, Concord -300.
-- `"failed"` — Blackwater falls. No ally, no Arc 6.
-- `"declined"` — turned down the hook or the final battle. No ally.
+- `"failed"` — Blackwater falls, or the crew declined the final battle after the raid. No ally,
+  no Arc 6.
+- `"declined"` — turned down the hook. No ally.
 - Rumor category `CORSAIR_DONE` seeds the finale either way.
 
-**Open (2026-11-15):**
-1. A second prep mission? Candidates: scout the attack fleet (Science scans a Concord picket;
-   composition and arrival grid revealed in the briefing), or bring the outlying families in
-   before the trap is laid. Or the raid alone.
-2. Both raid escorts lost: Reva sends two more (restart `raid`), or the crew finishes alone
-   with no haul?
-3. Declining the final battle after the raid: `declined`, or Blackwater falls off-screen
-   (`failed`)?
+**Decided (2026-11-15):**
+1. One prep mission: the depot raid only.
+2. If both raid escorts are lost, the raid restarts: Reva sends two fresh Corsair ships and the
+   depot's defenders are reset (back to the start of `raid`, the linear-arc failure restart).
+3. Declining the final battle after the raid counts as `"failed"` (the defense started and did
+   not finish successfully); `"declined"` only comes from turning down the hook.
 
 ## Arc 5 — Maw Arc (finale) — PLANNED
 
@@ -607,6 +606,8 @@ If an arc module is lost, rebuild against these rails:
 - Corsair arc reworked: single hook (non-hostile raider hail on entering the Gauntlet), escort to
   Blackwater, Reva's briefing, a forward-depot raid with commandable Corsair escorts, a mine-wall
   trap with a 3U gap, and the battle at the wall. No betrayal branch: defend or decline.
+- Corsair arc: one prep mission (the raid); losing both raid escorts restarts the raid; declining
+  the final battle after the raid is `failed`, only a refused hook is `declined`.
 - Wall mines use a smaller AI avoid bubble (~0.8U); trigger and blast stay stock. The attack
   fleet follows scripted waypoints along the wall, never free pathfinding.
 
