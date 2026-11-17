@@ -395,7 +395,8 @@ function M.generate(opts)
         _spawned        = false,
         _destroyed      = false,
         _attacking      = false,
-        target_cs       = nil,
+        target          = nil,   -- set by spawn: the target entity
+        target_cs       = nil,   -- its callsign, for log lines
     }
 end
 
@@ -433,11 +434,11 @@ function M.spawn(m)
         s:orderRoaming()
     end
     RT.register(s)
-    DIR.registerKill(s)
-    DIR.allowControl(s)
+    RT.reportKills(s)
     s:setCommsFunction(function(src, tgt)
         setCommsMessage('"Get away from us."')
     end)
+    m.target     = s      -- the entity; target_cs is only its name, for text
     m.target_cs  = name
     m.short      = "Destroy " .. name
     m.obj        = "Destroy " .. name
@@ -455,7 +456,8 @@ end
 function M.update(m, entry, ctx)
     if m._destroyed then return nil end
 
-    local target = RT.find(m.target_cs)
+    if not m._spawned then return nil end
+    local target = m.target
     if not RT.valid(target) then
         m._destroyed = true
         JOBS.rep(m, "Corsairs", -200, "destroyed " .. (m.target_cs or "unknown"))
@@ -484,8 +486,8 @@ function M.completable(m, cs)
 end
 
 function M.cleanup(m)
-    if m.target_cs and not m._destroyed then
-        local s = RT.find(m.target_cs)
+    if not m._destroyed then
+        local s = m.target
         if RT.valid(s) then
             RT.cancelKillTracking(s)
             s:destroy()

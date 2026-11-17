@@ -22,15 +22,14 @@ local _ESCORT_NAMES = {
 }
 
 -- Post-completion departure tracking; processed by _tickDeparting each JOBS cycle.
-local _departing = {}  -- list of {ships={cs,...}, despawn_at=t}
+local _departing = {}  -- list of {ships={entity,...}, despawn_at=t}
 
 local function _tickDeparting(now)
     local i = #_departing
     while i >= 1 do
         local d = _departing[i]
         if now > d.despawn_at then
-            for _, cs in ipairs(d.ships) do
-                local s = RT.find(cs)
+            for _, s in ipairs(d.ships) do
                 if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
             end
             table.remove(_departing, i)
@@ -156,11 +155,11 @@ local _ARCHETYPES = {
 local function _dismissFighters(m)
     if m._fighters_dismissed then return end
     m._fighters_dismissed = true
-    local fighter_list = m.fighter_cs or {}
+    local fighter_list = m.fighters or {}
     if #fighter_list == 0 then return end
     local candidates = {}
-    for cs, _ in pairs(VERSE.STATIONS or {}) do
-        if cs ~= m.origin and cs ~= m.dest then candidates[#candidates + 1] = cs end
+    for _, st in ipairs(VERSE.STATIONS or {}) do
+        if st.cs ~= m.origin and st.cs ~= m.dest then candidates[#candidates + 1] = st.cs end
     end
     local tx, ty
     if #candidates > 0 then
@@ -169,14 +168,13 @@ local function _dismissFighters(m)
     end
     if not tx then tx = m.dx + (m.dx - m.ox); ty = m.dy + (m.dy - m.oy) end
     local dep_ships = {}
-    for _, cs in ipairs(fighter_list) do
-        local s = RT.find(cs)
+    for _, s in ipairs(fighter_list) do
         if RT.valid(s) then
             s:orderFlyTowardsBlind(tx, ty)
             s:setCommsFunction(function(src, tgt)
                 setCommsMessage('"Good flying, Captain. We\'ve got our own heading now."')
             end)
-            dep_ships[#dep_ships + 1] = cs
+            dep_ships[#dep_ships + 1] = s
         end
     end
     if #dep_ships > 0 then
@@ -196,17 +194,16 @@ local function _spawnInterceptors(m, cx, cy)
         s:setPosition(ex, ey)
         s:setImpulseMaxSpeed(200, 60)
         s:setWarpSpeed(0)
-        local convoy_target = RT.find(m.convoy_cs)
+        local convoy_target = m.convoy
         if RT.valid(convoy_target) then
             s:orderAttack(convoy_target)
         else
             s:orderRoaming()
         end
         RT.register(s)
-        DIR.registerKill(s)
-        DIR.allowControl(s)
+        RT.reportKills(s)
         m._interceptors[#m._interceptors + 1] = {
-            cs = cs, sx = ex, sy = ey,
+            ship = s, cs = cs, sx = ex, sy = ey,
             init_hull    = s:getHullMax(),
             init_shields = s:getShieldMax(0),
             switched     = false,
@@ -290,7 +287,9 @@ function M.generate(opts)
         _ambush2        = false,
         _interceptors       = {},
         _fighters_dismissed = false,
+        convoy          = nil,   -- set by spawn: the convoy entity (convoy_cs: its name)
         convoy_cs       = nil,
+        fighters        = {},    -- set by spawn: the fighter entities (fighter_cs: their names)
         fighter_cs      = {},
     }
 end
@@ -336,7 +335,7 @@ function M.spawn(m)
     convoy:setRadarTrace("transport.png")
     convoy:setRadarTraceScale(2)
     RT.register(convoy)
-    DIR.registerKill(convoy)
+    RT.reportKills(convoy)
     local mission_ref = m
     convoy:setCommsFunction(function(src, tgt)
         if src ~= mission_ref.ship then   -- the convoy answers to the ship under contract
@@ -372,6 +371,7 @@ function M.spawn(m)
             setCommsMessage('"Copy. Forming up on you."')
         end)
     end)
+    m.convoy    = convoy        -- the entity; convoy_cs is only its name, for text
     m.convoy_cs = convoy_name
     log(string.format("[ESCORT-DIAG] spawn complete: convoy=%s pos=(%.0f,%.0f) dx=%.0f dy=%.0f spawned=%s",
         convoy_name, ox + math.cos(dock_angle) * 800, oy + math.sin(dock_angle) * 800,
@@ -392,7 +392,7 @@ function M.spawn(m)
         return JOBS.uniqueName(_ESCORT_NAMES)
     end
 
-    local fighters = {}
+    local fighters, fighter_names = {}, {}
     for i = 1, 2 do
         local angle = (i - 1) * math.pi + math.random() * 0.4 - 0.2
         local fx = ox + math.cos(angle) * 3 * U
@@ -405,8 +405,7 @@ function M.spawn(m)
         f:setWarpSpeed(0)
         f:orderDefendTarget(convoy)
         RT.register(f)
-        DIR.registerKill(f)
-        DIR.allowControl(f)
+        RT.reportKills(f)
         local cname = convoy_name
         f:setCommsFunction(function(src, tgt)
             if src ~= mission_ref.ship then
@@ -415,7 +414,7 @@ function M.spawn(m)
             end
             setCommsMessage('"Standing by, Captain. Your orders?"')
             addCommsReply("Defend " .. cname, function(s2, t2)
-                local cv = RT.find(cname)
+                local cv = convoy
                 if RT.valid(cv) then
                     tgt:orderDefendTarget(cv)
                     setCommsMessage('"Copy. Protecting ' .. cname .. '."')
@@ -428,7 +427,7 @@ function M.spawn(m)
                 setCommsMessage('"Copy. Weapons free."')
             end)
             addCommsReply("Form up on convoy", function(s2, t2)
-                local cv2 = RT.find(cname)
+                local cv2 = convoy
                 if RT.valid(cv2) then
                     tgt:orderDefendTarget(cv2)
                     setCommsMessage('"Copy. Forming up on convoy."')
@@ -441,9 +440,11 @@ function M.spawn(m)
                 setCommsMessage('"Copy. On your wing."')
             end)
         end)
-        fighters[i] = fname
+        fighters[i] = f
+        fighter_names[i] = fname
     end
-    m.fighter_cs = fighters
+    m.fighters   = fighters        -- the entities
+    m.fighter_cs = fighter_names   -- their names, for text
     m._spawned   = true
 end
 
@@ -458,7 +459,7 @@ end
 function M.update(m, entry, ctx)
     if not m._spawned or m._convoy_lost then return nil end
 
-    local convoy = RT.find(m.convoy_cs)
+    local convoy = m.convoy
 
     if not RT.valid(convoy) then
         m._convoy_lost = true
@@ -477,7 +478,7 @@ function M.update(m, entry, ctx)
     -- Switch interceptors to roaming (fight back) once they take any damage.
     for _, interc in ipairs(m._interceptors) do
         if not interc.switched then
-            local s = RT.find(interc.cs)
+            local s = interc.ship
             if RT.valid(s) then
                 local hit = s:getHull() < interc.init_hull
                     or (interc.init_shields > 0 and s:getShieldLevel(0) < interc.init_shields)
@@ -505,7 +506,7 @@ function M.update(m, entry, ctx)
                 m._convoy_arrived = true
                 m._arrived_at = ctx.now
                 for _, interc in ipairs(m._interceptors) do
-                    local s = RT.find(interc.cs)
+                    local s = interc.ship
                     if RT.valid(s) then s:orderFlyTowardsBlind(interc.sx, interc.sy) end
                 end
                 _dismissFighters(m)
@@ -519,7 +520,7 @@ function M.update(m, entry, ctx)
     -- Despawn recalled interceptors 2 minutes after convoy docks.
     if m._arrived_at and ctx.now > m._arrived_at + 120 and #m._interceptors > 0 then
         for _, interc in ipairs(m._interceptors) do
-            local s = RT.find(interc.cs)
+            local s = interc.ship
             if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
         end
         m._interceptors = {}
@@ -535,12 +536,12 @@ function M.update(m, entry, ctx)
                 _spawnInterceptors(m, cx, cy)
                 m._ambush1 = true
                 JOBS.log(m, "[Escort] Looks like someone is trying to intercept us!", "#FF8080")
-                DIR.emit("escort_ambush", {wave=1, convoy=m.convoy_cs}, "normal")
+                RT.emit("escort_ambush", {wave=1, convoy=m.convoy_cs}, "normal")
             elseif m._ambush1 and not m._ambush2 and prog >= 0.67 then
                 _spawnInterceptors(m, cx, cy)
                 m._ambush2 = true
                 JOBS.log(m, "[Escort] Another intercept wave is inbound!", "#FF8080")
-                DIR.emit("escort_ambush", {wave=2, convoy=m.convoy_cs}, "normal")
+                RT.emit("escort_ambush", {wave=2, convoy=m.convoy_cs}, "normal")
             end
         end
     end
@@ -559,8 +560,8 @@ function M.expire(m)
 end
 
 function M.cleanup(m)
-    if m.convoy_cs then
-        local s = RT.find(m.convoy_cs)
+    do
+        local s = m.convoy
         if RT.valid(s) and not m._convoy_arrived then
             RT.cancelKillTracking(s)
             s:destroy()
@@ -568,15 +569,14 @@ function M.cleanup(m)
     end
 
     for _, interc in ipairs(m._interceptors or {}) do
-        local s = RT.find(interc.cs)
+        local s = interc.ship
         if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
     end
 
     if m._convoy_arrived then
         _dismissFighters(m)  -- no-op if already dismissed in update()
     else
-        for _, cs in ipairs(m.fighter_cs or {}) do
-            local s = RT.find(cs)
+        for _, s in ipairs(m.fighters or {}) do
             if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
         end
     end

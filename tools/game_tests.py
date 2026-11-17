@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Run the in-game regression tests against a headless EmptyEpsilon:
-story arcs (tests/arcs/*.lua) and the job board (tests/jobs/*.lua).
+"""Run the in-game regression tests against a headless EmptyEpsilon: story arcs
+(tests/arcs/*.lua), the job board (tests/jobs/*.lua), the world plugins (tests/world/*.lua)
+and core (tests/core/*.lua: ship records, the event bus, the director's mailbox).
 
     python3 tools/game_tests.py --ee <EmptyEpsilon dir>            # everything
     python3 tools/game_tests.py --ee <EmptyEpsilon dir> ledger -v  # one test, every check listed
-    python3 tools/game_tests.py --ee <EmptyEpsilon dir> jobs       # one folder (arcs | jobs)
+    python3 tools/game_tests.py --ee <EmptyEpsilon dir> jobs       # one folder (arcs | jobs | world | core)
+    python3 tools/game_tests.py --ee <EmptyEpsilon dir> world/salvage   # a name two folders share
     EE_DIR=<EmptyEpsilon dir> python3 tools/game_tests.py
 
 --ee is what tools/install.py takes (the folder with scripts/), or an EmptyEpsilon checkout with
@@ -35,7 +37,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TESTS = ROOT / "tests"
-SUITES = ("arcs", "jobs")     # tests/<suite>/<name>.lua; names are unique across suites
+SUITES = ("arcs", "jobs", "world", "core")   # tests/<suite>/<name>.lua; a test is "<suite>/<name>"
 BASE_SCENARIO = ROOT / "scenarios" / "sandbox" / "scenario_80_ragtag.lua"
 SCRIPT_DIR_NAME = "ragtag_arctests"          # under EmptyEpsilon's scripts/
 SCENARIO_PREFIX = "scenario_97_arctest_"     # 97: not a number check.py hands out
@@ -56,13 +58,18 @@ def find_ee(path: Path) -> tuple[Path, Path]:
     raise SystemExit(f"No EmptyEpsilon with a scripts/ folder and a binary under {path}.")
 
 
+def slug(test: str) -> str:
+    """File-name form of a test id: "world/salvage" -> "world_salvage"."""
+    return test.replace("/", "_")
+
+
 def scenario_text(arc: str) -> str:
     """The base scenario's header (so its settings and defaults apply), then base + harness + test."""
     header = []
     for line in BASE_SCENARIO.read_text(encoding="utf-8").splitlines():
         if not line.startswith("--"):
             break
-        header.append(f"-- Name: Arc test {arc}" if line.startswith("-- Name:") else line)
+        header.append(f"-- Name: Game test {arc}" if line.startswith("-- Name:") else line)
     body = [
         f'require("{BASE_SCENARIO.name}")',
         f'require("{SCRIPT_DIR_NAME}/_harness.lua")',
@@ -72,14 +79,14 @@ def scenario_text(arc: str) -> str:
 
 
 def run_arc(arc: str, res: Path, binary: Path, port: int, timeout: float, log_dir: Path) -> dict:
-    home = Path(tempfile.mkdtemp(prefix=f"arctest_{arc}_"))
+    home = Path(tempfile.mkdtemp(prefix=f"arctest_{slug(arc)}_"))
     (home / ".emptyepsilon").mkdir()
-    log_path = log_dir / f"{arc}.log"
+    log_path = log_dir / f"{slug(arc)}.log"
     env = dict(os.environ, HOME=str(home), SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
     started = time.time()
     with open(log_path, "wb") as log:
         proc = subprocess.Popen(
-            [str(binary), f"headless={SCENARIO_PREFIX}{arc}.lua", f"server_port={port}"],
+            [str(binary), f"headless={SCENARIO_PREFIX}{slug(arc)}.lua", f"server_port={port}"],
             cwd=res, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         ended = "timeout"
         try:
@@ -117,7 +124,7 @@ def run_arc(arc: str, res: Path, binary: Path, port: int, timeout: float, log_di
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("arcs", nargs="*", help="tests to run: names or a folder (arcs, jobs); default everything")
+    ap.add_argument("arcs", nargs="*", help="tests to run: names, <folder>/<name>, or a folder (arcs, jobs, world, core); default everything")
     ap.add_argument("--ee", default=os.environ.get("EE_DIR"), help="EmptyEpsilon folder (or set EE_DIR)")
     ap.add_argument("--jobs", type=int, default=4, help="EmptyEpsilon processes to run at once (default 4)")
     ap.add_argument("--timeout", type=float, default=420, help="seconds before one arc's run is abandoned")
@@ -129,14 +136,26 @@ def main() -> int:
     if not args.ee:
         ap.error("give --ee <EmptyEpsilon folder> or set EE_DIR")
 
-    by_suite = {su: sorted(p.stem for p in (TESTS / su).glob("*.lua") if not p.name.startswith("_")) for su in SUITES}
+    by_suite = {su: sorted(f"{su}/{p.stem}" for p in (TESTS / su).glob("*.lua") if not p.name.startswith("_"))
+                for su in SUITES}
     available = [n for su in SUITES for n in by_suite[su]]
-    arcs = []
+    arcs, unknown = [], []
     for a in (args.arcs or available):
-        arcs += by_suite[a] if a in by_suite else [a]
-    unknown = [a for a in arcs if a not in available]
+        if a in by_suite:
+            arcs += by_suite[a]
+        elif a in available:
+            arcs.append(a)
+        else:                                   # a bare name: fine when only one folder has it
+            hits = [n for n in available if n.split("/", 1)[1] == a]
+            if len(hits) == 1:
+                arcs += hits
+            elif hits:
+                raise SystemExit(f"'{a}' is in several folders: say which ({', '.join(hits)}).")
+            else:
+                unknown.append(a)
     if unknown:
         raise SystemExit(f"No test for: {', '.join(unknown)}. Available: {', '.join(available)}")
+    arcs = list(dict.fromkeys(arcs))
 
     res, binary = find_ee(Path(args.ee))
     scripts = res / "scripts"
@@ -150,15 +169,16 @@ def main() -> int:
     log_dir = Path(args.logs).expanduser() if args.logs else Path(tempfile.mkdtemp(prefix="arctest_logs_"))
     log_dir.mkdir(parents=True, exist_ok=True)
     test_dir = scripts / SCRIPT_DIR_NAME
-    generated = [scripts / f"{SCENARIO_PREFIX}{a}.lua" for a in arcs]
+    generated = [scripts / f"{SCENARIO_PREFIX}{slug(a)}.lua" for a in arcs]
     try:
         if test_dir.exists():
             shutil.rmtree(test_dir)
         test_dir.mkdir()
         shutil.copy2(TESTS / "_harness.lua", test_dir / "_harness.lua")
         for su in SUITES:
+            (test_dir / su).mkdir()
             for f in (TESTS / su).glob("*.lua"):
-                shutil.copy2(f, test_dir / f.name)
+                shutil.copy2(f, test_dir / su / f.name)
         for arc, path in zip(arcs, generated):
             path.write_text(scenario_text(arc), encoding="utf-8")
         print(f"Game tests: {', '.join(arcs)}  (EmptyEpsilon: {binary})")

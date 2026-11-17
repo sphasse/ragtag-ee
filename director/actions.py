@@ -1,10 +1,15 @@
 """Action catalog for the AI director.
 
-This mirrors DIR.ACTIONS in ee_scripts/ragtag_director.lua. The Lua side is the
-real safety boundary (it clamps everything again); this side exists to:
+This mirrors DIR.ACTIONS in ee/ragtag/director/actions/*.lua. The Lua side is the
+real safety boundary (it clamps everything again, and refuses every GM-only
+action unless the GM sent it); this side exists to:
   * describe the actions to the language model,
   * reject malformed output early so the model gets useful feedback,
   * keep GM-only actions away from the model.
+
+The director is observation-only: the model may send only what the crew never
+sees and what cannot change the game (gm_note, noop). Everything else is
+GM-only (llm_allowed=False), here and on the Lua side.
 """
 
 from __future__ import annotations
@@ -41,17 +46,17 @@ def _add(a: Action) -> None:
     ACTIONS[a.name] = a
 
 
-_add(Action("say", "Speak to the crew as a named character. If the speaker is a ship or station callsign nearby, it arrives as a comms hail; otherwise it goes to the ship's log.", {
-    "speaker": Arg("str", True, max_len=40, help="character name or ship/station callsign"),
-    "text": Arg("str", True, max_len=500, help="what they say; 1-3 short sentences"),
-    "channel": Arg("enum", choices=["hail", "log"], help="default hail"),
-}))
 _add(Action("gm_note", "Private message to the human game master explaining what you are doing or suggesting something.", {
     "text": Arg("str", True, max_len=400),
 }))
 _add(Action("noop", "Do nothing this time.", {}))
 
 # GM-only: the console can send these, the model cannot.
+_add(Action("say", "Speak to the crew as a named character. If the speaker is a ship or station callsign, it arrives as a comms hail; otherwise it goes to the ship's log.", {
+    "speaker": Arg("str", True, max_len=40, help="character name or ship/station callsign"),
+    "text": Arg("str", True, max_len=500, help="what they say; 1-3 short sentences"),
+    "channel": Arg("enum", choices=["hail", "log"], help="default hail"),
+}, llm_allowed=False))
 _add(Action("set_objective", "Set the crew's displayed objective.", {"text": Arg("str", True, max_len=160)}, llm_allowed=False))
 _add(Action("restore_campaign", "Overwrite the campaign save on the game server.", {"campaign": Arg("dict", True)}, llm_allowed=False))
 _add(Action("rename_ship", "Rename the crew's ship (persists).", {"name": Arg("str", True, max_len=24)}, llm_allowed=False))

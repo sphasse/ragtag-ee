@@ -77,7 +77,8 @@ toggled on/off by the GM at runtime. Current plugins:
 
 MISSIONS arcs are multi-phase scripted events with trigger conditions, GM
 controls, and optional player choices. Each arc is a module in
-`ee/ragtag/missions/`. Current arcs: `witness` (the Kael Voss arc).
+`ee/ragtag/missions/`. Current arcs: `rezkov`, `boneyard`, `ledger`, `corsair`
+(retired arcs are parked, unloaded, in `missions/attic/`).
 
 ---
 
@@ -113,10 +114,12 @@ Missions can lock the job board while an arc runs:
 M.locks_jobs = true  -- JOBS.config.jobboard_locked set true on start, false on done/cancel
 ```
 
-Missions can also post dynamic jobs directly via the director:
+Missions seed the boards with filler work and story contracts:
 
 ```lua
-DIR.ACTIONS.create_delivery = function(a) ... table.insert(JOBS._dynamic_queue, job) end
+JOBS.inject{category = "MY_ARC_JOBS", priority = 5, origin = "Port Vesper",
+            record = JOBS.build("delivery", {story = true, ...})}
+JOBS.removeCategory("MY_ARC_JOBS")   -- in M.on_unload / a phase's exit
 ```
 
 ### World plugins and proximity
@@ -125,7 +128,8 @@ Missions that need to suppress ambient patrols (e.g. a scripted encounter
 takes over):
 
 ```lua
-S.witness_active = true   -- checked by the proximity plugin's spawning logic
+PROX.suspendZone("the Gauntlet")   -- no new patrols there (existing ones are still leashed home)
+PROX.resumeZone("the Gauntlet")    -- in the phase's exit / M.gm_reset
 ```
 
 ---

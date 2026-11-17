@@ -187,7 +187,7 @@ function M.resolve(st)
     RT.addCredits(reward, "The Witness: " .. outcome)
     RT.shipLog("[The Witness] " .. msg .. " +" .. reward .. " cr.", "#80FF80")
     RT.flag("witness_complete", outcome)
-    DIR.emit("witness_complete", {outcome=outcome, kael_alive=st.kael_alive, complied=st.complied}, "high")
+    RT.emit("witness_complete", {outcome=outcome, kael_alive=st.kael_alive, complied=st.complied}, "high")
     RT.setObjective("The Witness: complete", true)
 
     local buoy = RT.find(st.buoy_cs or "")
@@ -324,7 +324,7 @@ M.phases.checkpoint = {
             ship:setPosition(cx + math.cos(perp_rad) * offset,
                              cy + math.sin(perp_rad) * offset)
             ship:orderIdle():setCanBeDestroyed(true)
-            RT.register(ship); DIR.registerKill(ship); DIR.allowControl(ship)
+            RT.register(ship); RT.reportKills(ship)
             st.concord_names[i] = ship:getCallSign()
         end
 
@@ -471,7 +471,7 @@ M.phases.shroud_run = {
                     s:setPosition(px + math.cos(ang + (i-1) * 0.7) * (8000 + random(-1000, 1000)),
                                   py + math.sin(ang + (i-1) * 0.7) * (8000 + random(-1000, 1000)))
                     s:orderAttack(ref)
-                    RT.register(s); DIR.registerKill(s); DIR.allowControl(s)
+                    RT.register(s); RT.reportKills(s)
                     st.corsair_names[i] = s:getCallSign()
                 end
                 RT.shipLog("[Ambush] Corsairs -- " .. table.concat(st.corsair_names, ", ") .. ". Someone talked.", "#FF8080")
@@ -597,7 +597,7 @@ M.phases.broadcast = {
                 local ang = ((i - 1) / 3) * 2 * math.pi + math.random() * 0.5
                 s:setPosition(px + math.cos(ang) * 22000, py + math.sin(ang) * 22000)
                 s:orderAttack(ref)
-                RT.register(s); DIR.registerKill(s); DIR.allowControl(s)
+                RT.register(s); RT.reportKills(s)
             end
         end
         RT.shipLog("[Warning] Concord response inbound -- three ships. Hold them off while Relay completes the broadcast.", "#FF8080")

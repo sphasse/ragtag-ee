@@ -154,3 +154,87 @@ end)
 T.talk(HOME, {})
 T.step("unlocked", function() T.check("lock: work on offer again", T.hasReply("Any work available?")) end)
 T.closeComms()
+
+-- ── JOBS.board: what a station offers, decided without a comms window ────────
+-- The listing above goes through comms; these call the deciding half directly.
+T.step("clear the board", function()
+    for _, e in ipairs({table.unpack(JOBS._active)}) do JOBS.complete(e) end
+    JOBS.removeCategory("TEST_JOBS"); JOBS.removeCategory("TEST_STORY")
+    JOBS._station_work = {}
+    JOBS.config.jobboard_locked = false
+    RT.addReputation("Independent", 100 - T.rep("Independent", T.P()), "test", T.P())
+end)
+local first
+T.step("a station fills its slots", function()
+    local slots = JOBS.stationSlots(HOME)
+    local b = JOBS.board(HOME, T.P())
+    first = b.offers
+    T.check("decide: no more offers than the station has slots", #first >= 1 and #first <= slots, #first .. " of " .. slots)
+    T.check("decide: nothing is said about a good standing", b.nag == nil and not b.closed)
+    local seen, dup = {}, false
+    for _, m in ipairs(first) do
+        local k = m.type .. "|" .. m.short
+        if seen[k] then dup = true end
+        seen[k] = true
+        if not (m.id and m.reward and m.reward > 0 and m.origin == HOME) then
+            T.check("decide: an offer is a complete job record", false, tostring(m.short))
+        end
+    end
+    T.check("decide: no two offers with the same summary", not dup)
+end)
+T.step("the same jobs are there on the next visit", function()
+    local again = JOBS.board(HOME, T.P()).offers
+    T.check("cache: at least as many (a slot that failed to fill may fill now)", #again >= #first, #again .. " vs " .. #first)
+    for _, m in ipairs(first) do
+        local found = false
+        for _, o in ipairs(again) do if o == m then found = true end end
+        if not found then T.check("cache: " .. m.short .. " still offered", false) end
+    end
+end)
+T.step("a taken slot stays empty until it cools down", function()
+    local taken = first[1]
+    T.check("slot: taken", JOBS.accept(taken, true, T.P()))
+    local b = JOBS.board(HOME, T.P())
+    local offered = false
+    for _, o in ipairs(b.offers) do if o == taken then offered = true end end
+    T.check("slot: the taken job is off the board", not offered)
+    T.check("slot: its slot stays empty", #b.offers <= JOBS.stationSlots(HOME) - 1, #b.offers)
+    T.check("slot: the board says when to come back", b.wait and b.wait > 0 and b.wait <= JOBS.config.work_cooldown_secs, tostring(b.wait))
+    for _, slot in pairs(JOBS._station_work[HOME].slots) do
+        if slot.taken_at then slot.taken_at = T.now() - JOBS.config.work_cooldown_secs - 1 end
+    end
+    b = JOBS.board(HOME, T.P())
+    T.check("slot: refilled after the cooldown", #b.offers >= #first, #b.offers .. " vs " .. #first)
+    T.check("slot: nothing left cooling down", b.wait == nil)
+    JOBS.complete(T.activeEntry(taken))
+end)
+T.step("an ensured job takes a slot on a full board", function()
+    local m = T.postJob(T.makeJob("delivery", HOME))
+    local b = JOBS.board(HOME, T.P())
+    local found = false
+    for _, o in ipairs(b.offers) do if o == m then found = true end end
+    T.check("ensure: the posted job is offered", found)
+    T.check("ensure: within the station's slots", #b.offers <= JOBS.stationSlots(HOME), #b.offers)
+    JOBS.removeCategory("TEST_JOBS")
+end)
+T.step("standing decides how much is shown", function()
+    local slots = JOBS.stationSlots(HOME)
+    RT.addReputation("Independent", -100 - T.rep("Independent", T.P()), "test", T.P())
+    local b = JOBS.board(HOME, T.P())
+    T.check("gate: one offer fewer below 0", #b.offers <= slots - 1 and b.nag ~= nil and not b.closed, #b.offers)
+    RT.addReputation("Independent", -450 - T.rep("Independent", T.P()), "test", T.P())
+    b = JOBS.board(HOME, T.P())
+    T.check("gate: closed below -400", #b.offers == 0 and b.closed and b.nag ~= nil)
+    RT.addReputation("Independent", 100 - T.rep("Independent", T.P()), "test", T.P())
+end)
+T.step("with the cooldown off the board is rebuilt each visit", function()
+    JOBS.config.work_cooldown_enabled = false
+    JOBS._station_work = {}
+    local b = JOBS.board(HOME, T.P())
+    T.check("no cooldown: offers", #b.offers >= 1)
+    for _, slot in pairs(JOBS._station_work[HOME].slots) do
+        if slot.mission then T.check("no cooldown: nothing is cached in the slots", false) end
+    end
+    T.check("no cooldown: nothing to wait for", b.wait == nil)
+    JOBS.config.work_cooldown_enabled = true
+end)

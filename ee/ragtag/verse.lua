@@ -341,7 +341,7 @@ local function buildGarrisons()
                 s:setScanningParameters(1, 2)
             end
             RT.register(s)
-            if DIR then DIR.registerKill(s) end
+            RT.reportKills(s)
             n = n + 1
         end
     end
@@ -446,10 +446,8 @@ function VERSE.updateRegion()
         if r.danger >= 3 then globalMessage("NAV WARNING: Entering " .. r.name .. ". Turn back.", 8) end
     end
     if STATS then STATS.regionEntered(r.name, first_ever) end
-    if DIR then
-        DIR.emit("region_entered", {region = r.name, danger = r.danger, first_visit = first_ever, desc = r.desc},
-            r.danger >= 2 and "high" or (first_ever and "normal" or "low"))
-    end
+    RT.emit("region_entered", {region = r.name, danger = r.danger, first_visit = first_ever, desc = r.desc},
+        r.danger >= 2 and "high" or (first_ever and "normal" or "low"))
 end
 
 
@@ -477,13 +475,11 @@ function VERSE.build(opts)
     -- Salvage clusters and wreck scanning are handled by the WORLD "salvage" plugin.
     -- Freighter traffic and ambient crates are handled by the WORLD "traffic" plugin.
 
-    if DIR then
-        DIR.addStateProvider(function()
-            return {region = VERSE.region and VERSE.region.name or "open space",
-                    region_danger = VERSE.region and VERSE.region.danger or 0,
-                    transports_active = #VERSE.transports}
-        end)
-    end
+    RT.addStateProvider(function()
+        return {region = VERSE.region and VERSE.region.name or "open space",
+                region_danger = VERSE.region and VERSE.region.danger or 0,
+                transports_active = #VERSE.transports}
+    end)
 end
 
 function VERSE.update(delta)

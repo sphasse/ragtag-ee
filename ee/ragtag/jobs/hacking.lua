@@ -334,7 +334,8 @@ function M.generate(opts)
         region_name    = opts.region_name,
         _spawned       = false,
         _hacked        = false,
-        target_cs      = nil,
+        target         = nil,   -- set by spawn: the relay entity
+        target_cs      = nil,   -- its callsign, for log lines
     }
 end
 
@@ -370,6 +371,7 @@ function M.spawn(m)
     s:setCommsFunction(function(src, tgt)
         setCommsMessage("Automated relay. No response.")
     end)
+    m.target     = s      -- the entity; target_cs is only its name, for text
     m.target_cs = name
     m.short     = "Hack " .. name
     m.obj       = "Hack " .. name
@@ -387,7 +389,7 @@ local _SYSTEMS = {"reactor","beamweapons","missilesystem","maneuver","impulse","
 function M.update(m, entry, ctx)
     if m._hacked then return nil end  -- waiting for return
 
-    local target = RT.find(m.target_cs)
+    local target = m.target
     if not RT.valid(target) then
         JOBS.log(m, "[Hack] Relay destroyed before extraction -- contract lost.", "#FF8080")
         return "remove"
@@ -422,8 +424,8 @@ function M.completable(m, cs)
 end
 
 function M.cleanup(m)
-    if m.target_cs then
-        local s = RT.find(m.target_cs)
+    do
+        local s = m.target
         if RT.valid(s) then
             s:setCanBeDestroyed(true)
             s:destroy()

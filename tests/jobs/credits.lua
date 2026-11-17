@@ -1,8 +1,9 @@
--- Credits: one balance per ship, kept by RT (not EmptyEpsilon's per-faction reputation points,
--- which are held at 0), shown as a "Credits: N" line on Relay and Operations, and saved with the
--- campaign (other ships by callsign, with their standing). A = primary ship, B = second ship.
--- "Rejoining" is simulated by forgetting a ship's in-memory balance; a real restart of the game
--- is not covered.
+-- Credits: one balance per ship, kept in the ship's record (not EmptyEpsilon's per-faction
+-- reputation points, which are held at 0), shown as a "Credits: N" line on Relay and Operations,
+-- and saved with the campaign (other ships by callsign, with their standing). A = primary ship,
+-- B = second ship. "Rejoining" is simulated by replacing the campaign table with a JSON round
+-- trip of itself; a real restart of the game is not covered. Upgrades, kills and renames: see
+-- tests/jobs/records.lua.
 
 T.suite("jobs")
 
@@ -74,14 +75,15 @@ T.closeComms()
 T.step("save", function()
     RT.addReputation("Independent", 40, "test", B)
     RT.saveCampaign()
-    local rec = RT.extraShipRecord(B)
+    local rec = RT.shipRecord(B)
+    T.eq("save: the primary ship's record is the campaign itself", RT.shipRecord(A), RT.campaign)
     T.eq("save: the primary ship's balance", RT.campaign.credits, a0 - 20)
-    T.check("save: a record for B under its callsign", rec ~= nil and rec.name == B:getCallSign())
+    T.check("save: a record for B under its callsign", rec ~= nil and rec ~= RT.campaign and rec.name == B:getCallSign())
     T.eq("save: B's balance", rec and rec.credits, 75)
     T.eq("save: B's standing", rec and rec.reputation and rec.reputation.Independent, 40)
-    -- What a reload does: the save survives a JSON round trip, and the ships are seen afresh.
+    -- What a reload does: the save survives a JSON round trip, and every ship finds its record
+    -- again (the primary ship: the campaign; any other ship: by callsign).
     RT.campaign = fromJSON(toJSON(RT.campaign))
-    RT._ship_credits[A], RT._ship_credits[B], RT._ship_rep[B] = nil, nil, nil
 end)
 T.wait(0.5)
 T.step("both ships get theirs back", function()
@@ -89,4 +91,5 @@ T.step("both ships get theirs back", function()
     T.eq("reload: B's credits, by callsign", T.credits(B), 75)
     T.eq("reload: B's standing, by callsign", T.rep("Independent", B), 40)
     T.eq("reload: display follows", line(B, "rt_credits_relay"), "Credits: 75")
+    T.eq("reload: one record per ship, not a second copy", #RT.campaign.extra_ships, 1)
 end)

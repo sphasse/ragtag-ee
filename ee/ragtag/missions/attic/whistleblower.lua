@@ -120,7 +120,7 @@ function M.resolve(st)
     RT.shipLog("[The Whistleblower] " .. msg .. suffix, "#80FF80")
     RT.flag("whistleblower_complete", outcome)
     RT.setObjective("The Whistleblower: complete", true)
-    DIR.emit("whistleblower_complete", {outcome = outcome, choice = choice}, "medium")
+    RT.emit("whistleblower_complete", {outcome = outcome, choice = choice}, "medium")
 
     local t = RT.find(st.terminal_cs or "")
     if RT.valid(t) then t:setCanBeDestroyed(true) end

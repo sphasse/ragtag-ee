@@ -89,10 +89,8 @@ local function _spawnPod(x, y, value, kind_rec, tier)
         else
             RT.addCredits(value * 2, "data chip", player)
         end
-        if DIR then
-            DIR.emit("pickup", {label = label, kind = kind_rec.kind, value = value, tier = tier,
-                region = VERSE.region and VERSE.region.name or "open space"}, tier >= 2 and "normal" or "low")
-        end
+        RT.emit("pickup", {label = label, kind = kind_rec.kind, value = value, tier = tier,
+            region = VERSE.region and VERSE.region.name or "open space"}, tier >= 2 and "normal" or "low")
     end)
     return art
 end
@@ -157,6 +155,17 @@ local function _aliveClusters(state)
     return n
 end
 
+-- Pods still in the world across all tracked clusters.
+local function _countPods(state)
+    local n = 0
+    for _, cl in ipairs(state.clusters) do
+        for _, art in ipairs(cl.pods) do
+            if RT.valid(art) then n = n + 1 end
+        end
+    end
+    return n
+end
+
 -- Refresh alive flag for each cluster (pod pickup makes artifacts invalid).
 local function _refresh(state)
     for _, cl in ipairs(state.clusters) do
@@ -185,7 +194,7 @@ local function _updateWrecks()
             local x, y = w.ship:getPosition()
             _spawnClusterRaw(x, y, math.min(3, w.tier + 1), VERSE.rng_live)
             p:addToShipLog("Science: salvage located around " .. w.ship:getCallSign() .. ".", "#80C0FF")
-            if DIR then DIR.emit("wreck_scanned", {wreck = w.ship:getCallSign(), tier = w.tier}, "low") end
+            RT.emit("wreck_scanned", {wreck = w.ship:getCallSign(), tier = w.tier}, "low")
         end
     end
 end
@@ -249,13 +258,18 @@ function _P.update(state, delta, now)
     local density_idx = WORLD.get("salvage", "density", 2)
     local reward_idx  = WORLD.get("salvage", "reward",  2)
 
+    -- Pods this pass removes because a SETTING changed are not pods the crew collected: they
+    -- must not earn respawns (or Low density would grow straight back).
+    local settings_changed = false
+
     -- ── Reward changed: destroy all clusters and respawn with new values ────
     if reward_idx ~= state.reward_idx then
         for _, cl in ipairs(state.clusters) do _killCluster(cl) end
         state.clusters    = {}
         state.pod_debt    = 0
         state.reward_idx  = reward_idx
-        -- Fall through: alive=0 so the density-reconcile block will respawn.
+        settings_changed  = true
+        -- Fall through: alive=0 so the top-up below will respawn.
     end
 
     _refresh(state)
@@ -279,18 +293,19 @@ function _P.update(state, delta, now)
             _refresh(state)
         end
         state.density_idx = density_idx
+        settings_changed  = true
     end
 
-    -- ── Normal top-up: spawn one cluster per _PODS_PER_RESPAWN collected ────
-    -- Count pods that disappeared since last check as collected.
-    local total_pods = 0
-    for _, cl in ipairs(state.clusters) do
-        for _, art in ipairs(cl.pods) do
-            if RT.valid(art) then total_pods = total_pods + 1 end
+    -- ── Collection: pods gone since the last check earn respawn debt ────────
+    -- (pod_debt carries over; tracks fractional progress toward next respawn)
+    if not settings_changed and state.prev_pods ~= nil then
+        local total_pods = _countPods(state)
+        if state.prev_pods > total_pods then
+            state.pod_debt = state.pod_debt + (state.prev_pods - total_pods)
         end
     end
-    -- (pod_debt carries over; tracks fractional progress toward next respawn)
 
+    -- ── Top-up ──────────────────────────────────────────────────────────────
     -- Spawn to reach target if below (covers initial respawn after reward reset
     -- and gradual density-increase ramp).
     while alive < target do
@@ -300,13 +315,7 @@ function _P.update(state, delta, now)
         RT.shipLog(string.format("[Salvage] New debris cluster at grid %s.", JOBS.gridRef(wx, wy)), "#C0B070")
     end
 
-    -- Also watch for organic collection and earn extra respawn debt.
-    -- Compare against a stored pod count from previous check.
-    if state.prev_pods ~= nil and state.prev_pods > total_pods then
-        state.pod_debt = state.pod_debt + (state.prev_pods - total_pods)
-    end
-    state.prev_pods = total_pods
-
+    -- One extra cluster per _PODS_PER_RESPAWN pods collected.
     while state.pod_debt >= _PODS_PER_RESPAWN do
         state.pod_debt = state.pod_debt - _PODS_PER_RESPAWN
         local wx, wy, tier = _randomLocation()
@@ -314,6 +323,9 @@ function _P.update(state, delta, now)
         alive = alive + 1
         RT.shipLog(string.format("[Salvage] New debris cluster at grid %s.", JOBS.gridRef(wx, wy)), "#C0B070")
     end
+
+    -- What is out there now (new clusters included) is what the next check compares against.
+    state.prev_pods = _countPods(state)
 end
 
 function _P.cleanup(state)

@@ -6,8 +6,8 @@ T.suite("jobs")
 
 local HOME = "Port Vesper"
 local m, c0, rep0
-local function tgt() return RT.find(m.target_cs) end
-local function rdv() return RT.find(m.rendezvous_cs) end
+local function tgt() return m.target end
+local function rdv() return m.rendezvous end
 
 T.step("post a tailing job", function() m = T.postJob(T.makeJob("tailing", HOME, 1)) end)
 T.takeJob(function() return m end)

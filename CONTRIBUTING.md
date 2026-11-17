@@ -36,7 +36,8 @@ unless ambushing freighters is the point.
    for universe places, and don't recreate stations the universe has.
 4. Optional: `scenarios/<campaign>/bible.md` gives the AI director your story (cast, secrets, tone). The universe
    description is added automatically.
-5. Every beat the AI may trigger needs a scripted fallback; the scenario must work with Director=Off.
+5. Beats are scripted (`RT.defineBeat` / `RT.fireBeat`); the AI director only observes. The scenario must play
+   the same with Director=Off.
 6. `python tools/check.py`, then play it or run `tools/ci_headless.sh` with `SCENARIO=scenario_NN_<name>.lua`.
 
 ### Scenario numbers
@@ -50,8 +51,14 @@ Stock EmptyEpsilon uses 00–62, 74, 79, 81, 88 and 99. Reserved here:
 | 89, 95–98 | Spare |
 
 ## Framework and director changes
-- Director actions live in two places that must match: `DIR.ACTIONS` in `ee/ragtag/director.lua` (the safety
-  boundary: validate and clamp everything) and `director/actions.py` (what the model is told). Add a smoke-test case.
+- Director actions live in two places that must match: `DIR.ACTIONS` in `ee/ragtag/director/actions/*.lua` (the
+  safety boundary: validate and clamp everything) and `director/actions.py` (what the model is told). The director
+  is observation-only: only `gm_note` and `noop` are open to the model; every other action is GM-only on both
+  sides (`check.py` enforces the match and the guard). Add a smoke-test case.
+- Game code never names `DIR`: report what happened with `RT.emit(type, data, priority)`.
+- Credits, standing and upgrades are per ship. Outside story arcs, pass the ship to `RT.addCredits`,
+  `RT.addReputation` and `RT.grantUpgrade` (`check.py` enforces it).
+- Keep the entity of anything you spawn; don't find it again by callsign.
 - Python stays standard-library only, so lab PCs need nothing but Python.
 - Read `.claude/skills/empty-epsilon-scenarios/references/api_notes.md` before writing EE Lua; most bugs
   this project hit are listed there.

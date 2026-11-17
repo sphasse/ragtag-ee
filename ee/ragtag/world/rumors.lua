@@ -17,7 +17,7 @@
 --                          are mixed so the crew hears all of them and can choose.
 --
 -- API:
---   RUMORS.add({text, priority, faction, category})  -- returns assigned id
+--   RUMORS.add({text, priority, faction, category, once})  -- returns assigned id
 --   RUMORS.remove(id)                                -- remove one rumor
 --   RUMORS.removeCategory(category)                  -- remove all in a category
 --   RUMORS.get(callsign, source_faction)             -- call from comms handlers
@@ -147,6 +147,7 @@ function RUMORS.add(r)
         priority = r.priority or 1,
         faction  = r.faction,   -- nil = any source faction
         category = r.category,  -- nil = uncategorized; use e.g. "START_WITNESS_MISSION"
+        once     = r.once,      -- true = removed after it has been told once
     }
     return id
 end

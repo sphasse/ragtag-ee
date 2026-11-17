@@ -111,24 +111,46 @@ local function _depthIn(wx, wy, region)
     return 1 - math.sqrt(dx * dx + dy * dy) / (region.r * U)
 end
 
-local function _playerTier()
-    local n = RT.campaign and #(RT.campaign.upgrades or {}) or 0
+-- Patrol strength follows the upgrades of the ship the patrol is sent after.
+local function _playerTier(player)
+    local n = #RT.upgrades(player)
     if n >= 5 then return 2 elseif n >= 2 then return 1 else return 0 end
 end
 
 local _TIER_LABELS = {"scout", "light", "medium", "heavy", "heavy"}
 
-local function _pickStrength(region)
+-- Default patrol hulls by strength (zones may set their own `groups`). Faction only changes
+-- allegiance, not hulls.
+PROX = PROX or {}
+PROX.GROUPS = {
+    scout  = {"MT52 Hornet"},
+    light  = {"Adder MK5", "MT52 Hornet"},
+    medium = {"Phobos T3", "Adder MK5", "MT52 Hornet"},
+    heavy  = {"Nirvana R5", "Phobos T3", "Adder MK5", "Adder MK5"},
+}
+
+local function _pickStrength(region, player)
     local danger   = region.danger or 0
     local zone_mod = (danger <= 0) and 0 or (danger == 1) and 1 or 2
-    local tier     = math.max(1, math.min(_playerTier() + zone_mod + 1, 5))
+    local tier     = math.max(1, math.min(_playerTier(player) + zone_mod + 1, 5))
     return _TIER_LABELS[tier]
 end
 
+-- The ship patrols are sent after and judged by: the primary ship (the first one alive). Its
+-- standing decides how a patrol behaves, and it is the ship that pays for the outcome.
 local function _firstPlayer()
     for _, p in ipairs(RT.players) do
         if RT.valid(p) then return p end
     end
+end
+
+-- True when any ship of the list is alive. Groups keep the ship ENTITIES they spawned, never
+-- callsigns: two patrols can draw the same name from the pool.
+local function _anyAlive(ships)
+    for _, s in ipairs(ships) do
+        if RT.valid(s) then return true end
+    end
+    return false
 end
 
 -- ── Combat warp jammers ───────────────────────────────────────────────────────
@@ -161,11 +183,12 @@ function PROX.makeJammer(x, y, range_u, desc)
 end
 
 -- Per-tick driver (call every frame: the brake must run each tick). `holder` is a table owned
--- by the caller (one per group/fleet); `ships` is a list of ship entities or callsigns.
+-- by the caller (one per group/fleet, start it as {}); `ships` is a list of ship entities.
+-- The holder is a list of {ship, jammer, at, holding}, one per ship that has dropped a jammer.
 function PROX.tickCombatJammers(holder, ships, player, now)
     local cfg = PROX.JAMMER
     -- Expire jammers (including those of ships that have since died).
-    for key, rec in pairs(holder) do
+    for _, rec in ipairs(holder) do
         if rec.jammer and (now - rec.at >= cfg.lifetime or not RT.valid(rec.jammer)) then
             if RT.valid(rec.jammer) then rec.jammer:destroy() end
             rec.jammer = nil
@@ -173,7 +196,7 @@ function PROX.tickCombatJammers(holder, ships, player, now)
     end
     if not RT.valid(player) then return end
     -- Brake: a freshly dropped jammer rides behind the ship and holds impulse at 0 until stopped.
-    for _, rec in pairs(holder) do
+    for _, rec in ipairs(holder) do
         if rec.holding and RT.valid(rec.jammer) then
             pcall(function() player:commandImpulse(0) end)
             _behind(player, rec.jammer)
@@ -185,20 +208,22 @@ function PROX.tickCombatJammers(holder, ships, player, now)
         end
     end
     local px, py = player:getPosition()
-    for _, ref in ipairs(ships) do
-        local s = type(ref) == "string" and RT.named[ref] or ref
+    for _, s in ipairs(ships) do
         if RT.valid(s) then
-            local key = s:getCallSign()
-            local rec = holder[key]
+            local rec
+            for _, r in ipairs(holder) do
+                if r.ship == s then rec = r; break end
+            end
             if not rec or (not rec.jammer and now - rec.at >= cfg.cooldown) then
                 local sx, sy = s:getPosition()
                 local dx, dy = sx - px, sy - py
                 if dx * dx + dy * dy < (cfg.trigger_u * U) ^ 2 then
                     local j = PROX.makeJammer(px, py)
                     _behind(player, j)
-                    holder[key] = {jammer = j, at = now, holding = true}
+                    if not rec then rec = {ship = s}; holder[#holder + 1] = rec end
+                    rec.jammer, rec.at, rec.holding = j, now, true
                     RT.sound("jammer_engage", {now = true})
-                    RT.shipLog("[Science] " .. key .. " dropped a warp jammer on us. Engines are braking. Two beam hits will take it out.", "#FF8040")
+                    player:addToShipLog("[Science] " .. s:getCallSign() .. " dropped a warp jammer on us. Engines are braking. Two beam hits will take it out.", "#FF8040")
                 end
             end
         end
@@ -206,9 +231,11 @@ function PROX.tickCombatJammers(holder, ships, player, now)
 end
 
 function PROX.clearCombatJammers(holder)
-    for key, rec in pairs(holder or {}) do
+    holder = holder or {}
+    for i = #holder, 1, -1 do
+        local rec = holder[i]
         if rec.jammer and RT.valid(rec.jammer) then rec.jammer:destroy() end
-        holder[key] = nil
+        holder[i] = nil
     end
 end
 
@@ -278,19 +305,18 @@ local function _makeShakedownComms(group)
             return
         end
 
-        local rep    = RT.getReputation("Concord") or 0
-        local player = _firstPlayer()
+        local player = _firstPlayer()   -- the ship patrols judge (see _firstPlayer)
+        local rep    = RT.getReputation("Concord", player) or 0
         local fine   = 100
         group._stall_count = group._stall_count or 0
 
         local function doGoHostile()
             group.shakedown_done    = true
             group.shakedown_hostile = true
-            RT.addReputation("Concord", -150, "escalated Concord inspection to hostile")
+            RT.addReputation("Concord", -150, "escalated Concord inspection to hostile", player)
             RT.shipLog("[Concord] Inspection escalated. Patrol is hostile.", "#FF4444")
             if player then
-                for _, cs in ipairs(group.ships) do
-                    local s = RT.named[cs]
+                for _, s in ipairs(group.ships) do
                     if RT.valid(s) then
                         s:setCommsScript(""):setCommsFunction(function(src2, tgt2)
                             setCommsMessage('"Concord Hostile. Your vessel is under arrest."')
@@ -314,7 +340,7 @@ local function _makeShakedownComms(group)
             if rep >= 500 then
                 group.shakedown_done    = true
                 group.shakedown_hostile = false
-                setCommsMessage('"' .. tgt:getCallSign() .. ' — your record precedes you. The Concord values operators who keep their word. Safe travels."')
+                setCommsMessage('"' .. src:getCallSign() .. ' — your record precedes you. The Concord values operators who keep their word. Safe travels."')
                 addCommsReply("Acknowledged.", function() setCommsMessage("The channel closes.") end)
 
             elseif rep >= 200 then
@@ -333,7 +359,7 @@ local function _makeShakedownComms(group)
                 setCommsMessage('"Your record raises some flags. Inspection fee: ' .. fine .. ' credits."')
                 addCommsReply("Pay the fine (" .. fine .. " cr).", function(s2, t2)
                     RT.addCredits(-fine, "Concord inspection fee", player)
-                    RT.addReputation("Concord", 100, "paid Concord inspection fee")
+                    RT.addReputation("Concord", 100, "paid Concord inspection fee", player)
                     RT.shipLog("[Concord] Inspection fee: -" .. fine .. "cr. Standing improved.", "#8888FF")
                     group.shakedown_done    = true
                     group.shakedown_hostile = false
@@ -412,13 +438,13 @@ local function _spawnGroup(st, region_name, px, py)
     local zone   = PROX.zones[region_name]
     if not region or not zone then return end
 
-    local strength  = _pickStrength(region)
-    local grp_tbl   = zone.groups or DIR.GROUPS
-    local templates = grp_tbl[strength]
-    if not templates or #templates == 0 then return end
-
     local player = _firstPlayer()
     if not player then return end
+
+    local strength  = _pickStrength(region, player)
+    local grp_tbl   = zone.groups or PROX.GROUPS
+    local templates = grp_tbl[strength]
+    if not templates or #templates == 0 then return end
 
     local heading   = player:getHeading()
     local angle_rad = math.rad(heading - 90)
@@ -447,7 +473,7 @@ local function _spawnGroup(st, region_name, px, py)
     end
 
     local now         = getScenarioTime()
-    local concord_rep = RT.getReputation("Concord") or 0
+    local concord_rep = RT.getReputation("Concord", player) or 0
     local is_shakedown = (zone.comms == "shakedown") and concord_rep >= -200
 
     -- Concord patrols spawning against a hostile-rep player use the hostile
@@ -457,7 +483,7 @@ local function _spawnGroup(st, region_name, px, py)
         spawn_faction = "Concord Hostile"
     end
 
-    local ship_names = {}
+    local ships = {}   -- the entities of this group
     local _name_pool  = _PATROL_NAMES[zone.faction]
     local _used_names = {}
     for _, tmpl in ipairs(templates) do
@@ -487,8 +513,7 @@ local function _spawnGroup(st, region_name, px, py)
         end
 
         RT.register(s)
-        DIR.registerKill(s)
-        DIR.allowControl(s)
+        RT.reportKills(s)
 
         local zdanger = region.danger or 0
         RT.onKill(s, function(self, instigator)
@@ -508,7 +533,7 @@ local function _spawnGroup(st, region_name, px, py)
                 pod:onPickUp(function(pod_self, pl)
                     if RT.valid(pl) then
                         RT.addCredits(reward, "salvage: " .. arch.cargo, pl)
-                        RT.shipLog("[Salvage] Recovered " .. arch.cargo .. ": +" .. reward .. "cr.", "#80FF80")
+                        pl:addToShipLog("[Salvage] Recovered " .. arch.cargo .. ": +" .. reward .. "cr.", "#80FF80")
                     end
                 end)
             end
@@ -527,29 +552,23 @@ local function _spawnGroup(st, region_name, px, py)
             end)
         end
 
-        table.insert(ship_names, s:getCallSign())
+        table.insert(ships, s)
     end
 
     if is_shakedown then
-        if player then
-            local ppx, ppy = player:getPosition()
-            for _, cs in ipairs(ship_names) do
-                local s = RT.named[cs]
-                if RT.valid(s) then s:orderFlyTowards(ppx, ppy) end
-            end
+        local ppx, ppy = player:getPosition()
+        for _, s in ipairs(ships) do
+            if RT.valid(s) then s:orderFlyTowards(ppx, ppy) end
         end
         RT.shipLog("[Concord] Patrol detected in sector.", "#8888FF")
     else
-        if player then
-            for _, cs in ipairs(ship_names) do
-                local s = RT.named[cs]
-                if RT.valid(s) then s:orderAttack(player) end
-            end
+        for _, s in ipairs(ships) do
+            if RT.valid(s) then s:orderAttack(player) end
         end
     end
 
     local group = {
-        ships              = ship_names,
+        ships              = ships,
         jammer             = nil,
         concord            = (zone.faction == "Concord"),
         cjam               = {},   -- combat jammers (PROX.tickCombatJammers)
@@ -569,8 +588,7 @@ local function _spawnGroup(st, region_name, px, py)
     }
 
     if is_shakedown then
-        for _, cs in ipairs(ship_names) do
-            local s = RT.named[cs]
+        for _, s in ipairs(ships) do
             if RT.valid(s) then s:setCommsScript(""):setCommsFunction(_makeShakedownComms(group)) end
         end
     end
@@ -579,11 +597,11 @@ local function _spawnGroup(st, region_name, px, py)
     st.region_cd[region_name] = now
     st.last_spawn = now
 
-    DIR.emit("prox_spawned", {
+    RT.emit("prox_spawned", {
         region   = region_name,
         faction  = zone.faction,
         strength = strength,
-        count    = #ship_names,
+        count    = #ships,
     }, "normal")
 end
 
@@ -591,22 +609,17 @@ end
 -- Returns true when the group should be removed from st.active.
 
 local function _processGroup(st, group, now, player)
-    local any_alive = false
-    for _, cs in ipairs(group.ships) do
-        if RT.valid(RT.named[cs]) then any_alive = true; break end
-    end
-    if not any_alive then
+    if not _anyAlive(group.ships) then
         if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
         if not group.recalled then
             RT.shipLog("[" .. group.region_name .. "] Area clear.", "#80FF80")
-            DIR.emit("prox_cleared", {region = group.region_name}, "normal")
+            RT.emit("prox_cleared", {region = group.region_name}, "normal")
         end
         return true
     end
 
     if group.despawn_at and now > group.despawn_at then
-        for _, cs in ipairs(group.ships) do
-            local s = RT.named[cs]
+        for _, s in ipairs(group.ships) do
             if RT.valid(s) then s:destroy() end
         end
         if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
@@ -616,11 +629,10 @@ local function _processGroup(st, group, now, player)
     if group.is_shakedown and not group.shakedown_done then
         -- Dynamic rep watch: if rep drops below -200 while this group is on a shakedown
         -- approach (before jammer deploy), flip them to hostile immediately.
-        if (RT.getReputation("Concord") or 0) < -200
+        if (RT.getReputation("Concord", player) or 0) < -200
            and group.shakedown_state == "approaching" then
             RT.shipLog("[Concord] Relations deteriorated. Patrol is now hostile.", "#FF4444")
-            for _, cs2 in ipairs(group.ships) do
-                local s2 = RT.named[cs2]
+            for _, s2 in ipairs(group.ships) do
                 if RT.valid(s2) then
                     s2:setFaction("Concord Hostile")
                     if player then s2:orderAttack(player) end
@@ -642,9 +654,9 @@ local function _processGroup(st, group, now, player)
                 end
             end
             if not near_station then
-                for _, cs in ipairs(group.ships) do
-                    local s = RT.named[cs]
+                for _, s in ipairs(group.ships) do
                     if RT.valid(s) then
+                        local cs = s:getCallSign()
                         local ssx, ssy = s:getPosition()
                         local dx, dy = ssx - px2, ssy - py2
                         if math.sqrt(dx * dx + dy * dy) < 5 * U then
@@ -656,13 +668,14 @@ local function _processGroup(st, group, now, player)
                                 py2 + math.cos(head_rad) * 0.25 * U, 1,
                                 "Active Concord warp suppression emitter. Disrupts warp drive within 1U. Destroy the emitter to clear the field.")
                             group.jammer           = jammer
-                            group.hailing_ship     = cs
+                            group.hailing_ship     = s    -- the entity that will hail
+                            group.hailing_name     = cs
                             group.shakedown_state  = "pending"
                             group.shakedown_start  = now
                             group.shakedown_hailed = false
                             -- Sound: jammer engages, interference bed while it holds.
                             RT.sound("jammer_engage", {now = true})
-                            group.sound_loop = "prox_jammer_" .. cs
+                            group.sound_loop = "prox_jammer_" .. cs .. "_" .. math.floor(now)
                             RT.soundLoop(group.sound_loop, "jammer_bed", 10, function()
                                 return RT.valid(group.jammer) and not group.shakedown_done
                             end)
@@ -684,8 +697,7 @@ local function _processGroup(st, group, now, player)
         if group.shakedown_state == "pending" and player then
             local px2, py2 = player:getPosition()
             local min_dist = math.huge
-            for _, cs in ipairs(group.ships) do
-                local s = RT.named[cs]
+            for _, s in ipairs(group.ships) do
                 if RT.valid(s) then
                     local ssx, ssy = s:getPosition()
                     local dx, dy = ssx - px2, ssy - py2
@@ -694,13 +706,12 @@ local function _processGroup(st, group, now, player)
                 end
             end
             if min_dist > 10 * U then
-                RT.addReputation("Concord", -100, "evaded Concord inspection")
+                RT.addReputation("Concord", -100, "evaded Concord inspection", player)
                 RT.shipLog("[Concord] Vessel fled inspection. Concord standing reduced.", "#FF8040")
                 group.shakedown_done    = true
                 group.shakedown_hostile = false
             else
-                for _, cs in ipairs(group.ships) do
-                    local s = RT.named[cs]
+                for _, s in ipairs(group.ships) do
                     if RT.valid(s) then s:orderFlyTowards(px2, py2) end
                 end
             end
@@ -712,7 +723,7 @@ local function _processGroup(st, group, now, player)
         -- Jammer destroyed by crew during active inspection: rep penalty, free to go.
         if group.shakedown_state == "pending" and not group.shakedown_done and
            group.jammer and not RT.valid(group.jammer) then
-            RT.addReputation("Concord", -50, "destroyed Concord warp jammer")
+            RT.addReputation("Concord", -50, "destroyed Concord warp jammer", player)
             RT.shipLog("[Concord] Jammer destroyed. Concord standing reduced.", "#FF8040")
             group.shakedown_done    = true
             group.shakedown_hostile = false
@@ -732,8 +743,8 @@ local function _processGroup(st, group, now, player)
             end
             if now - t0 > _cfg("shakedown_timeout") then
                 local hostile_line = _HOSTILE_LINES[math.random(#_HOSTILE_LINES)]
-                local hs_name = group.hailing_ship or "Concord"
-                RT.addReputation("Concord", -100, "failed to comply with Concord inspection")
+                local hs_name = group.hailing_name or "Concord"
+                RT.addReputation("Concord", -100, "failed to comply with Concord inspection", player)
                 RT.shipLog("[" .. hs_name .. "] You were warned to comply in a timely manner. " .. hostile_line, "#FF4444")
                 local _hmsg = "CONCORD PATROL HOSTILE\n" .. hs_name .. ": \"" .. hostile_line .. "\"\nPatrol hostile. -100 Concord standing."
                 local _hkey = "concord_hostile_" .. math.floor(now)
@@ -743,8 +754,7 @@ local function _processGroup(st, group, now, player)
                     end
                 end
                 if player then
-                    for _, cs in ipairs(group.ships) do
-                        local s = RT.named[cs]
+                    for _, s in ipairs(group.ships) do
                         if RT.valid(s) then
                             s:setCommsScript(""):setCommsFunction(function(src2, tgt2)
                                 setCommsMessage('"Concord Hostile. Your vessel is under arrest."')
@@ -763,8 +773,7 @@ local function _processGroup(st, group, now, player)
     if group.is_shakedown and group.shakedown_done and
        not group.shakedown_hostile and not group.despawn_at then
         group.despawn_at = now + _cfg("concord_despawn")
-        for _, cs in ipairs(group.ships) do
-            local s = RT.named[cs]
+        for _, s in ipairs(group.ships) do
             if RT.valid(s) then s:orderFlyTowards(group.spawn_x, group.spawn_y) end
         end
         if group.jammer and RT.valid(group.jammer) then
@@ -774,8 +783,7 @@ local function _processGroup(st, group, now, player)
     end
 
     -- Layer 3: station proximity safety net.
-    for _, cs in ipairs(group.ships) do
-        local s = RT.named[cs]
+    for _, s in ipairs(group.ships) do
         if RT.valid(s) then
             local ssx, ssy = s:getPosition()
             for _, stn in ipairs(st.safe_stns) do
@@ -798,8 +806,7 @@ local function _processGroup(st, group, now, player)
             group.mode        = "recalled"
             group.recalled    = true
             group.recalled_at = now
-            for _, cs in ipairs(group.ships) do
-                local s = RT.named[cs]
+            for _, s in ipairs(group.ships) do
                 if RT.valid(s) then s:orderFlyTowards(group.spawn_x, group.spawn_y) end
             end
 
@@ -807,15 +814,13 @@ local function _processGroup(st, group, now, player)
             group.mode        = "attack"
             group.recalled    = false
             group.recalled_at = nil
-            for _, cs in ipairs(group.ships) do
-                local s = RT.named[cs]
+            for _, s in ipairs(group.ships) do
                 if RT.valid(s) then s:orderAttack(player) end
             end
         end
 
         if not group.recalled then
-            for _, cs in ipairs(group.ships) do
-                local s = RT.named[cs]
+            for _, s in ipairs(group.ships) do
                 if RT.valid(s) then
                     local ssx, ssy = s:getPosition()
                     if _depthIn(ssx, ssy, region) <= 0 then
@@ -827,8 +832,7 @@ local function _processGroup(st, group, now, player)
 
         if group.recalled and group.recalled_at and
            now - group.recalled_at > _cfg("recall_timeout") then
-            for _, cs in ipairs(group.ships) do
-                local s = RT.named[cs]
+            for _, s in ipairs(group.ships) do
                 if RT.valid(s) then s:destroy() end
             end
             if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
@@ -913,8 +917,8 @@ function _P.update(state, delta, now)
                         group.shakedown_hailed    = true
                         group.shakedown_hailed_at = now
                         group.last_comms_activity = now
-                        local hs = RT.named[group.hailing_ship]
-                        if hs and RT.valid(hs) then hs:openCommsTo(player2) end
+                        local hs = group.hailing_ship
+                        if RT.valid(hs) then hs:openCommsTo(player2) end
                         RT.sound("concord_hail", {now = true})
                     end
                 end
@@ -987,7 +991,7 @@ function _P.update(state, delta, now)
             local last = state.region_cd[name] or -99999
             local effective_cooldown = zone.cooldown
             if zone.faction == "Corsairs" then
-                local crep = RT.getReputation("Corsairs") or 0
+                local crep = RT.getReputation("Corsairs", player) or 0
                 if     crep <= -400 then effective_cooldown = effective_cooldown * 0.5
                 elseif crep <= -200 then effective_cooldown = effective_cooldown * 0.7
                 end
@@ -1019,8 +1023,7 @@ end
 
 function _P.cleanup(state)
     for _, group in ipairs(state.active or {}) do
-        for _, cs in ipairs(group.ships) do
-            local s = RT.named[cs]
+        for _, s in ipairs(group.ships) do
             if RT.valid(s) then s:destroy() end
         end
         if group.jammer and RT.valid(group.jammer) then group.jammer:destroy() end
@@ -1137,8 +1140,7 @@ function PROX.clearWantedStatus()
     while i >= 1 do
         local g = st.active[i]
         if g.shakedown_hostile or g.region_name == "the Concord Core" or g.region_name == "the Arbiter Line" then
-            for _, cs in ipairs(g.ships) do
-                local s = RT.named[cs]
+            for _, s in ipairs(g.ships) do
                 if RT.valid(s) then s:destroy() end
             end
             if g.jammer and RT.valid(g.jammer) then g.jammer:destroy() end

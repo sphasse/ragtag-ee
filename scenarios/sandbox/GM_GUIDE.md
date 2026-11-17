@@ -20,8 +20,9 @@
 - **Well-off (1000)**: Multiple upgrades immediately
 
 ### Director
-- **On** (default): AI creates dynamic encounters
-- **Off**: Static universe with scripted random encounters
+- **On** (default): the game reports events to the AI director, if one is running. The director
+  observes and keeps notes for you; it does not change the game.
+- **Off**: nothing is reported. The game plays exactly the same.
 
 ## What Players Can Do
 
@@ -44,7 +45,9 @@
 - **15 upgrades** available across different stations
 - Costs: 150–450 credits each; each station sells a different selection
 - Warp coil overhaul (250cr) is the key mobility upgrade
-- **Mission tiers are gated by total upgrade investment**, not upgrade count:
+- Upgrades belong to the ship that bought them: a second player ship has its own credits,
+  standing, upgrades and job tier
+- **Mission tiers are gated by a ship's total upgrade investment**, not upgrade count:
   - **<500cr invested** — delivery and salvage only (tier 0)
   - **500–999cr invested** — hacking and tailing unlock (tier 1)
   - **1000cr+ invested** — boarding and destroy unlock (tier 2)
@@ -52,7 +55,9 @@
 
 ### Jobs
 
-Hail any station and ask "Any work available?" — the station offers two missions. Five types:
+Dock at any friendly station and ask "Any work available?" — the station offers one to three
+contracts, depending on its size and the ship's standing there. A ship can hold two at a time.
+Types:
 
 | Type | Pay range | Faction rep |
 |---|---|---|
@@ -62,6 +67,7 @@ Hail any station and ask "Any work available?" — the station offers two missio
 | **Destroy** | 100–250 cr | −200 Corsairs on kill; +reward with origin on complete |
 | **Boarding** | 115–285 cr | −100 Corsairs on disable; +reward with origin on complete |
 | **Escort** | 90–230 cr | +reward with origin on complete |
+| **Tailing** | tier 1+ | +reward with origin on complete; −2× reward if the target is lost to the clock |
 
 Time limits scale with distance. Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction.
 
@@ -76,47 +82,39 @@ Time limits scale with distance. Failing or letting a mission expire costs the c
 
 ## GM Tools (Buttons)
 
-### Built-in Campaign Buttons (from framework)
-- **Campaign: show status**: Display credits, upgrades, reputation
-- **Campaign: +200 credits**: Award money for clever play
-- **Campaign: save now**: Manual save to scriptstorage.json
+The GM screen's buttons, top to bottom:
 
-### Scenario-Specific Buttons
-- **Sandbox: +500 credits**: Large reward for major accomplishments
-- **Sandbox: Spawn salvage nearby**: Drop a supply pod near the player
-- **Reputation...**: Opens faction list showing current standing. Select a faction to adjust it +100 or −100
-
-### AI Director Buttons (if director is running)
-- **AI: twist**: "Create a complication"
-- **AI: escalate**: "Make things more dangerous"
-- **AI: ease off**: "Give the crew a breather"
-- **AI: chatter**: "Add colour (hails, rumours, character moments)"
+- **Campaign Status**: the primary ship's credits, upgrades (with investment and job tier) and
+  reputation; a line for every other player ship; then statistics, story arcs and achievements
+- **Reputation...**: the primary ship's standing per faction, with what each level means. Select a
+  faction to adjust it by +50 or −50
+- **World Plugins...**: switch each ambient system on or off and tune it: Proximity Spawns
+  (per-zone None / Low / Medium / High, "Trigger Spawn Now"), Station Defenders, Salvage Clusters
+  (density, reward), Station Traffic (density), Rumors, Science Database
+- **Jobs...**: work cooldown on/off, job distance (short / medium / long), credits +50 / −50 for
+  the primary ship
+- **Ship Upgrades...**: pick a ship, then grant or revoke upgrades on **that ship** and view its
+  status sheet (see `docs/GM_SHIP_MANAGEMENT.md`)
+- **Missions...**: the story arcs (Rezkov, Boneyard, Ledger, Corsair): trigger conditions, state,
+  and "→" buttons to jump an arc to any phase
+- **Backup campaign / Restore campaign**: six numbered save slots (see Saving, below)
+- **Sounds...**: sound cues on or off, with test buttons
 
 ## AI Director Console (Browser)
 
-If the director is running, open `http://<director-pc>:8765/` for:
+If the director is running, open `http://<director-pc>:8765/`. **The director is
+observation-only**: the model watches the session and can write you private notes. It cannot
+hail the crew, spawn anything, or change credits, standing or the story.
 
-### GM Instructions
-Type plain-English commands to the AI:
-- "Have a freighter captain offer a delivery job to Hob's Landing"
-- "Spawn two Corsair scouts near the asteroid field"
-- "Create a mystery: derelict with a strange signal"
-- "A Concord patrol hails asking about recent activity"
+- **Live view**: the event feed, the ships' state, active jobs, beats, the model's notes
+- **GM instructions / standing directives**: tell the model what to watch for or summarise
+  ("keep a running tally of what the crew promised to whom")
+- **Say (from NPC)**: you speak to the crew as a station or ship. The model can help draft the
+  line; you send it. Arrives as a real hail when the speaker is a callsign in the game
+- **Set objective / Rename ship / Restore campaign**: GM-only console actions
 
-### Quick Buttons
-- **Opportunity**: AI creates a job, rumour, or distress call
-- **Encounter**: AI spawns an appropriate threat/mystery
-- **Say (from NPC)**: AI voices a character
-- **Salvage**: AI drops loot
-
-### Standing Directives
-Rules for the whole session:
-- "We have 90 minutes tonight, keep it moving"
-- "The crew is learning, go easy on combat"
-- "Reward exploration with interesting finds"
-
-### Model Action Approval
-Toggle "wait for my approval" to vet every AI action before it happens.
+Requests like "spawn two Corsair scouts" do nothing: there is no such action. Use the World
+Plugins menu ("Trigger Spawn Now") or EmptyEpsilon's own GM tools to create ships.
 
 ## Session Flow
 
@@ -127,7 +125,7 @@ Toggle "wait for my approval" to vet every AI action before it happens.
 4. Crew undocks when ready
 
 ### Middle (30-60 min)
-Crew decides what to do. AI director (if on) creates encounters matching the region's danger level, opportunities based on what the crew seems interested in, rumours and hails from NPCs, and mysteries.
+Crew decides what to do: jobs from the station boards, salvage, exploration. Encounters come from the world itself (patrols by zone, see the Proximity plugin) and from the story arcs as their conditions are met. The AI director, if on, keeps notes for you.
 
 ### Closing (5-10 min)
 1. Crew docks at any friendly station
@@ -144,15 +142,15 @@ Crew decides what to do. AI director (if on) creates encounters matching the reg
 - Point out the danger zones on the map (Relay shows region names)
 
 ### Using the AI Director Effectively
-- **Start with standing directives**: Tell it the session length and crew experience
-- **Let it breathe**: Don't fire events every minute — quiet moments matter
-- **Support player choices**: If they ignore a distress call, have consequences show up later
-- **Build on previous sessions**: The director remembers what happened
+- **Start with standing directives**: tell it the session length and what you want tracked
+- **Read its notes at quiet moments**: it summarises where the crew is, what changed, and what is open
+- **Build on previous sessions**: it keeps a summary of each session for the next one
+- **Speak through it**: use "Say" on the console to voice a station or ship yourself
 
 ### Without the AI Director
-- Director=Off still works — scripted random encounters in dangerous zones
-- Use GM buttons to spawn salvage, give credits, create situations manually
-- Hail the crew as NPCs yourself (type in GM chat)
+- Nothing in the game depends on it: jobs, patrols, arcs and saves all work the same
+- Use the GM buttons to give credits, adjust standing, tune patrols and drive the story arcs
+- Hail the crew as NPCs yourself (EmptyEpsilon's GM hail)
 
 ### Pacing
 - **30-minute session**: One goal (visit station X, salvage the Gauntlet, escort a freighter)
@@ -179,11 +177,11 @@ Crew decides what to do. AI director (if on) creates encounters matching the reg
 - Director isn't running, or can't reach EmptyEpsilon server
 - Check `director/config.toml` has correct `[ee] url`
 - Ensure `httpserver=8080` in EmptyEpsilon `options.ini`
-- Scenario still works in Director=Off mode
+- The game is unaffected: the director only observes
 
 ### Crew is overwhelmed by enemies
-- Use GM button **AI: ease off**
-- Give standing directive: "Keep combat light, they're learning"
+- **World Plugins... → Proximity Spawns → Spawn Zones...**: set the zone to Low or None
+- Or switch Proximity Spawns off for a while (existing patrols are removed)
 - Or manually destroy some enemies (GM → click ship → destroy)
 
 ### Concord turns hostile mid-session
@@ -204,3 +202,4 @@ Crew decides what to do. AI director (if on) creates encounters matching the reg
 - **Campaign save**: Server's `scriptstorage.json`, key `ragtag.campaign.sandbox`
 - **Director memory**: `director/director_memory.json`
 - **Bible**: `scenarios/sandbox/bible.md` (context for AI director)
+- **Other ships' records**: in the same save, under `extra_ships` (one per ship, by callsign)

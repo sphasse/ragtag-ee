@@ -110,10 +110,8 @@ local function _transportComms(source, target, rec)
         local rumor_text = (RUMORS and RUMORS.get and RUMORS.get(s:getCallSign(), t:getFaction()))
             or "Not much worth repeating, friend."
         setCommsMessage("\"" .. rumor_text .. "\"")
-        if DIR and DIR.online then
-            DIR.emit("npc_hailed", {callsign = t:getCallSign(), faction = t:getFaction(), topic = "news",
-                role = "freighter crew", cargo = rec.kind, heading_to = dest}, "normal")
-        end
+        RT.emit("npc_hailed", {callsign = t:getCallSign(), faction = t:getFaction(), topic = "news",
+            role = "freighter crew", cargo = rec.kind, heading_to = dest}, "normal")
         addCommsReply("Back", function(s2, t2) _transportComms(s2, t2, rec) end)
     end)
     if rec.route.fac ~= "Concord" and rec.kind == "Fuel" then
@@ -205,11 +203,9 @@ local function _spawnTransport(route, rng, near_station)
     s:setCommsFunction(function(source, target) _transportComms(source, target, rec) end)
     RT.onKill(s, function(ship, instigator)
         local x, y = ship:getPosition()
-        if DIR then
-            DIR.emit("transport_destroyed", {callsign = rec.name, route = route.id,
-                by = (instigator and instigator:isValid()) and instigator:getFaction() or "unknown",
-                region = VERSE.regionAt(x, y).name}, "normal")
-        end
+        RT.emit("transport_destroyed", {callsign = rec.name, route = route.id,
+            by = (instigator and instigator:isValid()) and instigator:getFaction() or "unknown",
+            region = VERSE.regionAt(x, y).name}, "normal")
     end)
     RT.register(s)
     table.insert(VERSE.transports, rec)

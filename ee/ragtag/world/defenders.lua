@@ -69,11 +69,12 @@ local function _nearestEnemy(ship, radius)
     return nil
 end
 
-local function _defenderComms(ship_name, station_cs, fac)
+-- source: the hailing player ship; defender: the defender entity itself (never looked up by name).
+local function _defenderComms(source, defender, station_cs, fac)
     local fac_slug = fac == "Concord" and "concord" or "independent"
     local can_cmd  = RT.flag("defender_cmds_" .. fac_slug)
-    local defender = RT.find(ship_name)
-    local station  = RT.find(station_cs)
+    local ship_name = defender:getCallSign()
+    local station  = RT.find(station_cs)   -- a universe place, found by name
 
     if fac == "Concord" then
         setCommsMessage('"' .. ship_name .. ', patrol assignment ' ..
@@ -98,11 +99,8 @@ local function _defenderComms(ship_name, station_cs, fac)
         end)
 
         addCommsReply("Defend our ship.", function(s2, t2)
-            if RT.valid(defender) then
-                -- Use first player as the defend target (comms_source should be player).
-                RT.forEachPlayer(function(p)
-                    if RT.valid(p) then defender:orderDefendTarget(p) end
-                end)
+            if RT.valid(defender) and RT.valid(source) then
+                defender:orderDefendTarget(source)   -- the ship that asked
                 setCommsMessage('"On your wing."')
             else
                 setCommsMessage('"Copy."')
@@ -156,15 +154,12 @@ local function _spawnDefender(state, cs, fac)
         ship:orderIdle()
     end
 
-    -- Capture locals for the comms closure.
-    local cap_name = name
-    local cap_cs   = cs
-    local cap_fac  = fac
+    local cap_cs, cap_fac = cs, fac
     ship:setCommsFunction(function(src, tgt)
-        _defenderComms(cap_name, cap_cs, cap_fac)
+        _defenderComms(src, tgt, cap_cs, cap_fac)
     end)
 
-    state.slots[cs].ship_cs   = name
+    state.slots[cs].ship      = ship   -- the entity: the slot never looks its ship up by name
     state.slots[cs].ship_name = name
     state.slots[cs].respawn_at = nil
 end
@@ -193,7 +188,7 @@ function _P.init(state)
         if target_facs[d.fac] then
             state.slots[d.cs] = {
                 fac        = d.fac,
-                ship_cs    = nil,
+                ship       = nil,
                 ship_name  = nil,
                 respawn_at = 0,   -- 0 = spawn immediately on first check
             }
@@ -205,11 +200,11 @@ function _P.update(state, delta, now)
     local respawn_secs = WORLD.get("defenders", "respawn_secs", 120)
 
     for cs, slot in pairs(state.slots) do
-        if slot.ship_cs then
+        if slot.ship then
             -- Check if current defender is still alive.
-            if not RT.valid(RT.find(slot.ship_cs)) then
+            if not RT.valid(slot.ship) then
                 state.used_names[slot.ship_name] = nil
-                slot.ship_cs   = nil
+                slot.ship      = nil
                 slot.ship_name = nil
                 slot.respawn_at = now + respawn_secs
             end
@@ -227,10 +222,8 @@ end
 function _P.cleanup(state)
     -- Destroy all active defenders on disable.
     for cs, slot in pairs(state.slots or {}) do
-        if slot.ship_cs then
-            local s = RT.find(slot.ship_cs)
-            if RT.valid(s) then s:destroy() end
-        end
+        if RT.valid(slot.ship) then slot.ship:destroy() end
+        slot.ship = nil
     end
 end
 

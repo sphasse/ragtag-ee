@@ -4,7 +4,7 @@
 -- Provides:
 --   * Campaign persistence across sessions (getScriptStorage, key "ragtag.campaign")
 --   * Player ship creation with purchased upgrades re-applied every session
---   * Credits (one balance per player ship, kept here and shown on Relay / Operations)
+--   * Per-ship records: credits, standing and upgrades of each player ship (RT.shipRecord)
 --   * A generic station comms menu with a shipwright (upgrade shop) and rumours
 --     (core/stations.lua), reputation (core/reputation.lua), upgrades (core/upgrades.lua),
 --     sound cues (core/sound.lua), GM backup tools (core/gm_tools.lua): see the requires at the end
@@ -15,7 +15,7 @@
 --   require("utils.lua")
 --   require("ragtag/core.lua")
 --   require("ragtag/verse.lua")
---   require("ragtag/director.lua")
+--   require("ragtag/director.lua")   -- optional: the AI director's mailbox (observation only)
 --
 -- Written against the ECS-era EmptyEpsilon scripting API (2024+ releases).
 
@@ -26,7 +26,7 @@ RT.SHIP_KEY     = "ragtag.ship"        -- portable ship record, not tied to any 
 RT.PLAYER_FACTION = "Independent"
 RT.PLAYER_TEMPLATE = "Flavia P.Falcon"
 
-RT.named = {}          -- callsign -> entity, for objects the scenario or director created
+RT.named = {}          -- callsign -> entity, for objects addressed by name (see RT.find)
 RT.stations = {}       -- callsign -> {entity=..., shop=bool, flavor=string, hooks={fn,...}}
 RT.objective = ""
 RT.player  = nil       -- first player ship (backward-compat alias for RT.players[1])
@@ -76,6 +76,12 @@ function RT.register(entity, callsign)
 
     -- Automatically track CpuShips for reputation on kill
     -- Check if getTypeName exists and is actually a function before calling
+    -- KNOWN GAP: getTypeName() returns the ship's TEMPLATE name ("MT52 Hornet"), never
+    -- "CpuShip", so this test has never matched and the "destroy any ship: -200" penalty
+    -- (docs/REPUTATION.md) does not fire. isObjectType(entity, "CpuShip") would switch it on;
+    -- that changes the balance of every fight and arc battle, so it is left for a deliberate
+    -- decision. RT.trackShipForReputation itself works and charges the ship that made the kill
+    -- (tests/core/records.lua).
     if entity.getTypeName and type(entity.getTypeName) == "function" then
         local ok, typename = pcall(function() return entity:getTypeName() end)
         if ok and typename == "CpuShip" then
@@ -86,16 +92,19 @@ function RT.register(entity, callsign)
     return entity
 end
 
--- Find an entity by callsign: registry first, then a radius scan around the nearest player.
+-- Find an entity by callsign: the registry first (RT.register / RT.station / RT.spawnPlayer),
+-- then one pass over the whole map. The result does not depend on where any player is.
+--
+-- A callsign is a NAME, not an identity: two ships can carry the same one, and a ship can be
+-- renamed. Use RT.find for things that are addressed by name (universe places, a speaker the GM
+-- typed); code that spawns a ship keeps the entity it got back and never looks it up again.
+RT.MAP_RADIUS = 2000000
 function RT.find(callsign)
     if callsign == nil or callsign == "" then return nil end
     local e = RT.named[callsign]
     if RT.valid(e) then return e end
-    local cx, cy = 0, 0
-    local np = RT.nearestPlayer(0, 0)
-    if np then cx, cy = np:getPosition() end
-    for _, obj in ipairs(getObjectsInRadius(cx, cy, 100000)) do
-        if obj.getCallSign and obj:getCallSign() == callsign then
+    for _, obj in ipairs(getObjectsInRadius(0, 0, RT.MAP_RADIUS)) do
+        if obj.getCallSign and obj:isValid() and obj:getCallSign() == callsign then
             RT.named[callsign] = obj
             return obj
         end
@@ -240,16 +249,17 @@ local function defaultCampaign()
     return {
         version = 1,
         ship_name = "Magpie",
+        -- The primary ship's record (see "Per-ship records"): credits, upgrades, reputation.
         credits = 150,
         upgrades = {},    -- list of upgrade ids, applied in purchase order
-        extra_ships = {}, -- [{name, credits}, ...] one entry per ship beyond the primary
+        extra_ships = {}, -- [{name, credits, reputation, upgrades}, ...] one record per other ship
         sessions = {},   -- "s1" -> {outcome="success", at=...}
         flags = {},      -- story flags: string -> bool/number/string
         notes = {},      -- short human-readable campaign log lines
         discovered = {}, -- names of charted regions (see ragtag_verse.lua)
         stats = {},      -- statistics (see ragtag/stats.lua)
         achievements = {}, -- id -> {at, session} (see ragtag/stats.lua)
-        reputation = {   -- standing with each faction (unbounded; thresholds at ±200/±400/±500)
+        reputation = {   -- the primary ship's standing with each faction (unbounded; thresholds at ±200/±400/±500)
             Concord = 0,
             Corsairs = 0,
             Hollow = 0,
@@ -306,17 +316,12 @@ end
 function RT.saveCampaign()
     if RT.campaign == nil then return end
     if RT._saves_frozen then return end   -- a backup was restored: don't overwrite it until restart
-    -- Balances and standing live in script tables; copy them into the save. Ships not in this
-    -- session keep their saved record.
-    if RT.player ~= nil and RT._ship_credits[RT.player] ~= nil then
-        RT.campaign.credits = RT._ship_credits[RT.player]
-    end
-    for i = 2, #RT.players do
-        local p = RT.players[i]
-        if RT.valid(p) and RT._ship_credits[p] ~= nil then
-            local entry = RT.extraShipRecord(p, true)
-            entry.credits    = RT._ship_credits[p]
-            entry.reputation = RT._ship_rep and RT._ship_rep[p] or entry.reputation
+    -- Ship records ARE the save (see "Per-ship records"); only the name a returning crew is
+    -- found by needs refreshing, in case a ship was renamed. Ships not in this session keep
+    -- their saved record.
+    for _, st in ipairs(RT._ship_state) do
+        if st.rec and st.campaign == RT.campaign and st.ship ~= RT.player and RT.valid(st.ship) then
+            st.rec.name = st.ship:getCallSign()
         end
     end
     getScriptStorage():set(RT.CAMPAIGN_KEY, toJSON(RT.campaign))
@@ -392,13 +397,6 @@ function RT.note(text)
     while #RT.campaign.notes > 40 do table.remove(RT.campaign.notes, 1) end
 end
 
-function RT.hasUpgrade(id)
-    for _, u in ipairs(RT.campaign.upgrades) do
-        if u == id then return true end
-    end
-    return false
-end
-
 -- Mark a session finished and persist. outcome: "success", "partial", "failed"
 function RT.completeSession(session_id, outcome, note)
     RT.campaign.sessions[session_id] = {outcome = outcome, at = math.floor(getScenarioTime())}
@@ -407,110 +405,170 @@ function RT.completeSession(session_id, outcome, note)
 end
 
 --------------------------------------------------------------------------------
--- Credits (reputation points on the player ship)
+-- Per-ship records
 --------------------------------------------------------------------------------
 
--- Credits are kept by this script, one balance per player ship, and shown on each ship's Relay
--- and Operations screens as a "Credits: N" line.
+-- Everything a player ship owns is in ONE record with the same three fields for every ship:
+--   credits     number
+--   reputation  faction -> standing
+--   upgrades    list of upgrade ids, in purchase order
+-- The primary ship's record is the campaign table itself (campaign.credits / .reputation /
+-- .upgrades, where saves have always kept them); every other ship's is an entry of
+-- campaign.extra_ships, which also carries `name`. RT.shipRecord(ship) returns the right one, and
+-- RT.credits / RT.addReputation / RT.hasUpgrade and friends are thin wrappers over it. There are
+-- no side tables to copy into the save: changing a record changes the save.
+--
+-- Identity: a record is bound to the ship ENTITY the first time it is asked for and stays with
+-- it for the session, whatever the ship is renamed to. The callsign is only how a crew that
+-- rejoins in a later session finds its record again (saveCampaign refreshes `name`).
+--
+-- "No ship given" means the primary ship. That default exists for story arcs, which belong to
+-- the primary ship; everything else (stations, jobs, world plugins, scenarios, GM tools) knows
+-- which ship it is dealing with and must pass it. tools/check.py rejects RT.addCredits /
+-- RT.addReputation / RT.grantUpgrade without a ship outside ee/ragtag/missions/.
+
+-- Session state per player ship: {ship, rec, campaign, shown, outfitted, hull_marks}. A list, not
+-- a table keyed by ship: script calls can hand out different Lua objects for one ship, and only
+-- `==` sees through that.
+RT._ship_state = {}
+
+function RT.shipState(ship)
+    local p = RT.playerShip(ship)
+    if p == nil then return nil end
+    for _, st in ipairs(RT._ship_state) do
+        if st.ship == p then return st end
+    end
+    local st = {ship = p, hull_marks = {}}
+    RT._ship_state[#RT._ship_state + 1] = st
+    return st
+end
+
+local function _normalise(rec)
+    rec.credits = math.max(0, math.floor(tonumber(rec.credits) or 0))
+    if type(rec.reputation) ~= "table" then rec.reputation = {} end
+    if type(rec.upgrades) ~= "table" then rec.upgrades = {} end
+    return rec
+end
+
+-- The record of a player ship (default, and for anything that is not a player ship: the primary
+-- ship). nil when there is no campaign or no such ship yet.
+function RT.shipRecord(ship)
+    local c = RT.campaign
+    local p = RT.playerShip(ship) or RT.player
+    if c == nil or p == nil then return nil end
+    if p == RT.player then return _normalise(c) end
+    local st = RT.shipState(p)
+    if st.rec and st.campaign == c then return st.rec end
+    if not RT.valid(p) then return nil end
+    if type(c.extra_ships) ~= "table" then c.extra_ships = {} end
+    -- A returning crew: the saved record under this callsign, unless another live ship has it.
+    local name, rec = p:getCallSign(), nil
+    for _, e in ipairs(c.extra_ships) do
+        if type(e) == "table" and e.name == name then
+            local taken = false
+            for _, other in ipairs(RT._ship_state) do
+                if other.rec == e and other.campaign == c and other.ship ~= p then taken = true end
+            end
+            if not taken then rec = e; break end
+        end
+    end
+    if rec == nil then
+        rec = {name = name}
+        c.extra_ships[#c.extra_ships + 1] = rec
+    end
+    st.rec, st.campaign = _normalise(rec), c
+    return rec
+end
+
+--------------------------------------------------------------------------------
+-- Credits
+--------------------------------------------------------------------------------
+
+-- Credits are kept in the ship's record, one balance per player ship, and shown on each ship's
+-- Relay and Operations screens as a "Credits: N" line.
 --
 -- They are NOT EmptyEpsilon's "reputation points": the engine keeps those per FACTION, so every
 -- Independent player ship would share one number (and any ship could overwrite it). The engine
 -- number is unused and held at 0 (RT.update); the stock "Reputation" readout therefore reads 0.
 -- Nothing outside this file may call the ReputationPoints methods (check.py enforces it).
---
--- Saved with the campaign: the primary ship's balance as campaign.credits, every other ship's
--- under campaign.extra_ships by callsign, so a second crew that rejoins under the same ship
--- name gets its balance (and standing) back.
-RT._ship_credits = {}   -- player ship (the object in RT.players) -> balance
-
--- The saved record for a non-primary ship, by callsign. create=true adds one.
-function RT.extraShipRecord(p, create)
-    local c = RT.campaign
-    if not c or not RT.valid(p) then return nil end
-    c.extra_ships = c.extra_ships or {}
-    local name = p:getCallSign()
-    for _, e in ipairs(c.extra_ships) do
-        if type(e) == "table" and e.name == name then return e end
-    end
-    if not create then return nil end
-    local e = {name = name, credits = 0}
-    c.extra_ships[#c.extra_ships + 1] = e
-    return e
-end
 
 local function _showCredits(p)
-    if not RT.valid(p) then return end
-    local txt = "Credits: " .. (RT._ship_credits[p] or 0)
+    local st = RT.shipState(p)
+    if st == nil or not RT.valid(p) then return end
+    local rec = RT.shipRecord(p)
+    local n = rec and rec.credits or 0
+    if st.shown == n then return end
+    st.shown = n
+    local txt = "Credits: " .. n
     pcall(function()
         p:addCustomInfo("relay", "rt_credits_relay", txt, 0)
         p:addCustomInfo("operations", "rt_credits_ops", txt, 0)
     end)
 end
 
--- The ship's balance entry, loaded from the save the first time the ship is seen.
-local function _balance(p)
-    if RT._ship_credits[p] == nil then
-        local saved = 0
-        if p == RT.player then
-            saved = RT.campaign and RT.campaign.credits or 0
-        else
-            local e = RT.extraShipRecord(p)
-            saved = e and e.credits or 0
-        end
-        RT._ship_credits[p] = math.max(0, math.floor(tonumber(saved) or 0))
-        _showCredits(p)
-    end
-    return RT._ship_credits[p]
-end
-
 -- A ship's credit balance (default: the primary ship).
 function RT.credits(ship)
-    local p = RT.playerShip(ship) or RT.player
-    if p == nil then return 0 end
-    return _balance(p)
+    local rec = RT.shipRecord(ship)
+    return rec and rec.credits or 0
 end
 
 -- Set a ship's balance outright (ship creation, GM tools). Default: the primary ship.
 function RT.setCredits(amount, ship)
-    local p = RT.playerShip(ship) or RT.player
-    if p == nil then return end
-    RT._ship_credits[p] = math.max(0, math.floor(tonumber(amount) or 0))
-    _showCredits(p)
+    local rec = RT.shipRecord(ship)
+    if rec == nil then return end
+    rec.credits = math.max(0, math.floor(tonumber(amount) or 0))
+    _showCredits(RT.playerShip(ship) or RT.player)
 end
 
 -- Add (or with a negative amount, take) credits. Default: the primary ship. Balances never go
 -- below zero.
 function RT.addCredits(amount, reason, ship)
     ship = RT.playerShip(ship) or RT.player
-    if not RT.valid(ship) then return end
+    local rec = RT.shipRecord(ship)
+    if rec == nil or not RT.valid(ship) then return end
     amount = math.floor(amount)
-    local new_total = math.max(0, _balance(ship) + amount)
-    RT._ship_credits[ship] = new_total
+    rec.credits = math.max(0, rec.credits + amount)
     _showCredits(ship)
     local sign = amount >= 0 and "+" or ""
-    ship:addToShipLog(string.format("Credits %s%d (%s). Balance: %d", sign, amount, reason or "misc", new_total), "#E0C060")
+    ship:addToShipLog(string.format("Credits %s%d (%s). Balance: %d", sign, amount, reason or "misc", rec.credits), "#E0C060")
     if STATS then STATS.noteCredits(amount, reason) end
     RT.saveCampaign()
 end
 
--- Per frame: make sure every ship has its balance loaded and shown, and hold the engine's shared
--- number at 0 so nothing (a stock script, a GM action) can create a second, phantom balance.
+-- Per frame: make sure every ship has its record bound and its balance shown, and hold the
+-- engine's shared number at 0 so nothing (a stock script, a GM action) can create a second,
+-- phantom balance.
 function RT.updateCredits()
     for _, p in ipairs(RT.players) do
         if RT.valid(p) then
-            _balance(p)
+            _showCredits(p)
             if (p:getReputationPoints() or 0) ~= 0 then p:setReputationPoints(0) end
         end
     end
 end
 
-
-
 --------------------------------------------------------------------------------
 -- Player ship
 --------------------------------------------------------------------------------
 
--- opts (optional 4th arg): {callsign, template, faction}
+-- Add a ship to RT.players (once). For ships the engine created (the "Create player ship"
+-- screen): the scenario names it in onNewPlayerShip and calls this; its record is bound and its
+-- upgrades applied on the next RT.update, by the callsign it has then.
+function RT.adoptPlayer(ship)
+    if RT.playerShip(ship) == nil then table.insert(RT.players, ship) end
+    RT.player = RT.players[1]   -- backward-compat alias always points to first ship
+    return ship
+end
+
+-- Apply the upgrades in a ship's record, once per ship per session.
+function RT.outfit(ship)
+    local st = RT.shipState(ship)
+    if st == nil or st.outfitted then return end
+    st.outfitted = true
+    for _, id in ipairs(RT.upgrades(ship)) do RT.applyUpgrade(st.ship, id) end
+end
+
+-- opts (optional 4th arg): {callsign, template, faction, credits}
 -- First call creates the primary ship (RT.player alias). Subsequent calls add
 -- another ship. Extra ships get their own callsign (opts.callsign or
 -- primary_name.."-2", "-3", …) and their own credits (opts.credits, default 0) and standing.
@@ -529,7 +587,11 @@ function RT.spawnPlayer(x, y, heading, opts)
     p:setWeaponStorageMax("Mine", 0):setWeaponStorage("Mine", 0)
     p:setWeaponStorage("Homing", 2)
     p:setRepairCrewCount(2)
-    for _, id in ipairs(c.upgrades) do RT.applyUpgrade(p, id) end
+    -- onNewPlayerShip fires during setTemplate above and may have already registered
+    -- the ship (e.g. to preserve a non-Independent faction). Guard against duplicates.
+    RT.adoptPlayer(p)
+    -- The ship's own upgrades (its record, found by the callsign set above), then wear.
+    RT.outfit(p)
     if is_primary and c.ship_condition then
         local cond = c.ship_condition
         local cm_f, cm_r = p:getShieldsMax()
@@ -537,16 +599,8 @@ function RT.spawnPlayer(x, y, heading, opts)
         p:setShields(cm_f * cond.front_shield_pct, cm_r * cond.rear_shield_pct)
         p:setEnergy(p:getMaxEnergy() * cond.energy_pct)
     end
-    -- onNewPlayerShip fires during setTemplate above and may have already registered
-    -- the ship (e.g. to preserve a non-Independent faction). Guard against duplicates.
-    local already = false
-    for _, existing in ipairs(RT.players) do
-        if existing == p then already = true; break end
-    end
-    if not already then table.insert(RT.players, p) end
-    RT.player = RT.players[1]   -- backward-compat alias always points to first ship
     -- Credits (see "Credits"): an explicit amount, else what the save holds for this ship.
-    if opts.credits ~= nil then RT.setCredits(opts.credits, p) else RT.credits(p) end
+    if opts.credits ~= nil then RT.setCredits(opts.credits, p) end
     RT.named[cs] = p
     return p
 end
@@ -556,8 +610,8 @@ end
 --------------------------------------------------------------------------------
 
 -- Several objectives can be active at once, each under its own key. The default key "main"
--- is the arc/job objective everything already uses (and RT.objective mirrors it for the
--- director); an arc can add a second line under its own key, e.g. RT.setObjective("Hack the
+-- is the arc/job objective everything already uses (and RT.objective mirrors it for
+-- observers); an arc can add a second line under its own key, e.g. RT.setObjective("Hack the
 -- Annex", true, "boneyard"), and remove just that line with RT.clearObjective("boneyard").
 -- Each shows as its own "Objective: ..." line on Relay and Operations.
 RT.objectives      = {}   -- key -> text
@@ -584,7 +638,7 @@ function RT.setObjective(text, silent, key)
         p:addCustomInfo("operations", ops_key, "Objective: " .. clean, order)
         if not silent then p:addToShipLog("New objective: " .. clean, "#80C0FF") end
     end)
-    if DIR then DIR.emit("objective", {text = clean, key = key}) end
+    RT.emit("objective", {text = clean, key = key})
 end
 
 -- Remove one objective line (by key), or all of them when no key is given (used when a GM
@@ -614,7 +668,6 @@ end
 --------------------------------------------------------------------------------
 
 RT._last_save  = 0
-RT._hull_marks = {}   -- callsign -> {75=bool, 50=bool, 25=bool}
 
 function RT.update(delta)
     RT.updateTimers()
@@ -625,24 +678,18 @@ function RT.update(delta)
     -- Catches ships spawned through GM console or other means outside RT.spawnPlayer().
     local active = getActivePlayerShips()
     for _, ship in ipairs(active) do
-        local found = false
-        for _, p in ipairs(RT.players) do
-            if p == ship then found = true; break end
-        end
-        if not found then
+        if RT.playerShip(ship) == nil then
             -- Set to campaign faction (default: Independent)
             ship:setFaction(RT.PLAYER_FACTION)
-            table.insert(RT.players, ship)
-            RT.player = RT.players[1]  -- Update backward-compat alias
-            -- Apply campaign upgrades but NOT credits (ships are financially independent)
-            if RT.campaign then
-                for _, id in ipairs(RT.campaign.upgrades) do
-                    RT.applyUpgrade(ship, id)
-                end
-                -- Credits and standing are per ship: loaded from the save by callsign the first
-                -- time they are read (RT.updateCredits below), 0 for a ship never seen before.
-            end
-            log("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ", 0 credits)")
+            RT.adoptPlayer(ship)
+            log("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ")")
+        end
+    end
+    -- Credits, standing and upgrades are per ship: each ship's record is found by its callsign
+    -- the first time it is needed (a new record, with nothing in it, for a ship never seen).
+    if RT.campaign then
+        for _, p in ipairs(RT.players) do
+            if RT.valid(p) then RT.outfit(p) end
         end
     end
 
@@ -660,13 +707,12 @@ function RT.update(delta)
     for _, p in ipairs(RT.players) do
         if RT.valid(p) then
             local cs = p:getCallSign()
-            if not RT._hull_marks[cs] then RT._hull_marks[cs] = {} end
-            local marks = RT._hull_marks[cs]
+            local marks = RT.shipState(p).hull_marks
             local pct = p:getHull() / p:getHullMax() * 100
             for _, mark in ipairs({75, 50, 25}) do
                 if pct < mark and not marks[mark] then
                     marks[mark] = true
-                    if DIR then DIR.emit("player_damaged", {hull_pct = math.floor(pct), ship = cs}, mark <= 50 and "high" or "normal") end
+                    RT.emit("player_damaged", {hull_pct = math.floor(pct), ship = cs}, mark <= 50 and "high" or "normal")
                 elseif pct > mark + 10 then
                     marks[mark] = nil
                 end
@@ -676,6 +722,7 @@ function RT.update(delta)
 end
 
 -- The rest of core, one file per concern. Loaded here because they only use RT at call time.
+require("ragtag/core/events.lua")       -- RT.emit / RT.on (event bus), scripted beats, state providers
 require("ragtag/core/sound.lua")        -- RT.sound, RT.soundLoop, the GM "Sounds..." menu
 require("ragtag/core/reputation.lua")   -- RT.addReputation, RT.getReputation, RT.onKill, kill tracking
 require("ragtag/core/upgrades.lua")     -- RT.UPGRADES, RT.applyUpgrade, RT.grantUpgrade

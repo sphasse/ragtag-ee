@@ -1,31 +1,35 @@
 # The Long Haul framework (RT + VERSE + DIR)
 
-Three Lua libraries that every campaign session requires, plus a Python director. In the ragtag-ee repo they live in `ee/ragtag/` and install to EmptyEpsilon's `scripts/ragtag/` via `tools/install.py`; scenarios load them with `require("ragtag/core.lua")` etc.
+Two Lua libraries that every campaign session requires (RT, VERSE), the optional mailbox for the AI director (DIR), and a Python director. In the ragtag-ee repo they live in `ee/ragtag/` and install to EmptyEpsilon's `scripts/ragtag/` via `tools/install.py`; scenarios load them with `require("ragtag/core.lua")` etc.
 
 ## Contents
 1. RT (ee/ragtag/core.lua): campaign, ship, credits, stations, objectives
 1b. VERSE (ee/ragtag/verse.lua): the shared universe
-2. DIR (ee/ragtag/director.lua): beats, events, state, actions
+1c. Events, beats and state providers (ee/ragtag/core/events.lua)
+2. DIR (ee/ragtag/director.lua): the AI director's mailbox (observation only)
 3. Mailbox protocol (for changing the Python side)
 4. Adding a new director action
 
 ## 1. RT
 | Function | What it does |
 |---|---|
-| `RT.loadCampaign(fresh)` | Load (or reset) the save into `RT.campaign`: `ship_name, credits, upgrades{}, sessions{}, flags{}, notes{}` |
-| `RT.saveCampaign()` | Persist; also copies current credits from the ship |
+| `RT.loadCampaign(fresh)` | Load (or reset) the save into `RT.campaign`: `ship_name, credits, reputation{}, upgrades{}` (the primary ship's record), `extra_ships[]` (the other ships' records), `sessions{}, flags{}, notes{}` |
+| `RT.saveCampaign()` | Persist. Ship records are part of the campaign table, so there is nothing to copy first |
+| `RT.shipRecord(ship)` | The record of a player ship: `{credits, reputation{}, upgrades{}}` (plus `name` for a non-primary ship). The primary ship's record is `RT.campaign` itself. Bound to the ship entity for the session; found by callsign when a ship first appears. No ship = the primary ship |
 | `RT.flag(name)` / `RT.flag(name, value)` | Read / write-and-save a story flag |
 | `RT.note(text)` | Append a short campaign log line |
 | `RT.completeSession(id, outcome, note)` | Record "success" / "partial" / "failed" and save |
-| `RT.spawnPlayer(x, y, heading)` | Create the crew's ship with all purchased upgrades re-applied; sets `RT.player` |
+| `RT.spawnPlayer(x, y, heading, opts)` | Create a player ship with the upgrades of **its own record** re-applied. The first call makes the primary ship (`RT.player`); later calls add ships (`opts.callsign`, `opts.credits`). `RT.adoptPlayer(ship)` registers a ship the engine created (the "Create player ship" screen) |
 | `RT.credits(ship)`, `RT.addCredits(n, reason, ship)`, `RT.setCredits(n, ship)` | Currency, one balance per player ship (default: the primary ship), kept by RT and shown as a `Credits: N` line on Relay and Operations; logged and saved. Not EE reputation points (those are per faction and held at 0) |
-| `RT.UPGRADES`, `RT.hasUpgrade(id)`, `RT.grantUpgrade(id, reason)` | Upgrade table (id, name, cost, desc, requires, apply) and free story rewards |
+| `RT.UPGRADES`, `RT.upgrades(ship)`, `RT.hasUpgrade(id, ship)`, `RT.upgradeSpend(ship)` | Upgrade table (id, name, cost, desc, requires, apply) and what a ship owns. Upgrades are per ship |
+| `RT.installUpgrade(id, ship)`, `RT.grantUpgrade(id, reason, ship)`, `RT.revokeUpgrade(id, ship)` | Record + apply (the shipwright, after charging); the same with a log line and an `upgrade` event (story reward, GM); remove (rebuilds the hull and re-applies the rest) |
+| `RT.addReputation(faction, n, reason, ship)`, `RT.getReputation(faction, ship)` | Standing, per ship. **Outside story arcs always pass the ship** to this, `RT.addCredits` and `RT.grantUpgrade` (`check.py` enforces it); without it they act on the primary ship |
 | `RT.station{template, faction, callsign, x, y, shop, flavor, description}` | Station using the campaign comms menu (shipwright if `shop`, missile restock, "any news?") |
 | `RT.addStationHook(callsign, fn(source, target, info))` | Add session-specific comms replies to a station's menu |
 | `RT.setObjective(text)` | Show the job on Relay/Operations, log it, emit an `objective` event. **Max ~19 chars** — the UI prepends "Objective: " (11 chars) and the total must fit in ~30 chars. |
 | `RT.setObjective(text, silent, key)` / `RT.clearObjective(key)` | Several objectives at once: each key (default `"main"`) is its own "Objective: …" line on Relay and Operations. An arc adds a second line under its own key (`RT.setObjective("Hack the Annex", true, "boneyard")`) and removes just that line with `RT.clearObjective("boneyard")`; `RT.clearObjective()` clears all. |
 | `RT.hail(entity, text, speaker)` | Hail the player; falls back to the ship's log if comms are busy |
-| `RT.find(callsign)`, `RT.register(entity, callsign)` | Callsign lookup with a registry |
+| `RT.find(callsign)`, `RT.register(entity, callsign)` | Lookup by name: the registry, then the whole map. For things addressed by name (universe places, a speaker the GM typed). **Keep the entity of anything you spawn** instead of finding it again: two ships can share a callsign |
 | `RT.after(seconds, fn, name)`, `RT.cancelTimer(name)` | Scenario-time timers |
 | `RT.sound(id, {now, skip_if_busy, x, y})` | Play a cue from `RT.SOUNDS` on the **server's** speakers (queued unless `now`). With `x, y` and `RT.sound_client_enabled`, also a positional client cue (main screen only). Ids/files: `ee/ragtag/sfx/SOURCES.md` (generated by `tools/gen_sfx.py`) |
 | `RT.soundLoop(name, id, interval, alive)`, `RT.stopSoundLoop(name)` | Re-fire a cue every `interval` s while `alive()` holds (jammer beds). GM: "Sounds..." submenu (enable toggle + per-cue test buttons) |
@@ -53,6 +57,20 @@ Tracked automatically and saved with the campaign (`RT.campaign.stats`, `RT.camp
 
 Engine hooks already call it: `JOBS.accept/complete/_failed`, `VERSE` region entry, `MISSIONS` start / cancel / done, `RT.addCredits`, and `RT.update`. Arcs don't need to do anything; to add an achievement for an arc, `ACH.define` one whose `check` reads `stats.arcs.<id>.completed` or an `RT.flag`.
 
+## 1c. Events, beats and state providers (`ee/ragtag/core/events.lua`)
+
+| Function | What it does |
+|---|---|
+| `RT.emit(type, data, priority)` | Report that something happened. `data` is a flat table; priority "high" / "normal" (default) / "low". Game code calls this and never knows who listens |
+| `RT.on(fn(ev))` | Subscribe to every event: `ev = {t, type, data, pri}`. The director's mailbox is one subscriber. A listener's error is logged and does not stop the others |
+| `RT.reportKills(ship)` | Emit `destroyed` (and `combat_kill` with strength data when a player made the kill) when the ship dies to damage |
+| `RT.defineBeat(id, {desc, fn(source)})` | A scripted story beat |
+| `RT.fireBeat(id, source)` | Fire once; source is "script", "fallback" or "gm". Returns ok, msg. Emits a `beat` event |
+| `RT.beatFired(id)` | Has it fired? |
+| `RT.addStateProvider(fn)` | `fn()` returns a flat table; observers merge every provider's table into their snapshot (`RT.extraState()`) |
+
+Nothing in core, jobs, world plugins or arcs may name `DIR` (`check.py` enforces it).
+
 ## 1b. VERSE
 `ee/ragtag/verse.lua` builds the same universe in every session: factions, suns, planets, 16 stations with their own shipwright stock, named regions with danger levels, nebulae, asteroid fields, minefields, hazards, hostile garrisons, scannable wrecks, salvage clusters, and freighter traffic. The layout comes from a fixed seed (`VERSE.SEED`), so it never moves; salvage is re-rolled per session.
 
@@ -79,26 +97,23 @@ Events VERSE emits: `region_entered` {region, danger, first_visit}, `transport_d
 Factions available to sessions: player "Independent"; "Concord" (law, neutral); "Corsairs" (pirates, hostile); "Hollow" (deadly raiders, hostile to everyone); "Relic" (war drones, hostile to everyone); "Unknown" (silent watchers, neutral); "Derelict" (dead hulls). Don't use the stock Human Navy/Exuari/Ghosts factions in campaign sessions.
 
 ## 2. DIR
+The mailbox to the AI director. It only listens: it subscribes to the event bus, queues what
+the game reports and ships it out with a state snapshot. **The director is observation-only**;
+remove the `require` and the campaign plays exactly the same.
+
 | Function | What it does |
 |---|---|
 | `DIR.init(session)` | Start the mailbox and send `session_start`. Call at the end of `init()` |
-| `DIR.defineBeat(id, {desc, ai, fn(source)})` | A story beat. `ai = true` lets the director choose when to fire it |
-| `DIR.fireBeat(id, source)` | Fire once; source is "script", "fallback", "gm" or "ai". Returns ok, msg |
-| `DIR.beatFired(id)` | Has it fired? Use for fallbacks |
-| `DIR.emit(type, data, priority)` | Send an event. "high" = director reacts now; "normal" batches; "low" for ticks |
-| `DIR.addStateProvider(fn)` | Return a table merged into the state's `extra` (phase, choices, counters) |
-| `DIR.allowControl(entity)` | The director may hail as / give orders to this NPC |
-| `DIR.npcComms` | Comms function that turns "Who are you? / What do you want? / Any work?" into `npc_hailed` events. Set `DIR.npc_info[callsign] = {greeting=..., role=...}` |
-| `DIR.config` | `max_ai_hostiles`, `spawn_cooldown`, `glitch_cooldown`, `credit_cap_per_action`, `credit_cap_per_session`, `tick_minutes`, `allowed_factions`, `hostile_factions` |
-| `DIR.GROUPS` | Ship templates per strength (scout/light/medium/heavy) |
-| `DIR.enabled` | Set false (Director=Off setting) to skip the mailbox entirely |
+| `DIR.enabled` | Set false (Director=Off setting) to stop queueing events and skip the mailbox |
 | `DIR.update(delta)` | Call every frame |
+| `DIR.config.tick_minutes` | Minutes between `tick` events (default 4) |
+| `DIR.ACTIONS` | The action whitelist, one file per action in `ee/ragtag/director/actions/` |
 
-**The session dictionary** passed to `DIR.init` is the director's briefing: `id, title, premise, tone, cast{name, where, role, voice}, locations{name, note}, director_guidance`. Make `where` the exact callsign of the character's ship or station so the director's `say` actions arrive as real hails. `director_guidance` should name the ai beats, roughly when to fire them, and what to avoid.
+**The session dictionary** passed to `DIR.init` is the director's briefing: `id, title, premise, tone, cast{name, where, role, voice}, locations{name, note}, director_guidance`. Make `where` the exact callsign of the character's ship or station so the GM's `say` from the console arrives as a real hail. `director_guidance` should say what to watch for and summarise.
 
-**Events the framework emits:** `region_entered`, `transport_destroyed`, `wreck_scanned`, `session_start`, `objective`, `beat`, `upgrade`, `player_damaged` (75/50/25%), `comms_ask` (station "any news?"), `npc_hailed`, `destroyed` (director-spawned and ambush ships), `pickup`, `gm_request` (GM buttons), `tick`, plus whatever the session emits. Conventions for session events: `choice` with `{beat, choice}` for player decisions, `session_end` with `{session, outcome, note, flags, credits}`.
+**Actions.** The model may send `gm_note` (a private note to the human GM) and `noop`. Everything the crew can see or that changes the campaign is GM-only: `say`, `set_objective`, `rename_ship`, `restore_campaign`. A GM-only action is refused on the Python side for the model and again on the Lua side unless `cmd.source == "gm"`.
 
-**Built-in GM buttons:** AI twist / escalate / ease off / chatter (emit `gm_request`), pause/resume (refuses model actions in-game), status.
+**Events the framework emits:** `region_entered`, `transport_destroyed`, `wreck_scanned`, `session_start`, `objective`, `beat`, `upgrade`, `player_damaged` (75/50/25%), `comms_ask` (station "any news?"), `npc_hailed`, `destroyed` / `combat_kill` (ships registered with `RT.reportKills`), `pickup`, `job_complete`, `prox_spawned` / `prox_cleared`, `escort_ambush`, `achievement`, `tick`, plus whatever the session emits. Conventions for session events: `choice` with `{beat, choice}` for player decisions, `session_end` with `{session, outcome, note, flags, credits}`.
 
 ## 3. Mailbox protocol
 Two ScriptStorage keys, each written by exactly one side, both JSON strings:
@@ -117,8 +132,8 @@ Two ScriptStorage keys, each written by exactly one side, both JSON strings:
 - `/exec.lua` reads: `return getScriptStorage():get("rt.from_scenario") or ""`. Writes: `getScriptStorage():set("rt.from_director", "<escaped json>") return "ok"`. See `director/ee_link.py` for string escaping.
 
 ## 4. Adding a new director action
-1. Lua: `DIR.ACTIONS.my_action = function(args, cmd) ... return true, "message" end` in ee/ragtag/director.lua (or in a session file, for a session-only action). Validate and clamp every argument; return `false, "reason"` instead of erroring. Check `cmd.source == "gm"` for GM-only actions.
-2. Python: add a matching `Action(...)` to `director/actions.py` with argument specs and help text. Set `llm_allowed=False` for GM-only actions. The help text is what the model sees, so say when to use it.
-3. Test with `tools/smoke_test.py` (add a case) against a headless server.
-
-Session-only actions are fine: an unknown action just fails with "unknown action" in other sessions, and the model sees the failure. But it is cleaner to express session-specific moves as `ai = true` beats.
+The director is observation-only, so a new action is either harmless to the game (like
+`gm_note`) or GM-only. `check.py` rejects anything else.
+1. Lua: a file in `ee/ragtag/director/actions/` with `DIR.ACTIONS.my_action = function(args, cmd) ... return true, "message" end`, then `python tools/check.py --fix` (regenerates the index). Unless it is on the observer list in `check.py` (`gm_note`, `noop`), start it with `if not DIR._h.fromGM(cmd) then return false, "GM only" end`. Validate and clamp every argument (`DIR._h.str`, `DIR._h.num`); return `false, "reason"` instead of erroring.
+2. Python: add a matching `Action(...)` to `director/actions.py` with argument specs and help text, `llm_allowed=False`.
+3. Test: add a case to `tools/smoke_test.py` and to `tests/core/events.lua`.

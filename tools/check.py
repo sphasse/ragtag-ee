@@ -14,6 +14,14 @@ Checks:
   * every story arc (missions/<arc>.lua) has a regression test (tests/arcs/<arc>.lua)
   * jobs: every job type has tests/jobs/<type>.lua; job modules address the job's owning ship
     (JOBS.owner/ships/log/hail/rep), and nothing but core touches EE reputation points directly
+  * world plugins: every plugin has tests/world/<plugin>.lua
+  * ship records: outside the story arcs, RT.addCredits / RT.addReputation / RT.grantUpgrade
+    name the ship they act on (leaving it out means "the primary ship", which is only right
+    for an arc)
+  * layers: only the director's own files and scenarios name DIR; everything below reports
+    with RT.emit and never knows whether a director is listening
+  * director actions: the Lua whitelist and director/actions.py list the same actions; the
+    model may send only gm_note and noop, and every other action refuses a non-GM sender
   * arc flags: every saved-flag literal is declared in an arc's M.flags; flags of another arc
     are listed in M.reads and never written (a typo in a flag name is an error, not a silent no-op)
   * arcs use the shared ARC helpers (missions/_helpers.lua) instead of local copies, and core
@@ -227,6 +235,126 @@ def check_jobs() -> None:
                           f"RT.addCredits(amount, reason, ship) / RT.setCredits(amount, ship). Credits are kept by "
                           f"core.lua; EmptyEpsilon's reputation points are per faction and held at 0, so "
                           f"`{m.group(0)[1:]}...)` does nothing useful")
+
+
+def check_world_tests() -> None:
+    """Every world plugin needs tests/world/<plugin>.lua (run by tools/game_tests.py)."""
+    plugins = ROOT / "ee" / "ragtag" / "world"
+    tests = ROOT / "tests" / "world"
+    for f in sorted(plugins.glob("*.lua")):
+        if f.name.startswith("_"):
+            continue
+        if not (tests / f.name).exists():
+            errors.append(f"ee/ragtag/world/{f.name} has no regression test: add tests/world/{f.name} "
+                          f"(see tests/_harness.lua; run with tools/game_tests.py)")
+
+
+# ── Ship records ─────────────────────────────────────────────────────────────
+# Credits, standing and upgrades are per ship (core.lua, "Per-ship records"). These calls take
+# the ship as their last argument; without it they act on the primary ship. That default is for
+# story arcs (which belong to the primary ship) and nothing else: a station, a job, a world
+# plugin or a scenario hook always knows which ship it is dealing with.
+SHIP_CALLS = {"RT.addCredits": 3, "RT.addReputation": 4, "RT.grantUpgrade": 3}
+SHIP_CALL = re.compile(r'\b(RT\.(?:addCredits|addReputation|grantUpgrade))\(')
+
+
+def _call_args(code: str, open_paren: int) -> list[str] | None:
+    """Top-level arguments of the call whose '(' is at open_paren, or None if unbalanced."""
+    args, depth, start, i, quote = [], 0, open_paren + 1, open_paren, None
+    while i < len(code):
+        c = code[i]
+        if quote:
+            if c == "\\":
+                i += 1
+            elif c == quote:
+                quote = None
+        elif c in "\"'":
+            quote = c
+        elif c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+            if depth == 0:
+                last = code[start:i].strip()
+                if last or args:
+                    args.append(last)
+                return args
+        elif c == "," and depth == 1:
+            args.append(code[start:i].strip())
+            start = i + 1
+        i += 1
+    return None
+
+
+def check_ship_args() -> None:
+    arcs = ROOT / "ee" / "ragtag" / "missions"
+    files = [f for f in sorted((ROOT / "ee" / "ragtag").rglob("*.lua")) if arcs not in f.parents]
+    files += sorted((ROOT / "scenarios").rglob("*.lua"))
+    for f in files:
+        code = _strip_lua_comments(f.read_text(encoding="utf-8"))
+        for m in SHIP_CALL.finditer(code):
+            if code[max(0, m.start() - 9):m.start()] == "function ":
+                continue                                    # the definition itself
+            args = _call_args(code, m.end() - 1)
+            need = SHIP_CALLS[m.group(1)]
+            if args is not None and len(args) < need:
+                line = code.count("\n", 0, m.start()) + 1
+                errors.append(f"{f.relative_to(ROOT)}:{line}: {m.group(1)}(...) does not say which ship: pass it "
+                              f"as argument {need}. Without it the call acts on the primary ship, which is only "
+                              f"right inside a story arc (ee/ragtag/missions/)")
+
+
+# ── Layers ───────────────────────────────────────────────────────────────────
+# The director's mailbox sits on top: it listens to RT.emit and nothing calls into it. Only
+# its own files, the GM console and scenarios (which switch it on and brief it) may name DIR.
+DIR_ALLOWED = ("ee/ragtag/director.lua", "ee/ragtag/director/", "ee/ragtag/gm_console.lua")
+
+
+def check_layers() -> None:
+    for f in sorted((ROOT / "ee" / "ragtag").rglob("*.lua")):
+        rel = str(f.relative_to(ROOT))
+        if rel.startswith(DIR_ALLOWED):
+            continue
+        code = _strip_lua_comments(f.read_text(encoding="utf-8"))
+        m = re.search(r'\bDIR\b\s*[.\[]|\bif DIR\b', code)
+        if m:
+            line = code.count("\n", 0, m.start()) + 1
+            errors.append(f"{rel}:{line}: names DIR. Report what happened with RT.emit(type, data, priority) "
+                          f"(core/events.lua); the director listens and nothing below it knows it is there")
+
+
+# ── Director actions ─────────────────────────────────────────────────────────
+# The director is observation-only: the model may send only what cannot touch the game.
+OBSERVER_ACTIONS = {"gm_note", "noop"}
+LUA_ACTION = re.compile(r'^DIR\.ACTIONS\.([a-z_]+)\s*=\s*function', re.M)
+PY_ACTION = re.compile(r'_add\(Action\("([a-z_]+)"(.*?)\)\)\n', re.S)
+
+
+def check_director_actions() -> None:
+    lua: dict[str, str] = {}
+    for f in action_files():
+        code = _strip_lua_comments(f.read_text(encoding="utf-8"))
+        hits = list(LUA_ACTION.finditer(code))
+        for i, m in enumerate(hits):
+            end = hits[i + 1].start() if i + 1 < len(hits) else len(code)
+            lua[m.group(1)] = code[m.start():end]
+    py_text = (ROOT / "director" / "actions.py").read_text(encoding="utf-8")
+    py = {m.group(1): "llm_allowed=False" not in m.group(2) for m in PY_ACTION.finditer(py_text)}
+    for name in sorted(set(lua) - set(py)):
+        errors.append(f"director action '{name}' is on the Lua whitelist (ee/ragtag/director/actions/) "
+                      f"but not in director/actions.py: change both together")
+    for name in sorted(set(py) - set(lua)):
+        errors.append(f"director action '{name}' is in director/actions.py but has no "
+                      f"DIR.ACTIONS.{name} in ee/ragtag/director/actions/: change both together")
+    for name, for_model in sorted(py.items()):
+        if for_model and name not in OBSERVER_ACTIONS:
+            errors.append(f"director/actions.py: action '{name}' is open to the model. The director is "
+                          f"observation-only: only {sorted(OBSERVER_ACTIONS)} may be; mark it llm_allowed=False")
+    for name, body in sorted(lua.items()):
+        if name not in OBSERVER_ACTIONS and "fromGM(cmd)" not in body:
+            errors.append(f"ee/ragtag/director/actions: DIR.ACTIONS.{name} must start with "
+                          f"`if not DIR._h.fromGM(cmd) then return false, \"GM only\" end` "
+                          f"(only {sorted(OBSERVER_ACTIONS)} may run for the model)")
 
 
 def check_arc_tests() -> None:
@@ -454,7 +582,11 @@ def main() -> int:
     check_generated(data, args.fix)
     check_loader_requires()
     check_arc_tests()
+    check_world_tests()
     check_jobs()
+    check_ship_args()
+    check_layers()
+    check_director_actions()
     check_arc_helpers()
     check_arc_flags()
     check_api_md_sync()

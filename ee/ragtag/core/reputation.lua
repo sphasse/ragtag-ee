@@ -41,24 +41,14 @@ local _REP_THRESHOLDS = {
     },
 }
 
--- Standing is kept per ship. The primary ship's standing IS the campaign's (used by story arcs
--- and patrols); every other player ship has its own table, starting at zero and saved with the
--- campaign under the ship's callsign (campaign.extra_ships). Functions take an optional `ship`; without one they mean the primary ship.
-RT._ship_rep = {}   -- player ship (the object in RT.players) -> {faction -> standing}
+-- Standing is kept per ship, in the ship's record (core.lua, "Per-ship records"). The primary
+-- ship's standing is the one story arcs read; every other player ship starts at zero. Functions
+-- take a `ship`; without one they mean the primary ship (for arcs only: check.py requires the
+-- ship everywhere else).
 
 local function _repTable(ship)
-    local p = RT.playerShip(ship)
-    if p == nil or p == RT.player then
-        return RT.campaign and RT.campaign.reputation, RT.player
-    end
-    if RT._ship_rep[p] == nil then
-        -- First look at this ship: take up the standing saved under its callsign, if any.
-        local e = RT.extraShipRecord(p)
-        local t = {}
-        for f, v in pairs(e and type(e.reputation) == "table" and e.reputation or {}) do t[f] = v end
-        RT._ship_rep[p] = t
-    end
-    return RT._ship_rep[p], p
+    local rec = RT.shipRecord(ship)
+    return rec and rec.reputation, RT.playerShip(ship) or RT.player
 end
 
 -- Modify a ship's reputation with a faction (default: the primary ship). Unbounded.
@@ -137,8 +127,8 @@ function RT.cancelKillTracking(ship)
     if ship ~= nil then RT._rep_cancelled[ship] = true end
 end
 
--- Register a ship for a reputation penalty when the PLAYER destroys it.
--- NPC-vs-NPC kills and scripted despawns cost nothing.
+-- Register a ship for a reputation penalty when a PLAYER destroys it: the ship that made the
+-- kill loses the standing. NPC-vs-NPC kills and scripted despawns cost nothing.
 function RT.trackShipForReputation(ship)
     if not ship or not RT.valid(ship) then return end
     local faction = ship:getFaction()
@@ -152,6 +142,6 @@ function RT.trackShipForReputation(ship)
     RT.onKill(ship, function(s, instigator)
         if RT._rep_cancelled[s] then return end
         if not RT.isPlayer(instigator) then return end
-        RT.addReputation(faction, -200, "destroyed " .. callsign)
+        RT.addReputation(faction, -200, "destroyed " .. callsign, RT.playerShip(instigator))
     end)
 end

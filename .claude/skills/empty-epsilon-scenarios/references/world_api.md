@@ -25,6 +25,21 @@ Add `require("ragtag/world/<name>.lua")` to `ee/ragtag/world.lua`.
 
 `state` is a fresh Lua table owned by the engine; use it for all mutable plugin state.
 
+### Rules for plugin code
+
+- **Keep the entities you spawn** in `state` (a patrol's `group.ships`, a defender's `slot.ship`)
+  and use those. Never keep callsigns and look the ships up again: two ships can share a name,
+  and a plugin would then steer or despawn the wrong one.
+- **Name the ship** in `RT.addCredits`, `RT.addReputation` and `RT.grantUpgrade` (the ship that
+  picked the pod up, paid the fine, asked in comms). Credits, standing and upgrades are per ship;
+  `check.py` rejects the call without it.
+- **Report with `RT.emit(type, data, priority)`.** A plugin never names `DIR`.
+- **Every plugin has a regression test**, `tests/world/<name>.lua` (`check.py` enforces it), run
+  by `tools/game_tests.py`. Start it with `T.suite("world")`; a test of the patrols themselves
+  uses `T.suite("world", {proximity = true})` (other tests run with patrols off). `T.world(id)`
+  is the plugin's state table. Bring a periodic check forward (`state.next_check = 0`) instead of
+  waiting for it, and say at the top of the file what the test does not cover.
+
 ### Example skeleton
 
 ```lua

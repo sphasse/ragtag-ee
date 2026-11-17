@@ -11,8 +11,8 @@
 -- Difficulty[Normal|Default]: The intended experience.
 -- Difficulty[Hard]: More enemies.
 -- Setting[Director]: Whether the scenario talks to the external AI director.
--- Director[On|Default]: Exchange events and actions with the AI director if it is running.
--- Director[Off]: Purely scripted.
+-- Director[On|Default]: Report events to the AI director if it is running (it observes and summarises; it does not change the game).
+-- Director[Off]: Do not report to the AI director.
 
 require("utils.lua")
 require("ragtag/core.lua")
@@ -40,8 +40,6 @@ function init()
     if fresh then RT.saveCampaign() end
     catchUpCampaign()
 
-    local diff = getScenarioSetting("Difficulty")
-    DIR.config.max_ai_hostiles = (diff == "Easy" and 3) or (diff == "Hard" and 8) or 5
     DIR.enabled = getScenarioSetting("Director") ~= "Off"
 
     VERSE.build({session = 99})   -- the shared universe; use this session's number
@@ -54,7 +52,7 @@ function init()
     defineBeats()
     addSessionGMFunctions()
 
-    DIR.addStateProvider(function() return {phase = S.phase} end)
+    RT.addStateProvider(function() return {phase = S.phase} end)
     DIR.init({
         id = SESSION_ID,
         campaign = "mycampaign",       -- director loads scenarios/<campaign>/bible.md
@@ -67,7 +65,7 @@ function init()
         locations = {
             {name = "Example Wreck", note = "this session's own location; verse places are in the campaign bible"},
         },
-        director_guidance = "Which ai beats to fire and when; what to avoid; how hard to push.",
+        director_guidance = "What to watch for and summarise for the GM. The director observes; it does not act.",
     })
 end
 
@@ -92,22 +90,22 @@ function buildMap()
 end
 
 --------------------------------------------------------------------------------
--- Beats: every ai=true beat needs a deterministic fallback in update().
+-- Beats: scripted story moments, each fired once from update() (or by the GM).
 --------------------------------------------------------------------------------
 
 function defineBeats()
-    DIR.defineBeat("opening", {desc = "Someone hails with the job", fn = function()
+    RT.defineBeat("opening", {desc = "Someone hails with the job", fn = function()
         RT.hail(RT.find("Port Vesper"), "We have a job for you.", "Example NPC")
         RT.setObjective("Do the first thing.")
     end})
 
-    DIR.defineBeat("complication", {ai = true, desc = "Something goes wrong mid-job", fn = function(source)
+    RT.defineBeat("complication", {desc = "Something goes wrong mid-job", fn = function(source)
         RT.shipLog("Something went wrong.", "#FF8080")
     end})
 end
 
 function addSessionGMFunctions()
-    addGMFunction(SESSION_ID .. ": fire complication", function() DIR.fireBeat("complication", "gm") end)
+    addGMFunction(SESSION_ID .. ": fire complication", function() RT.fireBeat("complication", "gm") end)
     addGMFunction(SESSION_ID .. ": end (success)", function() finishSession("success", "GM ended the session.") end)
 end
 
@@ -120,7 +118,7 @@ function finishSession(outcome, note)
     S.ending = true
     S.phase = "done"
     RT.completeSession(SESSION_ID, outcome, note)
-    DIR.emit("session_end", {session = SESSION_ID, outcome = outcome, note = note,
+    RT.emit("session_end", {session = SESSION_ID, outcome = outcome, note = note,
         flags = RT.campaign.flags, credits = RT.credits()}, "high")
     globalMessage("Session complete: " .. note, 10)
     -- Give the director a few seconds to read the session_end event.
@@ -142,7 +140,7 @@ function update(delta)
         if not S.ending then
             S.ending = true
             RT.completeSession(SESSION_ID, "failed", "The ship was lost.")
-            DIR.emit("session_end", {session = SESSION_ID, outcome = "failed"}, "high")
+            RT.emit("session_end", {session = SESSION_ID, outcome = "failed"}, "high")
             RT.after(6, function() victory("Corsairs") end, "defeat")
         end
         return
@@ -150,13 +148,13 @@ function update(delta)
     local now = getScenarioTime()
 
     if S.phase == "start" and now > 5 then
-        DIR.fireBeat("opening", "script")
+        RT.fireBeat("opening", "script")
         S.phase = "underway"
         S.underway_at = now
     elseif S.phase == "underway" then
-        -- Fallback: if the director hasn't fired the complication in 6 minutes, fire it.
-        if not DIR.beatFired("complication") and now - S.underway_at > 360 then
-            DIR.fireBeat("complication", "fallback")
+        -- Six minutes in, things go wrong (unless the GM already fired it).
+        if not RT.beatFired("complication") and now - S.underway_at > 360 then
+            RT.fireBeat("complication", "script")
         end
     end
 end

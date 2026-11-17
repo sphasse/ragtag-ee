@@ -33,10 +33,6 @@ JOBS._station_work = {}   -- callsign → {slots = [...]}
 JOBS._panel_next   = 0
 JOBS._tick_hooks   = {}   -- functions(now) called each update cycle for post-mission work
 
--- Director injection queue: create_delivery action pushes records here;
--- the engine drains them into the station panel on the next offer refresh.
-JOBS._dynamic_queue = {}
-
 -- ── Injected jobs (story arcs seed the board) ────────────────────────────────
 -- Arcs add jobs with JOBS.inject() from M.on_load / phase enter and remove them
 -- with JOBS.removeCategory() from M.on_unload / exit (same pattern as RUMORS).
@@ -221,8 +217,6 @@ function JOBS.calcReward(base, type_mult, distance_u, danger_level, distance_min
     return math.floor(reward / 5 + 0.5) * 5
 end
 
-function JOBS.untrack(_id) end   -- no-op; retained for call-site compatibility
-
 -- ── Ship name pools used by boarding, destroy, and tailing modules. ──────────
 local _CORSAIR_NAMES = {
     "Blackjack", "Cutthroat", "Rogue Star", "Night Runner", "Silent Edge",
@@ -238,9 +232,9 @@ local _FREIGHTER_NAMES = {
     "Standard Rate", "Passing Through", "Brief Stop", "Short Notice", "Slow Moving",
     "Common Carriage", "Side Channel", "Dark Freight", "Off The Books", "Thin Air",
 }
--- A name from the pool that no live object is using. Jobs find their ships by callsign
--- (RT.find), so two ships with one name would make a job follow the wrong one: a destroyed
--- convoy would look alive because an earlier job's convoy of the same name still exists.
+-- A name from the pool that no live object is using, so the crew never sees two ships with one
+-- name. (Only for the crew's sake: jobs keep the ENTITIES they spawn, m.target / m.convoy / ...,
+-- and never find them again by callsign.)
 function JOBS.uniqueName(pool)
     for _ = 1, 40 do
         local name = pool[math.random(#pool)]
@@ -270,14 +264,10 @@ function JOBS.register(mod)
 end
 
 -- ── Tier ──────────────────────────────────────────────────────────────────────
-function JOBS.maxTier()
+-- A ship's job tier follows what that ship has put into upgrades (default: the primary ship).
+function JOBS.maxTier(ship)
     if not RT.campaign then return 0 end
-    local cost_map = {}
-    for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
-    local total = 0
-    for _, id in ipairs(RT.campaign.upgrades or {}) do
-        total = total + (cost_map[id] or 0)
-    end
+    local total = RT.upgradeSpend(ship)
     if total >= 1000 then return 2 elseif total >= 500 then return 1 else return 0 end
 end
 
@@ -291,8 +281,8 @@ local _TIER_WEIGHTS = {
 }
 
 -- Weighted random draw from registered types whose tier_min <= maxTier().
-function JOBS.pickType()
-    local mt = JOBS.maxTier()
+function JOBS.pickType(ship)
+    local mt = JOBS.maxTier(ship)
     local tw = _TIER_WEIGHTS[mt] or {}
     local pool, total = {}, 0
     for _, mod in pairs(JOBS._registry) do
@@ -372,8 +362,8 @@ end
 -- is paid for it, hears about it in its log, and gains or loses standing over it. Other player
 -- ships can neither help nor sabotage. Each ship has its own cap (config.max_active), credits
 -- and standing; the board itself is shared, so a job one ship takes is gone for the others.
--- Story contracts (story = true, priority-5 injected, director-pushed) are offered to the
--- primary ship only: story arcs belong to that ship.
+-- Story contracts (story = true, priority-5 injected) are offered to the primary ship only:
+-- story arcs belong to that ship.
 -- Job modules use the helpers below and never RT.players / RT.shipLog / RT.hail.
 
 -- The job's owner while it is alive, else nil.
@@ -442,9 +432,6 @@ function JOBS.accept(m, skip_log, ship)
     if #JOBS.activeFor(ship) >= JOBS.config.max_active and not m.story then return false end
     m.ship = ship
     JOBS._done[m.id] = true
-    for i, dm in ipairs(JOBS._dynamic_queue) do
-        if dm.id == m.id then table.remove(JOBS._dynamic_queue, i); break end
-    end
 
     local mod = JOBS._registry[m.type]
     m._time_limit = m.time_limit or (mod and mod.duration(m)) or (20 * 60)
@@ -498,7 +485,6 @@ function JOBS.complete(entry, _ship)
     end
     local mod = JOBS._registry[entry.mission.type]
     if mod and mod.cleanup then mod.cleanup(entry.mission) end
-    JOBS.untrack(entry.mission.id)
     RT.addCredits(entry.mission.reward, "job: " .. entry.mission.short, completing_ship)
 
     local fac = entry.mission.origin_faction
@@ -513,7 +499,8 @@ function JOBS.complete(entry, _ship)
     JOBS.updateObj()
     if STATS then STATS.jobCompleted(entry.mission) end
     _cb(entry.mission, "on_complete")
-    DIR.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward}, "low")
+    RT.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward,
+        ship = RT.valid(completing_ship) and completing_ship:getCallSign() or nil}, "low")
 end
 
 -- ── Update ────────────────────────────────────────────────────────────────────
@@ -549,7 +536,6 @@ function JOBS.update()
                 end
                 if mod and mod.cleanup then mod.cleanup(m) end
                 JOBS._failed(m)
-                JOBS.untrack(m.id)
                 table.remove(JOBS._active, i)
                 JOBS.updateObj()
             else
@@ -562,8 +548,7 @@ function JOBS.update()
                         end
                         if mod.cleanup then pcall(mod.cleanup, m) end
                         JOBS._failed(m)
-                        JOBS.untrack(m.id)
-                        table.remove(JOBS._active, i)
+                                table.remove(JOBS._active, i)
                         JOBS.updateObj()
                     end
                 end
@@ -626,285 +611,276 @@ function JOBS.offerContext(cs)
     return ctx
 end
 
-local function _offerMissions(cs, ship)
-    local now     = getScenarioTime()
-    local primary = (ship == RT.player)
-    local mt      = JOBS.maxTier()
-    local n_slots = JOBS.stationSlots(cs)
+-- ── The board ─────────────────────────────────────────────────────────────────
+-- Two halves, so the board can be reasoned about (and tested) without a comms window:
+--   JOBS.board(cs, ship)   decides what station `cs` offers `ship` right now. No comms calls.
+--   _showBoard(cs, ship)   renders that to the comms window and wires the "Take:" replies.
+-- JOBS.board is built from the small steps below, in the order they run.
 
-    -- Reputation penalty: reduce how many offers the station will show.
-    local _rep_nag = nil
-    local n_offer
-    do
-        local se = RT.find(cs)
-        local sfac = RT.valid(se) and se:getFaction() or nil
-        local rep = sfac and RT.getReputation(sfac, ship) or 0   -- the asking ship's own standing
-        local penalty
-        if rep < -400 then
-            penalty  = n_slots
-            _rep_nag = '"We\'ve got nothing for someone with your reputation. Come back when you\'ve earned some trust."'
-        elseif rep < -200 then
-            penalty  = 2
-            _rep_nag = '"If you were more trustworthy, I\'d have more work for you."'
-        elseif rep < 0 then
-            penalty  = 1
-            _rep_nag = '"If you were more trustworthy, I\'d have more work for you."'
-        else
-            penalty  = 0
-        end
-        n_offer = math.max(0, n_slots - penalty)
-    end
+-- Two jobs with the same summary (type + short text) must not both be offered.
+local function _key(m) return tostring(m.type) .. "|" .. tostring(m.short) end
 
+local function _hasId(list, m)
+    for _, o in ipairs(list) do if o.id == m.id then return true end end
+    return false
+end
+
+local function _hasKey(list, m)
+    local k = _key(m)
+    for _, o in ipairs(list) do if _key(o) == k then return true end end
+    return false
+end
+
+-- The station's slot table (created on first use): {slots = {{mission, offered_at, taken_at}, ...}}.
+local function _stationState(cs, n_slots)
     if not JOBS._station_work[cs] then
         local slots = {}
         for i = 1, n_slots do slots[i] = {mission=nil, offered_at=0, taken_at=nil} end
         JOBS._station_work[cs] = {slots=slots}
     end
-    local ss = JOBS._station_work[cs]
+    return JOBS._station_work[cs]
+end
 
-    -- Per-slot cooldown: decide which slots need new generation.
-    local slots_to_gen = {}
-    if JOBS.config.work_cooldown_enabled then
-        for sn = 1, n_slots do
-            local slot = ss.slots[sn]
-            if slot.taken_at then
-                if now - slot.taken_at >= JOBS.config.work_cooldown_secs then
-                    slot.taken_at = nil
-                    slots_to_gen[#slots_to_gen + 1] = sn
-                end
-            elseif slot.mission then
-                if now - slot.offered_at >= JOBS.config.work_cooldown_secs then
-                    slots_to_gen[#slots_to_gen + 1] = sn
-                end
-            else
-                slots_to_gen[#slots_to_gen + 1] = sn
-            end
-        end
-    else
-        for i = 1, n_slots do slots_to_gen[i] = i end
+-- Put a job in a slot. With the work cooldown off nothing is cached: the board is rebuilt on
+-- every visit.
+local function _setSlot(ss, sn, m, now)
+    if not JOBS.config.work_cooldown_enabled then return end
+    ss.slots[sn].mission    = m
+    ss.slots[sn].offered_at = now
+    ss.slots[sn].taken_at   = nil
+end
+
+-- Step 1, the reputation gate: how many offers the station will show this ship, and what it
+-- says about it. Judged by the asking ship's own standing with the station's faction.
+local function _repGate(cs, ship, n_slots)
+    local se   = RT.find(cs)
+    local sfac = RT.valid(se) and se:getFaction() or nil
+    local rep  = sfac and RT.getReputation(sfac, ship) or 0
+    if rep < -400 then
+        return 0, '"We\'ve got nothing for someone with your reputation. Come back when you\'ve earned some trust."'
+    elseif rep < -200 then
+        return math.max(0, n_slots - 2), '"If you were more trustworthy, I\'d have more work for you."'
+    elseif rep < 0 then
+        return math.max(0, n_slots - 1), '"If you were more trustworthy, I\'d have more work for you."'
     end
+    return n_slots, nil
+end
 
-    local offers = {}
-
-    -- Story offers (director-pushed + priority-5 injected) do not use up the station's
-    -- normal slots; they respect the reputation cap below. (The final list is shuffled.)
-    -- Story contracts are for the primary ship only (story arcs belong to that ship).
-    local story = {}
-    if primary then
-        for _, m in ipairs(JOBS._dynamic_queue) do
-            if m.origin == cs and not JOBS._done[m.id] then
-                story[#story + 1] = m
-            end
-        end
-        for _, m in ipairs(JOBS._injectedFor(cs, true)) do story[#story + 1] = m end
+-- Step 2, the per-slot cooldown: which slots get a new job now. A taken slot stays empty for
+-- the cooldown; an untaken offer is replaced after the same time.
+local function _slotsDue(ss, n_slots, now)
+    local due = {}
+    if not JOBS.config.work_cooldown_enabled then
+        for i = 1, n_slots do due[i] = i end
+        return due
     end
-    local seeds = JOBS._injectedFor(cs, false)
-
-    -- Cached valid slot missions.
     for sn = 1, n_slots do
         local slot = ss.slots[sn]
-        if slot.mission and not slot.taken_at then
-            local seen = false
-            for _, o in ipairs(offers) do if o.id == slot.mission.id then seen=true; break end end
-            if not seen then offers[#offers + 1] = slot.mission end
+        if slot.taken_at then
+            if now - slot.taken_at >= JOBS.config.work_cooldown_secs then
+                slot.taken_at = nil
+                due[#due + 1] = sn
+            end
+        elseif slot.mission then
+            if now - slot.offered_at >= JOBS.config.work_cooldown_secs then due[#due + 1] = sn end
+        else
+            due[#due + 1] = sn
         end
     end
+    return due
+end
 
-    -- Ensured seeds (inject{ensure = true}) must be on the board: they take a free or
-    -- expired slot, otherwise replace a cached ordinary job. They are on the board but
-    -- carry no special tag, so they read as regular work that happened to be there.
-    local _seeds_now = JOBS._injectedFor(cs, false)
-    for _, sm in ipairs(_seeds_now) do
-        if sm._ensure then
-            local present = false
-            for _, o in ipairs(offers) do if o.id == sm.id then present = true; break end end
-            if not present then
-                local placed_slot
-                for k, sn in ipairs(slots_to_gen) do
-                    table.remove(slots_to_gen, k); placed_slot = sn; break
-                end
-                if not placed_slot then
-                    for sn = 1, n_slots do
-                        local sl = ss.slots[sn]
-                        if sl.mission and not sl.taken_at and not sl.mission._ensure then
-                            for i2, o in ipairs(offers) do
-                                if o.id == sl.mission.id then table.remove(offers, i2); break end
-                            end
-                            placed_slot = sn; break
+-- Step 3: the offers still standing in the slots from an earlier visit.
+local function _cachedOffers(ss, n_slots)
+    local offers = {}
+    for sn = 1, n_slots do
+        local slot = ss.slots[sn]
+        if slot.mission and not slot.taken_at and not _hasId(offers, slot.mission) then
+            offers[#offers + 1] = slot.mission
+        end
+    end
+    return offers
+end
+
+-- Step 4, ensured seeds (inject{ensure = true}) must be on the board: each takes a slot that is
+-- due, otherwise replaces a cached ordinary job. They carry no special tag, so they read as
+-- regular work that happened to be there.
+local function _placeEnsured(ss, n_slots, due, offers, seeds, now)
+    for _, sm in ipairs(seeds) do
+        if sm._ensure and not _hasId(offers, sm) then
+            local sn = table.remove(due, 1)
+            if not sn then
+                for i = 1, n_slots do
+                    local sl = ss.slots[i]
+                    if sl.mission and not sl.taken_at and not sl.mission._ensure then
+                        for k, o in ipairs(offers) do
+                            if o.id == sl.mission.id then table.remove(offers, k); break end
                         end
+                        sn = i; break
                     end
                 end
-                if placed_slot then
-                    if JOBS.config.work_cooldown_enabled then
-                        ss.slots[placed_slot].mission    = sm
-                        ss.slots[placed_slot].offered_at = now
-                        ss.slots[placed_slot].taken_at   = nil
-                    end
-                    table.insert(offers, 1, sm)
-                end
+            end
+            if sn then
+                _setSlot(ss, sn, sm, now)
+                table.insert(offers, 1, sm)
             end
         end
     end
+end
 
-    local ctx = JOBS.offerContext(cs)
+-- Step 5, one new job for a slot: an injected seed (JOBS.SEED_CHANCE), else a generated job of
+-- a random type, re-rolled a few times when its summary is already on the board (same cargo
+-- and destination, same salvage cargo, ...). Returns the job, or nil when nothing came of it
+-- (`failed` = the generator could not make one; nil without it = only duplicates came up).
+local function _newJob(ctx, ship, seeds, offers, story)
+    if #seeds > 0 and math.random() < JOBS.SEED_CHANCE then
+        for _, sm in ipairs(seeds) do
+            if not _hasId(offers, sm) then return sm end
+        end
+    end
+    local mt = JOBS.maxTier(ship)
+    for _ = 1, 4 do
+        ctx.tier = math.min(mt, math.random(0, 1))
+        local mtype = JOBS.pickType(ship)
+        local mod   = JOBS._registry[mtype]
+        if not mod then return nil end
+        local opts = mod.prepareOpts(ctx)
+        if not opts then return nil, true end
+        local ok, result = pcall(mod.generate, opts)
+        if not (ok and result) then
+            log("[JOBS] " .. mtype .. " generate failed: " .. tostring(result))
+            return nil, true
+        end
+        if not _hasKey(offers, result) and not _hasKey(story, result) then return result end
+        -- duplicate summary: roll again
+    end
+    return nil
+end
 
-    -- Two jobs with the same summary (type + short text) must not both be offered.
-    local function _key(m) return tostring(m.type) .. "|" .. tostring(m.short) end
-    local function _onBoard(m)
-        local k = _key(m)
-        for _, o in ipairs(offers) do if _key(o) == k then return true end end
-        for _, o in ipairs(story)  do if _key(o) == k then return true end end
-        return false
+-- What station `cs` offers `ship` right now. Updates the station's slots (so the same jobs are
+-- there on the next visit) but touches nothing else and makes no comms calls. Returns:
+--   offers        the jobs to list, in display order
+--   nag           the station's remark about the ship's standing, or nil
+--   closed        true when that standing gets the ship no offers at all
+--   slots_failed  slots the generator could not fill this time
+--   wait          seconds until the next taken slot refills (nil: nothing is cooling down)
+function JOBS.board(cs, ship)
+    ship = RT.playerShip(ship) or RT.player
+    local now     = getScenarioTime()
+    local n_slots = JOBS.stationSlots(cs)
+    local ss      = _stationState(cs, n_slots)
+
+    local n_offer, nag = _repGate(cs, ship, n_slots)
+    local due    = _slotsDue(ss, n_slots, now)
+    local offers = _cachedOffers(ss, n_slots)
+    -- Story contracts (priority-5 injected) do not use up the station's slots, and are for the
+    -- primary ship only (story arcs belong to that ship).
+    local story  = (ship == RT.player) and JOBS._injectedFor(cs, true) or {}
+    local seeds  = JOBS._injectedFor(cs, false)
+
+    _placeEnsured(ss, n_slots, due, offers, seeds, now)
+
+    local ctx, slots_failed = JOBS.offerContext(cs), 0
+    for _, sn in ipairs(due) do
+        local m, failed = _newJob(ctx, ship, seeds, offers, story)
+        if m then
+            _setSlot(ss, sn, m, now)
+            offers[#offers + 1] = m
+        elseif failed then
+            slots_failed = slots_failed + 1
+        end
     end
 
-    local slots_failed = 0
-    for _, sn in ipairs(slots_to_gen) do
-        -- Injected seed jobs compete for the slot with the random generator.
-        if #seeds > 0 and math.random() < JOBS.SEED_CHANCE then
-            local pick
-            for _, sm in ipairs(seeds) do
-                local dup = false
-                for _, o in ipairs(offers) do if o.id == sm.id then dup = true; break end end
-                if not dup then pick = sm; break end
-            end
-            if pick then
-                if JOBS.config.work_cooldown_enabled then
-                    ss.slots[sn].mission    = pick
-                    ss.slots[sn].offered_at = now
-                    ss.slots[sn].taken_at   = nil
-                end
-                offers[#offers + 1] = pick
-                goto next_slot
-            end
-        end
-        -- Generate, re-rolling a few times if the result has the same summary as a job
-        -- already on this board (same cargo and destination, same salvage cargo, ...).
-        do
-            local failed = false
-            for _ = 1, 4 do
-                ctx.tier = math.min(mt, math.random(0, 1))
-                local mtype = JOBS.pickType()
-                local mod   = JOBS._registry[mtype]
-                if not mod then break end
-
-                local opts = mod.prepareOpts(ctx)
-                if not opts then failed = true; break end
-
-                local ok, result = pcall(mod.generate, opts)
-                if ok and result then
-                    if not _onBoard(result) then
-                        if JOBS.config.work_cooldown_enabled then
-                            ss.slots[sn].mission    = result
-                            ss.slots[sn].offered_at = now
-                            ss.slots[sn].taken_at   = nil
-                        end
-                        offers[#offers + 1] = result
-                        break
-                    end
-                    -- duplicate summary: roll again
-                else
-                    log("[JOBS] " .. mtype .. " generate failed: " .. tostring(result))
-                    failed = true
-                    break
-                end
-            end
-            if failed then slots_failed = slots_failed + 1 end
-        end
-        ::next_slot::
-    end
-
-    -- Apply reputation cap on displayed offers.
+    -- The reputation cap on displayed offers; story contracts go on top of what is left.
     while #offers > n_offer do table.remove(offers) end
     if n_offer > 0 then
         for i = #story, 1, -1 do table.insert(offers, 1, story[i]) end
     end
     -- Final de-duplication by summary (cached slots / injected seeds can still collide).
     -- Earlier entries win, so story and ensured jobs are kept over generated ones.
-    do
-        local seen, uniq = {}, {}
-        for _, m in ipairs(offers) do
-            local k = _key(m)
-            if not seen[k] then seen[k] = true; uniq[#uniq + 1] = m end
-        end
-        offers = uniq
+    local seen, uniq = {}, {}
+    for _, m in ipairs(offers) do
+        local k = _key(m)
+        if not seen[k] then seen[k] = true; uniq[#uniq + 1] = m end
     end
+    offers = uniq
     -- Present in random order so arc-injected jobs are not always the first ones listed.
     for i = #offers, 2, -1 do
         local j = math.random(i)
         offers[i], offers[j] = offers[j], offers[i]
     end
 
-    if #offers == 0 then
-        if _rep_nag and n_offer == 0 then
-            setCommsMessage(_rep_nag)
-        elseif JOBS.config.work_cooldown_enabled then
-            local min_r = math.huge
-            for _, slot in pairs(ss.slots) do
-                if slot.taken_at then
-                    local r = JOBS.config.work_cooldown_secs - (now - slot.taken_at)
-                    if r > 0 and r < min_r then min_r = r end
-                end
+    local wait
+    if JOBS.config.work_cooldown_enabled then
+        for _, slot in pairs(ss.slots) do
+            if slot.taken_at then
+                local r = JOBS.config.work_cooldown_secs - (now - slot.taken_at)
+                if r > 0 and (wait == nil or r < wait) then wait = r end
             end
-            if min_r < math.huge then
-                setCommsMessage(string.format('"No new contracts right now. Check back in %dm %ds."',
-                    math.floor(min_r/60), math.ceil(min_r%60)))
-            else
-                setCommsMessage('"Nothing going out from here right now."')
-            end
+        end
+    end
+    return {offers = offers, nag = nag, closed = (n_offer == 0), slots_failed = slots_failed, wait = wait}
+end
+
+-- One line of the listing for a job.
+local function _offerLine(m)
+    local mod     = JOBS._registry[m.type]
+    local dist_u  = math.floor((m.distance_u or 0) / 1000 + 0.5)
+    local dur_min = math.floor((mod and mod.duration(m) or 1200) / 60)
+    local stats   = string.format("%dU · %dcr · %d min", dist_u, m.reward, dur_min)
+    if m.story then
+        stats = string.format("%dU · %dcr · %s", dist_u, m.reward,
+            m.time_limit and (math.floor(m.time_limit / 60) .. " min") or "no time limit")
+    end
+    local txt = mod and mod.offerText(m, stats) or ("* " .. m.short .. "\n  " .. stats)
+    if m.special then txt = txt:gsub("^%* ", "* [SPECIAL] ", 1) end
+    return txt
+end
+
+-- Render JOBS.board(cs, ship) in the open comms window.
+local function _showBoard(cs, ship)
+    local b = JOBS.board(cs, ship)
+    local back = function(s2, t2) RT.stationComms(s2, t2) end
+
+    if #b.offers == 0 then
+        if b.nag and b.closed then
+            setCommsMessage(b.nag)
+        elseif b.wait then
+            setCommsMessage(string.format('"No new contracts right now. Check back in %dm %ds."',
+                math.floor(b.wait/60), math.ceil(b.wait%60)))
         else
             setCommsMessage('"Nothing going out from here right now."')
         end
-        addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+        addCommsReply("Back", back)
         return
     end
 
     local lines = {"Work out of " .. cs .. ":"}
-    for _, m in ipairs(offers) do
-        local mod2 = JOBS._registry[m.type]
-        local dist_u  = math.floor((m.distance_u or 0) / 1000 + 0.5)
-        local dur_min = math.floor((mod2 and mod2.duration(m) or 1200) / 60)
-        local stats   = string.format("%dU · %dcr · %d min", dist_u, m.reward, dur_min)
-        if m.story then
-            stats = string.format("%dU · %dcr · %s", dist_u, m.reward,
-                m.time_limit and (math.floor(m.time_limit / 60) .. " min") or "no time limit")
-        end
-        local txt = mod2 and mod2.offerText(m, stats) or ("* " .. m.short .. "\n  " .. stats)
-        if m.special then txt = txt:gsub("^%* ", "* [SPECIAL] ", 1) end
-        lines[#lines + 1] = txt
+    for _, m in ipairs(b.offers) do lines[#lines + 1] = _offerLine(m) end
+    if b.slots_failed > 0 then
+        local noun = b.slots_failed == 1 and "contract was" or "contracts were"
+        lines[#lines + 1] = string.format("\n(%d %s just picked up by another crew.)", b.slots_failed, noun)
     end
-    if slots_failed > 0 then
-        local noun = slots_failed == 1 and "contract was" or "contracts were"
-        lines[#lines + 1] = string.format("\n(%d %s just picked up by another crew.)", slots_failed, noun)
-    end
-    if _rep_nag then
-        lines[#lines + 1] = "\n" .. _rep_nag
-    end
+    if b.nag then lines[#lines + 1] = "\n" .. b.nag end
     setCommsMessage(table.concat(lines, "\n"))
 
-    for _, m in ipairs(offers) do
+    for _, m in ipairs(b.offers) do
         local cap = m
         addCommsReply("Take: " .. cap.short, function(s2, t2)
+            local taker = RT.playerShip(s2) or s2
             if JOBS._done[cap.id] then
                 setCommsMessage('"Sorry. Another crew just took that one."')
-            elseif #JOBS.activeFor(RT.playerShip(s2) or s2) >= JOBS.config.max_active and not cap.story then
+            elseif #JOBS.activeFor(taker) >= JOBS.config.max_active and not cap.story then
                 setCommsMessage('"You look pretty busy. I think I\'ll save my work for someone that gets stuff done."')
             else
-                JOBS.accept(cap, true, s2)
-                local mod3 = JOBS._registry[cap.type]
+                JOBS.accept(cap, false, taker)   -- logs the contract line to the taker
                 local outro = (cap.type == "delivery") and "" or "\n\n\"Come back when it\'s done.\""
                 setCommsMessage(cap.brief .. outro .. "\n\nTransmitting details to your log.")
-                local log_line = mod3 and mod3.acceptLog and mod3.acceptLog(cap)
-                if not log_line then
-                    local dest = cap.dest or (cap.wx and ("grid " .. JOBS.gridRef(cap.wx, cap.wy)) or "??")
-                    log_line = string.format("Contract: %s. %dm to complete. Head to %s.",
-                        cap.short, math.floor(cap._time_limit / 60), dest)
-                end
-                JOBS.log(cap, log_line, "#60CCFF")
             end
-            addCommsReply("Back", function(s3, t3) RT.stationComms(s3, t3) end)
+            addCommsReply("Back", back)
         end)
     end
-    addCommsReply("Nothing for me", function(s2, t2) RT.stationComms(s2, t2) end)
+    addCommsReply("Nothing for me", back)
 end
 
 function JOBS.stationHook(source, target)
@@ -933,7 +909,7 @@ function JOBS.stationHook(source, target)
     if JOBS.config.jobboard_locked then return end
 
     addCommsReply("Any work available?", function(s, t)
-        local ok, err = pcall(_offerMissions, cs, RT.playerShip(s) or s)
+        local ok, err = pcall(_showBoard, cs, RT.playerShip(s) or s)
         if not ok then
             log("[JOBS] offer error at " .. cs .. ": " .. tostring(err))
             setCommsMessage('"System error. Please report to the dockmaster."')
@@ -942,4 +918,5 @@ function JOBS.stationHook(source, target)
     end)
 end
 
+-- Kept so scenarios can call it before wiring station hooks; the engine needs no set-up.
 function JOBS.init() end

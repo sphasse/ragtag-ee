@@ -6,7 +6,7 @@ T.suite("jobs")
 
 local HOME = "Port Vesper"
 local m, c0, corsairs0
-local function target() return RT.find(m.target_cs) end
+local function target() return m.target end
 
 T.step("post a destroy job", function() m = T.postJob(T.makeJob("destroy", HOME, 2)) end)
 T.takeJob(function() return m end)

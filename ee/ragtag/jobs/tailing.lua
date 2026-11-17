@@ -273,7 +273,7 @@ local function _disperse(m)
     for i = #available, 2, -1 do
         local j = math.random(i); available[i], available[j] = available[j], available[i]
     end
-    local tgt = RT.find(m.target_cs or "")
+    local tgt = m.target
     if RT.valid(tgt) and #available >= 1 then
         local st = RT.find(available[1])
         if RT.valid(st) then
@@ -282,7 +282,7 @@ local function _disperse(m)
             tgt:orderFlyTowardsBlind(sx, sy)
         end
     end
-    local rdv = RT.find(m.rendezvous_cs or "")
+    local rdv = m.rendezvous
     if RT.valid(rdv) and #available >= 2 then
         local st = RT.find(available[2])
         if RT.valid(st) then
@@ -424,6 +424,8 @@ function M.spawn(m)
     m.wx = twx
     m.wy = twy
 
+    m.target        = target       -- the entities; the *_cs fields are only their names, for text
+    m.rendezvous    = rendezvous
     m.target_cs     = tname
     m.rendezvous_cs = rname
     m._meet_at      = getScenarioTime() + T
@@ -446,8 +448,8 @@ end
 function M.update(m, entry, ctx)
     if m._scanned then return nil end  -- waiting for return
 
-    local tgt = RT.find(m.target_cs or "")
-    local rdv = RT.find(m.rendezvous_cs or "")
+    local tgt = m.target
+    local rdv = m.rendezvous
 
     if not m._meeting then
         if not RT.valid(tgt) then
@@ -568,8 +570,8 @@ function M.update(m, entry, ctx)
 end
 
 function M.expire(m)
-    local tgt = RT.find(m.target_cs or "")
-    local rdv = RT.find(m.rendezvous_cs or "")
+    local tgt = m.target
+    local rdv = m.rendezvous
     if RT.valid(tgt) then tgt:destroy() end
     if RT.valid(rdv) then rdv:destroy() end
     JOBS.log(m, "[Contract] " .. m.short .. " -- time expired. Contract lost.", "#FF8080")

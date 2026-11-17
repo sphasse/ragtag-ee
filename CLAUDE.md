@@ -1,18 +1,23 @@
 # ragtag-ee — notes for Claude Code
 
 EmptyEpsilon (bridge simulator) scenarios built on a shared universe, with an
-optional local-LLM "director" that drives NPCs and pacing over EE's HTTP API.
+optional local-LLM "director" that watches the session over EE's HTTP API and keeps notes for the GM
+(observation only: it does not change the game).
 Contributors add **universe extensions** and **scenarios** independently.
 
 ## Layout
 - `ee/ragtag/` — Lua framework, installed to EmptyEpsilon `scripts/ragtag/`
-  - `core.lua` (RT: campaign saves, flags, credits, player ships, objectives, timers) + `core/*.lua`, loaded by it:
-    `sound`, `reputation`, `upgrades`, `stations` (comms menu, shipwright, restock), `gm_tools` (backup/restore)
+  - `core.lua` (RT: campaign saves, flags, per-ship records, credits, player ships, objectives, timers) + `core/*.lua`, loaded by it:
+    `events` (the event bus `RT.emit` / `RT.on`, scripted beats, state providers), `sound`, `reputation`, `upgrades`,
+    `stations` (comms menu, shipwright, restock), `gm_tools` (backup/restore)
   - `gm_console.lua` (GMCONSOLE: the campaign GM menus; top layer, loaded by the scenario, not by core)
   - `verse.lua` (VERSE engine: builds the universe from data) + `verse/schema.lua` (VERSE.extend, validation)
   - `verse/drift.lua` — base universe **data** (no engine calls)
   - `verse/extensions/*.lua` — community universe additions; `index.lua` is generated
-  - `director.lua` (DIR: mailbox to the AI director, events, beats, whitelisted actions)
+  - `director.lua` (DIR: the mailbox to the AI director and nothing else: it listens to the event bus) +
+    `director/actions/*.lua` (the action whitelist; `index.lua` is generated)
+  - `jobs/` — the job board: `_engine.lua` (`JOBS.board` decides the offers, a renderer shows them), one file per job type
+  - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs), one file per arc.
     Core never depends on this folder; shared arc code goes in `_helpers.lua`, not `core.lua`.
     Arcs belong to the primary ship only (`ARC.player()`; other player ships just work the job board), and declare
@@ -20,7 +25,9 @@ Contributors add **universe extensions** and **scenarios** independently.
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tests/` — in-game regression tests run by `tools/game_tests.py` (never installed into a played game): `_harness.lua`,
-  `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua` and `jobs/multiship.lua`
+  `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua`, `jobs/multiship.lua`
+  and `jobs/credits.lua`, `world/<plugin>.lua` (one per world plugin) plus `world/engine.lua`, and `core/records.lua`
+  (per-ship ownership) and `core/events.lua` (event bus, beats, the director's mailbox and its observation-only guard)
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
 - `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse) and `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements), both loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
@@ -32,28 +39,43 @@ Contributors add **universe extensions** and **scenarios** independently.
   Without `EE_DIR` it builds EmptyEpsilon at the pinned commits into `.ee-build/` (~20 min first time).
 - `python3 tools/smoke_test.py --launch <EmptyEpsilon dir>` — smoke test in one command on any platform: installs, starts the
   sandbox headless with its own empty save, checks the universe and the director bridge, fails on any `LUA-Error`, stops the game.
-- `python3 tools/game_tests.py --ee <EmptyEpsilon dir> [name | arcs | jobs ...] [-v]` — in-game regression tests:
-  each story arc and each job type is played headless through its real comms (~1 min, in parallel).
-  Run after any change to an arc, a job, the missions or jobs engine, `core.lua`, proximity or the Science DB.
+- `python3 tools/game_tests.py --ee <EmptyEpsilon dir> [name | folder/name | arcs | jobs | world | core ...] [-v]` —
+  in-game regression tests: each story arc, job type and world plugin, and the core systems, played headless through
+  their real comms (a couple of minutes, in parallel). `salvage` is in two folders: say `jobs/salvage` or `world/salvage`.
+  Run after any change to an arc, a job, a world plugin, the missions or jobs engine, `core.lua` / `core/*.lua` or `director.lua`.
 - `cd director && python3 main.py --mock --mock-llm` — director + GM console without game or model
-- Requires `lua5.4`/`luac5.4` for the tools.
+- Requires `lua5.4`/`luac5.4` for the tools (`check.py` also accepts a plain `luac`, and falls back to a pure-Python
+  parser for the universe data).
 
 ## Contracts (don't break these)
 1. **Scenarios never rebuild or hard-code the universe.** They call `VERSE.build`, place their own objects with
    `VERSE.at("Place", dx, dy)`, and list every universe place they rely on in `VERSE.requirePlaces{...}`.
 2. **Extensions only add.** Renaming/removing a place in `drift.lua` is a breaking change; `check.py` lists every scenario it breaks.
-3. **The model never sends Lua.** Director actions are whitelisted in `ee/ragtag/director.lua` (`DIR.ACTIONS`) and mirrored in
-   `director/actions.py`; change both together and clamp every argument on the Lua side.
-4. **Director is observation-only** (as of 2026-10-29); scenarios don't define `ai = true` beats — story arcs use scripted beats.
+3. **The model never sends Lua.** Director actions are whitelisted in `ee/ragtag/director/actions/*.lua` (`DIR.ACTIONS`) and
+   mirrored in `director/actions.py`; change both together and clamp every argument on the Lua side (`check.py` checks the two match).
+4. **Director is observation-only** (as of 2026-10-29). The model may send only `gm_note` and `noop`; everything the crew can
+   see or that changes the campaign (`say`, `set_objective`, ...) is GM-only, refused in `actions.py` and again in Lua unless
+   the GM sent it (`DIR._h.fromGM(cmd)`). Beats are scripted (`RT.defineBeat` / `RT.fireBeat`); there is no `ai = true`.
 5. **Each campaign has its own save** via `RT.useCampaign("<folder name>")` and its own `scenarios/<campaign>/bible.md`.
 6. Scenario numbers must not collide with stock EmptyEpsilon or each other (`check.py` enforces; ranges in CONTRIBUTING.md).
-7. Generated files (`extensions/index.lua`, `director/generated/world.md`, `docs/verse_map.svg`) come from `check.py --fix`; never hand-edit.
+7. Generated files (`extensions/index.lua`, `director/actions/index.lua`, `director/generated/world.md`, `docs/verse_map.svg`)
+   come from `check.py --fix`; never hand-edit.
+8. **Game code never names `DIR`.** Core, jobs, world plugins and arcs report with `RT.emit(type, data, priority)`
+   (`core/events.lua`); the director's mailbox is one listener (`RT.on`). Only `director.lua`, `director/`, `gm_console.lua`
+   and scenarios may reference `DIR` (`check.py` enforces). The game must play the same with no director.
+9. **One record per ship.** Credits, standing and upgrades live in `RT.shipRecord(ship)` (the primary ship's record is the
+   campaign table; others are in `campaign.extra_ships`). Outside `ee/ragtag/missions/`, `RT.addCredits`, `RT.addReputation`
+   and `RT.grantUpgrade` must be given the ship (`check.py` enforces); "no ship" means the primary ship and is for arcs only.
+10. **A callsign is a name, not an identity.** Keep the entity of whatever you spawn (`m.target`, `group.ships`, `slot.ship`)
+    and never find it again by callsign; `RT.find` is for universe places and names a person typed. Per-ship state is found
+    with `==` on the entity (a list, not a table keyed by ship: one ship can have several Lua handles).
 
 ## Engine gotchas that have bitten this project
 (Details in the skill's `references/api_notes.md`.)
 - `/exec.lua` runs in a separate Lua environment (no scenario globals, no utils.lua) and must return a string.
 - `ship:getDockedWith()` returns `false`, not nil, when undocked — test truthiness.
 - `getTypeName()` errors on non-ships; filter with `obj.components.typename ~= nil`. Unknown component names raise errors.
+  It returns the ship's TEMPLATE name ("MT52 Hornet"), never "CpuShip": use `isObjectType()` to test what something is.
 - Freighter impulse is ~0.05u/s; AI traffic on this map needs warp, a spawn on the destination side of stations, 4u clearance, and the stall watchdog.
 - `setWeaponTubeCount` resets all tubes; `sendCommsMessage` fails when comms are busy (use `RT.hail`).
 - Headless EE: start detached (`setsid nohup ...`) and poll; one server per port.
@@ -63,15 +85,18 @@ Contributors add **universe extensions** and **scenarios** independently.
 
 ## Definition of done
 `python3 tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error`, the smoke test passes
-and `tools/game_tests.py` passes. A change to an arc's or job's behaviour comes with a change to its test
-(`tests/arcs/<arc>.lua`, `tests/jobs/<type>.lua`).
+and `tools/game_tests.py` passes. A change to an arc's, job's or world plugin's behaviour comes with a change to its test
+(`tests/arcs/<arc>.lua`, `tests/jobs/<type>.lua`, `tests/world/<plugin>.lua`); a change to core ownership or the event
+bus with a change to `tests/core/`.
 Say plainly in PR descriptions what was and wasn't tested.
 
 ---
 
 ## Mission System Architecture (Sandbox Campaign)
 
-### Five Mission Types with Progressive Compensation
+### Job Types with Progressive Compensation
+
+(Seven job modules in `ee/ragtag/jobs/`: the five below plus `escort` and `tailing`.)
 
 **Base multipliers** (delivery = 1.0x baseline):
 1. **Delivery** (1.0x): Ferry cargo between stations. Safest, baseline income.
@@ -91,18 +116,22 @@ Say plainly in PR descriptions what was and wasn't tested.
 ### Several ships
 
 The board works for more than one player ship. A job belongs to the ship that took it: only that ship advances,
-completes and is paid for it, and gains or loses standing; each ship has its own 2-job cap, credits and standing.
-Story contracts and story arcs are for the primary ship only. Job modules use `JOBS.owner/ships/log/hail/rep`, never
-`RT.players` / `RT.shipLog`. Credits are kept by `core.lua`, one balance per ship, shown as a `Credits: N` line on Relay and Operations: use
-`RT.credits(ship)` / `RT.addCredits(amount, reason, ship)`. EE's own reputation points are per faction (shared by all
+completes and is paid for it, and gains or loses standing; each ship has its own 2-job cap, credits, standing, upgrades
+and job tier (`JOBS.maxTier(ship)`). Story contracts and story arcs are for the primary ship only. Job modules use
+`JOBS.owner/ships/log/hail/rep`, never `RT.players` / `RT.shipLog`, and keep the entities they spawn on the job record
+(`m.target`, `m.convoy`, ...). Everything a ship owns is in its record (`RT.shipRecord(ship)`: credits, reputation,
+upgrades); credits show as a `Credits: N` line on Relay and Operations: use
+`RT.credits(ship)` / `RT.addCredits(amount, reason, ship)`. An upgrade is bought by, applied to and saved for one ship
+(`RT.installUpgrade` / `RT.grantUpgrade` / `RT.revokeUpgrade(id, ship)`). EE's own reputation points are per faction (shared by all
 player ships), so they are unused and held at 0; nothing outside `core.lua` may call the `ReputationPoints` methods. Details: `jobs_api.md`, "Ownership".
 Patrols and shakedowns (`PROX`) still judge every ship by the primary ship's standing.
 
 ### Mission Generation Flow
 
-1. **Station offers 2 missions** when player docks and hails "Any work available?"
-2. **Type selection** via weighted random:
-   - delivery: 15, salvage: 7, boarding: 3, hacking: 3, destroy: 3
+1. **Station offers 1–3 jobs** (by station size, less with poor standing) when a ship docks and hails "Any work available?".
+   `JOBS.board(cs, ship)` decides the offers (no comms calls; testable); `_showBoard` renders them.
+2. **Type selection** via weighted random, by the asking ship's tier:
+   - tier 0: delivery 15, salvage 7 · tier 1 adds hacking · tier 2 adds destroy and boarding (`_TIER_WEIGHTS`)
 3. **Archetype selection** from mission.lua `_*_ARCHETYPES` tables (tier-gated)
 4. **Legacy intercept fields** in archetypes (`intercept_types`, `intercept_chance`) are no longer used as of 2026-10-29 (proximity spawn system replaced mission-specific intercepts)
 5. **Nearby stations** calculated for boarding/destroy (50U radius) → stored as `target_dest`
@@ -125,13 +154,16 @@ with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unloa
 - **Boneyard**: Relic war drones (no comms, attack)
 - **Maw**: Hollow (no comms, attack)
 
-**Spawn conditions**:
-- Player in dangerous zone for 8+ seconds (check interval)
-- Region cooldown expired (90s base, scaled by reputation)
-- Global cooldown expired (60s)
-- <4 active patrol ships total
-- <3 hostiles within 10U (density check)
-- Outside 20U station exclusion zones
+**Spawn conditions** (checked every 8 s for the zone the primary ship is deepest in; per-zone GM mode None/Low/Medium/High):
+- Zone cooldown expired (Concord 600/720 s, Corsairs 180–240 s, Boneyard 180 s, Maw 120 s; divided by the mode's frequency,
+  shorter with bad Corsair standing)
+- Zone ship cap not reached (mode: 6 / 12 / 24; Concord zones: 1)
+- Fewer hostiles within 10U than the mode's density limit (3 / 6 / 12)
+- No other patrol in the same 18U map cell
+- Zone not suspended by an arc, job board not locked
+- Spawn point outside every station's 15U exclusion zone
+
+A patrol group keeps its ship ENTITIES (`group.ships`), never callsigns: two patrols can draw the same name.
 
 **Combat warp jammers**: hostile Concord ships (patrols spawned hostile by reputation, shakedowns gone
 hostile, and arc fleets that call `PROX.tickCombatJammers`) drop a warp jammer on the player when within 5U.
@@ -143,11 +175,11 @@ All Concord jammers (including the shakedown one) have 10 hull: two 6-damage bea
 **Leash system**: Ships recall to spawn point when player exits region, despawn after 120s if player doesn't return.
 
 **Reputation effects**:
-- Corsairs >+20 rep: 50% longer cooldowns (less frequent spawns)
-- Corsairs <-20 rep: 30% shorter cooldowns (hunt you)
+- Corsairs ≤ −200 rep: 30% shorter cooldowns; ≤ −400: 50% shorter (hunt you)
 - Concord shakedown outcomes (rep thresholds): ≥500 callsign recognised (clean pass with compliment); ≥200 clean pass; ≥0 nothing flagged; ≥−200 fine offer; <−200 detention threat → Concord Ops hostile
 
-**GM control**: `PROX.config.spawn_frequency` multiplier (0.5 = half as often, 2.0 = twice as often).
+**GM control**: World Plugins... → Proximity Spawns: on/off, "Trigger Spawn Now", and a mode per zone
+(`PROX.setZoneMode(zone, 1..4)`: None / Low / Medium / High).
 
 **Key insight**: Danger is now location-based (enter the Gauntlet → Corsairs spawn) rather than mission-based (intercept at 40% route progress). Creates predictable risk zones players learn to navigate.
 
@@ -226,8 +258,8 @@ Reference: [EmptyEpsilon utils.lua:351](https://github.com/daid/EmptyEpsilon/blo
 
 **Proximity spawns not appearing**:
 - Check player is in a zone with patrol config (`PROX.zones` table)
-- Verify cooldowns not active (90s region, 60s global)
-- Check max_active limit not reached (4 ships default)
+- Verify the zone's cooldown is not active (`state.region_cd`)
+- Check the zone's mode is not None and its ship cap is not reached
 - Story arcs suspend zone spawns via `PROX.suspendZone("zone name")` — check `PROX._suspended_zones`
 
 ### Port Vesper Welcome System

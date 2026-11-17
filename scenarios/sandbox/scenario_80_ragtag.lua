@@ -3,7 +3,7 @@
 ---
 --- The Drift campaign. Persistent credits and upgrades. Jobs, missions, and faction
 --- consequences accumulate across sessions. No fixed end -- just the next job.
---- Optional: run the AI director (director/main.py) for dynamic encounters and opportunities.
+--- Optional: run the AI director (director/main.py). It only watches and summarises for the GM.
 -- Type: The Drift Universe
 -- Setting[Campaign]: Use saved campaign progress or start over.
 -- Campaign[Continue|Default]: Keep credits and upgrades from earlier sessions.
@@ -13,8 +13,8 @@
 -- Starting Credits[Comfortable (500)]: Enough to buy a decent upgrade right away.
 -- Starting Credits[Well-off (1000)]: Can afford multiple upgrades immediately.
 -- Setting[Director]: Whether the scenario talks to the external AI director.
--- Director[On|Default]: Dynamic encounters and opportunities from the AI director.
--- Director[Off]: Static universe with scripted random encounters only.
+-- Director[On|Default]: Report events to the AI director if it is running. It observes and summarises for the GM; it does not change the game.
+-- Director[Off]: Do not report to the AI director. The game plays the same.
 
 require("utils.lua")
 require("ragtag/core.lua")
@@ -167,18 +167,10 @@ function init()
                 if not used[name] then ship:setCallSign(name); break end
             end
         end
-        -- Credits are per ship and kept by RT (see core.lua, "Credits"): a ship that joins gets
-        -- the balance saved under its name, or 0.
-        -- Pre-register so RT.update's sync loop doesn't override the faction next frame.
-        -- (RT.spawnPlayer may also insert; the duplicate guard there prevents double-entry.)
-        local found = false
-        for _, p in ipairs(RT.players) do
-            if p == ship then found = true; break end
-        end
-        if not found then
-            table.insert(RT.players, ship)
-            RT.player = RT.players[1]
-        end
+        -- Credits, standing and upgrades are per ship (core.lua, "Per-ship records"): a ship that
+        -- joins gets the record saved under its name, or a new, empty one.
+        -- Register now so RT.update's sync loop doesn't override the faction next frame.
+        RT.adoptPlayer(ship)
     end)
 
     -- Custom Port Vesper comms: welcome message on first hail, standard message after.
@@ -219,7 +211,7 @@ function init()
                 setCommsMessage('"Thank you for the thought. Come back when you can spare a bit."')
             else
                 RT.addCredits(-100, "donated to St. Brennan's Children's Fund", s)
-                RT.addReputation("Independent", 100, "donated to St. Brennan's Children's Fund")
+                RT.addReputation("Independent", 100, "donated to St. Brennan's Children's Fund", s)
                 setCommsMessage('"Your generosity won\'t be forgotten. These children -- they need people like you."')
             end
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
@@ -234,7 +226,7 @@ function init()
                 setCommsMessage('"Appreciated, but we need funds, not promises. Return when you have the credits."')
             else
                 RT.addCredits(-100, "donated to the Galen Medical Relief Fund", s)
-                RT.addReputation("Concord", 50, "donated to the Galen Medical Relief Fund")
+                RT.addReputation("Concord", 50, "donated to the Galen Medical Relief Fund", s)
                 setCommsMessage('"Every contribution helps. The fund will put your credits to good use."')
             end
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
@@ -244,7 +236,7 @@ function init()
     addSessionGMFunctions()   -- also adds the campaign buttons (Save campaign, Sounds...)
     defineBeats()
 
-    DIR.addStateProvider(function()
+    RT.addStateProvider(function()
         local job_descs = {}
         for _, entry in ipairs(JOBS._active) do
             job_descs[#job_descs+1] = entry.mission.short .. " (" .. entry.mission.type .. ")"
@@ -284,10 +276,11 @@ Your role:
 - Track crew's choices and their consequences
 
 DO NOT:
-- Fire story beats or spawn encounters (proximity spawns handle this automatically)
+- Try to fire story beats, spawn encounters or speak to the crew: you cannot (the game refuses it)
 - Push narrative or complications
-- Voice NPCs unless explicitly asked by GM
-- Suggest opportunities or actions
+- Suggest opportunities or actions to the crew
+
+Your only outputs are gm_note (a private note to the human GM) and noop.
 
 Your summaries should be factual and concise:
 - Current location and activity
@@ -323,14 +316,14 @@ end
 function defineBeats()
     -- No automatic welcome beat - player gets welcome message on first hail to Port Vesper
 
-    DIR.defineBeat("first_undock", {desc = "Crew undocks for the first time this session", fn = function()
+    RT.defineBeat("first_undock", {desc = "Crew undocks for the first time this session", fn = function()
         RT.shipLog("Session " .. S.session_num .. " begins. Current funds: " .. RT.credits() .. " credits.", "#A0E0A0")
         if S.session_num == 1 then
             RT.shipLog("Helm: Stations are marked on the sector map. Science: Scan objects to reveal details. Relay: Hail stations for rumours. Engineering: Watch your power and repair damage. Weapons: Keep missiles loaded.", "#E0E0A0")
         end
     end})
 
-    -- AI beats removed 2026-10-29: Director now observes and summarizes rather than driving narrative beats
+    -- Beats are scripted (RT.fireBeat). The AI director observes and summarises; it fires nothing.
 end
 
 function addSessionGMFunctions()
@@ -357,7 +350,7 @@ function finishSession(outcome, note)
     S.phase = "ending"
 
     RT.completeSession(SESSION_ID .. "_" .. S.session_num, outcome, note)
-    DIR.emit("session_end", {
+    RT.emit("session_end", {
         session = SESSION_ID,
         session_num = S.session_num,
         outcome = outcome,
@@ -400,7 +393,7 @@ function update(delta)
     if region and region ~= "unknown" and not S.visited_regions[region] then
         S.visited_regions[region] = true
         RT.shipLog("Entered " .. region .. ".", "#C0C0C0")
-        DIR.emit("region_visited", {region = region}, "low")
+        RT.emit("region_visited", {region = region}, "low")
     end
 
     -- Phase management
@@ -414,7 +407,7 @@ function update(delta)
     elseif S.phase == "docked" then
         if not docked or not RT.valid(docked) then
             -- Just undocked
-            DIR.fireBeat("first_undock", "script")
+            RT.fireBeat("first_undock", "script")
             S.phase = "exploring"
             S.docked_at = nil
         end
@@ -425,7 +418,7 @@ function update(delta)
             -- Just docked
             S.phase = "docked"
             S.docked_at = docked:getCallSign()
-            DIR.emit("docked", {station = S.docked_at}, "medium")
+            RT.emit("docked", {station = S.docked_at}, "medium")
         end
     end
 

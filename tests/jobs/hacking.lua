@@ -6,7 +6,7 @@ T.suite("jobs")
 
 local HOME = "Port Vesper"
 local m, c0, rep0
-local function relay() return RT.find(m.target_cs) end
+local function relay() return m.target end
 
 T.step("post a hacking job", function() m = T.postJob(T.makeJob("hacking", HOME, 1)) end)
 T.takeJob(function() return m end)

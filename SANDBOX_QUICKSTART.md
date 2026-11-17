@@ -5,7 +5,7 @@
 An **open-play EmptyEpsilon scenario** for exploring the ragtag universe with no fixed story. Perfect for:
 - First-time crews learning EmptyEpsilon
 - Getting oriented to the Drift setting before starting story campaigns
-- Experimenting with the AI director
+- Trying the AI director as a GM's note-taker
 - Just having fun flying a spaceship with friends
 
 ## The 5-Minute Setup
@@ -19,10 +19,10 @@ python tools/install.py --ee /path/to/EmptyEpsilon
 httpserver=8080
 
 # Start EmptyEpsilon as server
-# Select scenario: "Sandbox: Open Play"
+# Select scenario: "The Drift"
 ```
 
-### 2. AI PC (Optional but Recommended)
+### 2. AI PC (Optional)
 ```bash
 # Install Ollama (or another local LLM server)
 ollama pull qwen2.5:14b  # or any 8B-14B instruction model
@@ -59,7 +59,7 @@ Crew connects to stations as usual. Start docked at Port Vesper with a modest sh
 ### Later Sessions
 - Credits and upgrades carry over
 - Explore more dangerous regions (better salvage)
-- The AI director remembers your choices
+- The AI director (if you run it) keeps a summary of each session for the GM
 - Build your own narrative through actions
 - Get powerful enough to visit deadly zones
 
@@ -67,7 +67,7 @@ Crew connects to stations as usual. Start docked at Port Vesper with a modest sh
 
 ```
 scenarios/sandbox/
-├── scenario_80_sandbox.lua     # Main scenario (already validated)
+├── scenario_80_ragtag.lua      # Main scenario
 ├── bible.md                    # Story context for AI director
 ├── README.md                   # Campaign overview
 └── GM_GUIDE.md                 # Detailed GM reference
@@ -75,26 +75,21 @@ scenarios/sandbox/
 
 ## Testing Status
 
-✅ **Validated**: `python tools/check.py` passes (0 errors, 0 warnings)  
-✅ **Syntax**: Lua syntax is correct  
-⚠️ **Not tested**: Headless run (requires EmptyEpsilon installation)
+Run `python tools/check.py`, then `python3 tools/smoke_test.py --launch <EmptyEpsilon dir>` and
+`python3 tools/game_tests.py --ee <EmptyEpsilon dir>` (see README, "Testing").
 
 ## Recommended Settings for First Session
 
 - **Campaign**: Fresh start
 - **Starting Credits**: Comfortable (500)
-- **Danger Level**: Relaxed
-- **Director**: On (if you have the AI PC set up)
+- **Director**: On (it makes no difference to the game; it only lets a running director listen)
 
-## Quick AI Director Instructions
+## The AI Director
 
-Once the web console is open, try:
-- "Have a freighter captain offer a delivery job"
-- "Spawn some salvage in a nearby asteroid field"
-- "Create a mystery: a derelict with a strange signal"
-- "A Concord patrol hails asking about suspicious activity"
-
-Or use quick buttons: **Opportunity**, **Encounter**, **Salvage**
+The director is observation-only: it watches the session and writes private notes and summaries
+for the GM. It cannot hail the crew, spawn anything or change the campaign. Once the web console
+is open, try a standing directive such as "summarise what the crew has done every ten minutes",
+or use **Say** to speak to the crew as a station yourself.
 
 ## The Universe At A Glance
 
@@ -122,7 +117,7 @@ Director keeps a backup in `director/director_memory.json`
 
 ## Next Steps After Sandbox
 
-1. **Story Arc**: Try The Witness arc (GM button in sandbox for scripted 45-60min story)
+1. **Story Arc**: Try a story arc (GM "Missions..." button: Rezkov, Boneyard, Ledger, Corsair)
 2. **Create Your Own**: Use sandbox as a template
 3. **Contribute**: Add universe extensions or new scenarios (see CONTRIBUTING.md)
 
@@ -135,9 +130,9 @@ Director keeps a backup in `director/director_memory.json`
 
 ## Known Limitations
 
-- No scripted story beats (by design—it's sandbox!)
-- Director is optional but recommended for dynamic content
+- No fixed plot: story arcs start when their conditions are met (or from the GM "Missions..." menu)
+- The director is optional and does not create content
 - Sessions are as long/short as you want (no fixed length)
-- Universe is large—players might feel lost at first (AI director helps)
+- Universe is large—players might feel lost at first (the Science database and station rumours help)
 
 Have fun exploring the Drift! 🚀

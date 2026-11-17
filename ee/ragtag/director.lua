@@ -11,12 +11,16 @@
 --   "rt.from_director"  written by the director over HTTP, read here
 --       {proto, run, hb, event_ack, paused, cmds=[{id, action, args, source}]}
 --
--- The director only ever asks for *named, whitelisted actions*. It never sends
--- raw Lua. Every action validates and clamps its arguments here, so a confused
--- language model can't crash the game or flatten the crew.
+-- This file is ONLY that mailbox. The game does not call into it: core, jobs, world
+-- plugins and arcs report what happens with RT.emit (core/events.lua) and this file
+-- listens (RT.on), queues the events and ships them out with a state snapshot. Take
+-- the require away and the campaign plays exactly the same.
 --
--- The scenario must stay fully playable with the director offline: every beat
--- the AI may trigger should also have a deterministic fallback in the scenario.
+-- The director is observation-only. It only ever asks for *named, whitelisted
+-- actions* and never sends raw Lua; every action validates and clamps its arguments
+-- here. What the model itself may ask for cannot touch the game (a private note to
+-- the GM, or nothing); anything the crew can see or that changes the campaign is
+-- GM-only and refused unless the GM sent it from the console (see director/actions/).
 
 -- EE's built-in toJSON fails with "invalid key to 'next'" whenever a table
 -- has two or more values that are themselves non-empty tables.  Root cause:
@@ -64,7 +68,6 @@ DIR.KEY_OUT = "rt.from_scenario"
 DIR.KEY_IN = "rt.from_director"
 
 DIR.enabled = true
-DIR.paused = false            -- GM can hush the AI from the GM screen
 DIR.run = nil
 DIR.seq = 0
 DIR.events = {}               -- unacknowledged outgoing events
@@ -80,44 +83,12 @@ DIR.last_hb = nil
 DIR.last_hb_time = -1000
 DIR.online = false
 DIR.session = {}              -- id, title, premise, cast, tone: sent with session_start
-DIR.beats = {}                -- id -> {desc, ai, fn, fired, order}
-DIR.beat_order = 0
-DIR.state_providers = {}      -- functions returning a table merged into state.extra
-DIR.pending_hails = {}        -- hails waiting for the player's comms to be free
-DIR.spawned = {}              -- entities created by the director
-DIR.controllable = {}         -- callsign -> true, NPCs the director may give orders to
+DIR.pending_hails = {}        -- GM "say" hails waiting for the player's comms to be free
 DIR.last_tick = 0
-DIR.missions = {}            -- active director-created missions, keyed by id
 
 -- Tunables a scenario may override after require().
 DIR.config = {
-    max_ai_hostiles = 6,          -- director-spawned hostiles alive at once
-    spawn_cooldown = 90,          -- seconds between director spawn_group actions
-    glitch_cooldown = 120,
-    credit_cap_per_action = 300,
-    credit_cap_per_session = 900,
-    tick_minutes = 4,             -- periodic "anything to add?" event
-    -- Factions come from ragtag_verse.lua. Hollow and Relic are deliberately not
-    -- spawnable by the director: they belong to their zones.
-    allowed_factions = {"Corsairs", "Independent", "Concord", "Unknown"},
-    hostile_factions = {Corsairs = true, Hollow = true, Relic = true},
-}
-DIR.cooldowns = {}
-DIR.credits_given = 0
-
--- Ship groups by strength. Faction only changes allegiance, not hulls.
-DIR.GROUPS = {
-    scout  = {"MT52 Hornet"},
-    light  = {"Adder MK5", "MT52 Hornet"},
-    medium = {"Phobos T3", "Adder MK5", "MT52 Hornet"},
-    heavy  = {"Nirvana R5", "Phobos T3", "Adder MK5", "Adder MK5"},
-}
-
-DIR.SYSTEMS = {
-    reactor = "reactor", beams = "beamweapons", beamweapons = "beamweapons",
-    missiles = "missilesystem", missilesystem = "missilesystem", maneuver = "maneuver",
-    impulse = "impulse", warp = "warp", jumpdrive = "jumpdrive",
-    frontshield = "frontshield", rearshield = "rearshield",
+    tick_minutes = 4,             -- periodic "tick" event, so a quiet stretch still gets a summary
 }
 
 --------------------------------------------------------------------------------
@@ -128,9 +99,8 @@ DIR.SYSTEMS = {
 function DIR.init(session)
     DIR.session = session or {}
     DIR.run = string.format("%s-%d-%d", DIR.session.id or "run", math.floor(random(0, 999999)), math.floor(random(0, 999999)))
-    -- DIR.addGMFunctions()  -- Disabled 2026-10-29: AI director is observation-only, these controls don't work
-    -- Build fresh copies of campaign sub-tables so toJSON never sees the same
-    -- table object twice (shared refs across events+state trigger a Lua next() error).
+    -- Build fresh copies of campaign sub-tables so the encoder never sees the same
+    -- table object twice (shared refs across events+state).
     local camp_snap = nil
     if RT and RT.campaign then
         local c = RT.campaign
@@ -146,85 +116,17 @@ function DIR.init(session)
     local sess_id = sess and {
         id = sess.id or "?", campaign = sess.campaign or "?", title = sess.title or "?"
     } or {}
-    DIR.emit("session_start", {session = sess_id, campaign = camp_snap}, "high")
-end
-
--- Define a story beat. ai=true lets the director choose when to fire it.
--- fn(source) is called once; source is "ai", "fallback", "gm" or "script".
-function DIR.defineBeat(id, opts)
-    DIR.beat_order = DIR.beat_order + 1
-    DIR.beats[id] = {desc = opts.desc or id, ai = opts.ai or false, fn = opts.fn, fired = false, order = DIR.beat_order}
-end
-
-function DIR.fireBeat(id, source)
-    local b = DIR.beats[id]
-    if b == nil then return false, "no such beat" end
-    if b.fired then return false, "already fired" end
-    b.fired = true
-    local ok, err = pcall(b.fn, source or "script")
-    if not ok then
-        log("[DIR] beat " .. id .. " failed: " .. tostring(err))
-        return false, tostring(err)
-    end
-    DIR.emit("beat", {id = id, desc = b.desc, by = source or "script"}, "normal")
-    return true, "fired"
-end
-
-function DIR.beatFired(id)
-    return DIR.beats[id] ~= nil and DIR.beats[id].fired
-end
-
-function DIR.addStateProvider(fn)
-    table.insert(DIR.state_providers, fn)
-end
-
--- Mark an entity as one the director may hail as / give orders to.
-function DIR.allowControl(entity)
-    DIR.controllable[entity:getCallSign()] = true
-    RT.named[entity:getCallSign()] = entity
-end
-
--- Register a kill-tracking callback on any ship (player or scenario spawned).
--- Emits "destroyed" for every kill and "combat_kill" (with strength data) for
--- player kills. Call this after creating any CpuShip the crew might fight:
---   VERSE's garrison builder calls it automatically for all garrison ships.
---   spawn_group calls it for director-spawned groups.
---   Scenario scripts should call DIR.registerKill(ship) for their own spawns.
-function DIR.registerKill(ship)
-    if not RT.valid(ship) then return end
-    local str = RT.shipStrength(ship)
-    -- RT.onKill shares one onDestruction slot with reputation tracking and
-    -- loot drops; setting onDestruction directly here would clobber them.
-    RT.onKill(ship, function(s, instigator)
-        local by_player = RT.isPlayer(instigator)
-        DIR.emit("destroyed", {callsign = s:getCallSign(), faction = s:getFaction(),
-            by_player = by_player and 1 or 0}, "normal")
-        if by_player then
-            local killer = RT.valid(instigator) and instigator or RT.player
-            local player_str = killer and RT.shipStrength(killer) or {total = 0}
-            local ratio = str.total > 0 and math.floor(player_str.total * 100 / str.total) / 100 or 0
-            DIR.emit("combat_kill", {
-                callsign   = s:getCallSign(),
-                faction    = s:getFaction(),
-                enemy_str  = str,
-                player_str = player_str,
-                ratio      = ratio,
-                killer     = killer and killer:getCallSign() or "unknown",
-            }, "normal")
-        end
-    end)
+    RT.emit("session_start", {session = sess_id, campaign = camp_snap}, "high")
 end
 
 --------------------------------------------------------------------------------
--- Events
+-- Events: everything the game reports with RT.emit is queued for the director.
 --------------------------------------------------------------------------------
 
--- priority: "high" asks the director to react right away; "normal"/"low" batch.
-function DIR.emit(etype, data, priority)
-    local ev = {id = DIR.next_event_id, t = math.floor(getScenarioTime()), type = etype,
-                data = data or {}, pri = priority or "normal"}
+function DIR.queue(ev)
+    if not DIR.enabled then return end
+    table.insert(DIR.events, {id = DIR.next_event_id, t = ev.t, type = ev.type, data = ev.data, pri = ev.pri})
     DIR.next_event_id = DIR.next_event_id + 1
-    table.insert(DIR.events, ev)
     -- Keep the queue bounded if the director is offline: drop oldest low/normal.
     while #DIR.events > 60 do
         local dropped = false
@@ -236,27 +138,19 @@ function DIR.emit(etype, data, priority)
     DIR.dirty = true
 end
 
+if not DIR._listening then
+    DIR._listening = true
+    RT.on(function(ev) DIR.queue(ev) end)
+end
+
 --------------------------------------------------------------------------------
 -- State snapshot sent to the director
 --------------------------------------------------------------------------------
 
 local function round(v) return math.floor(v + 0.5) end
 
-function DIR.countAIHostiles()
-    local n = 0
-    for i = #DIR.spawned, 1, -1 do
-        local e = DIR.spawned[i]
-        if not RT.valid(e) then
-            table.remove(DIR.spawned, i)
-        elseif RT.valid(RT.player) and e:isEnemy(RT.player) then
-            n = n + 1
-        end
-    end
-    return n
-end
-
 function DIR.buildState()
-    -- Build a full session snapshot using only fresh tables so toJSON never
+    -- Build a full session snapshot using only fresh tables so the encoder never
     -- encounters the same table object twice across events + state.
     local sess = DIR.session or {}
     local cast_copy = {}
@@ -278,26 +172,19 @@ function DIR.buildState()
     local st = {
         session = sess_snap,
         time = round(getScenarioTime()),
-        objective = RT and RT.objective or "",
-        paused = b01(DIR.paused),
+        objective = RT.objective or "",
         beats = {},
-        budget = {
-            ai_hostiles_alive = 0, max_ai_hostiles = DIR.config.max_ai_hostiles,
-            credits_given = DIR.credits_given, credit_cap = DIR.config.credit_cap_per_session,
-        },
     }
     local list = {}
-    for id, b in pairs(DIR.beats) do table.insert(list, {id = id, b = b}) end
+    for id, b in pairs(RT.beats) do table.insert(list, {id = id, b = b}) end
     table.sort(list, function(a, c) return a.b.order < c.b.order end)
     for _, item in ipairs(list) do
-        table.insert(st.beats, {id = item.id, desc = item.b.desc, ai = b01(item.b.ai), fired = b01(item.b.fired)})
+        table.insert(st.beats, {id = item.id, desc = item.b.desc, fired = b01(item.b.fired)})
     end
 
-    st.budget.ai_hostiles_alive = DIR.countAIHostiles()
-
-    -- Build per-player snapshots. st.player = primary ship (backward compat).
+    -- Per-ship snapshots. st.player = the primary ship (what the director's prompt reads).
     st.players = {}
-    for _, p in ipairs(RT and RT.players or {}) do
+    for _, p in ipairs(RT.players or {}) do
         if RT.valid(p) then
             local x, y = p:getPosition()
             local docked = p:getDockedWith()
@@ -314,7 +201,7 @@ function DIR.buildState()
                 callsign = p:getCallSign(), sector = p:getSectorName(),
                 x = round(x), y = round(y), heading = round(p:getHeading()),
                 hull = round(p:getHull()), hull_max = round(p:getHullMax()),
-                shields_up = b01(p:getShieldsActive()), credits = RT.credits(),
+                shields_up = b01(p:getShieldsActive()), credits = RT.credits(p),   -- this ship's own balance
                 docked_with = (docked and RT.valid(docked)) and docked:getCallSign() or nil,
                 damaged_systems = damaged,
                 homing = p:getWeaponStorage("Homing"), hvli = p:getWeaponStorage("HVLI"),
@@ -328,7 +215,7 @@ function DIR.buildState()
                             return {
                                 callsign = obj:getCallSign(), type = obj:getTypeName(), faction = obj:getFaction(),
                                 dist_u = round(RT.dist(p, obj) / 100) / 10,
-                                hostile = b01(obj:isEnemy(p)), ai_spawned = b01(DIR.controllable[obj:getCallSign()]),
+                                hostile = b01(obj:isEnemy(p)),
                             }
                         end)
                         if ok then table.insert(nearby, info) end
@@ -343,14 +230,8 @@ function DIR.buildState()
     end
     st.player = st.players[1] or {destroyed = true}
 
-    st.extra = {}
-    for _, fn in ipairs(DIR.state_providers) do
-        local ok, t = pcall(fn)
-        if ok and type(t) == "table" then
-            for k, v in pairs(t) do st.extra[k] = v end
-        end
-    end
-    if RT and RT.campaign then
+    st.extra = RT.extraState()
+    if RT.campaign then
         local c = RT.campaign
         local upg, flg = {}, {}
         for i, v in ipairs(c.upgrades or {}) do upg[i] = v end
@@ -372,20 +253,15 @@ end
 --------------------------------------------------------------------------------
 
 function DIR.update(delta)
-    if not DIR.enabled then
-        if DIR.run ~= nil then log("[DIR] update: disabled, skipping") end
-        return
-    end
-    if DIR.run == nil then return end
+    if not DIR.enabled or DIR.run == nil then return end
     local now = getScenarioTime()
 
     DIR.processPendingHails(now)
-    if DIR.updateMissions then DIR.updateMissions() end
 
-    -- Periodic tick so the director can add colour during quiet stretches.
+    -- Periodic tick, so a quiet stretch still prompts a summary.
     if now - DIR.last_tick >= DIR.config.tick_minutes * 60 then
         DIR.last_tick = now
-        DIR.emit("tick", {minutes = math.floor(now / 60)}, "low")
+        RT.emit("tick", {minutes = math.floor(now / 60)}, "low")
     end
 
     if now - DIR.last_pump < DIR.pump_interval then return end
@@ -439,15 +315,8 @@ function DIR.update(delta)
             events = DIR.events, cmd_ack = DIR.last_cmd_id, results = DIR.results,
             state = state_val,
         }
-
-        -- Use our own serialiser: EE's toJSON has a C stack-index bug that makes
-        -- it fail on any table containing two or more non-empty table values.
-        local s = _json(out)
-        if DIR.seq <= 3 then
-            -- Debug logging disabled - director communication working
-            -- print("[DIR] write seq=" .. DIR.seq .. " len=" .. #s .. " proto=" .. tostring(out.proto) .. " run=" .. tostring(out.run))
-        end
-        storage:set(DIR.KEY_OUT, s)
+        -- Our own serialiser: see _json above.
+        storage:set(DIR.KEY_OUT, _json(out))
         DIR.dirty = false
         DIR.last_write = now
     end
@@ -464,8 +333,6 @@ function DIR.execute(cmd)
     local ok, msg
     if handler == nil then
         ok, msg = false, "unknown action"
-    elseif DIR.paused and cmd.source ~= "gm" then
-        ok, msg = false, "director paused by GM"
     else
         local success, r1, r2 = pcall(handler, args, cmd)
         if not success then
@@ -492,112 +359,14 @@ local function num(v, lo, hi, default)
     return n
 end
 
-local function onCooldown(name, seconds)
-    local now = getScenarioTime()
-    local last = DIR.cooldowns[name]
-    if last and now - last < seconds then
-        return true, math.ceil(seconds - (now - last))
-    end
-    DIR.cooldowns[name] = now
-    return false
-end
-
-local function factionAllowed(f)
-    for _, a in ipairs(DIR.config.allowed_factions) do
-        if a == f then return true end
-    end
-    return false
-end
-
--- Resolve a spawn point. near = "player" | callsign; distance in units (1u = 1000).
-local function resolvePoint(args, default_dist, min_d, max_d)
-    local anchor = nil
-    local near = args.near or "player"
-    if near == "player" then anchor = RT.player else anchor = RT.find(near) end
-    if not RT.valid(anchor) then anchor = RT.player end
-    if not RT.valid(anchor) then return nil end
-    local ax, ay = anchor:getPosition()
-    local d = num(args.distance, min_d, max_d, default_dist) * 1000
-    local bearing = tonumber(args.bearing)
-    if args.side == "ahead" and RT.valid(RT.player) then
-        bearing = RT.player:getHeading() + random(-30, 30)
-    elseif args.side == "behind" and RT.valid(RT.player) then
-        bearing = RT.player:getHeading() + 180 + random(-30, 30)
-    end
-    if bearing == nil then bearing = random(0, 360) end
-    local dx, dy = vectorFromAngle(bearing, d, true)
-    return ax + dx, ay + dy
-end
-
-local function uniqueCallsign(base)
-    base = str(base, 24, nil)
-    if base == nil or base == "" then return nil end
-    if RT.find(base) == nil then return base end
-    for i = 2, 99 do
-        local c = base .. "-" .. i
-        if RT.find(c) == nil then return c end
-    end
-    return nil
-end
-
 -- Shared helpers for action files loaded from director/actions/*.lua.
 DIR._h = {
-    str            = str,
-    num            = num,
-    onCooldown     = onCooldown,
-    factionAllowed = factionAllowed,
-    resolvePoint   = resolvePoint,
-    uniqueCallsign = uniqueCallsign,
+    str = str,
+    num = num,
+    -- True when the GM sent the command from the console. Every action with an effect in the
+    -- game starts with:  if not DIR._h.fromGM(cmd) then return false, "GM only" end
+    fromGM = function(cmd) return type(cmd) == "table" and cmd.source == "gm" end,
 }
-
--- Comms function for director-spawned NPCs: asking them anything turns into an
--- event; the director answers with a "say" action a few seconds later.
-function DIR.npcComms(source, target)
-    local cs = target:getCallSign()
-    local info = DIR.npc_info and DIR.npc_info[cs] or {}
-    if info.greeting and info.greeting ~= "" then
-        setCommsMessage(info.greeting)
-    else
-        setCommsMessage("\"" .. cs .. " here. Go ahead.\"")
-    end
-
-    -- Pre-generated tree from comms_tree action: instant replies, no LLM round-trip.
-    if info.tree and #info.tree > 0 then
-        for _, opt in ipairs(info.tree) do
-            local reply = opt.reply
-            addCommsReply(opt.label, function(s, t)
-                setCommsMessage(reply)
-            end)
-        end
-        addCommsReply("Nothing, thanks.", function(s, t)
-            setCommsMessage("\"Safe travels.\"")
-        end)
-        return
-    end
-
-    -- Generic LLM-driven comms: crew picks a topic, director answers with "say".
-    local fallback = {
-        identity = "\"Just another crew trying to make a living out here.\"",
-        intent = "\"Same as you. Get paid, stay breathing.\"",
-        work = "\"Nothing for you. Try the stations.\"",
-        negotiate = "\"Ha! No.\"",
-    }
-    local function ask(label, topic)
-        addCommsReply(label, function(s, t)
-            if DIR.online and not DIR.paused then
-                setCommsMessage("(They consider this. Stand by...)")
-                DIR.emit("npc_hailed", {callsign = cs, faction = t:getFaction(), topic = topic, role = info.role}, "high")
-            else
-                setCommsMessage(fallback[topic] or "\"...\"")
-            end
-        end)
-    end
-    ask("Who are you?", "identity")
-    ask("What do you want?", "intent")
-    ask("Got any work?", "work")
-    if source:isEnemy(target) then ask("Let's make a deal.", "negotiate") end
-end
-DIR.npc_info = {}
 
 --------------------------------------------------------------------------------
 -- Action whitelist. Each returns ok(bool), message(string).
@@ -608,6 +377,7 @@ DIR.npc_info = {}
 
 DIR.ACTIONS = {}
 
+-- Hails queued by the GM's "say" while the crew's comms were busy.
 function DIR.processPendingHails(now)
     for i = #DIR.pending_hails, 1, -1 do
         local h = DIR.pending_hails[i]
@@ -634,42 +404,6 @@ function DIR.processPendingHails(now)
             end
         end
     end
-end
-
-
---------------------------------------------------------------------------------
--- GM screen buttons
---------------------------------------------------------------------------------
-
-function DIR.addGMFunctions()
-    addGMFunction("AI: twist!", function()
-        DIR.emit("gm_request", {kind = "twist", note = "GM wants a surprise complication now"}, "high")
-    end)
-    addGMFunction("AI: escalate", function()
-        DIR.emit("gm_request", {kind = "escalate", note = "GM wants more pressure"}, "high")
-    end)
-    addGMFunction("AI: ease off", function()
-        DIR.emit("gm_request", {kind = "ease", note = "GM thinks the crew is overwhelmed"}, "high")
-    end)
-    addGMFunction("AI: chatter", function()
-        DIR.emit("gm_request", {kind = "chatter", note = "GM wants some flavour comms"}, "high")
-    end)
-    addGMFunction("AI: pause", function()
-        DIR.paused = not DIR.paused
-        DIR.dirty = true
-        addGMMessage(DIR.paused and "AI director paused (its actions will be refused)." or "AI director resumed.")
-    end)
-    addGMFunction("AI: status", function()
-        local lines = {
-            "Director: " .. (DIR.online and "online" or "OFFLINE") .. (DIR.paused and " (paused)" or ""),
-            "Run: " .. tostring(DIR.run),
-            "Unsent events: " .. #DIR.events .. ", last command: " .. DIR.last_cmd_id,
-        }
-        for _, r in ipairs(DIR.results) do
-            table.insert(lines, string.format("#%s %s: %s %s", tostring(r.id), r.action, r.ok and "ok" or "FAIL", r.msg))
-        end
-        addGMMessage(table.concat(lines, "\n"))
-    end)
 end
 
 require("ragtag/director/actions/index.lua")

@@ -1,7 +1,8 @@
 -- tests/_harness.lua
--- Test harness for story-arc regression tests. Run by tools/game_tests.py, which copies this
--- folder into EmptyEpsilon's scripts/ and starts the real sandbox scenario headless with one
--- test file loaded on top of it. Nothing here is installed into a played game.
+-- Test harness for the in-game regression tests (story arcs, the job board, world plugins,
+-- core). Run by tools/game_tests.py, which copies this folder into EmptyEpsilon's scripts/ and
+-- starts the real sandbox scenario headless with one test file loaded on top of it. Nothing
+-- here is installed into a played game.
 --
 -- A test file is a plain Lua chunk that queues steps:
 --
@@ -24,7 +25,8 @@
 --   * Docking is forced (docking_port.state = "docked"): a real dock needs a collision, which a
 --     headless ship with no Helm never gets. isDocked() / getDockedWith() then behave normally.
 --   * Movement is teleporting. The player ship is made indestructible and ambient patrols are
---     switched off, so a test never fails because something shot the ship.
+--     switched off, so a test never fails because something shot the ship. A test of the
+--     patrols themselves keeps them: T.suite("world", {proximity = true}).
 --
 -- Results go to the log as "[ARCTEST] PASS|FAIL <name>"; "[ARCTEST] DONE" ends the run. Errors the
 -- mission engine catches and logs ("[MISSIONS] ... error", non-linear transition warnings) count
@@ -37,6 +39,7 @@ local _started, _finished = false, false
 local _pass, _fail = 0, 0
 local _arc = nil
 local _suite = nil
+local _opts = {}
 local _replies = {}          -- labels of the comms replies currently on offer
 local _wait_until = nil      -- scenario time a wait/waitFor item ends
 
@@ -76,8 +79,11 @@ function T.waitFor(name, pred, timeout) _push({kind = "waitFor", name = name, pr
 function T.P() return RT.players[1] end
 
 function T.arc(id) _arc = id end
--- A test that is not about an arc (the job board): every arc is switched off.
-function T.suite(name) _suite = name end
+-- A test that is not about an arc (the job board, a world plugin, core): every arc is switched
+-- off. opts.proximity = true leaves the proximity plugin (ambient patrols) running.
+function T.suite(name, opts) _suite = name; _opts = opts or {} end
+-- A world plugin's state table (WORLD._state[id]).
+function T.world(id) return WORLD._state[id] end
 function T.st() return MISSIONS._state[_arc] end
 function T.phase() return MISSIONS._cur_phase[_arc] end
 function T.status() return MISSIONS._status[_arc] end
@@ -87,7 +93,8 @@ function T.credits(ship) return RT.credits(ship) end
 function T.rep(faction, ship) return RT.getReputation(faction, ship) end
 function T.now() return getScenarioTime() end
 
--- Anything with this callsign, anywhere on the map (RT.find only looks 100U around the ship).
+-- Anything with this callsign, anywhere on the map, straight from the engine (RT.find answers
+-- from its registry first, which a test may want to bypass).
 function T.find(callsign)
     for _, o in ipairs(getObjectsInRadius(0, 0, 2000000)) do
         local ok, cs = pcall(function() return o:getCallSign() end)
@@ -430,7 +437,9 @@ local function _setup()
     for _, id in ipairs(MISSIONS._order) do      -- only the arc under test (none for a job test)
         if id ~= _arc then MISSIONS.setEnabled(id, false) end
     end
-    WORLD.disable("proximity")                 -- no ambient patrols or shakedowns
+    if not _opts.proximity then
+        WORLD.disable("proximity")             -- no ambient patrols or shakedowns
+    end
     T.P():setCanBeDestroyed(false)
     _out("START " .. (_arc or _suite))
 end
@@ -480,14 +489,35 @@ addCommsReply = function(label, cb)
     return _addCommsReply(label, cb)
 end
 
--- Errors the mission engine swallows are failures here.
+-- Errors the engines swallow and log are failures here: the mission engine, the world plugin
+-- engine, the job board, and the event bus. T.expectLogged(fn) runs fn with that check off, for
+-- a test that provokes such an error on purpose; it returns the lines that were logged.
 local _log = log
+local _expecting = nil
+local _WATCHED = {"[MISSIONS]", "[WORLD", "[JOBS]", "[RT]"}
 log = function(msg, ...)
     local s = tostring(msg)
-    if s:find("[MISSIONS]", 1, true) and (s:find("error", 1, true) or s:find("WARNING", 1, true)) then
-        T.check("no mission engine errors", false, s)
+    local watched = false
+    for _, tag in ipairs(_WATCHED) do
+        if s:find(tag, 1, true) then watched = true end
+    end
+    if watched and (s:find("error", 1, true) or s:find("WARNING", 1, true) or s:find("failed", 1, true)) then
+        if _expecting then
+            _expecting[#_expecting + 1] = s
+        else
+            T.check("no engine errors in the log", false, s)
+        end
     end
     return _log(msg, ...)
+end
+
+function T.expectLogged(fn)
+    local got = {}
+    _expecting = got
+    local ok, err = pcall(fn)
+    _expecting = nil
+    if not ok then error(err) end
+    return got
 end
 
 -- Every flag set or cleared in an arc's namespace must be declared by that arc (M.flags).

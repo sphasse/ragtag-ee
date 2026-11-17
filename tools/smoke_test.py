@@ -105,16 +105,21 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 def test_actions(b: Bridge) -> None:
     print("Director actions:")
+    # (name, action, args, sent by, expected to succeed). The director is observation-only: the
+    # model may leave the GM a note or do nothing; whatever the crew can see is the GM's to send.
     cases = [
-        ("say as station hail",   "say",      {"speaker": "Port Vesper", "text": "Smoke test: hello from the dock."}, True),
-        ("say to log",            "say",      {"speaker": "Someone", "text": "Smoke test log line.", "channel": "log"}, True),
-        ("gm_note",               "gm_note",  {"text": "Smoke test GM note"}, True),
-        ("noop",                  "noop",     {}, True),
-        ("unknown action refused","launch_nukes", {}, False),
-        ("GM-only refused for model", "rename_ship", {"name": "Hacked"}, False),
+        ("model: gm_note",            "gm_note",  {"text": "Smoke test GM note"}, "llm", True),
+        ("model: noop",               "noop",     {}, "llm", True),
+        ("model: say refused",        "say",      {"speaker": "Port Vesper", "text": "Smoke test: the model speaks."}, "llm", False),
+        ("model: say to log refused", "say",      {"speaker": "Someone", "text": "Smoke test log line.", "channel": "log"}, "llm", False),
+        ("model: set_objective refused", "set_objective", {"text": "Smoke test objective"}, "llm", False),
+        ("model: rename_ship refused", "rename_ship", {"name": "Hacked"}, "llm", False),
+        ("model: unknown action refused", "launch_nukes", {}, "llm", False),
+        ("GM: say as station hail",   "say",      {"speaker": "Port Vesper", "text": "Smoke test: hello from the dock."}, "gm", True),
+        ("GM: say to log",            "say",      {"speaker": "Someone", "text": "Smoke test log line.", "channel": "log"}, "gm", True),
     ]
-    for name, action, args, expect in cases:
-        cid = b.send(action, args)
+    for name, action, args, source, expect in cases:
+        cid = b.send(action, args, source)
         r = b.wait_result(cid)
         if r is None:
             check(name, False, "no result")

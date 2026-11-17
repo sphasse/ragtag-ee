@@ -352,7 +352,8 @@ function M.generate(opts)
         _attacking      = false,
         _disabled       = false,
         _boarded        = false,
-        target_cs       = nil,
+        target          = nil,   -- set by spawn: the target entity
+        target_cs       = nil,   -- its callsign, for log lines
     }
 end
 
@@ -391,11 +392,11 @@ function M.spawn(m)
         s:orderRoaming()
     end
     RT.register(s)
-    DIR.registerKill(s)
-    DIR.allowControl(s)
+    RT.reportKills(s)
     s:setCommsFunction(function(src, tgt)
         setCommsMessage('"Get away from us."')
     end)
+    m.target     = s      -- the entity; target_cs is only its name, for text
     m.target_cs  = name
     m.short      = "Disable " .. name
     m.obj        = "Intercept " .. name
@@ -442,7 +443,7 @@ local function _surrenderHail(m)
     local cs = m.target_cs
     local line = _surrenderLine(m)
     local function send()
-        local tgt = RT.find(cs)
+        local tgt = m.target
         if not RT.valid(tgt) or m._boarded then return true end
         return JOBS.hail(m, tgt, line)
     end
@@ -455,7 +456,7 @@ end
 function M.update(m, entry, ctx)
     if m._boarded then return nil end
 
-    local target = RT.find(m.target_cs)
+    local target = m.target
 
     if not m._disabled then
         if not RT.valid(target) then
@@ -516,8 +517,8 @@ function M.completable(m, cs)
 end
 
 function M.cleanup(m)
-    if m.target_cs then
-        local s = RT.find(m.target_cs)
+    do
+        local s = m.target
         if RT.valid(s) then
             RT.cancelKillTracking(s)
             s:setCanBeDestroyed(true)

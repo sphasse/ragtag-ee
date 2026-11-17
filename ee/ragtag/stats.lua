@@ -185,7 +185,7 @@ ACH.award = _guard("award", function(id)
     if ACH.announce and def then
         RT.shipLog("[Achievement] " .. def.name .. ": " .. (def.desc or ""), "#FFD060")
     end
-    if DIR then DIR.emit("achievement", {id = id, name = def and def.name or id}, "low") end
+    RT.emit("achievement", {id = id, name = def and def.name or id}, "low")
     RT.saveCampaign()
     return true
 end)

@@ -107,8 +107,8 @@ if #pool == 0 then pool = _ARCHETYPES end  -- last resort
 | `work_cooldown_enabled` | `true` | Gate repeat offers per station slot |
 | `work_cooldown_secs` | `600` | Cooldown in seconds (10 min) |
 | `mission_distance_mode` | `"medium"` | `"short"` / `"medium"` / `"long"` |
-| `jobboard_locked` | `false` | Set `true` during Witness arc to hide jobs |
-| `max_active` | `2` | Max simultaneously active contracts |
+| `jobboard_locked` | `false` | Set `true` by an arc (`M.locks_jobs`) to hide the board; also stops new patrols |
+| `max_active` | `2` | Max simultaneously active contracts, per ship |
 | `station_slots` | `2` | Default offer slots per station |
 
 ### Economy (`JOBS.ECONOMY`)
@@ -125,7 +125,8 @@ JOBS.corsairName()           -- random name from corsair pool
 JOBS.freighterName()         -- random name from freighter pool
 JOBS.nearbyStations(wx, wy, radius_u)  -- list of non-hostile station callsigns in range
 JOBS.spawnInVerse(rx, ry)    -- wx, wy, dist_u, region — random in-verse point at mission distance
-JOBS.maxTier()               -- 0/1/2 from campaign upgrade spend
+JOBS.maxTier(ship)           -- 0/1/2 from that ship's own upgrade spend (no ship = the primary ship)
+JOBS.board(cs, ship)         -- what station cs offers ship now: {offers, nag, closed, slots_failed, wait}
 JOBS.updateObj()             -- refreshes objective display and relay panel
 JOBS.stationHook(src, tgt)   -- wire into station setCommsFunction
 JOBS.inject(def) / JOBS.removeCategory(cat) / JOBS.build(type, opts) / JOBS.hasVisited(cs)
@@ -144,8 +145,11 @@ More than one player ship can work the board. **A job belongs to the ship that t
   ship runs into is put back once that ship has moved off;
 - each ship has its own cap (`JOBS.config.max_active`), its own Relay job panel, its own
   credits and its own standing; the board is shared, so a job one ship takes is gone for the rest;
-- story contracts (`story = true`, priority-5 injected, director-pushed) are offered to the
+- story contracts (`story = true`, priority-5 injected) are offered to the
   primary ship only, because story arcs belong to that ship;
+- a job module keeps the ENTITIES it spawns on the job record (`m.target`, `m.rendezvous`,
+  `m.convoy`, `m.fighters`) and uses those; `m.target_cs` and friends are only the names, for
+  log lines. Never find a job's ship again with `RT.find`: two ships can share a callsign;
 - a job whose ship is destroyed is dropped and cleaned up, at no cost to anyone.
 
 In a job module, never use `RT.players`, `RT.forEachPlayer`, `RT.shipLog`, `RT.hail` or
@@ -229,8 +233,10 @@ JOBS.removeCategory("MYARC_JOBS")        -- in M.on_unload / phase exit / _clear
 (flag `visited_<callsign>`, saved with the campaign). Use it in `when` and in arc triggers
 ("after they have been to Arbiter").
 
-**Director queue**: `JOBS._dynamic_queue` still works; entries whose `origin` matches are
-shown like priority-5 injected jobs.
+**How the board is built**: `JOBS.board(cs, ship)` decides the offers and makes no comms calls
+(so it can be called from a test): the reputation gate, the per-slot cooldown, cached offers,
+ensured seeds, one new job per free slot (a seed or a generated job), story contracts on top,
+de-duplication, shuffle. A small renderer (`_showBoard`) puts the result in the comms window.
 
 ### Post-mission tick hooks
 
@@ -255,8 +261,6 @@ MISSION.nextId()             -- monotonically increasing integer id
 MISSION.gridRef(wx, wy)      -- e.g. "C-4"
 MISSION.stationFaction(cs)   -- "Concord", "Independent", or nil for unknown/corsair stations
 MISSION.weightedPick(list)   -- pick entry by .weight field
-MISSION.untrack(id)          -- remove from internal tracking table
-MISSION._dynamic_queue       -- list of director-injected missions; engine drains on offer
 ```
 
 ---
@@ -278,9 +282,10 @@ Danger levels: 0=safe, 1=risky, 2=dangerous, 3=deadly, 4=extremely deadly.
 ## Reputation system
 
 `RT.addReputation(faction, amount, reason, ship)` / `RT.getReputation(faction, ship)` — unbounded
-(no clamp). Standing is per ship: without `ship` (or with the primary ship) it is the campaign's
-standing, persisted to the save and used by story arcs and patrols; every other player ship has
-its own table for the session, starting at 0. Job modules go through `JOBS.rep(m, ...)`.
+(no clamp). Standing is per ship, kept in the ship's record (`RT.shipRecord(ship)`): the primary
+ship's is the campaign's (used by story arcs and patrols); every other player ship has its own,
+starting at 0 and saved under its callsign. Job modules go through `JOBS.rep(m, ...)`. Outside
+story arcs the `ship` argument is required (`check.py`).
 
 **Credits** are per ship as well: `RT.credits(ship)`, `RT.addCredits(amount, reason, ship)`,
 `RT.setCredits(amount, ship)` (no ship = the primary ship). They are kept by `core.lua`, not in
@@ -288,16 +293,23 @@ EmptyEpsilon's reputation points: the engine stores those per *faction*, so ever
 player ship would share one number. The engine number is unused and held at 0 (the stock
 "Reputation" readout reads 0); each ship shows its balance as a `Credits: N` line on Relay and
 Operations. Saved with the campaign: the primary ship's as `campaign.credits`, other ships'
-balance and standing under `campaign.extra_ships` by callsign, restored when a ship of that name
-joins. Never call the `ReputationPoints` methods outside `core.lua` (`check.py` rejects it).
+balance, standing and upgrades under `campaign.extra_ships` by callsign, restored when a ship of
+that name joins. Never call the `ReputationPoints` methods outside `core.lua` (`check.py` rejects it).
+
+**Upgrades** are per ship too (`RT.upgrades(ship)`, `RT.hasUpgrade(id, ship)`): a ship that buys
+one pays for it and is the only ship that has it, and `JOBS.maxTier(ship)` follows that ship's
+own spend.
 
 **Standard amounts:**
 - Job completed: `+mission.reward` (full credit value) with origin faction
 - Job expired/failed: `-mission.reward` with origin faction
-- Ship destroyed: `-200` with ship's faction (fires automatically from `RT.trackShipForReputation`)
+- Ship destroyed: `-200` with ship's faction, charged to the ship that made the kill
+  (`RT.trackShipForReputation`). NOTE: `RT.register` is meant to switch this on for every CpuShip
+  but its type test never matches, so today the penalty only applies to ships a module tracks
+  explicitly (see the comment in `RT.register`)
 - Ship disabled (boarding): `-100` with Corsairs (fired explicitly in boarding module at disable)
 
-**GM adjustment**: +100 / −100 per button press. Faction list shows live standing; detail sub-menu self-refreshes after each press.
+**GM adjustment**: +50 / −50 per button press, on the primary ship. Faction list shows live standing; detail sub-menu self-refreshes after each press.
 
 **Job offer reduction by standing** — applied per station based on its faction's rep:
 
@@ -308,13 +320,12 @@ joins. Never call the `ReputationPoints` methods outside `core.lua` (`check.py` 
 | −201 to −400 | `n_slots − 2` + nag message |
 | < −400 | 0 — nag message only |
 
-Logic lives in `_offerMissions()` in `_engine.lua`. Slot storage is unaffected; only the displayed count is clamped. Recovery is immediate when standing crosses back above a threshold.
+Logic lives in `_repGate()` (called by `JOBS.board`) in `_engine.lua`, judged by the asking ship's own standing. Slot storage is unaffected; only the displayed count is clamped. Recovery is immediate when standing crosses back above a threshold.
 
-**Proximity spawn effects** (from CLAUDE.md):
-- Corsairs >+20: 50% longer spawn cooldowns
-- Corsairs <−20: 30% shorter cooldowns (hunt you)
-- Concord >+20: shake-downs dismissed without fine
-- Concord <−20: skip shake-down, immediate attack
+**Proximity spawn effects** (`ee/ragtag/world/proximity.lua`; the primary ship's standing):
+- Corsairs ≤ −200: 30% shorter spawn cooldowns; ≤ −400: 50% shorter
+- Concord shake-down outcome by standing: ≥ 500 recognised, ≥ 200 clean pass, ≥ 0 nothing flagged,
+  ≥ −200 a 100 cr fine, < −200 no shake-down: patrols spawn hostile
 
 ---
 

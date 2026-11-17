@@ -22,18 +22,22 @@ EmptyEpsilon scenarios are Lua files in the game's `scripts/` folder. The engine
 
 ### Structure
 - Header comments: `-- Name:`, `-- Description:`, `-- Type:`, and `-- Setting[...]` blocks (format in api_notes.md §1). Campaign sessions use `-- Type: Long Haul Campaign` and the Campaign / Difficulty / Director settings from the template.
-- `init()` builds the map, spawns the player, defines beats, adds GM buttons and ends with `DIR.init(...)` when using the director.
+- `init()` builds the map, spawns the player, defines beats, adds GM buttons and ends with `DIR.init(...)` when the scenario lets the AI director listen.
 - `update(delta)` calls `RT.update(delta)`, `VERSE.update(delta)` and `DIR.update(delta)` first, then advances a phase machine (`S.phase = "loading" | "hauling" | ...`) with all mutable state in one table `S`.
 - Time everything with `getScenarioTime()`. Never count frames.
 
 ### Story beats and the director
-Model the story as named beats with `DIR.defineBeat(id, {desc, ai, fn})`.
-- Structural moments (briefings, arrivals, payouts) are scripted beats fired from `update()`.
-- Dramatic moments whose timing can flex (ambushes, betrayals, cavalry) are `ai = true`, so the director can fire them when it feels right.
-- **Every `ai = true` beat must also have a deterministic fallback** in `update()` (distance, elapsed time or progress). The session must be fully playable with the director off, and the Director=Off setting must still work.
-- Write `desc` for a reader who has never seen the script: the director decides from this text alone.
+Model the story as named beats with `RT.defineBeat(id, {desc, fn})` and fire each once with `RT.fireBeat(id, source)`.
+- All beats are scripted: fired from `update()` on distance, elapsed time or progress, or by a GM button.
+- **The AI director is observation-only.** It hears what the game reports (`RT.emit`) and writes notes for the GM. It fires no beats, spawns nothing and cannot speak to the crew; there is no `ai = true`. A scenario plays the same with Director=On, Off, or no director running.
+- Report what happens with `RT.emit(type, data, priority)`. Never call `DIR` from game code (`check.py` rejects it outside scenarios and the director's own files).
+- Write `desc` for a reader who has never seen the script: the GM and the director see this text.
 
-The session dictionary in `DIR.init` is the director's entire briefing. Use exact callsigns in each cast member's `where` so the director's lines arrive as hails from the right ship. Put pacing advice in `director_guidance` ("fire X after Y; keep fights small; the crew's ship is weak").
+The session dictionary in `DIR.init` is the director's briefing. Use exact callsigns in each cast member's `where` (the GM's "say" from the console then arrives as a hail from the right ship). Put what to watch for and summarise in `director_guidance`.
+
+### Ships, ownership and identity
+- Credits, standing and upgrades are per ship (`RT.shipRecord(ship)`). Outside story arcs, always pass the ship: `RT.addCredits(n, reason, ship)`, `RT.addReputation(faction, n, reason, ship)`, `RT.grantUpgrade(id, reason, ship)`. In a comms callback that is the `source` argument. Leaving it out means "the primary ship", which is only right in an arc (`check.py` enforces this).
+- A callsign is a name, not an identity. Keep the entity of anything you spawn (in a local, a state table, a job record) and never find it again with `RT.find`; use `RT.find` only for universe places and names a person typed.
 
 ### Crew engagement
 Aim for something for every station every few minutes: Helm (hazards, chases, docking), Weapons (fights), Engineering (damage, power juggling), Science (scans that unlock story via `setDescriptions` and `isFullyScannedBy`), Relay (comms choices with `addCommsReply`). Offer one real choice per session, record it with `RT.flag`, and pay it off later.
@@ -43,7 +47,8 @@ Before handing a scenario over, check each item:
 - [ ] No `getTypeName()` or other component-specific call on entities that might lack the component (asteroids, nebulae, artifacts).
 - [ ] Every `sendCommsMessage` has a fallback (use `RT.hail`), because it fails when comms are busy.
 - [ ] Story-critical entities have `setCanBeDestroyed(false)`.
-- [ ] Every ai beat has a fallback; the GM has buttons to fire key beats and to end the session.
+- [ ] Every beat is fired by the script; the GM has buttons to fire key beats and to end the session.
+- [ ] Credits / reputation / upgrade calls outside arcs name the ship; spawned entities are kept, not re-found by callsign.
 - [ ] `setWeaponTubeCount` is followed by `setWeaponTubeDirection` for every tube.
 - [ ] Callbacks use their parameters (`function(source, target)`), not `comms_source` globals.
 - [ ] Session end saves via `RT.completeSession`, emits `session_end`, and delays `victory()` ~12 s so the director can read it.
@@ -56,7 +61,7 @@ Before handing a scenario over, check each item:
 Test as far as the environment allows, and tell the user what was and wasn't verified.
 1. **Syntax**: `luac5.4 -p file.lua` (install with `apt-get install lua5.4` if needed).
 2. **Headless run** (strongly preferred, catches real API errors): build or install EmptyEpsilon, copy the scripts into its `scripts/` folder, and run `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy EmptyEpsilon headless=scenario_NN.lua httpserver=8080`. Watch the log for `LUA-Error`. Building from source on Linux needs the EmptyEpsilon and SeriousProton repos, `cmake`, `ninja-build`, `libsdl2-dev`, then `cmake .. -G Ninja -DSERIOUS_PROTON_DIR=../SeriousProton && ninja`. It takes about 20 minutes on one core.
-3. **Drive it**: `tools/ci_headless.sh` (or `tools/smoke_test.py --playthrough` against a running server) tests the bridge and Session 1. For new sessions, add a playthrough function that teleports the ship (`p:setPosition`), docks (`p:commandDock`), forces scans (`setScanStateByFaction("Independent", "full")`) and checks beats fire via the mailbox state.
+3. **Drive it**: `tools/smoke_test.py --launch <EmptyEpsilon dir>` tests the universe and the director bridge; `tools/game_tests.py --ee <EmptyEpsilon dir>` plays every story arc, job type, world plugin and the core systems headless through their real comms (`tests/arcs`, `tests/jobs`, `tests/world`, `tests/core`; harness in `tests/_harness.lua`). A new arc, job type or world plugin needs its own test file (`check.py` enforces it).
 4. Stop the director before running the smoke test; both write the same mailbox key.
 5. **Traffic check** after changing routes or the map: sample freighter positions every 10 s for 5 minutes over HTTP and confirm ships dock (`getDockedWith()`), depart, and none hover near the same point. Keep each command under a few minutes: start EE detached (`setsid nohup ...`) and log samples to a file rather than running one long blocking command.
 

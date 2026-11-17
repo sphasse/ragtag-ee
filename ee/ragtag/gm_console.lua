@@ -17,24 +17,18 @@ function GMCONSOLE.add(opts)
         local lines = {"=== CAMPAIGN STATUS ===\n"}
         if RT.campaign then
             table.insert(lines, string.format("Session: %d", (opts.session or 1)))
-            table.insert(lines, string.format("Credits: %d", RT.credits()))
+            -- The primary ship's record (the arc ship). Other ships: see OTHER SHIPS below.
+            local primary = RT.player
+            table.insert(lines, string.format("Credits: %d", RT.credits(primary)))
 
             -- Upgrades and investment
-            local cost_map = {}
-            for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
-            local total_invested = 0
+            local total_invested = RT.upgradeSpend(primary)
             local upgrade_lines = {}
-            for _, id in ipairs(RT.campaign.upgrades or {}) do
-                local cost = cost_map[id] or 0
-                total_invested = total_invested + cost
-                for _, u in ipairs(RT.UPGRADES) do
-                    if u.id == id then
-                        upgrade_lines[#upgrade_lines+1] = string.format("  %s (%dcr)", u.name, cost)
-                        break
-                    end
-                end
+            for _, id in ipairs(RT.upgrades(primary)) do
+                local u = RT.upgradeById(id)
+                if u then upgrade_lines[#upgrade_lines+1] = string.format("  %s (%dcr)", u.name, u.cost) end
             end
-            local tier = JOBS.maxTier()
+            local tier = JOBS.maxTier(primary)
             local next_threshold = tier == 0 and 500 or (tier == 1 and 1000 or nil)
             local tier_note = next_threshold
                 and string.format(" — tier %d (next tier at %dcr)", tier, next_threshold)
@@ -49,7 +43,7 @@ function GMCONSOLE.add(opts)
             table.insert(lines, "\nREPUTATION:")
             local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic", "Unknown"}
             for _, faction in ipairs(factions) do
-                local rep = RT.getReputation(faction)
+                local rep = RT.getReputation(faction, primary)
                 local standing = ""
                 if rep >= 50 then standing = " (Friendly)"
                 elseif rep >= 20 then standing = " (Liked)"
@@ -57,6 +51,21 @@ function GMCONSOLE.add(opts)
                 elseif rep >= -50 then standing = " (Disliked)"
                 else standing = " (Hostile)" end
                 table.insert(lines, string.format("  %s: %+d%s", faction, rep, standing))
+            end
+
+            -- Every other player ship has its own credits, standing and upgrades.
+            local others = {}
+            for i = 2, #RT.players do
+                local p = RT.players[i]
+                if RT.valid(p) then
+                    others[#others + 1] = string.format("  %s: %dcr, %dcr in upgrades (tier %d), Concord %+d, Independent %+d",
+                        p:getCallSign(), RT.credits(p), RT.upgradeSpend(p), JOBS.maxTier(p),
+                        RT.getReputation("Concord", p), RT.getReputation("Independent", p))
+                end
+            end
+            if #others > 0 then
+                table.insert(lines, "\nOTHER SHIPS:")
+                for _, l in ipairs(others) do table.insert(lines, l) end
             end
         end
         -- Overall overview: money, jobs by type, regions, story arcs, achievements.
@@ -130,12 +139,12 @@ function GMCONSOLE.add(opts)
         local current = RT.getReputation(faction) or 0
         addGMFunction(string.format("%s: %+d", faction, current), function() end)
         addGMFunction("↑  +50", function()
-            RT.addReputation(faction, 50, "GM adjustment")
+            RT.addReputation(faction, 50, "GM adjustment", RT.player)
             RT.saveCampaign()
             showFactionDetail(faction)
         end)
         addGMFunction("↓  -50", function()
-            RT.addReputation(faction, -50, "GM adjustment")
+            RT.addReputation(faction, -50, "GM adjustment", RT.player)
             RT.saveCampaign()
             showFactionDetail(faction)
         end)
@@ -194,11 +203,11 @@ function GMCONSOLE.add(opts)
         end
 
         addGMFunction("Credits +50", function()
-            if RT.valid(RT.player) then RT.addCredits(50, "GM reward") end
+            if RT.valid(RT.player) then RT.addCredits(50, "GM reward", RT.player) end
             showJobsMenu()
         end)
         addGMFunction("Credits -50", function()
-            if RT.valid(RT.player) then RT.addCredits(-50, "GM penalty") end
+            if RT.valid(RT.player) then RT.addCredits(-50, "GM penalty", RT.player) end
             showJobsMenu()
         end)
     end
@@ -219,60 +228,31 @@ function GMCONSOLE.add(opts)
         {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
     }
 
-    local function _revokeUpgrade(id)
-        local new_list = {}
-        for _, uid in ipairs(RT.campaign.upgrades) do
-            if uid ~= id then new_list[#new_list + 1] = uid end
-        end
-        RT.campaign.upgrades = new_list
-        RT.forEachPlayer(function(p)
-            local x, y  = p:getPosition()
-            local rot   = p:getRotation()
-            local cs    = p:getCallSign()
-            local fac   = p:getFaction()
-            p:setTemplate(RT.PLAYER_TEMPLATE)
-            p:setCallSign(cs)
-            p:setFaction(fac)
-            p:setPosition(x, y)
-            p:setRotation(rot)
-            for _, uid in ipairs(RT.campaign.upgrades) do RT.applyUpgrade(p, uid) end
-        end)
-        RT.saveCampaign()
-        local u = RT.upgradeById(id)
-        if u then RT.shipLog("Upgrade removed: " .. u.name, "#FF8080") end
-    end
-
-    local function _upgradeLabel(group_label, idx, u)
-        local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires)
+    -- Upgrades are per ship: every function below works on `p`, the ship picked in the list.
+    local function _upgradeLabel(group_label, idx, u, p)
+        local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires, p)
         local glyph
         if locked then
             glyph = "×"
         elseif u.crew then
-            local p = RT.player
             glyph = (RT.valid(p) and p:getRepairCrewCount() < 8) and "□" or "■"
         else
-            glyph = RT.hasUpgrade(u.id) and "■" or "□"
+            glyph = RT.hasUpgrade(u.id, p) and "■" or "□"
         end
         return glyph .. " " .. (u.gm_label or (group_label .. " lvl " .. (idx + 1)))
     end
 
-    local function showShipStatusPopup()
-        local p = RT.player
-        if not RT.valid(p) then addGMMessage("No active player ship."); return end
+    local function showShipStatusPopup(p)
+        if not RT.valid(p) then addGMMessage("That ship is gone."); return end
 
-        local cost_map = {}
-        for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
-        local total_invested = 0
-        for _, id in ipairs(RT.campaign.upgrades or {}) do
-            total_invested = total_invested + (cost_map[id] or 0)
-        end
+        local total_invested = RT.upgradeSpend(p)
 
         local function uline(id)
             local u = RT.upgradeById(id)
             if not u then return end
-            if RT.hasUpgrade(id) then
+            if RT.hasUpgrade(id, p) then
                 return string.format("  ■ %s (%dcr)", u.name, u.cost)
-            elseif u.requires and not RT.hasUpgrade(u.requires) then
+            elseif u.requires and not RT.hasUpgrade(u.requires, p) then
                 local req = RT.upgradeById(u.requires)
                 return string.format("  × %s (%dcr)  needs: %s", u.name, u.cost, req and req.name or u.requires)
             else
@@ -280,11 +260,11 @@ function GMCONSOLE.add(opts)
             end
         end
 
-        local L = {"=== SHIP STATUS ===\n"}
+        local L = {"=== SHIP STATUS: " .. p:getCallSign() .. " ===\n"}
         local function add(s) L[#L+1] = s end
         local function sec(s) add("\n" .. s) end
 
-        add(string.format("Invested: %dcr  |  Job tier: %d\n", total_invested, JOBS.maxTier()))
+        add(string.format("Invested: %dcr  |  Job tier: %d\n", total_invested, JOBS.maxTier(p)))
 
         sec("HULL")
         add(uline("hull_plating")); add(uline("hull_plating_2"))
@@ -326,7 +306,7 @@ function GMCONSOLE.add(opts)
 
         sec("THRUSTERS")
         add(uline("combat_thrusters"))
-        add("  combat maneuver: " .. (RT.hasUpgrade("combat_thrusters") and "enhanced" or "default"))
+        add("  combat maneuver: " .. (RT.hasUpgrade("combat_thrusters", p) and "enhanced" or "default"))
 
         sec("WARP")
         add(uline("warp_overhaul"))
@@ -347,17 +327,18 @@ function GMCONSOLE.add(opts)
 
         sec("PROBES")
         add(uline("fast_probes")); add(uline("ludicrous_probes"))
-        local spd = RT.hasUpgrade("ludicrous_probes") and 4000
-                 or RT.hasUpgrade("fast_probes") and 2000 or 1000
+        local spd = RT.hasUpgrade("ludicrous_probes", p) and 4000
+                 or RT.hasUpgrade("fast_probes", p) and 2000 or 1000
         add(string.format("  speed: %d wu/s", spd))
 
         addGMMessage(table.concat(L, "\n"))
     end
 
-    showShipUpgradesMenu = function(ship_cs)
+    showShipUpgradesMenu = function(p)
         clearGMFunctions()
         addGMFunction("← Ships", function() showUpgradesMenu() end)
-        addGMFunction("Ship Status", function() showShipStatusPopup() end)
+        if not RT.valid(p) then return end
+        addGMFunction("Ship Status", function() showShipStatusPopup(p) end)
         for _, group in ipairs(_UPGRADE_GROUPS) do
             for idx, uid in ipairs(group.ids) do
                 local u = RT.upgradeById(uid)
@@ -365,25 +346,24 @@ function GMCONSOLE.add(opts)
                     local cap_id   = uid
                     local cap_req  = u.requires
                     local cap_crew = u.crew
-                    addGMFunction(_upgradeLabel(group.label, idx, u), function()
+                    addGMFunction(_upgradeLabel(group.label, idx, u, p), function()
+                        local prereq_ok = cap_req == nil or RT.hasUpgrade(cap_req, p)
                         if cap_crew then
-                            local prereq_ok = cap_req == nil or RT.hasUpgrade(cap_req)
-                            local p = RT.player
                             if prereq_ok and RT.valid(p) and p:getRepairCrewCount() < 8 then
-                                if RT.hasUpgrade(cap_id) then
+                                if RT.hasUpgrade(cap_id, p) then
                                     RT.applyUpgrade(p, cap_id)   -- owned but crew died; restore
                                 else
-                                    RT.grantUpgrade(cap_id)
+                                    RT.grantUpgrade(cap_id, "GM", p)
                                 end
                             end
                         else
-                            if RT.hasUpgrade(cap_id) then
-                                _revokeUpgrade(cap_id)
-                            elseif cap_req == nil or RT.hasUpgrade(cap_req) then
-                                RT.grantUpgrade(cap_id)
+                            if RT.hasUpgrade(cap_id, p) then
+                                RT.revokeUpgrade(cap_id, p)
+                            elseif prereq_ok then
+                                RT.grantUpgrade(cap_id, "GM", p)
                             end
                         end
-                        showShipUpgradesMenu(ship_cs)
+                        showShipUpgradesMenu(p)
                     end)
                 end
             end
@@ -399,8 +379,7 @@ function GMCONSOLE.add(opts)
         local count = 0
         RT.forEachPlayer(function(p)
             count = count + 1
-            local cs = p:getCallSign()
-            addGMFunction(cs, function() showShipUpgradesMenu(cs) end)
+            addGMFunction(p:getCallSign(), function() showShipUpgradesMenu(p) end)
         end)
         if count == 0 then
             addGMFunction("(no active ships)", function() end)

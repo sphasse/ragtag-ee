@@ -1,6 +1,6 @@
 ## The Drift — campaign bible
 
-Do jobs, get paid, keep flying. The crew runs contracts across the Drift, building credits and reputation session by session. The AI director creates dynamic situations based on crew choices and location.
+Do jobs, get paid, keep flying. The crew runs contracts across the Drift, building credits and reputation session by session. The AI director, when it runs, observes the session and keeps notes for the GM; it does not create situations or speak to the crew.
 
 Story arcs layered on the sandbox are planned and tracked in `plan.md` (five arcs: Rezkov → Ledger / Boneyard / Corsair → the Maw finale).
 

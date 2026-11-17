@@ -2,11 +2,11 @@
 
 > **For players**: This document is for developers and server operators. If you're playing the campaign, see **[The Drift: Player Guide](docs/PLAYER_INTRO.md)** for universe lore, factions, and regions.
 >
-> **For GMs**: See **[GM Operations Guide](docs/GM_GUIDE.md)** for session pacing, The Witness arc, and Director tips.
+> **For GMs**: See **[GM Operations Guide](docs/GM_GUIDE.md)** for session pacing, the story arcs, and Director tips.
 
 **Space-western at the edge of settled space.** Command a ragtag freighter making your way in a frontier cluster of five suns—trade, fight, explore, and survive in a living universe of trade lanes, frontier stations, and pirate havens.
 
-Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine), with an optional AI director that voices characters and times encounters using a local language model.
+Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine), with an optional AI director: a local language model that watches the session and keeps notes and summaries for the GM. It observes only; it does not change the game.
 
 ![The Drift](docs/verse_map.svg)
 
@@ -30,76 +30,85 @@ Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine
 - **Relic Drones**: Automated war machines from 20 years ago, still guarding the Boneyard
 - **The Hollow**: Unknown faction from the Maw. Extremely hostile. Don't go there.
 
-### Five Mission Types
-Progressive difficulty and compensation:
+### Seven Job Types
+Stations offer paid contracts ("Any work available?"). Pay scales with the type:
 
 1. **Delivery** (1.0x pay): Ferry cargo between stations. Baseline income, safest option.
 2. **Salvage** (1.2x pay): Recover cargo pods from coordinates. Moderate risk.
-3. **Hacking** (1.4x pay): Breach comms relay systems for intelligence. Technical challenge.
-4. **Destroy** (1.6x pay): Eliminate hostile targets completely. Combat-focused.
-5. **Boarding** (1.8x pay): Disable and board target ships. Highest difficulty and reward.
+3. **Hacking** (1.4x pay): Breach a comms relay for intelligence. Technical challenge.
+4. **Destroy** (1.6x pay): Eliminate a hostile target. Combat-focused.
+5. **Boarding** (1.8x pay): Disable and board a target ship. Highest difficulty and reward.
 
-**Dynamic Compensation**: All missions scale rewards by distance and region danger level. A boarding mission 30U away in deadly space (The Maw) pays 3-4x more than a delivery in safe space.
+plus **Escort** (bring a convoy through an ambush) and **Tailing** (shadow a ship to a covert meeting).
+Which types a ship is offered depends on how much that ship has invested in upgrades.
+
+**Dynamic Compensation**: Rewards scale with distance and the danger level of the region.
+
+**Several ships**: more than one player ship can work the board. A job belongs to the ship that
+took it; each ship has its own credits, standing, upgrades and two-job limit. Story arcs belong to
+the primary ship.
 
 ### Proximity Spawn System
 
-Ambient faction patrols are driven by `ee/ragtag/world/proximity.lua`, not hard-coded encounter tables. Every 8 seconds the system checks which zone the player is in and whether conditions allow a new spawn.
+Ambient faction patrols are driven by `ee/ragtag/world/proximity.lua`, not hard-coded encounter tables. Every 8 seconds the system checks which zone the primary ship is in and whether conditions allow a new spawn.
 
 **Spawn strength** is the sum of two numbers:
 - **Player tier**: 0 (0–1 upgrades) · 1 (2–4 upgrades) · 2 (5+ upgrades)
 - **Zone modifier**: +0 (danger 0) · +1 (danger 1) · +2 (danger 2–3)
 
-Combined tier maps to a ship group: scout → light → medium → heavy (capped at heavy).
+Combined tier maps to a ship group: scout → light → medium → heavy (capped at heavy). Concord zones always send a single Atlantis X23.
 
 **Zone table:**
 
-| Region | Faction | Behavior |
-|---|---|---|
-| Concord Core, Arbiter Line | Concord | Comms-first shake-down (see below) |
-| the Shroud, Halcyon Rest | Corsairs | Attack |
-| the Gauntlet | Corsairs | Attack |
-| Blackwater Reach | Corsairs | Attack |
-| the Boneyard (Ashgrave) | Relic | Attack on sight, no comms, WX-Lindworm/Stalker templates |
-| the Maw | Hollow | Attack on sight, no comms |
+| Region | Faction | Behavior | Cooldown |
+|---|---|---|---|
+| Concord Core | Concord | Comms-first shake-down (see below) | 10 min |
+| Arbiter Line | Concord | Comms-first shake-down | 12 min |
+| the Shroud, Halcyon Rest | Corsairs | Attack | 4 min |
+| the Gauntlet, Blackwater Reach | Corsairs | Attack | 3 min |
+| the Boneyard | Relic | Attack on sight, no comms, WX-Lindworm/Stalker templates | 3 min |
+| the Maw | Hollow | Attack on sight, no comms | 2 min |
 
-**Throttles**: global 60s cooldown · per-region 90s cooldown · max 4 active ships across all zones · skip spawn if 3+ hostiles already within 10u.
+**Throttles** (per zone; the GM sets each zone to None / Low / Medium / High, default Medium):
+the zone's cooldown (halved on High, doubled on Low) · a cap on patrol ships alive in the zone
+(6 / 12 / 24; Concord zones: 1) · no spawn when enough hostiles are already within 10U (3 / 6 / 12)
+· one patrol per 18U map cell · no spawn within 15U of any station.
 
-**Leash system (station safety):** Spawned ships are leashed to their region. When the player exits a region, all ships in that group are ordered back to their original spawn point. After 120s without the player returning they despawn. Three layers prevent ships from attacking stations: (1) no spawns within 20u of any station, (2) ships target the player directly rather than roaming, (3) any patrol ship that reaches within 15u of a friendly station is despawned immediately.
+**Leash system (station safety):** Spawned ships are leashed to their region. When the player exits a region, the group is ordered back to its spawn point; after 120s without the player returning it despawns. Any patrol ship that comes within 15U of a friendly station is despawned immediately.
 
-**Concord shake-down:** Concord ships approach but don't attack. They hail the player via the ship log and wait for the relay officer to open comms. Three choices:
-- *Submit to inspection*: 30-second scan; fine if rep < 0 (50% of credits on hand, min 25cr)
-- *Declare clean cargo*: dismissed if rep ≥ +10; fine otherwise
-- *Refuse*: warrant issued (`campaign.flags.wanted = true`), Concord goes hostile
+**Concord shake-down:** the patrol approaches without attacking. Within 5U it drops a warp jammer behind the ship (1U range, 10 hull), brakes it to a stop, and hails. Relay has one minute to answer; each of two stalling replies buys another minute. What happens next depends on Concord standing:
 
-With the wanted flag set, Concord skips the shake-down and attacks immediately in their own zones. The wanted flag persists across sessions.
+| Concord standing | Outcome |
+|---|---|
+| ≥ 500 | Callsign recognised: clean pass with a compliment |
+| ≥ 200 | Clean pass |
+| ≥ 0 | "Nothing flagged. Move along." |
+| ≥ −200 | A 100-credit fine (+100 standing if paid; refusing turns the patrol hostile) |
+| < −200 | No shake-down: patrols spawn hostile |
 
-**Reputation effects on cooldowns:**
-- Corsairs rep > +20: 50% longer spawn cooldown
-- Corsairs rep < −20: 30% shorter cooldown
-- Concord rep > +20: shake-down dismissed without fine
-- Concord rep < −20: shake-down skipped, immediate hostile
+Ignoring the hail (−100), fleeing past 10U (−100), destroying the jammer (−50) or telling them where to file it (−150) all cost standing; the first and last turn the patrol hostile. Hostile Concord ships drop combat warp jammers on the ship when within 5U (one per ship at a time, two minutes each).
+
+**Reputation effects on cooldowns:** Corsair standing ≤ −200 shortens Corsair cooldowns by 30%, ≤ −400 by 50%.
 
 **When spawns are suppressed:**
-- The Witness arc is active (`S.witness_active = true`)
-- Player is within 20U of any station (station exclusion zones)
-- Maximum active patrol ships reached (4 simultaneous)
-- Density limit exceeded (3+ hostiles within 10U)
+- A story arc has suspended the zone (`PROX.suspendZone`) or locked the job board
+- The GM has set the zone to None, or switched the plugin off (World Plugins menu)
+- The zone's ship cap, hostile-density limit or cooldown says no; or the spawn point falls inside a station's 15U exclusion
 
-**GM controls:** `PROX.config.spawn_frequency` multiplier adjusts encounter rate (0.5 = relaxed, 1.0 = default, 2.0 = intense).
-
-**Director integration:** Each spawn emits a `prox_spawned` event; kills emit `prox_cleared`. The Witness story arc sets `S.witness_active` which suspends all proximity spawns.
+**Events:** each spawn emits a `prox_spawned` event and each cleared group `prox_cleared` (`RT.emit`); the AI director, if running, hears them.
 
 ---
 
 ### Reputation System
-Track standing with all factions:
-- Complete missions: +10 reputation with contract origin faction
-- Destroy ships: -10 reputation with their faction
-- Reputation affects station access and future opportunities
+Standing with each faction, kept per ship (see [docs/REPUTATION.md](docs/REPUTATION.md)):
+- Completing a job: + the job's reward, with the faction of the station that posted it
+- Failing or abandoning a job: − the job's reward
+- Standing below 0 with a faction means fewer job offers at its stations; below −400, none
+- Concord standing decides how its patrols treat the ship (above)
 
 ### Persistent Campaign
-- **Credits and upgrades** carry between sessions
-- **Campaign saves** per ship, stored in EmptyEpsilon's script storage
+- **Credits, standing and upgrades** carry between sessions, per ship
+- **Campaign saves** per campaign, stored in EmptyEpsilon's script storage; six GM backup slots
 - **Multi-session progression**: start with a basic freighter, work your way to military-grade
 
 ---
@@ -124,20 +133,21 @@ Track standing with all factions:
    - Windows: `options.ini` is in the EmptyEpsilon folder
    - Linux/macOS: `~/.emptyepsilon/options.ini`
 
-3. **Start EmptyEpsilon** and select **Sandbox: Open Play** from the scenario list
+3. **Start EmptyEpsilon** and select **The Drift** from the scenario list
 
 4. **Configure campaign settings:**
    - Campaign: Continue (preserves credits/upgrades) or Fresh start
    - Starting Credits: Modest (200cr), Comfortable (500cr), or Well-off (1000cr)
-   - Difficulty: Easy, Normal, or Hard
-   - Danger Level: Relaxed, Normal, or Dangerous
-   - Director: On (with AI) or Off (scripted fallbacks only)
+   - Director: On (report events to the AI director if it is running) or Off. The game plays the same either way.
 
 ---
 
 ## Optional: AI Director
 
-An AI director on a separate PC voices characters, answers hails, and times encounters dynamically.
+An AI director on a separate PC watches the session through the game's HTTP API and helps the
+GM keep track of it. **It is observation-only**: the model can leave the GM a private note, and
+nothing else. It cannot hail the crew, spawn anything or change the campaign. The GM can send a
+line to the crew ("say") or set the objective from the director's web console.
 
 ### AI PC Setup
 
@@ -171,26 +181,26 @@ An AI director on a separate PC voices characters, answers hails, and times enco
    Open `http://localhost:8765/` for the GM console.
 
 ### Director Features
-- **Plain-English instructions**: "Have the patrol hail them about the cargo"
-- **Dynamic pacing**: Twist, escalate, ease off buttons
-- **Character voices**: NPCs respond to hails with model-generated dialogue
-- **Campaign memory**: Tracks session outcomes and voiced characters
-- **Action approval mode**: Review all AI actions before execution
+- **A live view of the session**: events, the ships' state, active jobs, story beats
+- **Notes for the GM**: the model summarises what is happening as private GM notes
+- **Campaign memory**: a summary of each session, kept for the next one
+- **GM console actions**: speak to the crew as a station or ship, set the objective, rename the ship, restore a campaign save (the model can help draft the text; the GM sends it)
 
 ---
 
 ## Running a Session
 
 ### For the GM
-- **Campaign buttons**: Manage credits, save progress
-- **Mission generation**: Stations offer procedural missions weighted by type
-- **Encounter spawns**: Hostile ships spawn in dangerous regions (scaled by danger level)
-- **Director controls** (if enabled): Fire beats, give instructions, approve actions
+- **Campaign buttons**: Campaign Status, Reputation, Jobs, Ship Upgrades (per ship), World Plugins, Missions (story arcs), campaign backup and restore
+- **Job generation**: Stations offer procedural contracts weighted by type and by the asking ship's tier
+- **Encounter spawns**: Patrols spawn by zone (see Proximity Spawn System)
+- **Director console** (if running): the session at a glance, notes from the model, lines to the crew
 
 ### For the Crew
 - **Station docking**: Request work, buy upgrades, hear rumors
-- **Mission types**: Visible in job board with type labels: (delivery), (salvage), (boarding), (hacking), (destroy)
-- **Reputation tracking**: Visible on GM Campaign Status screen
+- **Jobs**: up to two contracts at a time per ship, listed on Relay
+- **Credits**: each ship's balance is a `Credits: N` line on Relay and Operations
+- **Reputation tracking**: changes are logged to the ship's log; the full picture is on the GM Campaign Status screen
 - **Persistent progress**: Credits and upgrades carry between sessions
 
 ---
@@ -200,11 +210,14 @@ An AI director on a separate PC voices characters, answers hails, and times enco
 | Path | What | Who edits |
 |---|---|---|
 | `ee/ragtag/` | Lua framework (installed to `scripts/ragtag/`) | Framework contributors |
-| `ee/ragtag/world/proximity.lua` | Proximity spawn system (zone patrols, Concord shake-down) | Framework contributors |
+| `ee/ragtag/core/` | Core pieces: ship records and upgrades, reputation, stations, the event bus | Framework contributors |
+| `ee/ragtag/jobs/`, `missions/`, `world/` | Job types, story arcs, world plugins (patrols, defenders, salvage, traffic, rumors, Science DB) | Contributors |
+| `ee/ragtag/director.lua` | The AI director's mailbox (listens to the event bus; observation only) | Framework contributors |
 | `ee/ragtag/verse/drift.lua` | Base universe data | Rarely (see CONTRIBUTING.md) |
 | `ee/ragtag/verse/extensions/` | Community universe additions | Anyone |
 | `scenarios/sandbox/` | Sandbox campaign scenario | Contributors |
 | `director/` | AI director (Python, stdlib only) | Contributors |
+| `tests/` | In-game regression tests: `arcs/`, `jobs/`, `world/`, `core/` | Contributors |
 | `tools/` | Validation, installation, testing tools | Contributors |
 | `docs/` | Player guides, setting lore, GM references | Contributors |
 | `.claude/skills/` | Claude Code skill with EE scripting knowledge | Maintainers |
@@ -228,8 +241,11 @@ python3 tools/smoke_test.py --launch <EmptyEpsilon dir>
 # Smoke test against a server that is already running
 python tools/smoke_test.py --ee http://localhost:8080
 
-# In-game regression tests: story arcs and jobs (starts its own headless EmptyEpsilon per test file, ~1 min)
+# In-game regression tests: story arcs, jobs, world plugins, core
+# (starts its own headless EmptyEpsilon per test file, in parallel; a couple of minutes)
 python3 tools/game_tests.py --ee <EmptyEpsilon dir>
+python3 tools/game_tests.py --ee <EmptyEpsilon dir> world          # one folder
+python3 tools/game_tests.py --ee <EmptyEpsilon dir> world/proximity -v
 ```
 
 Against a running server (`--ee`) the smoke test modifies that server's campaign save, so don't
@@ -244,7 +260,8 @@ point it at your real campaign. `--launch` and the game tests use a throwaway sa
 | `--probe`: EmptyEpsilon not reachable | Check `httpserver=8080` in `options.ini`, restart server, check firewall |
 | Director says "scenario mailbox empty" | Start a scenario with Director setting set to On |
 | GM screen says "AI director offline" | Director not running or can't reach server |
-| Director connected but never acts | Check console for model errors, verify context length ≥8192 |
+| Director connected but writes no notes | Check console for model errors, verify context length ≥8192 |
+| Model's actions show as rejected | Expected for anything but `gm_note`: the director is observation-only |
 | Model replies cut off or ignore rules | Increase context length or use larger model |
 | LUA-Error in EmptyEpsilon | Check `EmptyEpsilon.log` for file/line number |
 

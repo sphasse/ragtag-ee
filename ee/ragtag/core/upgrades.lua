@@ -112,13 +112,74 @@ function RT.applyUpgrade(p, id)
     return ok
 end
 
--- Grant an upgrade for free (story reward). Saves.
-function RT.grantUpgrade(id, reason)
-    if RT.hasUpgrade(id) or RT.upgradeById(id) == nil then return false end
-    table.insert(RT.campaign.upgrades, id)
-    RT.forEachPlayer(function(p) RT.applyUpgrade(p, id) end)
-    RT.shipLog("Upgrade installed: " .. RT.upgradeById(id).name .. (reason and (" (" .. reason .. ")") or ""), "#80FF80")
+-- Upgrades belong to a ship: they are in its record (core.lua, "Per-ship records") and are
+-- applied to that ship only. `ship` defaults to the primary ship (for arcs; see core.lua).
+
+-- The ship's upgrade ids, in purchase order. The record's own list: do not modify it.
+function RT.upgrades(ship)
+    local rec = RT.shipRecord(ship)
+    return rec and rec.upgrades or {}
+end
+
+function RT.hasUpgrade(id, ship)
+    for _, u in ipairs(RT.upgrades(ship)) do
+        if u == id then return true end
+    end
+    return false
+end
+
+-- Credits the ship has put into upgrades (list price). Job tiers and arc triggers read it.
+function RT.upgradeSpend(ship)
+    local total = 0
+    for _, id in ipairs(RT.upgrades(ship)) do
+        local u = RT.upgradeById(id)
+        total = total + (u and u.cost or 0)
+    end
+    return total
+end
+
+-- Record an upgrade on a ship and apply it. No charge, no log line. Saves.
+function RT.installUpgrade(id, ship)
+    local rec = RT.shipRecord(ship)
+    local p = RT.playerShip(ship) or RT.player
+    if rec == nil or RT.upgradeById(id) == nil or RT.hasUpgrade(id, p) then return false end
+    table.insert(rec.upgrades, id)
+    if RT.valid(p) then RT.applyUpgrade(p, id) end
     RT.saveCampaign()
-    if DIR then DIR.emit("upgrade", {id = id, how = "granted", reason = reason}) end
+    return true
+end
+
+-- Grant an upgrade for free (story reward, GM). Saves.
+function RT.grantUpgrade(id, reason, ship)
+    local p = RT.playerShip(ship) or RT.player
+    if not RT.installUpgrade(id, p) then return false end
+    if RT.valid(p) then
+        p:addToShipLog("Upgrade installed: " .. RT.upgradeById(id).name .. (reason and (" (" .. reason .. ")") or ""), "#80FF80")
+    end
+    RT.emit("upgrade", {id = id, how = "granted", reason = reason, ship = RT.valid(p) and p:getCallSign() or nil})
+    return true
+end
+
+-- Take an upgrade off a ship (GM). The hull is rebuilt from its template and the remaining
+-- upgrades re-applied, since an upgrade's effect cannot be undone piecemeal. Saves.
+function RT.revokeUpgrade(id, ship)
+    local rec = RT.shipRecord(ship)
+    local p = RT.playerShip(ship) or RT.player
+    if rec == nil or not RT.hasUpgrade(id, p) then return false end
+    local kept = {}
+    for _, uid in ipairs(rec.upgrades) do
+        if uid ~= id then kept[#kept + 1] = uid end
+    end
+    rec.upgrades = kept
+    if RT.valid(p) then
+        local x, y = p:getPosition()
+        local rot, cs, fac, tmpl = p:getRotation(), p:getCallSign(), p:getFaction(), p:getTypeName()
+        p:setTemplate(tmpl or RT.PLAYER_TEMPLATE)
+        p:setCallSign(cs):setFaction(fac):setPosition(x, y):setRotation(rot)
+        for _, uid in ipairs(kept) do RT.applyUpgrade(p, uid) end
+        local u = RT.upgradeById(id)
+        if u then p:addToShipLog("Upgrade removed: " .. u.name, "#FF8080") end
+    end
+    RT.saveCampaign()
     return true
 end

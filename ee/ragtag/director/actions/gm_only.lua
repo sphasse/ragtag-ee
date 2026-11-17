@@ -1,12 +1,13 @@
--- GM-only actions (the director refuses to send these from the model).
+-- GM-only actions (the director refuses to send these from the model, and so does this side).
 
-DIR.ACTIONS.set_objective = function(a)
+DIR.ACTIONS.set_objective = function(a, cmd)
+    if not DIR._h.fromGM(cmd) then return false, "GM only" end
     RT.setObjective(DIR._h.str(a.text, 160, ""))
     return true, "objective set"
 end
 
 DIR.ACTIONS.restore_campaign = function(a, cmd)
-    if cmd.source ~= "gm" then return false, "GM only" end
+    if not DIR._h.fromGM(cmd) then return false, "GM only" end
     if type(a.campaign) ~= "table" then return false, "campaign table required" end
     getScriptStorage():set(RT.CAMPAIGN_KEY, toJSON(a.campaign))
     RT.loadCampaign()
@@ -14,7 +15,7 @@ DIR.ACTIONS.restore_campaign = function(a, cmd)
 end
 
 DIR.ACTIONS.rename_ship = function(a, cmd)
-    if cmd.source ~= "gm" then return false, "GM only" end
+    if not DIR._h.fromGM(cmd) then return false, "GM only" end
     local name = DIR._h.str(a.name, 24, nil)
     if name == nil or name == "" then return false, "name required" end
     RT.campaign.ship_name = name

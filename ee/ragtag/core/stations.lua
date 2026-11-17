@@ -75,14 +75,12 @@ function RT.stationComms(source, target)
     end
 
     addCommsReply("Any news worth hearing?", function(s, t)
-        -- Deliver a rumor with cooldown, plus ping the director for dynamic content
+        -- Deliver a rumor with cooldown.
         -- RUMORS.get returns nil when the rumors plugin is disabled.
         local rumor = RUMORS and RUMORS.get and RUMORS.get(s:getCallSign(), t:getFaction())
         local rumor_text = "\"" .. (rumor or "Nothing worth repeating right now.") .. "\""
         setCommsMessage(rumor_text)
-        if DIR then
-            DIR.emit("comms_ask", {station = t:getCallSign(), faction = t:getFaction(), topic = "rumours"}, "normal")
-        end
+        RT.emit("comms_ask", {station = t:getCallSign(), faction = t:getFaction(), topic = "rumours"}, "normal")
         addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
     end)
 end
@@ -102,7 +100,7 @@ function RT.shipwrightMenu(source, target)
     local lines = {"Shipwright. Balance: " .. RT.credits(source) .. " credits.\n"}
     local any = false
     for _, u in ipairs(RT.UPGRADES) do
-        if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id) and (u.requires == nil or RT.hasUpgrade(u.requires))
+        if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id, source) and (u.requires == nil or RT.hasUpgrade(u.requires, source))
            and (u.available == nil or u.available(source)) then
             any = true
             table.insert(lines, string.format("%s (%d cr): %s", u.name, u.cost, u.desc))
@@ -111,11 +109,9 @@ function RT.shipwrightMenu(source, target)
                     setCommsMessage("\"Come back when you can pay for it.\"")
                 else
                     RT.addCredits(-u.cost, "bought " .. u.name, s)
-                    table.insert(RT.campaign.upgrades, u.id)
-                    RT.applyUpgrade(s, u.id)
-                    RT.saveCampaign()
+                    RT.installUpgrade(u.id, s)   -- on the buying ship, and in its record only
                     setCommsMessage("Installed: " .. u.name .. ". Try not to scratch it.")
-                    if DIR then DIR.emit("upgrade", {id = u.id, how = "bought", station = t:getCallSign()}) end
+                    RT.emit("upgrade", {id = u.id, how = "bought", station = t:getCallSign(), ship = s:getCallSign()})
                 end
                 addCommsReply("Back to shipwright", function(s2, t2) RT.shipwrightMenu(s2, t2) end)
             end)
@@ -127,7 +123,7 @@ function RT.shipwrightMenu(source, target)
     for cs, other in pairs(RT.stations) do
         if cs ~= target:getCallSign() and other.shop then
             for _, u in ipairs(RT.UPGRADES) do
-                if RT.stocks(other, u.id) and not RT.hasUpgrade(u.id) and not RT.stocks(info, u.id) then
+                if RT.stocks(other, u.id) and not RT.hasUpgrade(u.id, source) and not RT.stocks(info, u.id) then
                     elsewhere[u.name] = elsewhere[u.name] or cs
                 end
             end

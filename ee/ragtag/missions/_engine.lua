@@ -221,16 +221,10 @@ function MISSIONS._enterPhase(id, phase_name)
     end
 end
 
--- Compute total upgrade spend for trigger checks.
+-- Upgrade spend for trigger checks: the arc ship's (the primary ship; arcs belong to it).
 local function _upgradeSpend()
     if not RT.campaign then return 0 end
-    local cost_map = {}
-    for _, u in ipairs(RT.UPGRADES) do cost_map[u.id] = u.cost end
-    local total = 0
-    for _, uid in ipairs(RT.campaign.upgrades or {}) do
-        total = total + (cost_map[uid] or 0)
-    end
-    return total
+    return RT.upgradeSpend()
 end
 
 -- Check whether all trigger conditions for a mission are met.

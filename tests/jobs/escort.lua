@@ -7,7 +7,7 @@ T.suite("jobs")
 
 local HOME = "Port Vesper"
 local m, c0, rep0
-local function convoy() return RT.find(m.convoy_cs) end
+local function convoy() return m.convoy end
 local function along(frac) return m.ox + (m.dx - m.ox) * frac, m.oy + (m.dy - m.oy) * frac end
 
 T.step("post an escort job", function() m = T.postJob(T.makeJob("escort", HOME)) end)
@@ -15,7 +15,7 @@ T.takeJob(function() return m end)
 T.step("the convoy waits for orders", function()
     T.check("escort: convoy spawned at the origin", ARC.near(convoy(), m.ox, m.oy, 2000))
     T.eq("escort: two fighters", #m.fighter_cs, 2)
-    T.check("escort: fighters spawned", RT.valid(RT.find(m.fighter_cs[1])) and RT.valid(RT.find(m.fighter_cs[2])))
+    T.check("escort: fighters spawned", RT.valid(m.fighters[1]) and RT.valid(m.fighters[2]))
     T.check("escort: waiting", m._convoy_waiting)
     convoy():setCanBeDestroyed(false)
 end)
@@ -65,7 +65,7 @@ T.takeJob(function() return m end)
 local f1, f2
 T.step("destroy the convoy", function()
     rep0 = T.rep(m.origin_faction)
-    f1, f2 = RT.find(m.fighter_cs[1]), RT.find(m.fighter_cs[2])
+    f1, f2 = m.fighters[1], m.fighters[2]
     T.check("lost: this job's fighters are out", RT.valid(f1) and RT.valid(f2))
     local clash = false
     for _, old in ipairs(first) do
