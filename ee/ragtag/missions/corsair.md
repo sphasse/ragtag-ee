@@ -31,7 +31,7 @@ init ─► hook ─► escort ─► briefing ─► raid ─► return ─► 
 | `briefing` | Docked: "I'm Reva Okonkwo" (profile added): fierce fighters out in the Drift and guarding Blackwater, but most ships here are families; the Corsair tax ("only from Concord hulls or to defend our territory"); "Now the Concord means to settle the account for good, and we need help." "The Concord has provisioned a forward depot in preparation for their invasion of Blackwater", between Cinder and Tamsin; two ships for the crew. **We'll take the depot.** | `corsair_briefed` |
 | `raid` | Forward Depot Anvil (-60, 62), two Concord Hostile Phobos guards. Escorts Hardtack and Ninth Life (Phobos T3; Corsair ships carry no prefix, they are ad hoc) answer comms. Always: **Form up on me**, **Hold position** (stand ground where they are), **Head to the depot** (fly to its east side, engaging on the way), **Head back to Blackwater** (through the gap once the wall exists). Then **Attack the Concord defenders** (crew within 7U of the depot, guards alive) and **Board the depot and take the weapons** (guards dead). When the guards are down the depot crew surrenders: the depot turns `Derelict` (neutral), nobody keeps shooting at it, and the escorts dock with it to load. The crew does not board: the escorts dock (or close to 1.8U), load for 30 s, then hail "We're loading up the haul now… Meet you back at Blackwater." Each escort lost in the raid is replaced at once: Reva hails from Blackwater ("We lost Hardtack. I'm sending Second Wind out to you. Look after her.") and the new ship (an ad hoc name not already flying: Second Wind, Last Laugh, Scrap Iron, …) warps out and forms up on the crew. No limit. (This replaced the earlier rule that losing both restarted the raid.) | `corsair_raid_done` |
 | `return` | Docked: Reva thanks the crew. **The trap spawns now** and the crew's rear rack gets 4 mines. "And just in time too. News is the Concord attack fleet was just detected at grid … will you fly out and join our defense?" **We'll hold the wall** / **This isn't our fight** (`failed`: the defense started without them). | `corsair_joined` |
-| `battle` | Battle Group Two spawns west of the wall and flies scripted waypoints (FlyTowards, advance within 1.5U) along the wall's west face, through the gap, to Blackwater. Concord ships drop combat warp jammers on the crew (`PROX.tickCombatJammers`). Allies: two Piranha missile boats beside the gap (Blackwater side), two retrofitted family gunboats (Adder MK5) at Blackwater, raid survivors, plus Blackwater's own garrisons. All six Concord ships destroyed → `defended`. Blackwater hull < 20% → `failed` (the station is made indestructible for the battle). Rearming: see "The tender" below. | `corsair_arc_done` |
+| `battle` | The trap and the Corsair line are in place at once; Battle Group Two appears (west of the wall) only once the crew is within 20U of the gap. It has no warp and flies at 1.5x its hulls' impulse, on scripted waypoints (FlyTowards, advance within 1.5U) along the wall's west face, through the gap, down the mine corridor, then to Blackwater. Concord ships drop combat warp jammers on the crew (`PROX.tickCombatJammers`). The Corsair line: two Piranha missile boats, two retrofitted family gunboats (Adder MK5) and the raid survivors form up just past the corridor's exit on its north-east side (clear of Blackwater's mine ring) and stand ground; when the first Concord ship is 2/3 of the way through the corridor, Reva calls "They're coming out of the corridor! All ships, open fire!" and they defend the corridor's mouth. Plus Blackwater's own garrisons. All six Concord ships destroyed → `defended`. Blackwater hull < 20% → `failed` (the station is made indestructible for the battle). Rearming: see "The tender" below. | `corsair_arc_done` |
 
 ### The trap
 
@@ -41,10 +41,14 @@ init ─► hook ─► escort ─► briefing ─► raid ─► return ─► 
   86 mines, max neighbour distance 0.62U.
 - One 3U gap at y 91U (grid J6). Wall mines' AI avoid bubble is 0.8U (stock 1.2U would leave the
   AI no gap); trigger and blast stay stock.
+- The mine corridor: from the wall's mines at each side of the gap, two straight lines run 10U east
+  along the gap's edges (y 89.5U and 92.5U), a mine every 0.5U with 0.1U wobble, same 0.8U avoid
+  bubble; kept in `st.corridor` (apart from the wall's list). The fleet must file through it.
 - Corsair warp jammers: (30, 97) r 3U on the approach and (37.5, 91) r 2.5U at the gap.
 - Battle Group Two: CNS Retribution and CNS Remand (Atlantis X23), CNS Writ, Summons, Levy and
-  Distraint (Phobos T3). Spawn (14, 112); waypoints (31,110) → (31,95) → (33.5,91) → (39,91) →
-  Blackwater.
+  Distraint (Phobos T3). Spawn (14, 112) when the crew comes within 20U of the gap; no warp, 1.5x
+  impulse. Waypoints (31,110) → (31,95) → (33.5,91) → (39,91) → (47,91), the corridor's exit →
+  Blackwater. GM "Fleet to gap" and "Kill fleet" bring the fleet out first if it is not out yet.
 - Headless: the fleet threads the gap with no mine casualties and no stalls, slowly (Atlantis at
   impulse in the jammer field: about 2 minutes from the gap mouth to the far side).
 
@@ -62,12 +66,17 @@ business. Keep clear.").
 
 ### Keeping Corsairs out of their own mines
 
-Corsair ships never cross the wall: any that is west of it when sent to Blackwater (the raid escorts
-coming home, "Head back to Blackwater", the survivors joining the battle) flies to the gap's west
-mouth (33.5, 91), through to (39, 91), then on to Blackwater (`_sendHome`, `_tickRoutes`). The two
-gap missile boats (Long Odds, Hollis) stand ground instead of defending a location, so they fire on
-the fleet from where they are and never chase it into the mines. (Playtest: a Corsair ship hit its
-own mine.)
+Blackwater has its own mine ring (drift.lua: r 9U, the way in at the north). Corsair ships sent "to
+Blackwater" (Long Memory, raid escorts coming home or told to head back) go to the **Blackwater
+approach**, (55, 87): 12U north of the station, in front of the ring's opening, never inside it.
+The battle's Corsair line keeps 11.5U+ from the station. (Playtest: a gunboat posted on the ring
+and ships flying to a point inside it hit the ring's mines.)
+
+Corsair ships never cross the wall: any that is west of it when sent home (the raid escorts coming
+home, "Head back to Blackwater", the survivors joining the battle) flies to the gap's west mouth
+(33.5, 91), through to (39, 91), down the corridor to (47, 91), then on to its destination, where
+it stands ground (`_sendHome`, `_tickRoutes`). The battle line stands ground until the fleet is
+2/3 through the corridor, so nobody chases the fleet into the mines.
 
 ## Exports
 

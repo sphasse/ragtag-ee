@@ -47,6 +47,10 @@ local U = 1000
 local _GAUNTLET_X, _GAUNTLET_Y, _GAUNTLET_R = 23 * U, 69 * U, 29 * U
 local _BW_X, _BW_Y = 55 * U, 99 * U                 -- Blackwater station
 local _BW_R        = 22 * U                         -- Blackwater Reach (region r21)
+-- Blackwater has its own mine ring (drift.lua minefields: r 9U, the way in at the north). Ships
+-- heading "to Blackwater" go to this point instead: north of the ring, in front of its opening.
+-- (Playtest: Corsairs flying to a point inside the ring hit its mines.)
+local _BW_APPROACH_X, _BW_APPROACH_Y = _BW_X, _BW_Y - 12 * U
 local _DEPOT_X, _DEPOT_Y = -60 * U, 62 * U          -- Concord forward depot, between Cinder and Tamsin
 
 -- The wall: west of Blackwater on the edge of the Veil, from the Gauntlet belt (north) south.
@@ -67,13 +71,24 @@ local _TRAP_JAMMERS = {
 -- Attack fleet: spawns west of the wall, then flies waypoints along its west face, through the
 -- gap, and on to Blackwater (FlyTowards: engages enemies that come close, then carries on).
 local _FLEET_X, _FLEET_Y = 14 * U, 112 * U
+-- The mine corridor: two mine lines from the gap's edges running _CORRIDOR_L east, so the fleet
+-- has to file through a 3U lane after the gap (playtest: past the gap they raced ahead).
+local _CORRIDOR_L     = 10 * U
+local _CORRIDOR_END_X = _WALL_X + _CORRIDOR_L          -- ~46U
 local _FLEET_WAYPOINTS = {
     {31 * U, 110 * U},     -- the south end of the wall's west face
     {31 * U, 95 * U},      -- along the face (into the jammer field)
     {33.5 * U, 91 * U},    -- line up on the gap
-    {39 * U, 91 * U},      -- through
+    {39 * U, 91 * U},      -- through the gap, into the corridor
+    {_CORRIDOR_END_X + 1 * U, 91 * U},   -- out of the corridor's far end
     {_BW_X, _BW_Y},        -- Blackwater
 }
+local _FLEET_TRIGGER_U = 20 * U   -- the fleet appears once the crew is this close to the gap
+local _FLEET_IMPULSE   = 1.5      -- no warp: the fleet comes on impulse, this much above its hulls' normal
+local _ENGAGE_AT       = 2 / 3    -- the Corsairs hold until a Concord ship is this far through the corridor
+-- The Corsairs form up just past the corridor's far end, on its north-east side: south and east of
+-- the exit is Blackwater's own mine ring, so the slots keep 11U+ from the station.
+local _FORM = {{49, 82}, {49, 84.5}, {49, 87}, {51.5, 83}, {51.5, 85.5}, {51.5, 88}}   -- U
 local _FLEET = {
     {cs = "CNS Retribution", tmpl = "Atlantis X23"},
     {cs = "CNS Remand",      tmpl = "Atlantis X23"},
@@ -103,7 +118,8 @@ function M.init_state()
         guide = nil, hook_hailed = false, guide_waiting = false,
         depot = nil, defenders = {}, escorts = {}, attacking = false, boarding = false,
         defenders_down = false, load_t0 = nil,
-        mines = {}, trap_jammers = {}, trap_built = false, mines_given = false,
+        mines = {}, corridor = {}, trap_jammers = {}, trap_built = false, mines_given = false,
+        allies_engaged = false,
         fleet = {}, wp = {}, allies = {}, cjam = {}, fleet_spawned = false,
         escort_cs = {},   -- names of st.escorts, by index
         tender = nil, reloads = _RELOADS, reload_t0 = nil, low_called = false, tender_lost = false,
@@ -197,7 +213,7 @@ local function _deferHook(st)
     st.deferred_until = getScenarioTime() + _REASK_DELAY
     st.hook_hailed, st.hail_when_near, st.hook_at = false, false, nil
     RT.clearObjective("corsair")
-    _guideLeaves(st, _BW_X, _BW_Y)
+    _guideLeaves(st, _BW_APPROACH_X, _BW_APPROACH_Y)
 end
 
 local _HOOK_TEXT = '"Easy. If we wanted you dead you\'d have noticed.\n\nWe watch things in the Drift, and we know you are someone who is not intimidated by the Concord. '
@@ -342,19 +358,19 @@ local _GAP_WEST = {33.5 * U, _GAP_Y}   -- the gap's mouths (not _GAP_W, the gap'
 local _GAP_EAST = {39 * U, _GAP_Y}
 _sendHome = function(st, s, dest_x, dest_y)
     if not RT.valid(s) then return end
-    dest_x, dest_y = dest_x or (_BW_X - 2 * U), dest_y or _BW_Y
+    dest_x, dest_y = dest_x or _BW_APPROACH_X, dest_y or _BW_APPROACH_Y
     st.routes = st.routes or {}
     for i = #st.routes, 1, -1 do if st.routes[i].ship == s then table.remove(st.routes, i) end end
     local x = s:getPosition()
-    if x < _WALL_X + 1 * U then
-        st.routes[#st.routes + 1] = {ship = s, steps = {_GAP_WEST, _GAP_EAST, {dest_x, dest_y}}, i = 1}
-        s:orderFlyTowards(_GAP_WEST[1], _GAP_WEST[2])
-    else
-        s:orderFlyTowards(dest_x, dest_y)
+    local steps = {{dest_x, dest_y}}
+    if x < _WALL_X + 1 * U then   -- west of the wall: the gap, then the corridor's length
+        steps = {_GAP_WEST, _GAP_EAST, {_CORRIDOR_END_X + 1 * U, _GAP_Y}, {dest_x, dest_y}}
     end
+    st.routes[#st.routes + 1] = {ship = s, steps = steps, i = 1}
+    s:orderFlyTowards(steps[1][1], steps[1][2])
 end
 
--- Per tick: move routed ships on to their next point; at the last one they hold there.
+-- Per tick: move routed ships on to their next point; at the last one they stand ground there.
 local function _tickRoutes(st)
     for k = #(st.routes or {}), 1, -1 do
         local r = st.routes[k]
@@ -367,7 +383,7 @@ local function _tickRoutes(st)
                 r.i = r.i + 1
                 local nxt = r.steps[r.i]
                 if nxt then s:orderFlyTowards(nxt[1], nxt[2])
-                else s:orderDefendLocation(pt[1], pt[2]); table.remove(st.routes, k) end
+                else s:orderStandGround(); table.remove(st.routes, k) end
             end
         end
     end
@@ -451,11 +467,36 @@ local function _laySection(st, y0, y1, seed)
     return i
 end
 
+-- A straight line of mines from (x0, y0) to (x1, y1), every 0.5U (no hole a ship fits through),
+-- with a little wobble; into st.corridor (kept apart from the wall's own list).
+local function _layLine(st, x0, y0, x1, y1)
+    local len = math.sqrt((x1 - x0) ^ 2 + (y1 - y0) ^ 2)
+    local n = math.max(1, math.ceil(len / (0.5 * U)))
+    for i = 1, n do
+        local f = i / n
+        local m = Mine():setPosition(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f + (math.random() * 2 - 1) * 0.1 * U)
+        pcall(function() m.components.avoid_object = {range = _MINE_AVOID} end)
+        st.corridor[#st.corridor + 1] = m
+    end
+    return n
+end
+
 local function _spawnTrap(st)
     if st.trap_built then return end
     st.trap_built = true
     local n = _laySection(st, _WALL_N, _GAP_Y - _GAP_W / 2, 0.3)
+    local north_end = st.mines[#st.mines]
     n = n + _laySection(st, _GAP_Y + _GAP_W / 2, _WALL_S, 0.3)
+    -- The corridor: from the wall's mines at each side of the gap, east along the gap's edges.
+    st.corridor = {}
+    local nx, ny = north_end:getPosition()
+    local sx, sy
+    for _, m in ipairs(st.mines) do   -- the south section's first mine: nearest the gap below it
+        local x, y = m:getPosition()
+        if y > _GAP_Y and (not sy or y < sy) then sx, sy = x, y end
+    end
+    _layLine(st, nx, ny, _CORRIDOR_END_X, _GAP_Y - _GAP_W / 2)
+    _layLine(st, sx, sy, _CORRIDOR_END_X, _GAP_Y + _GAP_W / 2)
     for _, j in ipairs(_TRAP_JAMMERS) do
         local w = WarpJammer():setPosition(j.x, j.y)
         w:setRange(j.r)
@@ -463,12 +504,12 @@ local function _spawnTrap(st)
         w:setDescriptions("Warp jammer.", "Concord-issue warp jammer, now flying Corsair colours.")
         st.trap_jammers[#st.trap_jammers + 1] = w
     end
-    log(string.format("[CORSAIR] trap: %d mines, %d jammers, gap at %s", n, #_TRAP_JAMMERS, _grid(_WALL_X, _GAP_Y)))
+    log(string.format("[CORSAIR] trap: %d wall mines, %d corridor mines, %d jammers, gap at %s", n, #st.corridor, #_TRAP_JAMMERS, _grid(_WALL_X, _GAP_Y)))
 end
 
 local function _clearTrap(st)
-    ARC.kill(st.mines); ARC.kill(st.trap_jammers)
-    st.mines, st.trap_jammers, st.trap_built = {}, {}, false
+    ARC.kill(st.mines); ARC.kill(st.corridor); ARC.kill(st.trap_jammers)
+    st.mines, st.corridor, st.trap_jammers, st.trap_built = {}, {}, {}, false
 end
 
 local function _giveMines(st)
@@ -484,28 +525,49 @@ end
 
 -- ── The battle ───────────────────────────────────────────────────────────────
 
+-- The Corsair line: every ally plus the raid survivors, one slot each across the corridor's far
+-- end (_FORM_X), standing ground until a Concord ship is _ENGAGE_AT through the corridor.
 local function _spawnAllies(st)
     ARC.kill(st.allies)
-    st.allies = {}
-    local function add(tmpl, cs, x, y, desc)
+    st.allies, st.allies_engaged = {}, false
+    local slot = 0
+    local function add(tmpl, cs, desc)
+        slot = slot + 1
         local s = CpuShip():setTemplate(tmpl):setFaction("Corsair Friendly")
-        s:setCallSign(cs):setPosition(x, y)
-        s:orderDefendLocation(x, y)
+        s:setCallSign(cs):setPosition(_FORM[slot][1] * U, _FORM[slot][2] * U)
+        s:orderStandGround()
         s:setDescriptions("Corsair ship.", desc)
         s:setScanningParameters(1, 1)
         s:setCommsFunction(function() setCommsMessage('"Holding the line."') end)
         st.allies[#st.allies + 1] = s
     end
-    -- Missile boats beside the gap on the Blackwater side, to cut the fleet down as it threads it.
-    add("Piranha F12", "Long Odds", _WALL_X + 4 * U, _GAP_Y - 3 * U, "Corsair missile boat covering the gap.")
-    add("Piranha F12", "Hollis",    _WALL_X + 4 * U, _GAP_Y + 3 * U, "Corsair missile boat covering the gap.")
-    -- The gap boats fire from where they are: chasing the fleet would take them into their own mines.
-    for _, s in ipairs(st.allies) do s:orderStandGround() end
-    -- Family freighters retrofitted as gunboats, holding at Blackwater.
-    add("Adder MK5", "Hearthstone",   _BW_X - 3 * U, _BW_Y - 2 * U, "A family freighter with guns bolted on. The paint is still wet.")
-    add("Adder MK5", "Second Chance", _BW_X - 3 * U, _BW_Y + 2 * U, "A family freighter with guns bolted on. The paint is still wet.")
-    -- Raid survivors hold at Blackwater too (through the gap if they are still west of the wall).
-    for _, s in ipairs(ARC.alive(st.escorts)) do _sendHome(st, s) end
+    add("Piranha F12", "Long Odds",     "Corsair missile boat, holding the corridor's mouth.")
+    add("Adder MK5",   "Hearthstone",   "A family freighter with guns bolted on. The paint is still wet.")
+    add("Piranha F12", "Hollis",        "Corsair missile boat, holding the corridor's mouth.")
+    add("Adder MK5",   "Second Chance", "A family freighter with guns bolted on. The paint is still wet.")
+    -- Raid survivors take the remaining slots (through the gap and the corridor if still west).
+    for _, s in ipairs(ARC.alive(st.escorts)) do
+        slot = math.min(slot + 1, #_FORM)
+        _sendHome(st, s, _FORM[slot][1] * U, _FORM[slot][2] * U)
+    end
+end
+
+-- The first Concord ship _ENGAGE_AT of the way through the corridor: the Corsairs open up.
+local function _tickEngage(st)
+    if st.allies_engaged then return end
+    for _, s in ipairs(st.fleet) do
+        if RT.valid(s) then
+            local x, y = s:getPosition()
+            if math.abs(y - _GAP_Y) < 2.5 * U and x >= _WALL_X + _CORRIDOR_L * _ENGAGE_AT then
+                st.allies_engaged = true
+                for _, a in ipairs(ARC.alive(st.allies)) do a:orderDefendLocation(_CORRIDOR_END_X + 1 * U, _GAP_Y) end
+                for _, e in ipairs(ARC.alive(st.escorts)) do e:orderDefendLocation(_CORRIDOR_END_X + 1 * U, _GAP_Y) end
+                local line = '"They\'re coming out of the corridor! All ships, open fire!"'
+                if not ARC.hail(_blackwater(), line, "Reva Okonkwo") then ARC.log("[Reva Okonkwo] " .. line, "#FFCC80") end
+                return
+            end
+        end
+    end
 end
 
 local function _spawnFleet(st)
@@ -516,7 +578,9 @@ local function _spawnFleet(st)
         local s = CpuShip():setTemplate(f.tmpl):setFaction("Concord Hostile")
         s:setCallSign(f.cs):setPosition(_FLEET_X + ((i - 1) % 3) * 1500, _FLEET_Y + math.floor((i - 1) / 3) * 1500)
         s:setWeaponStorageMax("Nuke", 0):setWeaponStorage("Nuke", 0)
-        s:setWarpDrive(true)
+        s:setWarpDrive(false)
+        local fwd, rev = s:getImpulseMaxSpeed()
+        s:setImpulseMaxSpeed(fwd * _FLEET_IMPULSE, rev)
         s:setDescriptions("Concord warship.", "Concord Battle Group Two. Assigned: Blackwater Reach.")
         s:setScanningParameters(2, 2)
         s:setCommsScript(""):setCommsFunction(function()
@@ -881,7 +945,7 @@ M.phases.escort = {
             end
             _spawnGuide(st, x, y)
         end
-        st.guide:orderFlyTowards(_BW_X - 2 * U, _BW_Y)
+        st.guide:orderFlyTowards(_BW_APPROACH_X, _BW_APPROACH_Y)
         st.guide_waiting = false
         RT.setObjective("Follow Long Memory to Blackwater", true, "corsair")
     end,
@@ -912,7 +976,7 @@ M.phases.escort = {
             end
         elseif st.guide_waiting and d < 4 * U then
             st.guide_waiting = false
-            g:orderFlyTowards(_BW_X - 2 * U, _BW_Y)
+            g:orderFlyTowards(_BW_APPROACH_X, _BW_APPROACH_Y)
         end
     end,
 }
@@ -989,14 +1053,19 @@ M.phases.battle = {
         _giveMines(st)
         _spawnAllies(st)
         _spawnTender(st)
-        _spawnFleet(st)
+        -- The fleet itself waits until the crew is within _FLEET_TRIGGER_U of the gap.
         local bw = _blackwater()
         if RT.valid(bw) then pcall(function() bw:setCanBeDestroyed(false) end) end
         RT.setObjective("Hold the wall at Blackwater", true, "corsair")
     end,
     update = function(st, delta, now)
+        if not st.fleet_spawned then
+            local p = ARC.player()
+            if p and ARC.near(p, _WALL_X, _GAP_Y, _FLEET_TRIGGER_U) then _spawnFleet(st) end
+        end
         _tickWaypoints(st)
         _tickRoutes(st)
+        if st.fleet_spawned then _tickEngage(st) end
         _tickTender(st, now)
         if PROX and PROX.tickCombatJammers then PROX.tickCombatJammers(st.cjam, st.fleet, ARC.player(), now) end
         if st.fleet_spawned and #ARC.alive(st.fleet) == 0 then
@@ -1103,6 +1172,7 @@ M.gm_actions = {
         st.defenders_down, st.boarding, st.load_t0 = true, true, getScenarioTime() - _LOAD_TIME
     end},
     {label = "Fleet to gap", phases = {"battle"}, fn = function(st)
+        _spawnFleet(st)
         for i, s in ipairs(ARC.alive(st.fleet)) do
             s:setPosition(_FLEET_WAYPOINTS[3][1] - 2 * U, _FLEET_WAYPOINTS[3][2] + (i - 3) * 1200)
             st.wp[s] = 3
@@ -1110,6 +1180,7 @@ M.gm_actions = {
         end
     end},
     {label = "Kill fleet", phases = {"battle"}, fn = function(st)
+        _spawnFleet(st)
         for _, s in ipairs(ARC.alive(st.fleet)) do s:destroy() end
     end},
 }
