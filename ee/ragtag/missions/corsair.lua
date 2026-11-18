@@ -12,7 +12,9 @@
 --   return    dock at Blackwater: the mine-wall trap is laid; the attack fleet is detected;
 --             join the defense or decline (= failed)
 --   battle    the fleet follows scripted waypoints along the wall, through the 3U gap, to
---             Blackwater. All destroyed -> defended; Blackwater falls -> failed
+--             Blackwater. All destroyed -> defended; Blackwater falls -> failed. The tender
+--             CSR Magazine holds the rest of the depot haul behind the wall: when the crew's
+--             racks run low it calls them in, and coming alongside reloads them (limited loads)
 --
 -- RT.flag keys (prefix "corsair_"):
 --   hook, arrived, briefed, raid_done, joined   progress (session routing in init)
@@ -84,6 +86,15 @@ local _PLAYER_MINES   = 4           -- mines from the haul for the crew's rear t
 local _BW_FALLS_AT    = 0.2         -- Blackwater hull fraction that counts as fallen
 local _GUIDE_WAIT_D   = 8 * U       -- the guide waits when the crew falls this far behind
 
+-- The munitions tender: the rest of the Anvil haul, behind the wall north of the fleet's road
+-- from the gap to Blackwater, so the crew can pull back and rearm mid-battle.
+local _TENDER_X, _TENDER_Y = _WALL_X + 7 * U, _GAP_Y - 9 * U   -- (43, 82)
+local _RELOADS       = 3            -- full loads aboard
+local _RELOAD_R      = 1.2 * U      -- "alongside"
+local _RELOAD_TIME   = 8            -- seconds alongside to transfer a load
+local _LOW_AT        = 0.25         -- racks at or below this share count as running low
+local _MISSILES      = {"Homing", "HVLI", "Mine", "EMP"}
+
 function M.init_state()
     return {
         guide = nil, hook_hailed = false, guide_waiting = false,
@@ -91,6 +102,7 @@ function M.init_state()
         defenders_down = false, load_t0 = nil,
         mines = {}, trap_jammers = {}, trap_built = false, mines_given = false,
         fleet = {}, wp = {}, allies = {}, cjam = {}, fleet_spawned = false,
+        tender = nil, reloads = _RELOADS, reload_t0 = nil, low_called = false, tender_lost = false,
     }
 end
 
@@ -401,6 +413,87 @@ local function _spawnFleet(st)
     ARC.log("[CNS Retribution] Blackwater Reach, this is Concord Battle Group Two. Your haven is declared a pirate installation under the Settlement Accords. Stand down and prepare to be boarded.", "#FF6666")
 end
 
+-- ── The munitions tender ─────────────────────────────────────────────────────
+
+-- Share of the ship's missile racks that is still full (nil: it carries no missiles).
+local function _missileShare(p)
+    local have, max = 0, 0
+    for _, w in ipairs(_MISSILES) do
+        local m = p:getWeaponStorageMax(w) or 0
+        if m > 0 then max = max + m; have = have + (p:getWeaponStorage(w) or 0) end
+    end
+    if max == 0 then return nil end
+    return have / max
+end
+
+local function _tenderComms(src, tgt)
+    local st = MISSIONS._state["corsair"]
+    if not st then return end
+    if st.reloads <= 0 then
+        setCommsMessage('"The haul is gone. Every round we took from Anvil is in a tube somewhere. Make them count."')
+        return
+    end
+    setCommsMessage(string.format('"CSR Magazine. We carry what\'s left of the Anvil haul: %d full load%s. '
+        .. 'Come alongside, inside a klick, and give us %d seconds. We\'ll do the rest."',
+        st.reloads, st.reloads == 1 and "" or "s", _RELOAD_TIME))
+end
+
+local function _spawnTender(st)
+    if RT.valid(st.tender) then return end
+    local s = CpuShip():setTemplate("Flavia"):setFaction("Corsair Friendly")
+    s:setCallSign("CSR Magazine"):setPosition(_TENDER_X, _TENDER_Y)
+    s:orderStandGround()
+    s:setDescriptions("Corsair tender.", "A munitions tender carrying the rest of the haul from Forward Depot Anvil. Come alongside to rearm.")
+    s:setScanningParameters(1, 1)
+    s:setCommsScript(""):setCommsFunction(ARC.comms(_tenderComms, '"Corsair business. Keep clear."'))
+    st.tender, st.tender_lost = s, false
+end
+
+-- Per tick in the battle: call the crew in when their racks run low, and reload them while
+-- they are alongside.
+local function _tickTender(st, now)
+    if not RT.valid(st.tender) then
+        if st.tender and not st.tender_lost then
+            st.tender_lost = true
+            RT.clearObjective("corsair_rearm")
+            ARC.log("[Reva Okonkwo] We've lost the Magazine! What's in your racks is all there is.", "#FF8040")
+        end
+        return
+    end
+    local p = ARC.player()
+    if not p then return end
+    local share = _missileShare(p)
+    if share == nil then return end
+    local tx, ty = st.tender:getPosition()
+
+    if share <= _LOW_AT and st.reloads > 0 and not st.low_called then
+        st.low_called = true
+        local where = _grid(tx, ty)
+        local text = "Your racks are nearly empty. We carry what's left of the Anvil haul. Come alongside at " .. where .. " and we'll load you up."
+        if not ARC.hail(st.tender, '"' .. text .. '"') then ARC.log("[CSR Magazine] " .. text, "#FFCC80") end
+        RT.setObjective("Rearm alongside CSR Magazine (" .. where .. ")", true, "corsair_rearm")
+    end
+
+    if st.reloads > 0 and share < 1 and ARC.near(p, tx, ty, _RELOAD_R) then
+        if not st.reload_t0 then
+            st.reload_t0 = now
+            ARC.log("[CSR Magazine] Hold her steady, we're passing crates across.", "#FFCC80")
+        elseif now - st.reload_t0 >= _RELOAD_TIME then
+            for _, w in ipairs(_MISSILES) do
+                local m = p:getWeaponStorageMax(w) or 0
+                if m > 0 then p:setWeaponStorage(w, m) end
+            end
+            st.reloads, st.reload_t0, st.low_called = st.reloads - 1, nil, false
+            RT.clearObjective("corsair_rearm")
+            ARC.log(string.format("[CSR Magazine] Racks full. %s", st.reloads > 0
+                and string.format("%d load%s left aboard.", st.reloads, st.reloads == 1 and "" or "s")
+                or "That was the last of it."), "#FFCC80")
+        end
+    else
+        st.reload_t0 = nil
+    end
+end
+
 -- Advance each ship to its next waypoint once within 1.5U of the current one.
 local function _tickWaypoints(st)
     for _, s in ipairs(st.fleet) do
@@ -542,10 +635,12 @@ local function _clearWorld(st)
     st.depot = nil
     ARC.kill(st.fleet); st.fleet = {}
     ARC.kill(st.allies); st.allies = {}
+    ARC.kill(st.tender); st.tender = nil
     PROX.clearCombatJammers(st.cjam)
     _clearTrap(st)
     RUMORS.removeCategory("CORSAIR_HOOK")
     RT.clearObjective("corsair")
+    RT.clearObjective("corsair_rearm")
     local bw = _blackwater()
     if RT.valid(bw) then pcall(function() bw:setCanBeDestroyed(true) end) end
 end
@@ -553,6 +648,7 @@ end
 function M.resolve(st)
     local outcome = RT.flag("corsair_arc_done") or "failed"
     RT.clearObjective("corsair")
+    RT.clearObjective("corsair_rearm")
     if outcome == "defended" then
         RT.flag("corsair_battlegroup_destroyed", true)
         RT.flag("corsair_ally", true)
@@ -579,7 +675,7 @@ function M.resolve(st)
     ARC.kill(st.guide); st.guide = nil
     RT.after(180, function()
         local cur = MISSIONS._state["corsair"]
-        if cur then ARC.kill(cur.fleet); ARC.kill(cur.allies); ARC.kill(cur.escorts); _clearTrap(cur) end
+        if cur then ARC.kill(cur.fleet); ARC.kill(cur.allies); ARC.kill(cur.escorts); ARC.kill(cur.tender); _clearTrap(cur) end
     end, "corsair_cleanup")
 end
 
@@ -767,6 +863,7 @@ M.phases.battle = {
         _spawnTrap(st)
         _giveMines(st)
         _spawnAllies(st)
+        _spawnTender(st)
         _spawnFleet(st)
         local bw = _blackwater()
         if RT.valid(bw) then pcall(function() bw:setCanBeDestroyed(false) end) end
@@ -774,6 +871,7 @@ M.phases.battle = {
     end,
     update = function(st, delta, now)
         _tickWaypoints(st)
+        _tickTender(st, now)
         if PROX and PROX.tickCombatJammers then PROX.tickCombatJammers(st.cjam, st.fleet, ARC.player(), now) end
         if st.fleet_spawned and #ARC.alive(st.fleet) == 0 then
             RT.flag("corsair_arc_done", "defended")

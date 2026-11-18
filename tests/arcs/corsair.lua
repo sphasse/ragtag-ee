@@ -1,5 +1,5 @@
 -- Corsair arc: hook (Greywater message, defer, Gauntlet contact) -> escort -> briefing -> raid
--- (escort orders, both-lost restart, boarding) -> return -> battle -> done (defended), then the
+-- (escort orders, both-lost restart, boarding) -> return -> battle (rearming from the tender) -> done (defended), then the
 -- late-decline and Blackwater-falls endings, the GM states, and "-> Inactive". Not covered: the
 -- depot fight and the battle themselves (GM helpers remove the Concord ships), the fleet threading
 -- the gap, the guide waiting for a slow crew.
@@ -154,12 +154,62 @@ T.step("the battle", function()
     T.check("battle: no hole in the wall over 0.7U", worst <= 700, string.format("%.0f", worst))
     T.eq("battle: exactly one gap", gaps, 1)
     T.eq("battle: wall mines use the narrow AI avoid range", s.mines[1].components.avoid_object.range, 800)
+    T.check("tender: CSR Magazine behind the wall", RT.valid(s.tender))
+    T.eq("tender: friendly", s.tender:getFaction(), "Corsair Friendly")
+    T.eq("tender: three loads aboard", s.reloads, 3)
+    T.check("tender: no call while the racks are full", not s.low_called)
+end)
+
+-- ── Rearming from the tender ─────────────────────────────────────────────────
+local function empty_racks()
+    local p = T.P()
+    for _, w in ipairs({"Homing", "HVLI", "Mine", "EMP"}) do p:setWeaponStorage(w, 0) end
+end
+local function racks_full()
+    local p = T.P()
+    for _, w in ipairs({"Homing", "HVLI", "Mine", "EMP"}) do
+        if p:getWeaponStorage(w) < p:getWeaponStorageMax(w) then return false end
+    end
+    return true
+end
+T.step("the crew fires off its missiles", function()
+    T.check("tender: the crew carries missiles", T.P():getWeaponStorageMax("Homing") + T.P():getWeaponStorageMax("HVLI") > 0)
+    empty_racks()
+end)
+T.waitFor("tender: running low brings a call", function() return T.st().low_called end, 3)
+T.step("called in", function()
+    T.check("tender: a rearm objective with its grid", (RT.objectives["corsair_rearm"] or ""):find("CSR Magazine", 1, true) ~= nil,
+        tostring(RT.objectives["corsair_rearm"]))
+    T.moveNear(T.st().tender, 800)
+end)
+T.waitFor("tender: alongside starts the transfer", function() return T.st().reload_t0 ~= nil end, 3)
+T.step("eight seconds alongside", function() T.st().reload_t0 = T.now() - 8 end)
+T.waitFor("tender: the racks are full", racks_full, 3)
+T.step("reloaded", function()
+    local s = T.st()
+    T.eq("tender: one load used", s.reloads, 2)
+    T.check("tender: the objective is cleared", RT.objectives["corsair_rearm"] == nil)
+    T.check("tender: ready to call again", not s.low_called)
+    s.reloads = 0
+    empty_racks()
+end)
+T.wait(2)
+T.step("the haul is gone", function()
+    local s = T.st()
+    T.check("tender: no call once the haul is gone", not s.low_called)
+    T.check("tender: no transfer either", s.reload_t0 == nil)
+    T.eq("tender: the racks stay empty", T.P():getWeaponStorage("Homing"), 0)
+end)
+T.talk(function() return T.st().tender end, {}, {name = "CSR Magazine"})
+T.step("the tender says so", function()
+    T.check("tender: 'the haul is gone'", T.msg():find("haul is gone", 1, true) ~= nil, T.msg())
     corsairs0, concord0 = T.rep("Corsairs"), T.rep("Concord")
     T.action("Kill fleet")
 end)
 T.waitFor("done: the last Concord ship ends the battle", function() return T.status() == "done" end, 3)
 T.step("defended", function()
     T.eq("defended: outcome", T.flag("corsair_arc_done"), "defended")
+    T.check("defended: no rearm objective left", RT.objectives["corsair_rearm"] == nil)
     T.check("defended: corsair_ally and battlegroup flags", T.flag("corsair_ally") and T.flag("corsair_battlegroup_destroyed"))
     T.eq("defended: Corsairs +400", T.rep("Corsairs") - corsairs0, 400)
     T.eq("defended: Concord -300", T.rep("Concord") - concord0, -300)

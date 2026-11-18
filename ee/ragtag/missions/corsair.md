@@ -31,7 +31,7 @@ init ─► hook ─► escort ─► briefing ─► raid ─► return ─► 
 | `briefing` | Docked: Reva Okonkwo (profile added): fierce fighters out in the Drift and guarding Blackwater, but most ships here are families; the Corsair tax ("only from Concord hulls or to defend our territory"). The depot between Cinder and Tamsin; two ships for the crew. **We'll take the depot.** | `corsair_briefed` |
 | `raid` | Forward Depot Anvil (-60, 62), two Concord Hostile Phobos guards. Escorts CSR Hardtack and CSR Ninth Life (Phobos T3) answer comms with orders that unlock in turn: **Form up on me** (always) → **Attack the Concord defenders** (crew within 7U of the depot, guards alive) → **Board the depot and take the weapons** (guards dead). The crew does not board: the escorts close to 1.8U, load for 30 s, then hail "We're loading up the haul now… Meet you back at Blackwater." Both escorts lost: Reva sends two more and the depot is re-crewed (the raid restarts). | `corsair_raid_done` |
 | `return` | Docked: Reva thanks the crew. **The trap spawns now** and the crew's rear rack gets 4 mines. "And just in time too. News is the Concord attack fleet was just detected at grid … will you fly out and join our defense?" **We'll hold the wall** / **This isn't our fight** (`failed`: the defense started without them). | `corsair_joined` |
-| `battle` | Battle Group Two spawns west of the wall and flies scripted waypoints (FlyTowards, advance within 1.5U) along the wall's west face, through the gap, to Blackwater. Concord ships drop combat warp jammers on the crew (`PROX.tickCombatJammers`). Allies: two Piranha missile boats beside the gap (Blackwater side), two retrofitted family gunboats (Adder MK5) at Blackwater, raid survivors, plus Blackwater's own garrisons. All six Concord ships destroyed → `defended`. Blackwater hull < 20% → `failed` (the station is made indestructible for the battle). | `corsair_arc_done` |
+| `battle` | Battle Group Two spawns west of the wall and flies scripted waypoints (FlyTowards, advance within 1.5U) along the wall's west face, through the gap, to Blackwater. Concord ships drop combat warp jammers on the crew (`PROX.tickCombatJammers`). Allies: two Piranha missile boats beside the gap (Blackwater side), two retrofitted family gunboats (Adder MK5) at Blackwater, raid survivors, plus Blackwater's own garrisons. All six Concord ships destroyed → `defended`. Blackwater hull < 20% → `failed` (the station is made indestructible for the battle). Rearming: see "The tender" below. | `corsair_arc_done` |
 
 ### The trap
 
@@ -47,6 +47,18 @@ init ─► hook ─► escort ─► briefing ─► raid ─► return ─► 
   Blackwater.
 - Headless: the fleet threads the gap with no mine casualties and no stalls, slowly (Atlantis at
   impulse in the jammer field: about 2 minutes from the gap mouth to the far side).
+
+### The tender
+
+The raid brought back more than mines. **CSR Magazine** (Flavia, `Corsair Friendly`, stand ground) holds
+the rest of the Anvil haul at (43, 82): behind the wall, north of the fleet's road from the gap to
+Blackwater. When the crew's missile racks (homing, HVLI, mines, EMP, whatever the ship carries) are
+at or below 25%, it hails ("Your racks are nearly empty… come alongside at <grid>") and a second
+objective line appears: "Rearm alongside CSR Magazine (<grid>)". Within 1.2U for 8 s refills every
+rack to its maximum. Three loads aboard; it calls again each time the racks run low while loads are
+left. Hailing it says how many loads are left, or "The haul is gone". It is destructible: if the
+Concord gets to it, Reva says so and the objective goes. Arc ship only (other ships get "Corsair
+business. Keep clear.").
 
 ## Exports
 
@@ -71,5 +83,6 @@ Resets restore Corsair territory to hostile, clear the trap, depot, fleet and al
 
 Wall geometry (`_WALL_*`, `_GAP_*`, `_MINE_*`), `_TRAP_JAMMERS`, `_FLEET` and
 `_FLEET_WAYPOINTS`, `_LOAD_TIME` 30 s, `_PLAYER_MINES` 4, `_BW_FALLS_AT` 0.2,
-`_GUIDE_WAIT_D` 8U. Playtest: escort-vs-guard fight length (two Phobos each side was still
+`_GUIDE_WAIT_D` 8U; tender: `_TENDER_X/Y`, `_RELOADS` 3, `_RELOAD_R` 1.2U, `_RELOAD_TIME` 8 s,
+`_LOW_AT` 0.25. Playtest: whether three loads is the right amount, escort-vs-guard fight length (two Phobos each side was still
 going after 45 s headless), battle length and ally count (the Blackwater garrisons fight too).
