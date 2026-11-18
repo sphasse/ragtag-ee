@@ -1,9 +1,9 @@
 -- Name: Battle Lab
--- Description: A test bed for the campaign's set-piece battles: a Concord battle group against a larger force of lighter Corsair ships, with the crew on the Corsair side, fought around six positions in open space. Tune it from the GM screen.
+-- Description: A test bed for the campaign's set-piece battles: a Concord battle group against a larger force of lighter Corsair ships, with the crew on the Corsair side, fought over five points in open space. Tune it from the GM screen.
 ---
 --- Built on the ragtag framework (scripts/ragtag/). Install with tools/install.py.
 --- For balancing the Boneyard and Corsair battles: a few tough opponents against ~10 nimble allies
---- plus the player, kept from collapsing into one blob by six battle positions around a centre.
+--- plus the player, kept from collapsing into one blob by five combat points on a line through the centre.
 -- Type: The Drift Universe
 
 require("utils.lua")
@@ -28,14 +28,15 @@ local CORSAIR_NAMES = {"Hardtack", "Ninth Life", "Long Odds", "Hollis", "Hearths
 local SET = {
     concord_impulse = 1.5,   -- x the hull's normal impulse
     corsair_impulse = 1.5,
-    radius_u        = 3,     -- battle positions' distance from the centre
+    spacing_u       = 1.5,   -- distance between neighbouring combat points (Points closer / further)
     n_concord       = 5,
     n_corsair       = 12,
 }
 local IMPULSE_STEPS = {1.0, 1.25, 1.5, 1.75, 2.0, 2.5}
-local RADIUS_STEPS  = {2, 3, 4, 5, 6, 8}
+local SPACING_MIN, SPACING_MAX, SPACING_STEP = 0.5, 6, 0.5
 local SPAWN_U       = 10     -- both sides start this far from the centre
-local N_POSITIONS   = 6
+local N_POSITIONS   = 5      -- invisible combat points on a north-south line through the centre
+local RETARGET_EVERY = 2     -- seconds between checks for ships whose point has no enemies left
 
 -- ── State ────────────────────────────────────────────────────────────────────
 local B = {
@@ -45,6 +46,8 @@ local B = {
     started_at = 0,
     over = false,
     battles = 0,
+    retargets = 0,      -- moves to a new point this battle
+    next_retarget = 0,
 }
 
 local function alive(list)
@@ -53,11 +56,12 @@ local function alive(list)
     return n
 end
 
+-- The combat points: N_POSITIONS on a vertical (north-south) line through the centre, spacing_u
+-- apart, the middle one on the centre. Point 1 is the northernmost.
 local function positions()
     local out = {}
     for k = 1, N_POSITIONS do
-        local a = math.rad((k - 1) * 360 / N_POSITIONS)
-        out[k] = {math.cos(a) * SET.radius_u * U, math.sin(a) * SET.radius_u * U}
+        out[k] = {0, (k - (N_POSITIONS + 1) / 2) * SET.spacing_u * U}
     end
     return out
 end
@@ -69,8 +73,14 @@ local function shuffled(n)
     return t
 end
 
--- Each side's ships defend the six positions, spread out: a random order of the positions, dealt
--- round-robin, so no position gets everyone and each side is spread over all six.
+-- Every ship defends one combat point; r.pos records which (the tracking the retargeting uses).
+local function defend(r)
+    local p = B.positions[r.pos]
+    r.ship:orderDefendLocation(p[1], p[2])
+end
+
+-- Each side's ships start spread over the points: a random order of the points, dealt round-robin,
+-- so no point gets everyone and each side covers all of them.
 local function assign(list)
     local order = shuffled(N_POSITIONS)
     local k = 0
@@ -78,9 +88,38 @@ local function assign(list)
         if r.ship:isValid() then
             k = k + 1
             r.pos = order[(k - 1) % N_POSITIONS + 1]
-            local p = B.positions[r.pos]
-            r.ship:orderDefendLocation(p[1], p[2])
+            defend(r)
         end
+    end
+end
+
+-- Does point k still have a living enemy (from `enemies`) targeting it?
+local function hasEnemies(k, enemies)
+    for _, e in ipairs(enemies) do
+        if e.pos == k and e.ship:isValid() then return true end
+    end
+    return false
+end
+
+-- Ships whose point has no living enemies left move to a random point that has some.
+local function retarget(list, enemies)
+    local live = {}
+    for k = 1, N_POSITIONS do if hasEnemies(k, enemies) then live[#live + 1] = k end end
+    if #live == 0 then return end
+    for _, r in ipairs(list) do
+        if r.ship:isValid() and not hasEnemies(r.pos, enemies) then
+            r.pos = live[math.random(#live)]
+            defend(r)
+            B.retargets = B.retargets + 1
+        end
+    end
+end
+
+-- New spacing at once: every ship goes to its point's new place.
+local function movePoints()
+    B.positions = positions()
+    for _, side in ipairs({B.concord, B.corsair}) do
+        for _, r in ipairs(side) do if r.ship:isValid() and r.pos then defend(r) end end
     end
 end
 
@@ -110,7 +149,7 @@ end
 local function startBattle()
     clearBattle()
     B.positions = positions()
-    B.started_at, B.over = getScenarioTime(), false
+    B.started_at, B.over, B.retargets = getScenarioTime(), false, 0
     B.battles = B.battles + 1
     -- Concord: a line SPAWN_U west of the centre, 2U apart, facing east.
     for i = 1, SET.n_concord do
@@ -132,8 +171,8 @@ local function startBattle()
     applyImpulse(B.corsair, SET.corsair_impulse)
     assign(B.concord)
     assign(B.corsair)
-    log(string.format("[BATTLELAB] battle %d: %d Concord (x%.2f) vs %d Corsairs (x%.2f), positions at %dU",
-        B.battles, SET.n_concord, SET.concord_impulse, SET.n_corsair, SET.corsair_impulse, SET.radius_u))
+    log(string.format("[BATTLELAB] battle %d: %d Concord (x%.2f) vs %d Corsairs (x%.2f), %d points %.1fU apart",
+        B.battles, SET.n_concord, SET.concord_impulse, SET.n_corsair, SET.corsair_impulse, N_POSITIONS, SET.spacing_u))
 end
 
 local function statusText()
@@ -141,7 +180,8 @@ local function statusText()
     local lines = {string.format("=== BATTLE %d  (%d:%02d) ===", B.battles, t // 60, t % 60),
         string.format("Concord: %d / %d alive   (impulse x%.2f)", alive(B.concord), #B.concord, SET.concord_impulse),
         string.format("Corsairs: %d / %d alive  (impulse x%.2f)", alive(B.corsair), #B.corsair, SET.corsair_impulse),
-        string.format("Positions: %d at %dU from the centre", N_POSITIONS, SET.radius_u), "", "By position (Concord / Corsairs):"}
+        string.format("Combat points: %d on a north-south line, %.1fU apart (invisible)", N_POSITIONS, SET.spacing_u),
+        string.format("Ships moved to a new point: %d", B.retargets), "", "Ships targeting each point, north to south (Concord / Corsairs):"}
     for k = 1, N_POSITIONS do
         local c, s = 0, 0
         for _, r in ipairs(B.concord) do if r.pos == k and r.ship:isValid() then c = c + 1 end end
@@ -176,9 +216,11 @@ showGM = function()
         applyImpulse(B.corsair, SET.corsair_impulse)
         showGM()
     end)
-    addGMFunction(string.format("Positions at %dU (on reset)", SET.radius_u), function()
-        SET.radius_u = nextStep(RADIUS_STEPS, SET.radius_u)
-        showGM()
+    addGMFunction(string.format("Points %.1fU apart: closer", SET.spacing_u), function()
+        SET.spacing_u = math.max(SPACING_MIN, SET.spacing_u - SPACING_STEP); movePoints(); showGM()
+    end)
+    addGMFunction(string.format("Points %.1fU apart: further", SET.spacing_u), function()
+        SET.spacing_u = math.min(SPACING_MAX, SET.spacing_u + SPACING_STEP); movePoints(); showGM()
     end)
     addGMFunction(string.format("Concord ships: %d (on reset)", SET.n_concord), function() end)
     addGMFunction("  Concord +1", function() SET.n_concord = math.min(12, SET.n_concord + 1); showGM() end)
@@ -208,6 +250,12 @@ end
 
 function update(delta)
     RT.update(delta)
+    local now = getScenarioTime()
+    if not B.over and now >= B.next_retarget then
+        B.next_retarget = now + RETARGET_EVERY
+        retarget(B.concord, B.corsair)
+        retarget(B.corsair, B.concord)
+    end
     if not B.over and #B.concord > 0 then
         local c, s = alive(B.concord), alive(B.corsair)
         if c == 0 or s == 0 then
@@ -217,7 +265,7 @@ function update(delta)
                 B.battles, t // 60, t % 60, c == 0 and "the Corsairs hold" or "the Concord wins",
                 s, #B.corsair, c, #B.concord)
             globalMessage(msg, 10)
-            addGMMessage(msg .. "\n\nReset battle to go again.")
+            addGMMessage(msg .. string.format("\nShips moved to a new point: %d.\n\nReset battle to go again.", B.retargets))
             log("[BATTLELAB] " .. msg)
         end
     end
