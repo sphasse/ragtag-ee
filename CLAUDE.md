@@ -110,7 +110,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 3. **Hacking** (1.4x): Breach comms relay systems (75% hack threshold). Technical challenge.
 4. **Destroy** (1.6x): Eliminate hostile targets completely. Combat-focused.
 5. **Boarding** (1.8x): Disable and board target ships. Highest difficulty.
-6. **Escort** (1.5x): Shepherd a convoy to its destination; the convoy takes orders from its escort.
+6. **Escort** (1.5x, +90 cr munitions allowance): Shepherd a convoy to its destination; the convoy takes orders from its escort.
 7. **Tailing** (1.4x): Shadow a ship to a covert meeting and scan both vessels.
 
 **Dynamic scaling**:

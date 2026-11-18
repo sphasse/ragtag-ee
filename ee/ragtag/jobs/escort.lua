@@ -6,6 +6,9 @@
 local M = {}
 M.type      = "escort"
 M.weight    = 3
+-- Flat credits on top of the formula reward: two Corsair waves cost the escort missiles
+-- (playtest 2026-11-17). Part of m.reward, so standing on completion/failure moves with it.
+M.MUNITIONS_ALLOWANCE = 90
 M.tier_min  = 0
 M.type_mult = 1.5
 
@@ -260,7 +263,7 @@ function M.generate(opts)
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["escort"],
         opts.distance_u, opts.danger_level,
-        opts.distance_min_u, opts.distance_max_u)
+        opts.distance_min_u, opts.distance_max_u) + M.MUNITIONS_ALLOWANCE
     return {
         id             = JOBS.nextId(),
         type           = "escort",
@@ -273,7 +276,7 @@ function M.generate(opts)
         reward         = reward,
         short          = arch.short_offer,
         obj            = "Escort convoy to " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")",
-        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nHail the convoy when you're ready to begin.",
+        brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nThe fee includes " .. M.MUNITIONS_ALLOWANCE .. " cr for the missiles you will spend. Hail the convoy when you're ready to begin.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
         region_name    = opts.region_name,

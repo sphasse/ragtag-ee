@@ -10,7 +10,16 @@ local m, c0, rep0
 local function convoy() return m.convoy end
 local function along(frac) return m.ox + (m.dx - m.ox) * frac, m.oy + (m.dy - m.oy) * frac end
 
-T.step("post an escort job", function() m = T.postJob(T.makeJob("escort", HOME)) end)
+T.step("post an escort job", function()
+    m = T.postJob(T.makeJob("escort", HOME))
+    -- The pay is the formula reward plus a flat allowance for the missiles the waves will cost.
+    local mod = JOBS._registry.escort
+    T.eq("pay: the munitions allowance is 90 cr", mod.MUNITIONS_ALLOWANCE, 90)
+    local base = JOBS.calcReward(JOBS.ECONOMY.base_reward[m.tier], JOBS.ECONOMY.type_mult.escort,
+        m.distance_u, nil, nil, nil)
+    T.check("pay: at least the formula's base plus 90", m.reward >= base + 90, m.reward .. " vs " .. base)
+    T.check("pay: the brief says so", m.brief:find("90 cr for the missiles", 1, true) ~= nil)
+end)
 T.takeJob(function() return m end)
 T.step("the convoy waits for orders", function()
     T.check("escort: convoy spawned at the origin", ARC.near(convoy(), m.ox, m.oy, 2000))
