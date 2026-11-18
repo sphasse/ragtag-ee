@@ -35,6 +35,12 @@ local NORM = {
     accel   = {15, 25},    -- forward (and reverse) acceleration
 }
 
+-- Per-hull adjustments on top of the normalized values (multipliers). The Piranhas fight broadside,
+-- so they need to swing round quickly (playtest: a bit more turn and acceleration).
+local HULL_TWEAKS = {
+    ["Piranha F12"] = {turn = 1.3, accel = 1.3},
+}
+
 local SET = {
     concord_impulse = 1.0,   -- x the normalized impulse (normalization already makes the fastest 120)
     corsair_impulse = 1.0,
@@ -196,17 +202,22 @@ local function norm(stat, x)
     return a + (x - lo) / (hi - lo) * (b - a)
 end
 
+-- A hull's final stat: normalized, then its HULL_TWEAKS multiplier if it has one.
+local function hullStat(hull, stat)
+    local t = HULL_TWEAKS[hull]
+    return norm(stat, STOCK.hulls[hull][stat]) * (t and t[stat] or 1)
+end
+
 local function spawnShip(hull, faction, name, x, y, heading)
     local s = CpuShip():setTemplate(hull):setFaction(faction):setCallSign(name)
     s:setPosition(x, y):setHeading(heading)
     s:setWarpDrive(false)
     pcall(function() s:setJumpDrive(false) end)
     s:setScanningParameters(1, 1)
-    local stock = STOCK.hulls[hull]
     local _, rev = s:getImpulseMaxSpeed()
-    local fwd = norm("impulse", stock.impulse)
-    s:setRotationMaxSpeed(norm("turn", stock.turn))
-    local acc = norm("accel", stock.accel)
+    local fwd = hullStat(hull, "impulse")
+    s:setRotationMaxSpeed(hullStat(hull, "turn"))
+    local acc = hullStat(hull, "accel")
     s:setAcceleration(acc, acc)
     return {ship = s, fwd = fwd, rev = rev}   -- fwd: the normalized impulse the multiplier scales
 end
@@ -261,8 +272,9 @@ local function statusText()
     table.sort(names, function(a, b) return STOCK.hulls[a].impulse < STOCK.hulls[b].impulse end)
     for _, hull in ipairs(names) do
         local v = STOCK.hulls[hull]
-        lines[#lines + 1] = string.format("  %s: %.0f / %.1f / %.1f  (stock %.0f / %.1f / %.0f)", hull,
-            norm("impulse", v.impulse), norm("turn", v.turn), norm("accel", v.accel), v.impulse, v.turn, v.accel)
+        lines[#lines + 1] = string.format("  %s: %.0f / %.1f / %.1f  (stock %.0f / %.1f / %.0f)%s", hull,
+            hullStat(hull, "impulse"), hullStat(hull, "turn"), hullStat(hull, "accel"), v.impulse, v.turn, v.accel,
+            HULL_TWEAKS[hull] and "  tweaked" or "")
     end
     lines[#lines + 1] = ""
     lines[#lines + 1] = "Ships targeting each point, north to south (Concord / Corsairs):"

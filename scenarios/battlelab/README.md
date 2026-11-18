@@ -25,7 +25,9 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
   | Piranha F12 | 40 / 6 / 8 | 88 / 16.3 / 16.5 |
   | Atlantis X23 | 30 / 3.5 / 5 | 80 / 15 / 15 |
 
-  The impulse multipliers (default x1.0) scale the normalized impulse on top.
+  On top of that, `HULL_TWEAKS` adjusts single hulls: the Piranha F12 gets x1.3 turn and
+  acceleration (21.2 °/s, 21.5) so it can swing its broadsides round. The impulse multipliers
+  (default x1.0) scale the result.
 - Every ship, on both sides, **defends one combat point**, and the scenario keeps track of which.
   At the start each side is dealt round-robin over a random order of the points, so both sides
   cover all five and the fight stays spread out instead of collapsing into one mass.
