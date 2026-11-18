@@ -145,8 +145,10 @@ More than one player ship can work the board. **A job belongs to the ship that t
   ship runs into is put back once that ship has moved off;
 - each ship has its own cap (`JOBS.config.max_active`), its own Relay job panel, its own
   credits and its own standing; the board is shared, so a job one ship takes is gone for the rest;
-- story contracts (`story = true`, priority-5 injected) are offered to the
-  primary ship only, because story arcs belong to that ship;
+- everything an arc injects (`JOBS.inject`: story contracts AND priority-3 seeds, ensured or not)
+  is offered to, and can be taken by, the primary ship only, because story arcs belong to that ship.
+  A seed sitting in one of the station's shared slots is hidden from other ships. `any_ship = true`
+  on `JOBS.inject` marks work that is not an arc's (the test harness's `T.postJob`) as open to all;
 - a job module keeps the ENTITIES it spawns on the job record (`m.target`, `m.rendezvous`,
   `m.convoy`, `m.fighters`) and uses those; `m.target_cs` and friends are only the names, for
   log lines. Never find a job's ship again with `RT.find`: two ships can share a callsign;

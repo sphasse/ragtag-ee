@@ -118,7 +118,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 
 The board works for more than one player ship. A job belongs to the ship that took it: only that ship advances,
 completes and is paid for it, and gains or loses standing; each ship has its own 2-job cap, credits, standing, upgrades
-and job tier (`JOBS.maxTier(ship)`). Story contracts and story arcs are for the primary ship only. Job modules use
+and job tier (`JOBS.maxTier(ship)`). Story arcs, and every job an arc injects (story contracts and seeds), are for the primary ship only. Job modules use
 `JOBS.owner/ships/log/hail/rep`, never `RT.players` / `RT.shipLog`, and keep the entities they spawn on the job record
 (`m.target`, `m.convoy`, ...). Everything a ship owns is in its record (`RT.shipRecord(ship)`: credits, reputation,
 upgrades); credits show as a `Credits: N` line on Relay and Operations: use
@@ -142,7 +142,8 @@ standing; only that ship is stopped, fined, jammed and attacked. Zone cooldowns 
 ### Story arcs and the job board
 
 Arcs seed station boards with `JOBS.inject{category, priority, origin, when, record}` (priority 3 = filler,
-5 = `story` contract tagged `[SPECIAL]`, bypassing the 2-job cap with no failure penalty). Build records
+5 = `story` contract tagged `[SPECIAL]`, bypassing the 2-job cap with no failure penalty). Injected jobs are
+offered to the primary ship only (`any_ship = true` opens one to every ship; not for arcs). Build records
 with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unload`/phase `exit`. Details:
 `.claude/skills/empty-epsilon-scenarios/references/jobs_api.md`.
 

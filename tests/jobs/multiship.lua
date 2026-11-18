@@ -1,6 +1,6 @@
 -- Several ships working the board. A job belongs to the ship that took it: only that ship can
 -- advance it, complete it, be paid for it, or lose standing over it. Each ship has its own cap,
--- credits and standing. Story contracts go to the primary ship only. A = the primary ship (the
+-- credits and standing. Arc jobs (story contracts and seeds) go to the primary ship only. A = the primary ship (the
 -- Magpie), B = a second freighter.
 
 T.suite("jobs")
@@ -204,6 +204,43 @@ asA()
 T.dock(HOME)
 T.talk(HOME, {"Any work available?"})
 T.step("for A", function() T.check("story: offered to the primary ship", T.hasReply("Take: test relics"), table.concat(T.replies(), " | ")) end)
+T.closeComms()
+
+-- ── So do the ordinary-looking jobs an arc seeds ─────────────────────────────
+-- An ensured seed (priority 3, no tag) is put in one of the station's shared slots when the
+-- primary ship opens the board. It stays there for that ship and is hidden from the others.
+local function seed_in(offers)
+    for _, o in ipairs(offers) do if o.id == "test_seed" then return o end end
+end
+local seed
+T.step("an arc seeds a job; the primary ship looks first", function()
+    JOBS.inject({category = "TEST_SEED", priority = 3, ensure = true, origin = HOME, record = function(cs)
+        return JOBS.build("delivery", {id = "test_seed", origin = cs, dest = "Calder's Reach",
+            cargo = "seeded crates", reward = 77, brief = "Looks like any other job."})
+    end})
+    seed = seed_in(JOBS.board(HOME, A).offers)
+    T.check("seed: on the primary ship's board", seed ~= nil)
+    T.check("seed: no [SPECIAL] tag", seed ~= nil and not seed.story)
+end)
+T.step("the second ship looks", function()
+    T.check("seed: not on another ship's board", seed_in(JOBS.board(HOME, B).offers) == nil)
+    T.check("seed: another ship cannot take it", not JOBS.accept(seed, true, B))
+    T.check("seed: so it is still nobody's", seed.ship == nil)
+    T.check("seed: still on the primary ship's board", seed_in(JOBS.board(HOME, A).offers) ~= nil)
+end)
+asB()
+T.dock(HOME)
+T.talk(HOME, {"Any work available?"})
+T.step("not in B's listing", function()
+    T.check("seed: not listed to another ship", not T.hasReply("seeded crates"), table.concat(T.replies(), " | "))
+end)
+asA()
+T.dock(HOME)
+T.talk(HOME, {"Any work available?"})
+T.step("in A's listing", function()
+    T.check("seed: listed to the primary ship", T.hasReply("seeded crates"), table.concat(T.replies(), " | "))
+    JOBS.removeCategory("TEST_SEED")
+end)
 
 -- ── Standing is per ship at the board ────────────────────────────────────────
 T.step("B makes a bad name for itself", function()

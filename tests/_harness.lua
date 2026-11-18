@@ -251,7 +251,7 @@ end
 
 -- Put a job on its origin station's board as ordinary work (guaranteed to be listed).
 function T.postJob(m)
-    JOBS.inject({category = "TEST_JOBS", priority = 3, ensure = true, origin = m.origin, record = m})
+    JOBS.inject({category = "TEST_JOBS", priority = 3, ensure = true, any_ship = true, origin = m.origin, record = m})
     return m
 end
 

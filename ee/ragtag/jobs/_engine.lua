@@ -53,6 +53,8 @@ local _inject_seq = 0
 --   ensure   = true,                 -- priority 3 only: guarantee this job is on the station's
 --                                    -- board (takes a free slot, else replaces a cached ordinary
 --                                    -- job). Still looks like a normal job (no [SPECIAL] tag).
+--   any_ship = true,                 -- not arc work: offered to every player ship (tests, GM).
+--                                    -- Without it an injected job is for the primary ship only.
 --   record   = <mission table> | function(cs) return <mission table> end,
 -- }
 -- Build records with JOBS.build("delivery"|"salvage", opts) (see those modules).
@@ -61,7 +63,8 @@ function JOBS.inject(def)
     local e = {
         id = def.id or ("inj_" .. _inject_seq),
         category = def.category, priority = def.priority or 3,
-        origin = def.origin, when = def.when, record = def.record, ensure = def.ensure, missions = {},
+        origin = def.origin, when = def.when, record = def.record, ensure = def.ensure,
+        any_ship = def.any_ship, missions = {},
     }
     JOBS._injected[#JOBS._injected + 1] = e
     return e.id
@@ -81,10 +84,11 @@ local function _originMatches(e, cs)
 end
 
 -- Eligible missions at station cs. hook=true -> priority >= 4; false -> seeds.
-function JOBS._injectedFor(cs, hook)
+-- primary=false: only the entries open to every ship (any_ship).
+function JOBS._injectedFor(cs, hook, primary)
     local out = {}
     for _, e in ipairs(JOBS._injected) do
-        if (e.priority >= 4) == hook and _originMatches(e, cs) then
+        if (e.priority >= 4) == hook and _originMatches(e, cs) and (primary ~= false or e.any_ship) then
             local ok_when = true
             if e.when then
                 local ok, res = pcall(e.when, cs)
@@ -104,6 +108,7 @@ function JOBS._injectedFor(cs, hook)
                         rec.origin  = rec.origin or cs
                         rec._inject = e.id
                         rec._ensure = e.ensure and e.priority < 4 or nil
+                        rec._any_ship = e.any_ship or nil
                         e.missions[cs] = rec
                         m = rec
                     end
@@ -362,8 +367,8 @@ end
 -- is paid for it, hears about it in its log, and gains or loses standing over it. Other player
 -- ships can neither help nor sabotage. Each ship has its own cap (config.max_active), credits
 -- and standing; the board itself is shared, so a job one ship takes is gone for the others.
--- Story contracts (story = true, priority-5 injected) are offered to the primary ship only:
--- story arcs belong to that ship.
+-- Arc jobs (everything JOBS.inject adds: story contracts and seeds) are offered to, and can be
+-- taken by, the primary ship only: story arcs belong to that ship.
 -- Job modules use the helpers below and never RT.players / RT.shipLog / RT.hail.
 
 -- The job's owner while it is alive, else nil.
@@ -429,6 +434,7 @@ end
 function JOBS.accept(m, skip_log, ship)
     ship = RT.playerShip(ship) or RT.player
     if not RT.valid(ship) then return false end
+    if m._inject and not m._any_ship and ship ~= RT.player then return false end   -- arc jobs: primary only
     if #JOBS.activeFor(ship) >= JOBS.config.max_active and not m.story then return false end
     m.ship = ship
     JOBS._done[m.id] = true
@@ -773,12 +779,19 @@ function JOBS.board(cs, ship)
     local n_offer, nag = _repGate(cs, ship, n_slots)
     local due    = _slotsDue(ss, n_slots, now)
     local offers = _cachedOffers(ss, n_slots)
-    -- Story contracts (priority-5 injected) do not use up the station's slots, and are for the
-    -- primary ship only (story arcs belong to that ship).
-    local story  = (ship == RT.player) and JOBS._injectedFor(cs, true) or {}
-    local seeds  = JOBS._injectedFor(cs, false)
+    -- Everything an arc injects (story contracts and seeds alike) is for the primary ship only:
+    -- story arcs belong to that ship. Story contracts do not use up the station's slots. A seed
+    -- already sitting in a slot stays there for the primary ship and is hidden from the others.
+    local primary = (ship == RT.player)
+    local story  = JOBS._injectedFor(cs, true, primary)
+    local seeds  = JOBS._injectedFor(cs, false, primary)
 
     _placeEnsured(ss, n_slots, due, offers, seeds, now)
+    if not primary then
+        for i = #offers, 1, -1 do
+            if offers[i]._inject and not offers[i]._any_ship then table.remove(offers, i) end
+        end
+    end
 
     local ctx, slots_failed = JOBS.offerContext(cs), 0
     for _, sn in ipairs(due) do
