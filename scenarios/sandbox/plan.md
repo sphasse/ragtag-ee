@@ -196,8 +196,8 @@ jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don
 
 **Decided (2026-11-15):**
 1. One prep mission: the depot raid only.
-2. If both raid escorts are lost, the raid restarts: Reva sends two fresh Corsair ships and the
-   depot's defenders are reset (back to the start of `raid`, the linear-arc failure restart).
+2. Each raid escort lost is replaced at once: Reva hails with the lost ship's and the new ship's
+   names (changed 2026-11-18 from "losing both restarts the raid").
 3. Declining the final battle after the raid counts as `"failed"` (the defense started and did
    not finish successfully); `"declined"` only comes from turning down the hook.
 
@@ -607,7 +607,7 @@ If an arc module is lost, rebuild against these rails:
 - Corsair arc reworked: single hook (non-hostile raider hail on entering the Gauntlet), escort to
   Blackwater, Reva's briefing, a forward-depot raid with commandable Corsair escorts, a mine-wall
   trap with a 3U gap, and the battle at the wall. No betrayal branch: defend or decline.
-- Corsair arc: one prep mission (the raid); losing both raid escorts restarts the raid; declining
+- Corsair arc: one prep mission (the raid); each raid escort lost is replaced from Blackwater; declining
   the final battle after the raid is `failed`, only a refused hook is `declined`.
 - Wall mines use a smaller AI avoid bubble (~0.8U); trigger and blast stay stock. The attack
   fleet follows scripted waypoints along the wall, never free pathfinding.

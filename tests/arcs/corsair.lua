@@ -117,18 +117,30 @@ T.step("raid on", function()
 end)
 T.closeComms()
 
--- ── Raid: both escorts lost restarts it ──────────────────────────────────────
-local first_escort
-T.step("lose both escorts", function()
-    first_escort = escort()
-    for _, s in ipairs(T.st().escorts) do s:destroy() end
+-- ── Raid: an escort lost is replaced, and Reva says so ───────────────────────
+local first_escort, first_name
+T.step("lose an escort", function()
+    first_escort, first_name = escort(), T.st().escort_cs[1]
+    T.eq("raid: escorts are named", first_name, "Hardtack")
+    first_escort:destroy()
 end)
-T.waitFor("raid: Reva sends two more", function() return T.alive(T.st().escorts) == 2 end, 3)
-T.step("restarted", function()
+T.waitFor("raid: Reva sends another", function()
+    return T.alive(T.st().escorts) == 2 and T.st().escorts[1] ~= first_escort
+end, 3)
+T.step("replaced", function()
     T.eq("raid: still the raid", T.phase(), "raid")
-    T.check("raid: fresh escorts", escort() ~= first_escort)
-    T.eq("raid: guards re-crewed", T.alive(T.st().defenders), 2)
+    T.eq("raid: guards untouched", T.alive(T.st().defenders), 2)
+    local names = table.concat(T.st().escort_cs, ", ")
+    T.check("raid: Ninth Life still flying", names:find("Ninth Life", 1, true) ~= nil, names)
+    T.check("raid: a new ship, not Hardtack", not names:find("Hardtack", 1, true), names)
 end)
+T.talk("Blackwater", {}, {answer = true, name = "Reva (Blackwater)"})
+T.step("Reva's word", function()
+    local new = T.st().escort_cs[#T.st().escort_cs]
+    T.check("raid: Reva names the lost ship and the new one",
+        T.msg():find("We lost Hardtack. I'm sending " .. new .. " out to you.", 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
 
 -- ── Raid: the orders unlock in turn ──────────────────────────────────────────
 T.undock()
@@ -138,10 +150,20 @@ T.step("far from the depot: the three standing orders", function()
     T.check("raid: form up on offer", T.hasReply("Form up on me."))
     T.check("raid: head to the depot on offer", T.hasReply("Head to the depot."))
     T.check("raid: head back to Blackwater on offer", T.hasReply("Head back to Blackwater."))
+    T.check("raid: hold position on offer", T.hasReply("Hold position."))
     T.check("raid: no attack order far from the depot", not T.hasReply("Attack the Concord defenders."))
     T.check("raid: no boarding order yet", not T.hasReply("Board the depot"))
     T.moveTo(DEPOT_X, DEPOT_Y + 4000)
     for i, s in ipairs(T.st().escorts) do s:setPosition(DEPOT_X + i * 800, DEPOT_Y + 4500) end
+end)
+T.talk(escort, {"Hold position."}, {name = "an escort"})
+T.step("holding", function()
+    local held = 0
+    for _, s in ipairs(T.st().escorts) do
+        local ok, ord = pcall(function() return s:getOrder() end)
+        if ok and ord == "Stand Ground" then held = held + 1 end
+    end
+    T.eq("raid: both escorts hold position", held, 2)
 end)
 T.talk(escort, {"Attack the Concord defenders."}, {name = "an escort"})
 T.step("attacking; then the guards go down", function()

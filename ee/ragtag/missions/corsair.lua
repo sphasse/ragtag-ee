@@ -8,7 +8,7 @@
 --   escort    follow the guide; Corsair territory is friendly for now; dock at Blackwater
 --   briefing  Reva Okonkwo explains, and asks the crew to raid a Concord forward depot
 --   raid      two commandable Corsair ships: form up -> attack defenders -> board and loot
---             (both lost: the raid restarts with fresh ships and defenders)
+--             (an escort lost is replaced at once from Blackwater; Reva hails with both names)
 --   return    dock at Blackwater: the mine-wall trap is laid; the attack fleet is detected;
 --             join the defense or decline (= failed)
 --   battle    the fleet follows scripted waypoints along the wall, through the 3U gap, to
@@ -105,6 +105,7 @@ function M.init_state()
         defenders_down = false, load_t0 = nil,
         mines = {}, trap_jammers = {}, trap_built = false, mines_given = false,
         fleet = {}, wp = {}, allies = {}, cjam = {}, fleet_spawned = false,
+        escort_cs = {},   -- names of st.escorts, by index
         tender = nil, reloads = _RELOADS, reload_t0 = nil, low_called = false, tender_lost = false,
     }
 end
@@ -285,19 +286,53 @@ local function _depotSurrenders(st)
     end
 end
 
+-- Ships Reva sends to replace an escort lost in the raid (any not already flying).
+local _REPLACEMENT_NAMES = {
+    "Second Wind", "Last Laugh", "Scrap Iron", "Old Grudge", "Long Shot",
+    "Lucky Break", "Sweet Revenge", "Rust Bucket", "Bad Habit", "Spare Change",
+}
+
+-- One raid escort, near Blackwater, forming up on the crew. st.escort_cs keeps its name (by
+-- index, alongside st.escorts) so a lost ship can still be named.
+local function _spawnEscort(st, cs, x, y)
+    local s = CpuShip():setTemplate("Phobos T3"):setFaction("Corsair Friendly")
+    s:setCallSign(cs):setPosition(x, y)
+    s:setWarpDrive(true)
+    s:setDescriptions("Corsair warship.", "Corsair warship " .. cs .. ", lent by Blackwater for the depot raid.")
+    s:setScanningParameters(1, 1)
+    s:setCommsScript(""):setCommsFunction(ARC.comms(function(src, tgt) _escortComms(src, tgt) end, '"We take our orders from someone else."'))
+    local p = ARC.player()
+    if RT.valid(p) then s:orderDefendTarget(p) end
+    st.escorts[#st.escorts + 1] = s
+    st.escort_cs[#st.escort_cs + 1] = cs
+    return s
+end
+
 local function _spawnEscorts(st)
     ARC.kill(st.escorts)
-    st.escorts = {}
-    local p = ARC.player()
+    st.escorts, st.escort_cs = {}, {}
     for i, cs in ipairs({"Hardtack", "Ninth Life"}) do
-        local s = CpuShip():setTemplate("Phobos T3"):setFaction("Corsair Friendly")
-        s:setCallSign(cs):setPosition(_BW_X - 3000, _BW_Y + (i == 1 and -1500 or 1500))
-        s:setWarpDrive(true)
-        s:setDescriptions("Corsair warship.", "Corsair warship " .. cs .. ", lent by Blackwater for the depot raid.")
-        s:setScanningParameters(1, 1)
-        s:setCommsScript(""):setCommsFunction(ARC.comms(function(src, tgt) _escortComms(src, tgt) end, '"We take our orders from someone else."'))
-        if RT.valid(p) then s:orderDefendTarget(p) end
-        st.escorts[#st.escorts + 1] = s
+        _spawnEscort(st, cs, _BW_X - 3000, _BW_Y + (i == 1 and -1500 or 1500))
+    end
+end
+
+-- During the raid an escort lost is replaced at once from Blackwater, and Reva says so.
+local function _replaceLostEscorts(st)
+    for i = #st.escorts, 1, -1 do
+        if not RT.valid(st.escorts[i]) then
+            local lost = st.escort_cs[i] or "one of ours"
+            table.remove(st.escorts, i)
+            table.remove(st.escort_cs, i)
+            local taken = {}
+            for _, n in ipairs(st.escort_cs) do taken[n] = true end
+            local name = "Second Wind"
+            for _, n in ipairs(_REPLACEMENT_NAMES) do
+                if not taken[n] and not RT.valid(RT.find(n)) then name = n; break end
+            end
+            _spawnEscort(st, name, _BW_X - 3000, _BW_Y + (#st.escorts % 2 == 0 and -1500 or 1500))
+            local line = '"We lost ' .. lost .. '. I\'m sending ' .. name .. ' out to you. Look after her."'
+            if not ARC.hail(_blackwater(), line, "Reva Okonkwo") then ARC.log("[Reva Okonkwo] " .. line, "#FFCC80") end
+        end
     end
 end
 
@@ -356,6 +391,11 @@ _escortComms = function(src, tgt)
         st.attacking, st.boarding = false, false
         for _, s in ipairs(ARC.alive(st.escorts)) do s:orderDefendTarget(src) end
         setCommsMessage('"Forming up on you."')
+    end)
+    addCommsReply("Hold position.", function()
+        st.attacking, st.boarding = false, false
+        for _, s in ipairs(ARC.alive(st.escorts)) do s:orderStandGround() end
+        setCommsMessage('"Holding here. We\'ll fire on anything that comes close."')
     end)
     addCommsReply("Head to the depot.", function()
         st.attacking, st.boarding = false, false
@@ -901,11 +941,8 @@ M.phases.raid = {
     end,
     update = function(st, delta, now)
         local escorts = ARC.alive(st.escorts)
-        if #escorts == 0 then
-            ARC.log("[Reva Okonkwo] Both ships lost? Damn it. I'm sending two more. The Concord will have re-crewed that depot. Try again.", "#FFCC80")
-            MISSIONS.phase("corsair", "raid")   -- failure restart: fresh escorts, fresh defenders
-            return
-        end
+        _replaceLostEscorts(st)
+        escorts = ARC.alive(st.escorts)
         if not st.defenders_down and #ARC.alive(st.defenders) == 0 then
             st.defenders_down = true
             _depotSurrenders(st)
