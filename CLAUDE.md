@@ -38,7 +38,9 @@ Contributors add **universe extensions** and **scenarios** independently.
 ## Commands
 - `python3 tools/check.py` (add `--fix` to regenerate generated files) — run after every change
 - `python3 tools/install.py --ee <EmptyEpsilon dir> [--link]` — install into a game
-- `python3 tools/package.py --version X.Y.Z [--radar-icons]` — player release zip in `dist/` (unzip into the EmptyEpsilon folder)
+- `python3 tools/package.py --version N [--radar-icons]` — player release zip in `dist/` (unzip into the EmptyEpsilon folder)
+- `python3 tools/release.py [--dry-run] [--radar-icons] [--notes FILE] [--draft]` — numbered GitHub release (next number after the
+  highest numeric tag): builds the zip, tags, publishes with `gh`. Needs a clean, pushed main and `gh auth login`.
 - `EE_DIR=<EmptyEpsilon checkout with _build/EmptyEpsilon> tools/ci_headless.sh` — headless run + smoke test (Linux).
   Without `EE_DIR` it builds EmptyEpsilon at the pinned commits into `.ee-build/` (~20 min first time).
 - `python3 tools/smoke_test.py --launch <EmptyEpsilon dir>` — smoke test in one command on any platform: installs, starts the
