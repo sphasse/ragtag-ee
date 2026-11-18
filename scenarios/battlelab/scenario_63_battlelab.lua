@@ -25,9 +25,19 @@ local CORSAIR_NAMES = {"Hardtack", "Ninth Life", "Long Odds", "Hollis", "Hearths
                        "Quick Silver", "Hard Luck", "Tin Can", "Iron Will", "Stray Dog"}
 
 -- ── Settings (the GM changes these; a reset applies counts and positions) ────
+-- Speeds are normalized: each stat of every hull above is mapped linearly from the range the lab's
+-- hulls have stock (slowest .. fastest, measured at start) onto these ranges, so the slowest hull
+-- gets the low end and the fastest the high end, everything else in between in the same order.
+-- Stock: Atlantis X23 30/3.5/5, Piranha F12 40/6/8, Phobos T3 60/10/10, Adder MK5 80/28/25.
+local NORM = {
+    impulse = {80, 120},   -- forward impulse
+    turn    = {15, 28},    -- degrees per second
+    accel   = {15, 25},    -- forward (and reverse) acceleration
+}
+
 local SET = {
-    concord_impulse = 1.5,   -- x the hull's normal impulse
-    corsair_impulse = 1.5,
+    concord_impulse = 1.0,   -- x the normalized impulse (normalization already makes the fastest 120)
+    corsair_impulse = 1.0,
     spacing_u       = 1.5,   -- distance between neighbouring combat points (Points closer / further)
     n_concord       = 5,
     n_corsair       = 12,
@@ -129,14 +139,49 @@ local function applyImpulse(list, mult)
     end
 end
 
+-- Stock stats of every hull the lab uses, and their min / max (measured once, from throwaway ships).
+local STOCK = nil
+local function measureHulls()
+    STOCK = {hulls = {}, impulse = {math.huge, -math.huge}, turn = {math.huge, -math.huge}, accel = {math.huge, -math.huge}}
+    local seen = {}
+    for _, list in ipairs({CONCORD_HULLS, CORSAIR_HULLS}) do
+        for _, hull in ipairs(list) do
+            if not seen[hull] then
+                seen[hull] = true
+                local s = CpuShip():setTemplate(hull):setPosition(0, -500000)
+                local imp = s:getImpulseMaxSpeed()
+                local v = {impulse = imp, turn = s:getRotationMaxSpeed(), accel = s:getAcceleration()}
+                s:destroy()
+                STOCK.hulls[hull] = v
+                for stat, x in pairs(v) do
+                    STOCK[stat][1] = math.min(STOCK[stat][1], x)
+                    STOCK[stat][2] = math.max(STOCK[stat][2], x)
+                end
+            end
+        end
+    end
+end
+
+local function norm(stat, x)
+    local lo, hi = STOCK[stat][1], STOCK[stat][2]
+    local a, b = NORM[stat][1], NORM[stat][2]
+    if hi <= lo then return b end
+    return a + (x - lo) / (hi - lo) * (b - a)
+end
+
 local function spawnShip(hull, faction, name, x, y, heading)
     local s = CpuShip():setTemplate(hull):setFaction(faction):setCallSign(name)
     s:setPosition(x, y):setHeading(heading)
     s:setWarpDrive(false)
     pcall(function() s:setJumpDrive(false) end)
     s:setScanningParameters(1, 1)
-    local fwd, rev = s:getImpulseMaxSpeed()
-    return {ship = s, fwd = fwd, rev = rev}
+    local stock = STOCK.hulls[hull]
+    local _, rev = s:getImpulseMaxSpeed()
+    local fwd = norm("impulse", stock.impulse)
+    s:setRotationMaxSpeed(norm("turn", stock.turn))
+    local acc = norm("accel", stock.accel)
+    s:setAcceleration(acc, acc)
+    return {ship = s, fwd = fwd, rev = rev}   -- fwd: the normalized impulse the multiplier scales
 end
 
 local function clearBattle()
@@ -147,6 +192,7 @@ local function clearBattle()
 end
 
 local function startBattle()
+    if not STOCK then measureHulls() end
     clearBattle()
     B.positions = positions()
     B.started_at, B.over, B.retargets = getScenarioTime(), false, 0
@@ -181,7 +227,17 @@ local function statusText()
         string.format("Concord: %d / %d alive   (impulse x%.2f)", alive(B.concord), #B.concord, SET.concord_impulse),
         string.format("Corsairs: %d / %d alive  (impulse x%.2f)", alive(B.corsair), #B.corsair, SET.corsair_impulse),
         string.format("Combat points: %d on a north-south line, %.1fU apart (invisible)", N_POSITIONS, SET.spacing_u),
-        string.format("Ships moved to a new point: %d", B.retargets), "", "Ships targeting each point, north to south (Concord / Corsairs):"}
+        string.format("Ships moved to a new point: %d", B.retargets), "", "Hull speeds, normalized (impulse / turn / accel):"}
+    local names = {}
+    for hull in pairs(STOCK.hulls) do names[#names + 1] = hull end
+    table.sort(names, function(a, b) return STOCK.hulls[a].impulse < STOCK.hulls[b].impulse end)
+    for _, hull in ipairs(names) do
+        local v = STOCK.hulls[hull]
+        lines[#lines + 1] = string.format("  %s: %.0f / %.1f / %.1f  (stock %.0f / %.1f / %.0f)", hull,
+            norm("impulse", v.impulse), norm("turn", v.turn), norm("accel", v.accel), v.impulse, v.turn, v.accel)
+    end
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = "Ships targeting each point, north to south (Concord / Corsairs):"
     for k = 1, N_POSITIONS do
         local c, s = 0, 0
         for _, r in ipairs(B.concord) do if r.pos == k and r.ship:isValid() then c = c + 1 end end
