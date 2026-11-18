@@ -565,7 +565,45 @@ end
 function RT.adoptPlayer(ship)
     if RT.playerShip(ship) == nil then table.insert(RT.players, ship) end
     RT.player = RT.players[1]   -- backward-compat alias always points to first ship
+    RT.promotePrimary()
     return ship
+end
+
+-- The primary ship (RT.players[1]) owns the campaign record and the story arcs. When it has been
+-- destroyed and a live ship carries the campaign's ship name (a rebuilt ship that joined under
+-- it, or a ship renamed to it), that ship becomes the primary: the dead entry leaves slot 1, and
+-- the campaign record (credits, standing, upgrades) and the arcs go to the new ship. Called from
+-- RT.adoptPlayer and every RT.update.
+function RT.promotePrimary()
+    local c = RT.campaign
+    if c == nil or c.ship_name == nil or #RT.players == 0 or RT.valid(RT.players[1]) then return end
+    for i = 2, #RT.players do
+        local p = RT.players[i]
+        if RT.valid(p) and p:getCallSign() == c.ship_name then
+            table.remove(RT.players, i)
+            RT.players[1] = p            -- replaces the dead primary
+            RT.player = p
+            -- Forget any record this ship was given as a second ship; drop it from the save when
+            -- nothing was put in it. The ship now reads the campaign record and gets its upgrades.
+            for _, st in ipairs(RT._ship_state) do
+                if st.ship == p then
+                    local rec = st.rec
+                    if rec and type(c.extra_ships) == "table" and (rec.credits or 0) == 0
+                       and #(rec.upgrades or {}) == 0 and next(rec.reputation or {}) == nil then
+                        for k = #c.extra_ships, 1, -1 do
+                            if c.extra_ships[k] == rec then table.remove(c.extra_ships, k) end
+                        end
+                    end
+                    st.rec, st.campaign, st.outfitted, st.shown = nil, nil, false, nil
+                end
+            end
+            RT.outfit(p)
+            log("[RT] " .. c.ship_name .. " is back: it is the primary ship again.")
+            p:addToShipLog("Registry: " .. c.ship_name .. " is back on the books. The crew's accounts and contracts are yours.", "#E0C060")
+            RT.emit("primary_restored", {ship = c.ship_name}, "normal")
+            return
+        end
+    end
 end
 
 -- Apply the upgrades in a ship's record, once per ship per session.
@@ -693,6 +731,7 @@ function RT.update(delta)
             log("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ")")
         end
     end
+    RT.promotePrimary()   -- a ship renamed to the lost primary's name takes its place
     -- Credits, standing and upgrades are per ship: each ship's record is found by its callsign
     -- the first time it is needed (a new record, with nothing in it, for a ship never seen).
     if RT.campaign then

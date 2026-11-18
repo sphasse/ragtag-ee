@@ -20,15 +20,16 @@ Contributors add **universe extensions** and **scenarios** independently.
   - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs), one file per arc.
     Core never depends on this folder; shared arc code goes in `_helpers.lua`, not `core.lua`.
-    Arcs belong to the primary ship only (`ARC.player()`; other player ships just work the job board), and declare
+    Arcs belong to the primary ship only (`ARC.player()`; other player ships just work the job board; if it is lost, a ship
+    that joins under or is renamed to the campaign's ship name becomes the primary again: `RT.promotePrimary`), and declare
     their saved flags in `M.flags` / `M.reads` (`check.py` rejects undeclared flag names).
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tests/` — in-game regression tests run by `tools/game_tests.py` (never installed into a played game): `_harness.lua`,
   `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua`, `jobs/multiship.lua`
   and `jobs/credits.lua`, `world/<plugin>.lua` (one per world plugin) plus `world/engine.lua`, and `core/records.lua`
-  (per-ship ownership), `core/events.lua` (event bus, beats, the director's mailbox and its observation-only guard)
-  and `core/gm_console.lua` (the GM menus act on the ship picked)
+  (per-ship ownership), `core/events.lua` (event bus, beats, the director's mailbox and its observation-only guard),
+  `core/gm_console.lua` (the GM menus act on the ship picked) and `core/primary.lua` (losing and restoring the primary ship)
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
 - `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse) and `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements), both loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
@@ -97,7 +98,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 
 ### Job Types with Progressive Compensation
 
-(Seven job modules in `ee/ragtag/jobs/`: the five below plus `escort` and `tailing`.)
+(Seven job modules in `ee/ragtag/jobs/`, each setting its own `M.type_mult`.)
 
 **Base multipliers** (delivery = 1.0x baseline):
 1. **Delivery** (1.0x): Ferry cargo between stations. Safest, baseline income.
@@ -105,6 +106,8 @@ Say plainly in PR descriptions what was and wasn't tested.
 3. **Hacking** (1.4x): Breach comms relay systems (75% hack threshold). Technical challenge.
 4. **Destroy** (1.6x): Eliminate hostile targets completely. Combat-focused.
 5. **Boarding** (1.8x): Disable and board target ships. Highest difficulty.
+6. **Escort** (1.5x): Shepherd a convoy to its destination; the convoy takes orders from its escort.
+7. **Tailing** (1.4x): Shadow a ship to a covert meeting and scan both vessels.
 
 **Dynamic scaling**:
 - Distance bonus: +1% per U beyond 10U
@@ -133,8 +136,9 @@ standing; only that ship is stopped, fined, jammed and attacked. Zone cooldowns 
 1. **Station offers 1–3 jobs** (by station size, less with poor standing) when a ship docks and hails "Any work available?".
    `JOBS.board(cs, ship)` decides the offers (no comms calls; testable); `_showBoard` renders them.
 2. **Type selection** via weighted random, by the asking ship's tier:
-   - tier 0: delivery 15, salvage 7 · tier 1 adds hacking · tier 2 adds destroy and boarding (`_TIER_WEIGHTS`)
-3. **Archetype selection** from mission.lua `_*_ARCHETYPES` tables (tier-gated)
+   - tier 0: delivery 15, salvage 7 · tier 1 adds hacking · tier 2 adds destroy and boarding (`_TIER_WEIGHTS`);
+     a type the table does not list (escort, tailing) uses its module's `M.weight` (3) at every tier from its `tier_min`
+3. **Archetype selection** from each job module's `_ARCHETYPES` table (tier-gated)
 4. **Legacy intercept fields** in archetypes (`intercept_types`, `intercept_chance`) are no longer used as of 2026-10-29 (proximity spawn system replaced mission-specific intercepts)
 5. **Nearby stations** calculated for boarding/destroy (50U radius) → stored as `target_dest`
 6. **Mission record created** with all fields, added to offers list

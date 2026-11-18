@@ -3,7 +3,7 @@
 -- and saved with the campaign (other ships by callsign, with their standing). A = primary ship,
 -- B = second ship. "Rejoining" is simulated by replacing the campaign table with a JSON round
 -- trip of itself; a real restart of the game is not covered. Upgrades, kills and renames: see
--- tests/jobs/records.lua.
+-- tests/core/records.lua.
 
 T.suite("jobs")
 

@@ -160,10 +160,18 @@ function init()
         ship:setFaction(faction)
         -- Auto-assign the next available roster name for freighters.
         -- RT.spawnPlayer overrides this with its explicit callsign, so no conflict.
+        -- The campaign's own ship name comes first: it is free only when the primary ship has
+        -- been lost, and a freighter that takes it becomes the primary again (RT.promotePrimary).
+        -- Only live ships hold a name; a destroyed one is skipped (and never asked for its name).
         if tmpl == "Light Freighter" then
             local used = {}
-            for _, p in ipairs(RT.players) do used[p:getCallSign()] = true end
-            for _, name in ipairs(_SHIP_ROSTER) do
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) and p ~= ship then used[p:getCallSign()] = true end
+            end
+            local names = {}
+            if RT.campaign and RT.campaign.ship_name then names[1] = RT.campaign.ship_name end
+            for _, name in ipairs(_SHIP_ROSTER) do names[#names + 1] = name end
+            for _, name in ipairs(names) do
                 if not used[name] then ship:setCallSign(name); break end
             end
         end
