@@ -371,9 +371,13 @@ function M.generate(opts)
     }
 end
 
+-- Extra seconds before the two ships meet, on top of the crew's own travel time at warp 1
+-- (playtest 2026-11-17: they met too soon). Both ships spawn that much flying time further out.
+M.EXTRA_MEET_TIME = 60
+
 function M.duration(m)
     local d = m.distance_u or 60000
-    return math.floor(2 * d / JOBS.SPEED.warp1 + 600)
+    return math.floor(2 * d / JOBS.SPEED.warp1 + 600 + M.EXTRA_MEET_TIME)
 end
 
 function M.offerText(m, stats)
@@ -387,9 +391,9 @@ function M.spawn(m)
     local SHIP_WARP = 125
     local RDV_WARP  = 250
     local D  = math.max(m.distance_u, 15000)
-    local T  = D / WARP1
-    local spawn_dist     = T * SHIP_WARP   -- D/4
-    local rdv_spawn_dist = T * RDV_WARP    -- D/2
+    local T  = D / WARP1 + M.EXTRA_MEET_TIME   -- seconds until the two ships meet
+    local spawn_dist     = T * SHIP_WARP   -- D/4 plus a minute of flying
+    local rdv_spawn_dist = T * RDV_WARP    -- D/2 plus a minute of flying
 
     local t_ang   = math.random() * 2 * math.pi
     local rdv_ang = t_ang + math.pi * 0.5 + math.random() * math.pi

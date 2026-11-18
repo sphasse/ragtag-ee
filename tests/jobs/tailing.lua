@@ -13,6 +13,10 @@ T.step("post a tailing job", function() m = T.postJob(T.makeJob("tailing", HOME,
 T.takeJob(function() return m end)
 T.step("two ships on their way", function()
     T.check("tailing: target and contact spawned", RT.valid(tgt()) and RT.valid(rdv()))
+    -- They meet a minute after the crew could get there at warp 1 (playtest: it was too soon).
+    local due = math.max(m.distance_u, 15000) / 500 + 60
+    T.check("tailing: meeting a minute after the crew's warp-1 time",
+        math.abs((m._meet_at - T.now()) - due) < 2, string.format("%.0f s, want %.0f", m._meet_at - T.now(), due))
     T.eq("tailing: job renamed after the target", m.short, "Surveil " .. m.target_cs)
     T.check("tailing: the target starts well clear of the ship", RT.dist(T.P(), tgt()) > 10000, RT.dist(T.P(), tgt()))
     T.check("tailing: not meeting yet", not m._meeting)
