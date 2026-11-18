@@ -13,7 +13,8 @@ and then helps hold the wall when Battle Group Two arrives.
 
 ## Trigger
 
-`upgrades_min = 1000`, `corsair_arc_done` unset. The arc starts and waits in `hook`; the hook
+`upgrades_min = 1000`, `corsair_arc_done` unset, and the Rezkov arc finished or declined (`requires`, like
+Ledger and Boneyard: rewinding Rezkov resets a running Corsair arc). The arc starts and waits in `hook`; the hook
 itself fires when the crew enters the Gauntlet (within 29U of (23, 69)).
 
 ## Phases

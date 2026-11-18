@@ -17,6 +17,10 @@ local mines0   -- the Gauntlet has minefields of its own
 
 -- ── Hook: the barkeep's message ──────────────────────────────────────────────
 T.step("hook", function()
+    -- Phase II: the arc needs the Rezkov arc finished or declined (like Ledger and Boneyard).
+    T.check("gate: not without Rezkov", not MISSIONS._checkTriggers("corsair"))
+    T.check("gate: listed in the criteria",
+        MISSIONS._criteriaText("corsair"):find("Rezkov arc finished or declined", 1, true) ~= nil)
     mines0 = minesOnMap()
     T.jump("hook")
     T.eq("hook: phase", T.phase(), "hook")

@@ -166,8 +166,17 @@ M.triggers = {
     not_flagged  = {"witness_complete"},   -- RT.flag(name) must be falsy for each
     custom       = function(st) return ... end,  -- any extra condition
     custom_label = "text for the GM criteria popup", -- optional, names the custom condition
+    requires       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
+    requires_label = "Rezkov arc finished or declined",  -- the arc's prerequisite (see below)
 }
 ```
+
+`requires` is the arc's prerequisite: another arc it follows. It gates the start like any
+trigger, and it is also watched while the arc runs: if it changes from met to unmet (the GM
+rewinds the arc it depends on), the running arc is reset to "never happened" (`M.gm_reset` with
+no target, then cancelled) and waits to trigger again. Only that change stops an arc: a GM jump
+straight into an arc whose prerequisite was never met keeps running. Done arcs are left alone.
+Use `custom` for any other condition (it is only checked before the start).
 
 Trigger checking runs every frame in `MISSIONS.update(delta)`. When conditions are met but
 `auto_start = false`, status becomes `"triggered"`. When `auto_start = true`, the mission
@@ -412,9 +421,9 @@ This makes arcs easy to disable, restart, skip, or test independently.
 | id | Name | locks_jobs | Trigger | Phases |
 |---|---|---|---|---|
 | `rezkov`   | Rezkov Arc    | no  | upgrades_min + not_flagged    | hook, m1_navigate, m2_active, m2_deliver, m3_active, m3_deliver |
-| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged    | hook, annex_hack, annex_control, extract |
-| `ledger`   | Ledger Arc    | no  | upgrades_min + not_flagged + custom | hook, meet, relay_run, carry |
-| `corsair`  | Corsair Arc   | no  | upgrades_min + not_flagged (hook on entering the Gauntlet) | hook, escort, briefing, raid, return, battle |
+| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, annex_hack, annex_control, extract |
+| `ledger`   | Ledger Arc    | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, meet, relay_run, carry |
+| `corsair`  | Corsair Arc   | no  | upgrades_min + not_flagged + requires (Rezkov) (hook on entering the Gauntlet) | hook, escort, briefing, raid, return, battle |
 
 Retired arcs (Witness, Whistleblower) live in `ee/ragtag/missions/attic/` — kept for
 reference, never required by the loader. `check.py` errors on any file in

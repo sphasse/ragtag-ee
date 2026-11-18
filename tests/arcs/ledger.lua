@@ -198,6 +198,43 @@ T.gmWalk({
     end},
 })
 
+-- ── Rewinding the Rezkov arc stops this one ──────────────────────────────────
+-- Ledger needs the Rezkov arc finished or declined. When the GM sends Rezkov back to an earlier
+-- phase, a running Ledger arc is reset to "never happened" and waits for Rezkov again.
+local function rezkovJump(key)
+    for _, g in ipairs(MISSIONS._registry.rezkov.gm_states) do
+        if g.key == key then g.fn(MISSIONS._state.rezkov) return end
+    end
+    error("no Rezkov GM state " .. key)
+end
+T.step("Rezkov finished, Ledger under way", function()
+    rezkovJump("done_data")
+    T.check("gate: Rezkov finished", RT.flag("rezkov_arc_done") ~= nil)
+    T.jump("meet")
+    T.eq("gate: Ledger at the meeting", T.phase(), "meet")
+end)
+T.wait(1)
+T.step("the GM sends Rezkov back to its rumors", function()
+    rezkovJump("rumors")
+    T.check("gate: Rezkov no longer finished", not RT.flag("rezkov_arc_done") and not RT.flag("rezkov_declined"))
+end)
+T.waitFor("gate: Ledger stops", function() return T.status() ~= "active" end, 3)
+T.step("Ledger never happened", function()
+    T.eq("gate: waiting again", T.status(), "inactive")
+    T.check("gate: its flags cleared", not T.flag("ledger_thresh"))
+    T.check("gate: its station removed", T.find("Rezkov's station") == nil)
+    T.check("gate: the criteria name the prerequisite",
+        MISSIONS._criteriaText("ledger"):find("[ ? ] Rezkov arc finished or declined", 1, true) ~= nil)
+    -- A GM jump straight into Ledger, Rezkov unfinished, still works (only a change stops it).
+    T.jump("hook")
+end)
+T.wait(1)
+T.step("a GM jump without the prerequisite stays", function()
+    T.eq("gate: jumped arc keeps running", T.status(), "active")
+    T.eq("gate: in its hook", T.phase(), "hook")
+    MISSIONS.cancel("rezkov"); MISSIONS.setEnabled("rezkov", false); MISSIONS.gmClearFlags("rezkov")
+end)
+
 T.deactivate({
     gone = {"Rezkov's station", "CAS Double Entry", "CAS Debit", "Data core"},
     check = function()

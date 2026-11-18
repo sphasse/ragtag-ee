@@ -34,6 +34,9 @@ M.no_auto_cancel = true
 M.triggers = {
     upgrades_min = 1000,
     not_flagged  = {"corsair_arc_done"},
+    -- Phase II, like Ledger and Boneyard: after the Rezkov arc (finished or declined).
+    requires       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
+    requires_label = "Rezkov arc finished or declined",
 }
 
 M.phase_order = {"init", "hook", "escort", "briefing", "raid", "return", "battle"}
@@ -910,6 +913,7 @@ M.flags = {
     corsair_rewarded  = "reputation was paid (an end state pays once)",
     ["corsair_met_*"] = "Science DB profile met in this arc (reva), set by ARC.meet",
 }
+M.reads = {"rezkov_arc_done", "rezkov_declined"}   -- the Phase II gate (M.triggers.requires)
 
 M.gm_state_fn = function()
     if MISSIONS._status["corsair"] == "done" then

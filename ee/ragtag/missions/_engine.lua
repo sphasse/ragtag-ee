@@ -255,7 +255,40 @@ function MISSIONS._checkTriggers(id)
         local ok, result = pcall(t.custom, MISSIONS._state[id] or {})
         if not ok or not result then return false end
     end
+    if t.requires and not MISSIONS._requiresMet(id) then return false end
     return true
+end
+
+-- An arc's prerequisite (M.triggers.requires, e.g. "the Rezkov arc is finished"): needed to
+-- start, like any trigger, and also watched while the arc runs. If it stops holding (the GM
+-- rewinds the arc it depends on), the arc is reset to "never happened" and waits to trigger
+-- again. Only a change from met to unmet stops an arc: a GM jump straight into an arc whose
+-- prerequisite was never met still works.
+function MISSIONS._requiresMet(id)
+    local t = MISSIONS._registry[id] and MISSIONS._registry[id].triggers
+    if not (t and t.requires) then return true end
+    local ok, result = pcall(t.requires)
+    return ok and result and true or false
+end
+
+MISSIONS._requires_seen = {}   -- id -> the prerequisite's value on the last update
+
+local function _watchRequires(id)
+    local M = MISSIONS._registry[id]
+    if not (M.triggers and M.triggers.requires) then return end
+    local met  = MISSIONS._requiresMet(id)
+    local was  = MISSIONS._requires_seen[id]
+    MISSIONS._requires_seen[id] = met
+    if was and not met and MISSIONS._status[id] == "active" then
+        log("[MISSIONS] " .. M.name .. ": prerequisite no longer met ("
+            .. tostring(M.triggers.requires_label or "requires") .. "); arc reset")
+        if M.gm_reset then
+            local ok, err = pcall(M.gm_reset, MISSIONS._state[id] or {}, nil)
+            if not ok then log("[MISSIONS] " .. id .. " gm_reset error: " .. tostring(err)) end
+        end
+        MISSIONS.cancel(id)
+        MISSIONS._syncScienceDB()
+    end
 end
 
 -- Called every frame from the scenario update().
@@ -264,6 +297,7 @@ function MISSIONS.update(delta)
 
     for _, id in ipairs(MISSIONS._order) do
         local M      = MISSIONS._registry[id]
+        _watchRequires(id)
         local status = MISSIONS._status[id]
 
         -- Lifecycle: waiting + enabled missions are loaded (e.g. seed rumors in place).
@@ -357,6 +391,11 @@ function MISSIONS._criteriaText(id)
         local met = ok and result
         lines[#lines+1] = string.format("  %s %s", met and "[MET]" or "[ ? ]",
             t.custom_label or "Custom condition")
+    end
+
+    if t.requires then
+        lines[#lines+1] = string.format("  %s %s  (needed while running too)",
+            MISSIONS._requiresMet(id) and "[MET]" or "[ ? ]", t.requires_label or "Prerequisite")
     end
 
     local overall = MISSIONS._checkTriggers(id)

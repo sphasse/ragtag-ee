@@ -23,8 +23,8 @@ M.triggers = {
     not_flagged  = {"boneyard_arc_done"},
     -- Phase II follows the Rezkov arc. A crew that declined Rezkov (or had it
     -- GM-inactivated) is not locked out of the rest of the campaign.
-    custom       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
-    custom_label = "Rezkov arc finished or declined",
+    requires       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
+    requires_label = "Rezkov arc finished or declined",
 }
 
 M.phase_order = {

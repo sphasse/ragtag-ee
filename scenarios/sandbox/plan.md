@@ -97,10 +97,8 @@ Built 2026-11-13; full design in `ee/ragtag/missions/ledger.md`. Summary:
 
 Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstream.
 
-- **Trigger**: upgrade spend ≥ 800cr, not done. **No reputation or Rezkov gate**
-  (confirmed in `boneyard.lua` `M.triggers`) — any crew that can afford the
-  upgrades and flies to Ashgrave gets it. Open decision: add
-  `flagged = {rezkov_arc_done}` so "Rezkov is the gate" holds for every arc.
+- **Trigger**: upgrade spend ≥ 800cr, Rezkov arc finished or declined (`requires`), not done.
+  Rezkov is the gate for every Phase II arc (Ledger, Boneyard, Corsair).
 - **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are recovered, or at 8U from Ashgrave) →
   annex_hack (Relay hacks frontshield to
   100%; drones go idle) → annex_control (60s archive download and/or 30s drone
@@ -132,7 +130,7 @@ raiding by the "transitional" tariffs. A raider who has been watching the crew b
 the crew raids a Concord forward depot so the Corsairs can build a trap from its mines and
 jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don't do it.
 
-**Trigger:** upgrades >= 1000, `corsair_arc_done` unset, and the crew enters the Gauntlet.
+**Trigger:** upgrades >= 1000, Rezkov arc finished or declined, `corsair_arc_done` unset, and the crew enters the Gauntlet.
 
 **Phases:** `hook` -> `escort` -> `briefing` -> `raid` -> `return` -> `battle` -> `done`
 1. `hook` — rumors point to Greywater Depot, where the barkeep passes a message: *Long Memory*

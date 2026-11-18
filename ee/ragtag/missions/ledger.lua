@@ -36,8 +36,8 @@ M.triggers = {
     not_flagged  = {"ledger_arc_done"},
     -- The AI was planted at Galen in the Rezkov arc; a crew that declined Rezkov hears that
     -- someone else planted it.
-    custom       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
-    custom_label = "Rezkov arc finished or declined",
+    requires       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
+    requires_label = "Rezkov arc finished or declined",
 }
 
 M.phase_order = {"init", "hook", "meet", "relay_run", "carry"}
