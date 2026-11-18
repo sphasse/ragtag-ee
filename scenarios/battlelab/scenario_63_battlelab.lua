@@ -47,6 +47,11 @@ local SPACING_MIN, SPACING_MAX, SPACING_STEP = 0.5, 6, 0.5
 local SPAWN_U       = 10     -- both sides start this far from the centre
 local N_POSITIONS   = 5      -- invisible combat points on a north-south line through the centre
 local RETARGET_EVERY = 2     -- seconds between checks for ships whose point has no enemies left
+-- Corsair missile boats (the Piranhas: broadside tubes, no beams) top up when their racks run low.
+-- The stock AI stands off and, once a beamless ship is out of missiles, leaves to look for a
+-- restock, so without this they drift out of the fight. Checked with the retargeting.
+local TOPUP_AT  = 0.25       -- refill to full when missiles are at or below this share of the racks
+local MISSILES  = {"Homing", "HVLI", "EMP", "Nuke", "Mine"}
 
 -- ── State ────────────────────────────────────────────────────────────────────
 local B = {
@@ -57,6 +62,7 @@ local B = {
     over = false,
     battles = 0,
     retargets = 0,      -- moves to a new point this battle
+    topups = 0,         -- Corsair missile top-ups this battle
     next_retarget = 0,
 }
 
@@ -121,6 +127,27 @@ local function retarget(list, enemies)
             r.pos = live[math.random(#live)]
             defend(r)
             B.retargets = B.retargets + 1
+        end
+    end
+end
+
+-- Refill the missiles of any ship in `list` that is down to TOPUP_AT of its racks.
+local function topUp(list)
+    for _, r in ipairs(list) do
+        local s = r.ship
+        if s:isValid() then
+            local have, max = 0, 0
+            for _, w in ipairs(MISSILES) do
+                local m = s:getWeaponStorageMax(w) or 0
+                if m > 0 then max = max + m; have = have + (s:getWeaponStorage(w) or 0) end
+            end
+            if max > 0 and have <= max * TOPUP_AT then
+                for _, w in ipairs(MISSILES) do
+                    local m = s:getWeaponStorageMax(w) or 0
+                    if m > 0 then s:setWeaponStorage(w, m) end
+                end
+                B.topups = B.topups + 1
+            end
         end
     end
 end
@@ -195,7 +222,7 @@ local function startBattle()
     if not STOCK then measureHulls() end
     clearBattle()
     B.positions = positions()
-    B.started_at, B.over, B.retargets = getScenarioTime(), false, 0
+    B.started_at, B.over, B.retargets, B.topups = getScenarioTime(), false, 0, 0
     B.battles = B.battles + 1
     -- Concord: a line SPAWN_U west of the centre, 2U apart, facing east.
     for i = 1, SET.n_concord do
@@ -227,7 +254,8 @@ local function statusText()
         string.format("Concord: %d / %d alive   (impulse x%.2f)", alive(B.concord), #B.concord, SET.concord_impulse),
         string.format("Corsairs: %d / %d alive  (impulse x%.2f)", alive(B.corsair), #B.corsair, SET.corsair_impulse),
         string.format("Combat points: %d on a north-south line, %.1fU apart (invisible)", N_POSITIONS, SET.spacing_u),
-        string.format("Ships moved to a new point: %d", B.retargets), "", "Hull speeds, normalized (impulse / turn / accel):"}
+        string.format("Ships moved to a new point: %d", B.retargets),
+        string.format("Corsair missile top-ups: %d", B.topups), "", "Hull speeds, normalized (impulse / turn / accel):"}
     local names = {}
     for hull in pairs(STOCK.hulls) do names[#names + 1] = hull end
     table.sort(names, function(a, b) return STOCK.hulls[a].impulse < STOCK.hulls[b].impulse end)
@@ -311,6 +339,7 @@ function update(delta)
         B.next_retarget = now + RETARGET_EVERY
         retarget(B.concord, B.corsair)
         retarget(B.corsair, B.concord)
+        topUp(B.corsair)
     end
     if not B.over and #B.concord > 0 then
         local c, s = alive(B.concord), alive(B.corsair)

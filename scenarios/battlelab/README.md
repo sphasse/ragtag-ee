@@ -31,10 +31,14 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
   cover all five and the fight stays spread out instead of collapsing into one mass.
 - Every 2 s, a ship whose point has no living enemy targeting it any more moves to a random point
   that still has some.
+- **Corsair missile top-ups:** a Corsair ship down to a quarter of its missiles is refilled to full
+  (checked every 2 s). The Piranhas have only broadside tubes and no beams; the stock AI keeps them
+  2.5–4U off and, once a beamless ship is out of missiles, sends it off to look for a restock, so
+  without top-ups they drift out of the fight.
 - When one side is wiped out, the time and survivors go to the GM and the crew.
 
 ## GM console
-- **Battle status**: time, survivors per side, each hull's normalized and stock speeds, how many of
+- **Battle status**: time, survivors per side, Corsair missile top-ups, each hull's normalized and stock speeds, how many of
   each side target each point (north to south), and how many times ships have moved to a new point.
 - **Reset battle (apply settings)**: clear the field and start again with the current settings.
 - **Reshuffle positions**: deal every ship a new point now.
