@@ -80,7 +80,7 @@ Built 2026-11-13; full design in `ee/ragtag/missions/ledger.md`. Summary:
 - **Premise.** The Galen hack planted an AI in the Concord books. It found the twenty-year
   black budget ("Maw containment", "Ashgrave remediation"), split itself into three fragments
   inside Concord space, and needs a pickup.
-- **Trigger.** Upgrades ≥ 800, Rezkov arc finished or declined, `ledger_arc_done` unset.
+- **Trigger.** Upgrades ≥ 800, Rezkov arc finished or declined, then 3 board jobs by the primary ship, `ledger_arc_done` unset.
   Briefing variant on `rezkov_ai_planted` ("you planted it" vs "I had a crew plant it").
 - **Flow.** Vague rumors → Thresh at Dustmote → Rezkov's station (briefing) → fly into three
   data cores near Valcourt, Ostia and Waypoint Galen → the assembled AI drains 5 energy/s and

@@ -503,6 +503,12 @@ function JOBS.complete(entry, _ship)
     end
 
     JOBS.updateObj()
+    -- Board jobs this ship has finished (arcs' own story contracts excluded), kept in its record:
+    -- an arc can wait for the primary ship to have done some work (the Ledger hook does).
+    if not entry.mission.story then
+        local rec = RT.shipRecord(completing_ship)
+        if rec then rec.jobs_done = (rec.jobs_done or 0) + 1 end
+    end
     if STATS then STATS.jobCompleted(entry.mission) end
     _cb(entry.mission, "on_complete")
     RT.emit("job_complete", {type=entry.mission.type, tier=entry.mission.tier, reward=entry.mission.reward,

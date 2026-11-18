@@ -31,13 +31,36 @@ M.auto_start     = true
 M.start_phase    = "init"
 M.no_auto_cancel = true
 
+-- Board jobs the primary ship must finish after the Rezkov arc ends before Thresh comes looking
+-- (playtest: the Rezkov arc ends at Dustmote, and the hook was on offer right there).
+M.JOBS_AFTER_REZKOV = 3
+
+local function _rezkovOver() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end
+local function _jobsDone()
+    local rec = RT.shipRecord()
+    return rec and rec.jobs_done or 0
+end
+
 M.triggers = {
     upgrades_min = 800,
     not_flagged  = {"ledger_arc_done"},
     -- The AI was planted at Galen in the Rezkov arc; a crew that declined Rezkov hears that
     -- someone else planted it.
-    requires       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
+    requires       = _rezkovOver,
     requires_label = "Rezkov arc finished or declined",
+    -- Then some breathing room: M.JOBS_AFTER_REZKOV board jobs by the primary ship. The count is
+    -- taken the first time the Rezkov arc is seen finished (ledger_jobs_base), and forgotten if
+    -- the GM rewinds Rezkov.
+    custom = function()
+        if not _rezkovOver() then
+            if RT.flag("ledger_jobs_base") ~= nil then RT.clearFlag("ledger_jobs_base") end
+            return false
+        end
+        local base = RT.flag("ledger_jobs_base")
+        if base == nil then base = _jobsDone(); RT.flag("ledger_jobs_base", base) end
+        return _jobsDone() - base >= M.JOBS_AFTER_REZKOV
+    end,
+    custom_label = "3 board jobs done by the primary ship since the Rezkov arc ended",
 }
 
 M.phase_order = {"init", "hook", "meet", "relay_run", "carry"}
@@ -398,7 +421,9 @@ end
 local function _dustmoteHook(src, tgt, info)
     if not ARC.docked(src, tgt) then return end
     if MISSIONS._status["ledger"] ~= "active" or MISSIONS._cur_phase["ledger"] ~= "hook" then return end
-    addCommsReply("Heard someone here was asking about us.", function()
+    -- A crew that already knows Thresh (the Rezkov arc introduces him) asks for him by name.
+    local knows = SCIDB and SCIDB.known and SCIDB.known("thresh_profile")
+    addCommsReply(knows and "Heard Thresh was looking for us again." or "Heard someone here was asking about us.", function()
         ARC.meet("ledger", "thresh_profile", "Thresh")
         local met = SCIDB and SCIDB.known and SCIDB.known("rezkov_profile")
         local lead = met and '"That was me. Got another one for you. Not my job, though. The big guy wants to see you in person again. Same place."'
@@ -572,6 +597,7 @@ M.flags = {
     ledger_lost_reason = '"power" (reactor hit zero) | "surrender" (data transmitted to the auditors)',
     ledger_evidence    = "Rezkov holds the Containment Ledger (set on full; unlocks the Science DB entry)",
     ledger_rewarded    = "reputation and credits were paid (an end state pays once)",
+    ledger_jobs_base   = "board jobs the primary ship had done when the Rezkov arc was first seen over (the hook waits for 3 more)",
     ["ledger_met_*"]   = "Science DB profile met in this arc (thresh, rezkov), set by ARC.meet",
 }
 M.reads = {"rezkov_ai_planted", "rezkov_m2_done", "rezkov_arc_done", "rezkov_declined"}

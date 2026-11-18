@@ -19,7 +19,15 @@ three-ship audit fleet blocks the way out.
 ## Trigger
 
 `upgrades_min = 800`, Rezkov arc finished (any outcome) **or declined**, `ledger_arc_done`
-not set. Auto-starts; no hail, no job, so it competes quietly with the other Phase II leads.
+not set, and then **three board jobs** finished by the primary ship (`M.JOBS_AFTER_REZKOV`; story
+contracts do not count). The Rezkov arc ends at Dustmote, where this hook lives, so without the
+wait the hook was on offer the moment Rezkov ended. The job count is noted the first time Rezkov
+is seen over (`ledger_jobs_base`) and forgotten if the GM rewinds Rezkov. Ships count their own
+finished board jobs in their record (`jobs_done`). Auto-starts; no hail, no job, so it competes
+quietly with the other Phase II leads.
+
+At Dustmote the crew's line is "Heard Thresh was looking for us again." when they know Thresh
+(the Rezkov arc introduces him), else "Heard someone here was asking about us.".
 
 ## Phases
 
