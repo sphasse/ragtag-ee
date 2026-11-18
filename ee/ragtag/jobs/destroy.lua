@@ -364,7 +364,7 @@ function M.generate(opts)
     local arch   = pool[math.random(#pool)]
     local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
-        JOBS.ECONOMY.type_mult["destroy"],
+        JOBS.ECONOMY.type_mult["destroy"] * (arch.reward_mult or 1),   -- this variant's own multiplier
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u)
 
@@ -382,6 +382,7 @@ function M.generate(opts)
         wy              = opts.wy,
         cargo           = arch.cargo,
         reward          = reward,
+        reward_mult     = arch.reward_mult or 1,
         short           = arch.short_offer,
         obj             = "Locate and destroy target",
         brief           = arch.lore .. "\n\n" .. arch.accept_msg

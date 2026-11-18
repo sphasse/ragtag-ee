@@ -261,7 +261,7 @@ function M.generate(opts)
     local arch = pool[math.random(#pool)]
     local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
-        JOBS.ECONOMY.type_mult["escort"],
+        JOBS.ECONOMY.type_mult["escort"] * (arch.reward_mult or 1),   -- this variant's own multiplier
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u) + M.MUNITIONS_ALLOWANCE
     return {
@@ -274,6 +274,7 @@ function M.generate(opts)
         dx = opts.dx, dy = opts.dy,
         cargo          = arch.cargo,
         reward         = reward,
+        reward_mult    = arch.reward_mult or 1,
         short          = arch.short_offer,
         obj            = "Escort convoy to " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")",
         brief          = arch.lore .. "\n\nDestination: " .. opts.dest .. " (" .. JOBS.gridRef(opts.dx, opts.dy) .. ")\n\n" .. arch.accept_msg .. "\n\nThe fee includes " .. M.MUNITIONS_ALLOWANCE .. " cr for the missiles you will spend. Hail the convoy when you're ready to begin.",

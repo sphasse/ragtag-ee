@@ -20,6 +20,36 @@ local function distinct(n)
 end
 local function active() return #JOBS._active end
 
+-- ── Pay: every job variant's own multiplier is applied ──────────────────────
+-- Each job type's archetypes carry reward_mult (0.8..2.0); the pay formula multiplies the type's
+-- multiplier by it. Checked on what each module hands JOBS.calcReward, for every type.
+T.step("pay uses each variant's reward_mult", function()
+    local seen_type_mult
+    local _calc = JOBS.calcReward
+    JOBS.calcReward = function(base, type_mult, ...)
+        seen_type_mult = type_mult
+        return _calc(base, type_mult, ...)
+    end
+    local ok, err = pcall(function()
+        for _, jtype in ipairs({"delivery", "salvage", "hacking", "destroy", "boarding", "escort", "tailing"}) do
+            local mults, wrong = {}, 0
+            for _ = 1, 12 do
+                seen_type_mult = nil
+                local m = T.makeJob(jtype, HOME, 2)
+                local want = JOBS.ECONOMY.type_mult[jtype] * m.reward_mult
+                if not seen_type_mult or math.abs(seen_type_mult - want) > 1e-9 then wrong = wrong + 1 end
+                mults[m.reward_mult] = true
+            end
+            local kinds = 0
+            for _ in pairs(mults) do kinds = kinds + 1 end
+            T.eq("pay: " .. jtype .. " multiplies by the variant's reward_mult", wrong, 0)
+            T.check("pay: " .. jtype .. " variants pay differently", kinds > 1, kinds)
+        end
+    end)
+    JOBS.calcReward = _calc
+    if not ok then error(err) end
+end)
+
 -- ── Listing and taking ───────────────────────────────────────────────────────
 T.step("post three deliveries", function()
     local js = distinct(3)

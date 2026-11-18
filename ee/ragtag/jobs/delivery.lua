@@ -276,7 +276,7 @@ function M.generate(opts)
     local urgent = arch.urgent or false
     local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
-        JOBS.ECONOMY.type_mult["delivery"],
+        JOBS.ECONOMY.type_mult["delivery"] * (arch.reward_mult or 1),   -- this variant's own multiplier
         opts.distance_u, opts.danger_level,
         opts.distance_min_u, opts.distance_max_u,
         urgent and 1.5 or 1.0)
@@ -291,6 +291,7 @@ function M.generate(opts)
         dest         = opts.dest,
         cargo        = arch.cargo,
         reward       = reward,
+        reward_mult  = arch.reward_mult or 1,
         short        = prefix .. arch.cargo .. " → " .. dest_short,
         obj          = "Deliver to " .. dest_short,
         brief        = arch.lore .. "\n\n" .. arch.accept_msg,
