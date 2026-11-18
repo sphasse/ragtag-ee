@@ -35,11 +35,13 @@ impulse, warp, energy, repair crew, sensor range, probe speed).
 ## Changing
 
 ### Credits: Jobs... → Credits +50 / −50
-Adds or removes 50 credits on the **primary ship**. A balance never goes below zero. The ship's
+Adds or removes 50 credits. With one ship in play the buttons read **Credits +50 / −50**; with
+several there is a pair per ship, named after it (**Kestrel Credits +50**). A balance never goes below zero. The ship's
 log shows the change and its Relay and Operations screens show the new `Credits: N` line.
 
 ### Standing: Reputation...
-The primary ship's standing with each faction. **Rep Status** explains what each level means
+A ship's standing with each faction. With several ships the menu first lists them: pick one, and
+everything after applies to **that ship only** (with one ship the list is skipped). **Rep Status** explains what each level means
 (how Concord inspections go, how often Corsairs patrol, how many jobs that faction's stations
 offer). Pick a faction to adjust it by +50 or −50. Raising Concord standing does not call off a patrol
 that is already hostile: switch **World Plugins... → Proximity Spawns** off and on again to
@@ -61,7 +63,7 @@ The menu lists every player ship in the game. Pick one; everything on the next s
   crew that died), up to 8 crew.
 
 To let a crew re-spend its money, revoke the upgrades and give the credits back with
-Credits +50 (primary ship) — there is no automatic refund.
+that ship's Credits +50 — there is no automatic refund.
 
 ## Saving and restoring
 

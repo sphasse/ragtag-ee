@@ -256,8 +256,8 @@ local function _updateTransports(now)
                             s:destroy()
                             goto continue
                         elseif rec.stall_count == 2 then
-                            -- Stuck for 2 minutes: teleport to destination's vicinity if far from player
-                            if rec.dest and RT.valid(rec.dest) and (not RT.valid(RT.player) or RT.dist(s, RT.player) > 15000) then
+                            -- Stuck for 2 minutes: teleport to destination's vicinity if no player ship is near
+                            if rec.dest and RT.valid(rec.dest) and not RT.playerWithin(s, 15000) then
                                 local tx, ty = rec.dest:getPosition()
                                 local angle = VERSE.rng_live.float(0, 360)
                                 local dx, dy = vectorFromAngle(angle, VERSE.rng_live.float(8000, 12000), true)
@@ -266,14 +266,14 @@ local function _updateTransports(now)
                                 s:orderDock(rec.dest)
                                 rec.last_order = now
                             else
-                                -- Player watching or no dest: try larger sidestep
+                                -- A crew watching or no dest: try larger sidestep
                                 local dx, dy = vectorFromAngle(s:getHeading() + 90, 5000, true)
                                 s:setPosition(x + dx, y + dy)
                             end
                         else
                             -- First stall (1 minute): small nudge
                             local dx, dy = vectorFromAngle(s:getHeading() + 90, 1500, true)
-                            if not RT.valid(RT.player) or RT.dist(s, RT.player) > 12000 then
+                            if not RT.playerWithin(s, 12000) then
                                 s:setPosition(x + dx, y + dy)
                             else
                                 s:orderFlyTowardsBlind(x + dx * 2, y + dy * 2)
@@ -300,8 +300,8 @@ local function _updateTransports(now)
         local q = VERSE.respawn_queue[i]
         if now >= q.at then
             local st = _stationByName(VERSE.rng_live.pick(q.route.stations))
-            -- Don't pop a ship into existence right next to the crew.
-            if RT.valid(st) and (not RT.valid(RT.player) or RT.dist(st, RT.player) > 10000) then
+            -- Don't pop a ship into existence right next to any crew.
+            if RT.valid(st) and not RT.playerWithin(st, 10000) then
                 table.remove(VERSE.respawn_queue, i)
                 _spawnTransport(q.route, VERSE.rng_live, st)
             else

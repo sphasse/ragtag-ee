@@ -141,7 +141,8 @@ function RT.isPlayer(entity)
     return false
 end
 
--- Nearest valid player ship to (x, y). Returns nil when no players are alive.
+-- Nearest valid player ship to (x, y), and its distance. Returns nil (and math.huge) when no
+-- players are alive.
 function RT.nearestPlayer(x, y)
     local best, best_dist = nil, math.huge
     for _, p in ipairs(RT.players) do
@@ -151,7 +152,14 @@ function RT.nearestPlayer(x, y)
             if d < best_dist then best, best_dist = p, d end
         end
     end
-    return best
+    return best, best_dist
+end
+
+-- True when any player ship is within `r` of `obj` (several ships: not only the primary one).
+function RT.playerWithin(obj, r)
+    local x, y = obj:getPosition()
+    local _, d = RT.nearestPlayer(x, y)
+    return d <= r
 end
 
 -- addToShipLog on every alive player ship.

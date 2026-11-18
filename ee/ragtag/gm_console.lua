@@ -76,8 +76,21 @@ function GMCONSOLE.add(opts)
         addGMMessage(table.concat(lines, "\n"))
     end)
 
-    -- Reputation submenu
-    local showReputationFactionList  -- forward declaration (mutual recursion)
+    local function _toMain()
+        clearGMFunctions()
+        addSessionGMFunctions()
+    end
+
+    -- Every player ship alive, primary first.
+    local function _liveShips()
+        local ships = {}
+        RT.forEachPlayer(function(p) ships[#ships + 1] = p end)
+        return ships
+    end
+
+    -- Reputation submenu. Standing is per ship: with several ships the GM picks one first
+    -- (skipped when only one ship is in play).
+    local showReputation, showReputationFactionList  -- forward declarations (mutual recursion)
 
     local function _repEffects(faction, rep)
         local lines = {}
@@ -119,11 +132,12 @@ function GMCONSOLE.add(opts)
         return lines
     end
 
-    local function showRepStatusPopup()
+    local function showRepStatusPopup(p)
+        if not RT.valid(p) then addGMMessage("That ship is gone."); return end
         local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic"}
-        local msg = {"REPUTATION STATUS"}
+        local msg = {"REPUTATION STATUS: " .. p:getCallSign()}
         for _, faction in ipairs(factions) do
-            local rep = RT.getReputation(faction) or 0
+            local rep = RT.getReputation(faction, p) or 0
             msg[#msg+1] = ""
             msg[#msg+1] = string.format("%s: %+d", faction, rep)
             for _, line in ipairs(_repEffects(faction, rep)) do
@@ -133,40 +147,54 @@ function GMCONSOLE.add(opts)
         addGMMessage(table.concat(msg, "\n"))
     end
 
-    local function showFactionDetail(faction)
+    local function showFactionDetail(faction, p)
         clearGMFunctions()
-        addGMFunction("← Back to Factions", showReputationFactionList)
-        local current = RT.getReputation(faction) or 0
-        addGMFunction(string.format("%s: %+d", faction, current), function() end)
+        addGMFunction("← Back to Factions", function() showReputationFactionList(p) end)
+        if not RT.valid(p) then return end
+        local current = RT.getReputation(faction, p) or 0
+        addGMFunction(string.format("%s %s: %+d", p:getCallSign(), faction, current), function() end)
         addGMFunction("↑  +50", function()
-            RT.addReputation(faction, 50, "GM adjustment", RT.player)
+            if RT.valid(p) then RT.addReputation(faction, 50, "GM adjustment", p) end
             RT.saveCampaign()
-            showFactionDetail(faction)
+            showFactionDetail(faction, p)
         end)
         addGMFunction("↓  -50", function()
-            RT.addReputation(faction, -50, "GM adjustment", RT.player)
+            if RT.valid(p) then RT.addReputation(faction, -50, "GM adjustment", p) end
             RT.saveCampaign()
-            showFactionDetail(faction)
+            showFactionDetail(faction, p)
         end)
     end
 
-    showReputationFactionList = function()
+    showReputationFactionList = function(p)
         clearGMFunctions()
-        addGMFunction("← Back to Main", function()
-            clearGMFunctions()
-            addSessionGMFunctions()
-        end)
-        addGMFunction("Rep Status", showRepStatusPopup)
+        if #_liveShips() > 1 then
+            addGMFunction("← Back to Ships", showReputation)
+        else
+            addGMFunction("← Back to Main", _toMain)
+        end
+        if not RT.valid(p) then return end
+        addGMFunction("Rep Status: " .. p:getCallSign(), function() showRepStatusPopup(p) end)
         local factions = {"Concord", "Corsairs", "Independent", "Hollow", "Relic"}
         for _, faction in ipairs(factions) do
-            local rep = RT.getReputation(faction) or 0
+            local rep = RT.getReputation(faction, p) or 0
             addGMFunction(string.format("%s (%+d)...", faction, rep), function()
-                showFactionDetail(faction)
+                showFactionDetail(faction, p)
             end)
         end
     end
 
-    addGMFunction("Reputation...", showReputationFactionList)
+    showReputation = function()
+        local ships = _liveShips()
+        if #ships == 1 then showReputationFactionList(ships[1]); return end
+        clearGMFunctions()
+        addGMFunction("← Back to Main", _toMain)
+        if #ships == 0 then addGMFunction("(no active ships)", function() end) end
+        for _, p in ipairs(ships) do
+            addGMFunction(p:getCallSign() .. "...", function() showReputationFactionList(p) end)
+        end
+    end
+
+    addGMFunction("Reputation...", showReputation)
 
     local showJobsMenu
     local showUpgradesMenu
@@ -202,14 +230,19 @@ function GMCONSOLE.add(opts)
             end)
         end
 
-        addGMFunction("Credits +50", function()
-            if RT.valid(RT.player) then RT.addCredits(50, "GM reward", RT.player) end
-            showJobsMenu()
-        end)
-        addGMFunction("Credits -50", function()
-            if RT.valid(RT.player) then RT.addCredits(-50, "GM penalty", RT.player) end
-            showJobsMenu()
-        end)
+        -- Credits are per ship: one pair of buttons per ship (named when there are several).
+        local ships = _liveShips()
+        for _, p in ipairs(ships) do
+            local who = (#ships > 1) and (p:getCallSign() .. " ") or ""
+            addGMFunction(who .. "Credits +50", function()
+                if RT.valid(p) then RT.addCredits(50, "GM reward", p) end
+                showJobsMenu()
+            end)
+            addGMFunction(who .. "Credits -50", function()
+                if RT.valid(p) then RT.addCredits(-50, "GM penalty", p) end
+                showJobsMenu()
+            end)
+        end
     end
     addGMFunction("Jobs...", showJobsMenu)
 

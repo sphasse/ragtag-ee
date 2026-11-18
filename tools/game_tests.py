@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the in-game regression tests against a headless EmptyEpsilon: story arcs
 (tests/arcs/*.lua), the job board (tests/jobs/*.lua), the world plugins (tests/world/*.lua)
-and core (tests/core/*.lua: ship records, the event bus, the director's mailbox).
+and core (tests/core/*.lua: ship records, the event bus, the director's mailbox, the GM console).
 
     python3 tools/game_tests.py --ee <EmptyEpsilon dir>            # everything
     python3 tools/game_tests.py --ee <EmptyEpsilon dir> ledger -v  # one test, every check listed

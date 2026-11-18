@@ -1,6 +1,6 @@
 -- Salvage clusters: debris fields of pods across the Drift. The starting set, what a pod pays
 -- (to the ship that picks it up), the density and reward settings, top-up after collection, and
--- the salvage a scanned wreck gives up.
+-- the salvage a scanned wreck gives up (to any ship near it, not only the primary ship).
 --
 -- Not covered: the ambient "lost crate" a passing freighter drops (it needs minutes of traffic).
 
@@ -156,6 +156,27 @@ T.waitFor("wreck: scanned and looted", function() return wreck.looted end, 4)
 T.step("salvage around it", function()
     local x, y = wreck.ship:getPosition()
     T.check("wreck: pods appear around the wreck", pods_near(x, y, 6000) > pods_before)
+end)
+
+-- ── A wreck scanned near the second ship, the primary ship far away ──────────
+local wreck2
+T.step("the second ship scans a wreck", function()
+    T.moveTo(VERSE.at("Port Vesper", 2, 2))
+    for _, w in ipairs(VERSE.wrecks) do
+        if not w.looted and RT.valid(w.ship) and RT.dist(A, w.ship) > 25000 then wreck2 = w; break end
+    end
+    T.check("wreck2: a wreck far from the primary ship", wreck2 ~= nil)
+    local x, y = wreck2.ship:getPosition()
+    B:setPosition(x + 6000, y)
+    pcall(function() B:commandImpulse(0) end)
+    pods_before = pods_near(x, y, 6000)
+    wreck2.ship:setScannedByFaction(B:getFaction(), true)
+end)
+T.waitFor("wreck2: the second ship finds the salvage", function() return wreck2.looted end, 4)
+T.step("salvage around the second wreck", function()
+    local x, y = wreck2.ship:getPosition()
+    T.check("wreck2: the primary ship was never near", RT.dist(A, wreck2.ship) > 15000)
+    T.check("wreck2: pods appear around the wreck", pods_near(x, y, 6000) > pods_before)
 end)
 
 -- ── Off ──────────────────────────────────────────────────────────────────────

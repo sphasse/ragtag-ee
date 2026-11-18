@@ -309,7 +309,7 @@ own spend.
   explicitly (see the comment in `RT.register`)
 - Ship disabled (boarding): `-100` with Corsairs (fired explicitly in boarding module at disable)
 
-**GM adjustment**: +50 / −50 per button press, on the primary ship. Faction list shows live standing; detail sub-menu self-refreshes after each press.
+**GM adjustment**: +50 / −50 per button press, on the ship the GM picks (Reputation... lists the ships when there are several). Faction list shows live standing; detail sub-menu self-refreshes after each press.
 
 **Job offer reduction by standing** — applied per station based on its faction's rep:
 

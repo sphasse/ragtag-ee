@@ -1,5 +1,6 @@
 -- Station traffic: freighters on their routes. How many, where they go, what they say when
--- hailed, what they sell (to the ship that pays), replacement of lost ships, the density setting.
+-- hailed, what they sell (to the ship that pays), replacement of lost ships (never next to any
+-- player ship), the density setting.
 --
 -- Not covered: the freighters' flying, docking and the stall watchdog (minutes of real travel).
 
@@ -128,6 +129,37 @@ T.step("queued", function()
     VERSE.respawn_queue[1].at = T.now()
 end)
 T.waitFor("lost: the replacement arrives", function() return #transports() == n0 and #VERSE.respawn_queue == 0 end, 4)
+
+-- ── A replacement never appears next to a second ship ────────────────────────
+-- The queued replacement is pinned to one station of its route; the second ship waits there.
+local home_cs
+T.step("another freighter is lost", function()
+    rec = pick(function() return true end)
+    rec.ship:destroy()
+end)
+T.waitFor("watched: queued", function() return #VERSE.respawn_queue == 1 end, 4)
+T.step("the second ship waits at the station", function()
+    local q = VERSE.respawn_queue[1]
+    local only = {}
+    for k, v in pairs(q.route) do only[k] = v end
+    home_cs = q.route.stations[1]
+    only.stations = {home_cs}
+    q.route = only
+    local stn = RT.stations[home_cs] and RT.stations[home_cs].entity or RT.find(home_cs)
+    local x, y = stn:getPosition()
+    B:setPosition(x + 5000, y)
+    pcall(function() B:commandImpulse(0) end)
+    T.check("watched: the primary ship is far from it", RT.dist(A, stn) > 10000)
+    q.at = T.now()
+end)
+T.wait(3)
+T.step("held back", function()
+    T.eq("watched: still queued while the second ship is there", #VERSE.respawn_queue, 1)
+    T.check("watched: tried again later", #VERSE.respawn_queue == 1 and VERSE.respawn_queue[1].at > T.now() + 20)
+    B:setPosition(VERSE.at("Lastchance Outpost", 34, 30))
+    VERSE.respawn_queue[1].at = T.now()
+end)
+T.waitFor("watched: the replacement arrives once the second ship leaves", function() return #VERSE.respawn_queue == 0 end, 4)
 
 -- ── Density ──────────────────────────────────────────────────────────────────
 local old = {}

@@ -38,6 +38,7 @@ Two Lua libraries that every campaign session requires (RT, VERSE), the optional
 | `RT.onKill(ship, fn(ship, instigator))` | Destruction callback dispatcher. ALWAYS use this instead of `entity:onDestruction` (single slot — direct calls clobber rep tracking / director events / loot drops). Fires on damage kills only, never on scripted `destroy()` |
 | `RT.cancelKillTracking(ship)` | Skip the auto rep penalty for a ship whose consequences the arc manages itself |
 | `RT.valid(e)`, `RT.dist(a, b)`, `RT.cleanText(s, max)` | Helpers |
+| `RT.nearestPlayer(x, y)` → ship, distance; `RT.playerWithin(obj, r)` | Any player ship, not just the primary one: use these for "is a crew watching?" checks |
 | `RT.update(delta)` | Call every frame: timers, autosave every 60 s, hull threshold events |
 | `RT.addCampaignGMFunctions()` | GM buttons: Backup campaign / Restore campaign (6 numbered slots, no text input on the GM console; restore writes the slot over the live save and freezes saving until the scenario is restarted and Continue chosen) and the Sounds submenu. Add it last in the main menu so every route back looks the same. The campaign autosaves every 60 s and on every flag, rep, credit and job event, so there is no manual save button |
 

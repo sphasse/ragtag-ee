@@ -185,16 +185,21 @@ end
 
 -- ─── Wreck scanning ───────────────────────────────────────────────────────────
 
+-- Any player ship within 15U of a scanned wreck finds its salvage (and hears about it). Scans
+-- are per faction in the engine, so a scan by one ship counts for all of them.
 local function _updateWrecks()
-    local p = RT.player
-    if not RT.valid(p) then return end
     for _, w in ipairs(VERSE.wrecks) do
-        if not w.looted and RT.valid(w.ship) and RT.dist(p, w.ship) < 15000 and w.ship:isFullyScannedBy(p) then
-            w.looted = true
-            local x, y = w.ship:getPosition()
-            _spawnClusterRaw(x, y, math.min(3, w.tier + 1), VERSE.rng_live)
-            p:addToShipLog("Science: salvage located around " .. w.ship:getCallSign() .. ".", "#80C0FF")
-            RT.emit("wreck_scanned", {wreck = w.ship:getCallSign(), tier = w.tier}, "low")
+        if not w.looted and RT.valid(w.ship) then
+            for _, p in ipairs(RT.players) do
+                if RT.valid(p) and RT.dist(p, w.ship) < 15000 and w.ship:isFullyScannedBy(p) then
+                    w.looted = true
+                    local x, y = w.ship:getPosition()
+                    _spawnClusterRaw(x, y, math.min(3, w.tier + 1), VERSE.rng_live)
+                    p:addToShipLog("Science: salvage located around " .. w.ship:getCallSign() .. ".", "#80C0FF")
+                    RT.emit("wreck_scanned", {wreck = w.ship:getCallSign(), tier = w.tier}, "low")
+                    break
+                end
+            end
         end
     end
 end
