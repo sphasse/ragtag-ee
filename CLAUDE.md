@@ -30,7 +30,7 @@ Contributors add **universe extensions** and **scenarios** independently.
   and `jobs/credits.lua`, `world/<plugin>.lua` (one per world plugin) plus `world/engine.lua`, and `core/records.lua`
   (per-ship ownership), `core/events.lua` (event bus, beats, the director's mailbox and its observation-only guard),
   `core/gm_console.lua` (the GM menus act on the ship picked), `core/primary.lua` (losing and restoring the primary ship)
-  and `core/stations.lua` (ports are indestructible; a lost station is reported), `core/ships.lua` (the Magpie-class ship list)
+  and `core/stations.lua` (ports are indestructible; a lost station is reported)
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
 - `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse) and `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements), both loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**

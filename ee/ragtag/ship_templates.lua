@@ -8,34 +8,6 @@
 
 local _pf = __ship_templates["Flavia P.Falcon"]
 
--- ── The Magpie class: ten named sister ships, first in the ship-creation list ───────────────────
--- Same Flavia frame as the Light Freighter below; picking one names the new ship after it (when a
--- live ship does not already carry that name; then it gets the next free sister's name). The
--- names match the scenario's roster (scenario_80_ragtag.lua, _SHIP_ROSTER). EmptyEpsilon lists
--- player ships in registration order (getSpawnablePlayerShips), so they are inserted at the front.
--- (They were folded into "Light Freighter" in 3b38fb3; restored 2026-11-18.)
-local _MAGPIE_CLASS = {
-    {name = "Magpie",   desc = "A battered Flavia transport running independent colors. Shows its age but flies true. The crew says she's got a good heart—whatever that means for a ship."},
-    {name = "Raven",    desc = "Older than she looks and meaner than she sounds. The Raven's been through half the Drift and back. Someone painted over her registration twice."},
-    {name = "Jackdaw",  desc = "Fast for a freighter, and the crew likes it that way. The Jackdaw's had her warp coils replaced three times. She runs hot but she runs."},
-    {name = "Starling", desc = "Small and quick, the Starling moves cargo no one asks questions about. Her hull plating is mismatched; most of it's newer than the frame."},
-    {name = "Wren",     desc = "The smallest of the class and proud of it. The Wren can dock where bigger ships can't, which comes in handy more than you'd think."},
-    {name = "Kestrel",  desc = "Stripped-down and re-tuned by her last crew, the Kestrel runs hotter than spec. Engineering earns their pay on this one."},
-    {name = "Harrier",  desc = "A working ship with working-ship scars. The Harrier's been repaired more times than her manifest shows, and she flies better for it."},
-    {name = "Merlin",   desc = "Deceptively quick off the line. The Merlin looks unremarkable—which is exactly how her captain likes it."},
-    {name = "Osprey",   desc = "Built for the deep lanes, the Osprey has extra shielding on the bow and a pilot who knows when to run. Experienced crew, worn paint."},
-    {name = "Swift",    desc = "Newest of the class and still has that fresh-welded smell. The Swift hasn't earned her scars yet—but she will."},
-}
-for i, info in ipairs(_MAGPIE_CLASS) do
-    local t = _pf:copy(info.name)
-    t:setLocaleName(info.name)
-    t:setDescription("Magpie-class freighter. " .. info.desc)
-    -- copy() carries every playership component but registers nothing: list it ourselves, in front.
-    table.insert(__player_ship_templates, i, t)
-end
-MAGPIE_CLASS = {}   -- name -> true, for the scenario's naming of new ships
-for _, info in ipairs(_MAGPIE_CLASS) do MAGPIE_CLASS[info.name] = true end
-
 -- ── Independent Freighter ─────────────────────────────────────────────────────
 -- Generic Flavia-class transport for the Drift campaign.  The scenario assigns
 -- one of the named sister ships (Magpie, Raven, Jackdaw …) at spawn time.
