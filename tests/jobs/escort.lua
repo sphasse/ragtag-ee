@@ -100,7 +100,7 @@ end, 6)
 
 local first = {}
 T.step("a second job; the convoy is lost", function()
-    first = {m.convoy_cs, m.fighter_cs[1], m.fighter_cs[2]}
+    first = {m.convoy, m.fighters[1], m.fighters[2]}   -- the first job's ships themselves
     m = T.postJob(T.makeJob("escort", HOME))
 end)
 T.takeJob(function() return m end)
@@ -112,9 +112,11 @@ T.step("destroy the convoy", function()
     f1, f2 = m.fighters[1], m.fighters[2]
     T.check("lost: this job's fighters are out", RT.valid(f1) and RT.valid(f2))
     local clash = false
-    for _, old in ipairs(first) do
-        for _, new in ipairs({m.convoy_cs, m.fighter_cs[1], m.fighter_cs[2]}) do
-            if old == new and RT.valid(T.find(old)) then clash = true end
+    for _, old in ipairs(first) do          -- a first-job ship still flying under a name now reused
+        if RT.valid(old) then
+            for _, new in ipairs({m.convoy_cs, m.fighter_cs[1], m.fighter_cs[2]}) do
+                if old:getCallSign() == new then clash = true end
+            end
         end
     end
     T.check("names: a new job never reuses the name of a ship still flying", not clash)

@@ -7,7 +7,7 @@
 --   hook       vague rumors send the crew to Dustmote; Thresh says the big guy wants to see them
 --   meet       Rezkov's station is back in the nebula; docking gets the real briefing
 --   relay_run  three AI fragments parked near Valcourt, Ostia and Waypoint Galen (fly into them)
---   carry      the assembled AI drains 5 energy/s; 60 s later a Concord Audit Service fleet
+--   carry      the assembled AI drains 3 energy/s; 60 s later a Concord Audit Service fleet
 --              spawns ahead of the ship. Energy at zero kills the AI (lost). Dock at Rezkov's
 --              station to deliver (full).
 --
@@ -68,9 +68,10 @@ M.phase_order = {"init", "hook", "meet", "relay_run", "carry"}
 local U = 1000
 
 -- ── Tuning ──────────────────────────────────────────────────────────────────
-local _DRAIN_PER_S   = 5     -- energy/s while carrying the AI (same as the Witness pod)
+local _DRAIN_PER_S   = 3     -- energy/s while carrying the AI (playtest: 5 was too tough)
 local _FLEET_DELAY   = 60    -- seconds after the AI's hail before the audit fleet arrives
-local _FLEET_DIST    = 7 * U -- fleet spawn distance ahead of the ship
+local _FLEET_DIST    = 10 * U -- fleet spawn distance ahead of the ship (playtest: 7U left no time to react)
+local _FLEET_JAM_U   = 11     -- the auditors jam warp from this far (U): on arrival, from 10U out
 local _FLEET_SPREAD  = 35    -- degrees between fleet ships in the arc
 local _LOSE_FLEET_R  = 25 * U   -- the fleet loses the crew beyond this range (then despawns)
 
@@ -577,9 +578,10 @@ M.phases.carry = {
             _spawnFleet(st)
         end
         _tickFleet(st)
-        -- The audit fleet drops warp jammers like hostile Concord patrols (2 min cooldown each).
+        -- The audit fleet drops warp jammers like hostile Concord patrols (2 min cooldown each),
+        -- but from as far as _FLEET_JAM_U: it arrives 10U out, hails and pins the crew at once.
         if st.fleet_spawned and PROX and PROX.tickCombatJammers then
-            PROX.tickCombatJammers(st.jammers, st.fleet, ARC.player(), now)
+            PROX.tickCombatJammers(st.jammers, st.fleet, ARC.player(), now, _FLEET_JAM_U)
         end
     end,
 }

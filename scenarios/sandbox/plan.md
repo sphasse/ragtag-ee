@@ -83,7 +83,7 @@ Built 2026-11-13; full design in `ee/ragtag/missions/ledger.md`. Summary:
 - **Trigger.** Upgrades ≥ 800, Rezkov arc finished or declined, then 3 board jobs by the primary ship, `ledger_arc_done` unset.
   Briefing variant on `rezkov_ai_planted` ("you planted it" vs "I had a crew plant it").
 - **Flow.** Vague rumors → Thresh at Dustmote → Rezkov's station (briefing) → fly into three
-  data cores near Valcourt, Ostia and Waypoint Galen → the assembled AI drains 5 energy/s and
+  data cores near Valcourt, Ostia and Waypoint Galen → the assembled AI drains 3 energy/s and
   60 s later a three-ship Concord Audit Service fleet spawns ahead → dock at Rezkov's station.
   Concord hostility comes from the crew's own reputation (no override).
 - **Exports.** `ledger_arc_done` = `"full"` | `"lost"` (energy hit zero, or surrendered to the
@@ -657,6 +657,6 @@ If an arc module is lost, rebuild against these rails:
   three anomaly scans is too slow for Science under fire — playtest numbers.
 - Does the player template's tube accept EMP without `weaponTubeAllowMissle`?
   Verify on the actual `Flavia P.Falcon` template.
-- Ledger arc: drain rate (5/s), audit fleet delay (60 s) and size, and whether energy-zero
+- Ledger arc: drain rate (3/s after the 2026-11-17 playtest; was 5), audit fleet delay (60 s) and size, and whether energy-zero
   should be instant loss — playtest numbers. (The audit sweep was dropped 2026-11-13.)
 - Follow-on arc (Kael / normalisation): in scope for this campaign or a new one?

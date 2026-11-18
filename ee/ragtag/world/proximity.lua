@@ -272,8 +272,10 @@ end
 -- Per-tick driver (call every frame: the brake must run each tick). `holder` is a table owned
 -- by the caller (one per group/fleet, start it as {}); `ships` is a list of ship entities.
 -- The holder is a list of {ship, jammer, at, holding}, one per ship that has dropped a jammer.
-function PROX.tickCombatJammers(holder, ships, player, now)
+-- trigger_u (optional): how close a ship must be to drop one (default PROX.JAMMER.trigger_u).
+function PROX.tickCombatJammers(holder, ships, player, now, trigger_u)
     local cfg = PROX.JAMMER
+    local trigger = (trigger_u or cfg.trigger_u) * U
     -- Expire jammers (including those of ships that have since died).
     for _, rec in ipairs(holder) do
         if rec.jammer and (now - rec.at >= cfg.lifetime or not RT.valid(rec.jammer)) then
@@ -304,7 +306,7 @@ function PROX.tickCombatJammers(holder, ships, player, now)
             if not rec or (not rec.jammer and now - rec.at >= cfg.cooldown) then
                 local sx, sy = s:getPosition()
                 local dx, dy = sx - px, sy - py
-                if dx * dx + dy * dy < (cfg.trigger_u * U) ^ 2 then
+                if dx * dx + dy * dy < trigger ^ 2 then
                     local j = PROX.makeJammer(px, py)
                     _behind(player, j)
                     if not rec then rec = {ship = s}; holder[#holder + 1] = rec end

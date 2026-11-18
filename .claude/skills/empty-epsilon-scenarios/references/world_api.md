@@ -160,8 +160,8 @@ judges it by that ship's own standing: strength, shake-down or hostile, the fine
 jammers, attack orders and log lines all go to that ship. Another ship hailing a shake-down is told
 to keep clear. If the target dies or leaves the zone while another player ship is in it, the group
 takes the nearest one. Cooldowns and caps are per zone, shared by every ship: a zone sends at most
-one patrol per check. `PROX.tickCombatJammers(holder, ships, player, now)` still takes the ship
-to brake (arcs pass `ARC.player()`).
+one patrol per check. `PROX.tickCombatJammers(holder, ships, player, now [, trigger_u])` still takes the ship
+to brake (arcs pass `ARC.player()`); `trigger_u` overrides the 5U drop range (the Ledger auditors jam from 11U).
 
 ### Spawn mode (GM control)
 

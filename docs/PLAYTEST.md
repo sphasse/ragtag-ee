@@ -47,7 +47,7 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 ## 3. Ledger Arc (after Rezkov; 800 cr of upgrades)
 
 - [ ] Hook at Dustmote → Rezkov's station in the nebula → three data cores (Valcourt, Ostia, Galen)
-- [ ] Carrying the AI: the **5 energy/s drain** — tense or just annoying? Does Engineering cope?
+- [ ] Carrying the AI: the **3 energy/s drain** (eased from 5) — tense or just annoying? Does Engineering cope?
 - [ ] The **60 s** before the Concord Audit Service fleet arrives: enough time?
 - [ ] Energy at zero is an **instant loss**: fair, or should there be a warning or grace period?
 - [ ] "Transmit the data" surrender ending reads clearly

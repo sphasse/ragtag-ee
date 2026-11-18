@@ -101,7 +101,7 @@ end)
 T.wait(3)
 T.step("energy drains", function()
     local used = e0 - T.P():getEnergy()
-    T.check("carry: about 5 energy/s drained", used > 8 and used < 40, string.format("%.1f in 3s", used))
+    T.check("carry: about 3 energy/s drained", used > 6 and used < 14, string.format("%.1f in 3s", used))
     local other_used = other_e0 - T.secondShip():getEnergy()
     T.check("other ship: the AI does not drain it", other_used < 3, string.format("%.1f in 3s", other_used))
     T.st().fleet_due = 0   -- do not wait out the 60 s
@@ -112,13 +112,20 @@ T.step("fleet", function()
     T.eq("carry: three audit ships", T.alive(f), 3)
     T.eq("carry: fleet is hostile", f[1]:getFaction(), "Concord Hostile")
     local d = RT.dist(T.P(), f[1])
-    T.check("carry: fleet spawns about 7U out", d > 5500 and d < 8500, string.format("%.0f", d))
-    T.moveNear(f[1], 3000)
+    T.check("carry: fleet spawns about 10U out", d > 9000 and d < 11000, string.format("%.0f", d))
 end)
-T.waitFor("carry: a hostile audit ship drops a warp jammer", function()
+T.waitFor("carry: the auditors jam warp from where they arrive", function()
     local x, y = T.P():getPosition()
     return T.countType("WarpJammer", x, y, 3000) > 0
-end, 10)
+end, 3)
+T.step("jammed from afar", function()
+    local nearest = math.huge
+    for _, s in ipairs(T.st().fleet) do
+        if RT.valid(s) then nearest = math.min(nearest, RT.dist(T.P(), s)) end
+    end
+    T.check("carry: still well out when they jam", nearest > 8000, string.format("%.0f", nearest))
+    T.moveNear(T.st().fleet[1], 3000)
+end)
 T.talk(function() return T.st().fleet[1] end, {"Not today."})
 T.step("refusing changes nothing", function() T.eq("carry: still carrying", T.phase(), "carry") end)
 T.actAs(T.secondShip)
