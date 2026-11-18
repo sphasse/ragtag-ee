@@ -9,9 +9,9 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
   1.5U apart by default (the middle one on the centre).
 - **Concord** (`Concord Hostile`, default 5): a line 10U west of the centre, 2U apart. Hulls by slot:
   Atlantis X23, Phobos T3, Phobos T3, Atlantis X23, Phobos T3, ... (no nukes).
-- **Corsairs** (`Corsair Friendly`, default 12): a 120° arc 10U east of the centre. Hulls by slot:
+- **Corsairs** (`Corsair Friendly`, default 12): a line 10U east of the centre, 2U apart. Hulls by slot:
   Adder MK5, Adder MK5, Piranha F12, ...
-- The crew's Light Freighter starts 13U east, behind the arc. Ships made on the "Create player ship"
+- The crew's Light Freighter starts 13U east, behind the Corsair line. Ships made on the "Create player ship"
   screen join beside it.
 - No warp or jump drive for any NPC.
 - **Speeds are normalized.** Each hull's impulse, turn rate and acceleration are mapped linearly
@@ -29,10 +29,12 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
   acceleration (21.2 °/s, 21.5) so it can swing its broadsides round. The impulse multipliers
   (default x1.0) scale the result.
 - Every ship, on both sides, **defends one combat point**, and the scenario keeps track of which.
-  At the start each side is dealt round-robin over a random order of the points, so both sides
-  cover all five and the fight stays spread out instead of collapsing into one mass.
-- Every 2 s, a ship whose point has no living enemy targeting it any more moves to a random point
-  that still has some.
+  Each side's ships, ordered north to south, are mapped **proportionally** onto the points (also
+  north to south): the northernmost ships take point 1, the middle ones the middle point, the
+  southernmost point 5. Ships head straight across instead of through each other's lanes (less
+  friendly fire), and both sides cover all five points.
+- Every 2 s, a ship whose point has no living enemy targeting it any more moves to the **nearest**
+  point (along the line) that still has some; a tie is broken at random.
 - **Corsair missile top-ups:** a Corsair ship down to a quarter of its missiles is refilled to full
   (checked every 2 s). The Piranhas have only broadside tubes and no beams; the stock AI keeps them
   2.5–4U off and, once a beamless ship is out of missiles, sends it off to look for a restock, so
@@ -43,7 +45,7 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
 - **Battle status**: time, survivors per side, Corsair missile top-ups, each hull's normalized and stock speeds, how many of
   each side target each point (north to south), and how many times ships have moved to a new point.
 - **Reset battle (apply settings)**: clear the field and start again with the current settings.
-- **Reshuffle positions**: deal every ship a new point now.
+- **Re-deal points by position**: redo the proportional mapping from where the ships are now.
 - **Concord impulse x1.00** / **Corsair impulse x1.00**: cycle 1.0, 1.25, 1.5, 1.75, 2.0, 2.5 on
   top of the normalized impulse; applies at once.
 - **Points 1.5U apart: closer / further**: the spacing between points, 0.5U steps from 0.5 to 6U;

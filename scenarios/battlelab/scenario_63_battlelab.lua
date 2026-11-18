@@ -88,30 +88,28 @@ local function positions()
     return out
 end
 
-local function shuffled(n)
-    local t = {}
-    for i = 1, n do t[i] = i end
-    for i = n, 2, -1 do local j = math.random(i); t[i], t[j] = t[j], t[i] end
-    return t
-end
-
 -- Every ship defends one combat point; r.pos records which (the tracking the retargeting uses).
 local function defend(r)
     local p = B.positions[r.pos]
     r.ship:orderDefendLocation(p[1], p[2])
 end
 
--- Each side's ships start spread over the points: a random order of the points, dealt round-robin,
--- so no point gets everyone and each side covers all of them.
+-- Each side's ships, ordered north to south by where they are, are mapped proportionally onto the
+-- points (also north to south): the northernmost ships take point 1, the middle ones the middle
+-- point, the southernmost the last. Ships head straight across rather than through each other's
+-- lanes (less friendly fire).
 local function assign(list)
-    local order = shuffled(N_POSITIONS)
-    local k = 0
-    for _, r in ipairs(list) do
-        if r.ship:isValid() then
-            k = k + 1
-            r.pos = order[(k - 1) % N_POSITIONS + 1]
-            defend(r)
-        end
+    local ships = {}
+    for _, r in ipairs(list) do if r.ship:isValid() then ships[#ships + 1] = r end end
+    table.sort(ships, function(a, b)
+        local _, ya = a.ship:getPosition()
+        local _, yb = b.ship:getPosition()
+        return ya < yb
+    end)
+    local n = #ships
+    for i, r in ipairs(ships) do
+        r.pos = n > 1 and math.floor((i - 1) * (N_POSITIONS - 1) / (n - 1) + 0.5) + 1 or (N_POSITIONS + 1) // 2
+        defend(r)
     end
 end
 
@@ -123,14 +121,20 @@ local function hasEnemies(k, enemies)
     return false
 end
 
--- Ships whose point has no living enemies left move to a random point that has some.
+-- Ships whose point has no living enemies left move to the nearest point (along the line) that
+-- still has some; a tie is broken at random. Staying close keeps the lanes from crossing.
 local function retarget(list, enemies)
     local live = {}
     for k = 1, N_POSITIONS do if hasEnemies(k, enemies) then live[#live + 1] = k end end
     if #live == 0 then return end
     for _, r in ipairs(list) do
         if r.ship:isValid() and not hasEnemies(r.pos, enemies) then
-            r.pos = live[math.random(#live)]
+            local best, best_d = {}, math.huge
+            for _, k in ipairs(live) do
+                local d = math.abs(k - r.pos)
+                if d < best_d then best, best_d = {k}, d elseif d == best_d then best[#best + 1] = k end
+            end
+            r.pos = best[math.random(#best)]
             defend(r)
             B.retargets = B.retargets + 1
         end
@@ -243,12 +247,11 @@ local function startBattle()
         r.ship:setWeaponStorageMax("Nuke", 0):setWeaponStorage("Nuke", 0)
         B.concord[#B.concord + 1] = r
     end
-    -- Corsairs: a 120 degree arc SPAWN_U east of the centre, facing west.
+    -- Corsairs: a line SPAWN_U east of the centre, 2U apart, facing west (mirrors the Concord).
     for i = 1, SET.n_corsair do
-        local f = SET.n_corsair > 1 and (i - 1) / (SET.n_corsair - 1) or 0.5
-        local a = math.rad(-60 + 120 * f)
+        local y = (i - (SET.n_corsair + 1) / 2) * 2 * U
         local r = spawnShip(CORSAIR_HULLS[(i - 1) % #CORSAIR_HULLS + 1], "Corsair Friendly",
-            CORSAIR_NAMES[(i - 1) % #CORSAIR_NAMES + 1], math.cos(a) * SPAWN_U * U, math.sin(a) * SPAWN_U * U, 270)
+            CORSAIR_NAMES[(i - 1) % #CORSAIR_NAMES + 1], SPAWN_U * U, y, 270)
         B.corsair[#B.corsair + 1] = r
     end
     applyImpulse(B.concord, SET.concord_impulse)
@@ -301,7 +304,7 @@ showGM = function()
     clearGMFunctions()
     addGMFunction("Battle status", function() addGMMessage(statusText()) end)
     addGMFunction("Reset battle (apply settings)", function() startBattle(); showGM() end)
-    addGMFunction("Reshuffle positions", function() assign(B.concord); assign(B.corsair) end)
+    addGMFunction("Re-deal points by position", function() assign(B.concord); assign(B.corsair) end)
     addGMFunction(string.format("Concord impulse x%.2f", SET.concord_impulse), function()
         SET.concord_impulse = nextStep(IMPULSE_STEPS, SET.concord_impulse)
         applyImpulse(B.concord, SET.concord_impulse)   -- applies at once
