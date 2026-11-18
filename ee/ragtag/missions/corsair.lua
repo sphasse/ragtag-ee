@@ -13,7 +13,7 @@
 --             join the defense or decline (= failed)
 --   battle    the fleet follows scripted waypoints along the wall, through the 3U gap, to
 --             Blackwater. All destroyed -> defended; Blackwater falls -> failed. The tender
---             CSR Magazine holds the rest of the depot haul behind the wall: when the crew's
+--             Magazine holds the rest of the depot haul behind the wall: when the crew's
 --             racks run low it calls them in, and coming alongside reloads them (limited loads)
 --
 -- RT.flag keys (prefix "corsair_"):
@@ -172,6 +172,23 @@ end
 
 -- ── The guide (Long Memory) ──────────────────────────────────────────────────
 
+-- Long Memory flies off toward (x, y) and is removed a minute later. It stays in st.guide_leaving
+-- so a reset inside that minute (GM jump, cancel) still removes it.
+local function _guideLeaves(st, x, y)
+    local g = st.guide
+    st.guide = nil
+    ARC.kill(st.guide_leaving)
+    st.guide_leaving = g
+    if RT.valid(g) then
+        g:orderFlyTowards(x, y)
+        RT.after(60, function()
+            if RT.valid(g) then g:destroy() end
+            local cur = MISSIONS._state["corsair"]
+            if cur and cur.guide_leaving == g then cur.guide_leaving = nil end
+        end, "corsair_guide_leave")
+    end
+end
+
 -- The crew said "not right now": the raider leaves, the hook stays open. Another contact (the
 -- Greywater message, or entering the Gauntlet again) can try after _REASK_DELAY.
 local _REASK_DELAY = 10 * 60
@@ -179,20 +196,7 @@ local function _deferHook(st)
     st.deferred_until = getScenarioTime() + _REASK_DELAY
     st.hook_hailed, st.hail_when_near, st.hook_at = false, false, nil
     RT.clearObjective("corsair")
-    -- The raider flies off and is removed a minute later. It stays in st.guide_leaving so a
-    -- reset inside that minute (GM jump, cancel) still removes it.
-    local g = st.guide
-    st.guide = nil
-    ARC.kill(st.guide_leaving)
-    st.guide_leaving = g
-    if RT.valid(g) then
-        g:orderFlyTowards(_BW_X, _BW_Y)
-        RT.after(60, function()
-            if RT.valid(g) then g:destroy() end
-            local cur = MISSIONS._state["corsair"]
-            if cur and cur.guide_leaving == g then cur.guide_leaving = nil end
-        end, "corsair_guide_leave")
-    end
+    _guideLeaves(st, _BW_X, _BW_Y)
 end
 
 local _HOOK_TEXT = '"Easy. If we wanted you dead you\'d have noticed.\n\nWe watch things in the Drift, and we know you are someone who is not intimidated by the Concord. '
@@ -262,12 +266,30 @@ local function _spawnDefenders(st)
 end
 
 local _escortComms   -- forward
+local _sendHome      -- forward (with the routing below)
+
+-- The guards are down: the depot crew gives up. The depot turns neutral (Derelict), so nobody
+-- keeps shooting at it and the escorts can dock to load the haul.
+local function _depotSurrenders(st)
+    if st.depot_surrendered then return end
+    st.depot_surrendered = true
+    local d = st.depot
+    if RT.valid(d) then
+        d:setFaction("Derelict")
+        d:setDescriptions("Concord supply depot.", "Concord forward depot. The crew has surrendered and the docking clamps are open.")
+        d:setCommsFunction(function() setCommsMessage('"We surrender. Take what you want, just leave us the air."') end)
+    end
+    local p = ARC.player()
+    for _, s in ipairs(ARC.alive(st.escorts)) do
+        if RT.valid(p) then s:orderDefendTarget(p) else s:orderIdle() end
+    end
+end
 
 local function _spawnEscorts(st)
     ARC.kill(st.escorts)
     st.escorts = {}
     local p = ARC.player()
-    for i, cs in ipairs({"CSR Hardtack", "CSR Ninth Life"}) do
+    for i, cs in ipairs({"Hardtack", "Ninth Life"}) do
         local s = CpuShip():setTemplate("Phobos T3"):setFaction("Corsair Friendly")
         s:setCallSign(cs):setPosition(_BW_X - 3000, _BW_Y + (i == 1 and -1500 or 1500))
         s:setWarpDrive(true)
@@ -276,6 +298,43 @@ local function _spawnEscorts(st)
         s:setCommsScript(""):setCommsFunction(ARC.comms(function(src, tgt) _escortComms(src, tgt) end, '"We take our orders from someone else."'))
         if RT.valid(p) then s:orderDefendTarget(p) end
         st.escorts[#st.escorts + 1] = s
+    end
+end
+
+-- Corsair ships never cross the mine wall: anything west of it heading for Blackwater goes
+-- through the gap (the same two points the Concord fleet uses), then on to dest.
+local _GAP_WEST = {33.5 * U, _GAP_Y}   -- the gap's mouths (not _GAP_W, the gap's width)
+local _GAP_EAST = {39 * U, _GAP_Y}
+_sendHome = function(st, s, dest_x, dest_y)
+    if not RT.valid(s) then return end
+    dest_x, dest_y = dest_x or (_BW_X - 2 * U), dest_y or _BW_Y
+    st.routes = st.routes or {}
+    for i = #st.routes, 1, -1 do if st.routes[i].ship == s then table.remove(st.routes, i) end end
+    local x = s:getPosition()
+    if x < _WALL_X + 1 * U then
+        st.routes[#st.routes + 1] = {ship = s, steps = {_GAP_WEST, _GAP_EAST, {dest_x, dest_y}}, i = 1}
+        s:orderFlyTowards(_GAP_WEST[1], _GAP_WEST[2])
+    else
+        s:orderFlyTowards(dest_x, dest_y)
+    end
+end
+
+-- Per tick: move routed ships on to their next point; at the last one they hold there.
+local function _tickRoutes(st)
+    for k = #(st.routes or {}), 1, -1 do
+        local r = st.routes[k]
+        local s = r.ship
+        if not RT.valid(s) then
+            table.remove(st.routes, k)
+        else
+            local pt = r.steps[r.i]
+            if ARC.near(s, pt[1], pt[2], 1.2 * U) then
+                r.i = r.i + 1
+                local nxt = r.steps[r.i]
+                if nxt then s:orderFlyTowards(nxt[1], nxt[2])
+                else s:orderDefendLocation(pt[1], pt[2]); table.remove(st.routes, k) end
+            end
+        end
     end
 end
 
@@ -298,6 +357,16 @@ _escortComms = function(src, tgt)
         for _, s in ipairs(ARC.alive(st.escorts)) do s:orderDefendTarget(src) end
         setCommsMessage('"Forming up on you."')
     end)
+    addCommsReply("Head to the depot.", function()
+        st.attacking, st.boarding = false, false
+        for _, s in ipairs(ARC.alive(st.escorts)) do s:orderFlyTowards(_DEPOT_X + 3 * U, _DEPOT_Y) end
+        setCommsMessage('"Making for the depot. We\'ll hold off its guns until you say."')
+    end)
+    addCommsReply("Head back to Blackwater.", function()
+        st.attacking, st.boarding = false, false
+        for _, s in ipairs(ARC.alive(st.escorts)) do _sendHome(st, s) end
+        setCommsMessage('"Turning for home."')
+    end)
     local near_depot = ARC.near(src, _DEPOT_X, _DEPOT_Y, 7 * U)
     if near_depot and #ARC.alive(st.defenders) > 0 then
         addCommsReply("Attack the Concord defenders.", function()
@@ -309,8 +378,10 @@ _escortComms = function(src, tgt)
     if st.defenders_down and not st.load_t0 then
         addCommsReply("Board the depot and take the weapons.", function()
             st.attacking, st.boarding = false, true
-            for _, s in ipairs(ARC.alive(st.escorts)) do s:orderFlyTowards(_DEPOT_X, _DEPOT_Y) end
-            setCommsMessage('"Moving in. Keep an eye out for company while we work."')
+            for _, s in ipairs(ARC.alive(st.escorts)) do
+                if RT.valid(st.depot) then s:orderDock(st.depot) else s:orderFlyTowards(_DEPOT_X, _DEPOT_Y) end
+            end
+            setCommsMessage('"Docking with the depot. Keep an eye out for company while we work."')
         end)
     end
 end
@@ -386,13 +457,15 @@ local function _spawnAllies(st)
         st.allies[#st.allies + 1] = s
     end
     -- Missile boats beside the gap on the Blackwater side, to cut the fleet down as it threads it.
-    add("Piranha F12", "CSR Long Odds", _WALL_X + 4 * U, _GAP_Y - 3 * U, "Corsair missile boat covering the gap.")
-    add("Piranha F12", "CSR Hollis",    _WALL_X + 4 * U, _GAP_Y + 3 * U, "Corsair missile boat covering the gap.")
+    add("Piranha F12", "Long Odds", _WALL_X + 4 * U, _GAP_Y - 3 * U, "Corsair missile boat covering the gap.")
+    add("Piranha F12", "Hollis",    _WALL_X + 4 * U, _GAP_Y + 3 * U, "Corsair missile boat covering the gap.")
+    -- The gap boats fire from where they are: chasing the fleet would take them into their own mines.
+    for _, s in ipairs(st.allies) do s:orderStandGround() end
     -- Family freighters retrofitted as gunboats, holding at Blackwater.
     add("Adder MK5", "Hearthstone",   _BW_X - 3 * U, _BW_Y - 2 * U, "A family freighter with guns bolted on. The paint is still wet.")
     add("Adder MK5", "Second Chance", _BW_X - 3 * U, _BW_Y + 2 * U, "A family freighter with guns bolted on. The paint is still wet.")
-    -- Raid survivors hold at Blackwater too.
-    for _, s in ipairs(ARC.alive(st.escorts)) do s:orderDefendLocation(_BW_X - 2 * U, _BW_Y) end
+    -- Raid survivors hold at Blackwater too (through the gap if they are still west of the wall).
+    for _, s in ipairs(ARC.alive(st.escorts)) do _sendHome(st, s) end
 end
 
 local function _spawnFleet(st)
@@ -436,7 +509,7 @@ local function _tenderComms(src, tgt)
         setCommsMessage('"The haul is gone. Every round we took from Anvil is in a tube somewhere. Make them count."')
         return
     end
-    setCommsMessage(string.format('"CSR Magazine. We carry what\'s left of the Anvil haul: %d full load%s. '
+    setCommsMessage(string.format('"Magazine. We carry what\'s left of the Anvil haul: %d full load%s. '
         .. 'Come alongside, inside a klick, and give us %d seconds. We\'ll do the rest."',
         st.reloads, st.reloads == 1 and "" or "s", _RELOAD_TIME))
 end
@@ -444,7 +517,7 @@ end
 local function _spawnTender(st)
     if RT.valid(st.tender) then return end
     local s = CpuShip():setTemplate("Flavia"):setFaction("Corsair Friendly")
-    s:setCallSign("CSR Magazine"):setPosition(_TENDER_X, _TENDER_Y)
+    s:setCallSign("Magazine"):setPosition(_TENDER_X, _TENDER_Y)
     s:orderStandGround()
     s:setDescriptions("Corsair tender.", "A munitions tender carrying the rest of the haul from Forward Depot Anvil. Come alongside to rearm.")
     s:setScanningParameters(1, 1)
@@ -473,14 +546,14 @@ local function _tickTender(st, now)
         st.low_called = true
         local where = _grid(tx, ty)
         local text = "Your racks are nearly empty. We carry what's left of the Anvil haul. Come alongside at " .. where .. " and we'll load you up."
-        if not ARC.hail(st.tender, '"' .. text .. '"') then ARC.log("[CSR Magazine] " .. text, "#FFCC80") end
-        RT.setObjective("Rearm alongside CSR Magazine (" .. where .. ")", true, "corsair_rearm")
+        if not ARC.hail(st.tender, '"' .. text .. '"') then ARC.log("[Magazine] " .. text, "#FFCC80") end
+        RT.setObjective("Rearm alongside Magazine (" .. where .. ")", true, "corsair_rearm")
     end
 
     if st.reloads > 0 and share < 1 and ARC.near(p, tx, ty, _RELOAD_R) then
         if not st.reload_t0 then
             st.reload_t0 = now
-            ARC.log("[CSR Magazine] Hold her steady, we're passing crates across.", "#FFCC80")
+            ARC.log("[Magazine] Hold her steady, we're passing crates across.", "#FFCC80")
         elseif now - st.reload_t0 >= _RELOAD_TIME then
             for _, w in ipairs(_MISSILES) do
                 local m = p:getWeaponStorageMax(w) or 0
@@ -488,7 +561,7 @@ local function _tickTender(st, now)
             end
             st.reloads, st.reload_t0, st.low_called = st.reloads - 1, nil, false
             RT.clearObjective("corsair_rearm")
-            ARC.log(string.format("[CSR Magazine] Racks full. %s", st.reloads > 0
+            ARC.log(string.format("[Magazine] Racks full. %s", st.reloads > 0
                 and string.format("%d load%s left aboard.", st.reloads, st.reloads == 1 and "" or "s")
                 or "That was the last of it."), "#FFCC80")
         end
@@ -516,12 +589,12 @@ end
 
 local function _briefing(src)
     ARC.meet("corsair", "reva_profile", "Reva Okonkwo")
-    setCommsMessage('"So you\'re the one Long Memory has been shadowing. Reva Okonkwo. I keep the books here, and the guns.\n\n'
+    setCommsMessage('"So you\'re the one Long Memory has been shadowing. I\'m Reva Okonkwo. I keep the books here, and the guns.\n\n'
         .. 'We have some fierce fighters, out in the Drift and guarding these approaches. But look around you: most of the ships at Blackwater are families. '
         .. 'Free Ship crews\' kids, and their kids.\n\nThe Concord calls what we do piracy. We call it the Corsair tax. We only take back what the "transitional" tariffs took, '
-        .. 'and only from Concord hulls or to defend our territory. Now the Concord means to settle the account for good."')
+        .. 'and only from Concord hulls or to defend our territory. Now the Concord means to settle the account for good, and we need help."')
     addCommsReply("What do you need from us?", function()
-        setCommsMessage('"They\'ve provisioned a forward depot for the invasion, between Cinder and Tamsin, grid ' .. _grid(_DEPOT_X, _DEPOT_Y) .. '. '
+        setCommsMessage('"The Concord has provisioned a forward depot in preparation for their invasion of Blackwater, between Cinder and Tamsin, grid ' .. _grid(_DEPOT_X, _DEPOT_Y) .. '. '
             .. 'Mines, missiles, and a handful of warp jammers. Two Concord ships guarding it.\n\n'
             .. 'I\'ll give you two of my best ships. You lead them in, deal with the guards, and my crews will board the depot and take everything that isn\'t bolted down. '
             .. 'Then we turn their own weapons on them."')
@@ -783,6 +856,12 @@ M.phases.escort = {
         end
         local g = st.guide
         if not RT.valid(g) then return end
+        -- In sight of Blackwater: Long Memory hands the crew over to Reva.
+        if not st.arrival_hailed and ARC.near(p, _BW_X, _BW_Y, 5 * U) then
+            st.arrival_hailed = true
+            local line = '"I got you here safe. Dock with Blackwater to meet Reva and she\'ll fill you in."'
+            if not ARC.hail(g, line, "Long Memory") then ARC.log("[Long Memory] " .. line, "#FFCC80") end
+        end
         local d = RT.dist(p, g)
         if not st.guide_waiting and d > _GUIDE_WAIT_D and not ARC.near(g, _BW_X, _BW_Y, 5 * U) then
             st.guide_waiting = true
@@ -801,7 +880,9 @@ M.phases.escort = {
 M.phases.briefing = {
     enter = function(st)
         _befriend()
-        if RT.valid(st.guide) then st.guide:orderDefendLocation(_BW_X - 2 * U, _BW_Y - 1 * U) end
+        -- The crew has docked: Long Memory's job is done. Back out into the Drift (east, away
+        -- from where the wall will go), gone a minute later.
+        _guideLeaves(st, _BW_X + 25 * U, _BW_Y - 10 * U)
         RT.setObjective("Dock at Blackwater, talk to Reva", true, "corsair")
     end,
 }
@@ -810,6 +891,7 @@ M.phases.raid = {
     enter = function(st)
         _befriend()
         st.attacking, st.boarding, st.defenders_down, st.load_t0 = false, false, false, nil
+        st.depot_surrendered = false
         _spawnDepot(st)
         _spawnDefenders(st)
         _spawnEscorts(st)
@@ -826,7 +908,8 @@ M.phases.raid = {
         end
         if not st.defenders_down and #ARC.alive(st.defenders) == 0 then
             st.defenders_down = true
-            ARC.hail(escorts[1], '"Guards are down. Give the word and we\'ll board the depot."', escorts[1]:getCallSign())
+            _depotSurrenders(st)
+            ARC.hail(escorts[1], '"Guards are down and the depot\'s surrendered. Give the word and we\'ll dock and board it."', escorts[1]:getCallSign())
         elseif st.attacking and #ARC.alive(st.defenders) > 0 then
             for _, s in ipairs(escorts) do
                 local ok, ord = pcall(function() return s:getOrder() end)
@@ -836,10 +919,11 @@ M.phases.raid = {
         if st.boarding then
             if not st.load_t0 then
                 for _, s in ipairs(escorts) do
-                    if ARC.near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then
+                    local docked = false
+                    pcall(function() docked = RT.valid(st.depot) and s:getDockedWith() == st.depot end)
+                    if docked or ARC.near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then
                         st.load_t0 = now
-                        for _, e in ipairs(escorts) do e:orderIdle() end
-                        ARC.log("[" .. s:getCallSign() .. "] Alongside the depot. Cutting into the cargo bays.", "#FFCC80")
+                        ARC.log("[" .. s:getCallSign() .. "] Docked at the depot. Loading the cargo bays.", "#FFCC80")
                         break
                     end
                 end
@@ -855,9 +939,10 @@ M.phases.raid = {
 M.phases["return"] = {
     enter = function(st)
         _befriend()
-        for _, s in ipairs(ARC.alive(st.escorts)) do s:orderFlyTowards(_BW_X - 2 * U, _BW_Y) end
+        for _, s in ipairs(ARC.alive(st.escorts)) do _sendHome(st, s) end
         RT.setObjective("Return to Blackwater", true, "corsair")
     end,
+    update = function(st) _tickRoutes(st) end,
 }
 
 M.phases.battle = {
@@ -874,6 +959,7 @@ M.phases.battle = {
     end,
     update = function(st, delta, now)
         _tickWaypoints(st)
+        _tickRoutes(st)
         _tickTender(st, now)
         if PROX and PROX.tickCombatJammers then PROX.tickCombatJammers(st.cjam, st.fleet, ARC.player(), now) end
         if st.fleet_spawned and #ARC.alive(st.fleet) == 0 then
@@ -976,6 +1062,7 @@ M.gm_actions = {
     end},
     {label = "Finish loading", phases = {"raid"}, fn = function(st)
         if not st.defenders_down then for _, s in ipairs(ARC.alive(st.defenders)) do s:destroy() end end
+        _depotSurrenders(st)
         st.defenders_down, st.boarding, st.load_t0 = true, true, getScenarioTime() - _LOAD_TIME
     end},
     {label = "Fleet to gap", phases = {"battle"}, fn = function(st)

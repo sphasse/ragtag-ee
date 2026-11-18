@@ -28,9 +28,9 @@ init ─► hook ─► escort ─► briefing ─► raid ─► return ─► 
 | Phase | What happens | Leaves |
 |---|---|---|
 | `hook` | Three priority-5 rumors point to **Greywater Depot** ("the barkeep is holding a message for a freighter crew…"). Docked at Greywater: **"Heard you're holding a message for us."** → the barkeep's data chip: *Long Memory* waits at the Gauntlet's north edge (24, 45), objective set; it hails when the crew closes to 6U. Fallback: entering the Gauntlet spawns the raider 4.5U ahead. Either way the raider (Adder MK5, `Corsair Friendly`) opens comms: "We watch things in the Drift, and we know you are someone who is not intimidated by the Concord… Follow us." **Lead the way** / **Not right now** (raider leaves, hook stays open; Greywater and the Gauntlet re-offer after 10 min) / **Tell your people to forget us** (`declined`). | `corsair_hook` |
-| `escort` | Corsair territory turns friendly (Gauntlet and Blackwater garrisons and the Blackwater station become `Corsair Friendly`; Gauntlet and Blackwater Reach PROX spawns suspended). Follow the guide; it waits if the crew is > 8U behind ("Keep up. These rocks eat the careless."). Docking at Blackwater moves on. | `corsair_arrived` |
-| `briefing` | Docked: Reva Okonkwo (profile added): fierce fighters out in the Drift and guarding Blackwater, but most ships here are families; the Corsair tax ("only from Concord hulls or to defend our territory"). The depot between Cinder and Tamsin; two ships for the crew. **We'll take the depot.** | `corsair_briefed` |
-| `raid` | Forward Depot Anvil (-60, 62), two Concord Hostile Phobos guards. Escorts CSR Hardtack and CSR Ninth Life (Phobos T3) answer comms with orders that unlock in turn: **Form up on me** (always) → **Attack the Concord defenders** (crew within 7U of the depot, guards alive) → **Board the depot and take the weapons** (guards dead). The crew does not board: the escorts close to 1.8U, load for 30 s, then hail "We're loading up the haul now… Meet you back at Blackwater." Both escorts lost: Reva sends two more and the depot is re-crewed (the raid restarts). | `corsair_raid_done` |
+| `escort` | Corsair territory turns friendly (Gauntlet and Blackwater garrisons and the Blackwater station become `Corsair Friendly`; Gauntlet and Blackwater Reach PROX spawns suspended). Follow the guide; it waits if the crew is > 8U behind ("Keep up. These rocks eat the careless."). Within 5U of Blackwater it hails: "I got you here safe. Dock with Blackwater to meet Reva and she'll fill you in." Docking at Blackwater moves on, and Long Memory flies off east and is removed a minute later. | `corsair_arrived` |
+| `briefing` | Docked: "I'm Reva Okonkwo" (profile added): fierce fighters out in the Drift and guarding Blackwater, but most ships here are families; the Corsair tax ("only from Concord hulls or to defend our territory"); "Now the Concord means to settle the account for good, and we need help." "The Concord has provisioned a forward depot in preparation for their invasion of Blackwater", between Cinder and Tamsin; two ships for the crew. **We'll take the depot.** | `corsair_briefed` |
+| `raid` | Forward Depot Anvil (-60, 62), two Concord Hostile Phobos guards. Escorts Hardtack and Ninth Life (Phobos T3; Corsair ships carry no prefix, they are ad hoc) answer comms. Always: **Form up on me**, **Head to the depot** (fly to its east side, engaging on the way), **Head back to Blackwater** (through the gap once the wall exists). Then **Attack the Concord defenders** (crew within 7U of the depot, guards alive) and **Board the depot and take the weapons** (guards dead). When the guards are down the depot crew surrenders: the depot turns `Derelict` (neutral), nobody keeps shooting at it, and the escorts dock with it to load. The crew does not board: the escorts dock (or close to 1.8U), load for 30 s, then hail "We're loading up the haul now… Meet you back at Blackwater." Both escorts lost: Reva sends two more and the depot is re-crewed (the raid restarts). | `corsair_raid_done` |
 | `return` | Docked: Reva thanks the crew. **The trap spawns now** and the crew's rear rack gets 4 mines. "And just in time too. News is the Concord attack fleet was just detected at grid … will you fly out and join our defense?" **We'll hold the wall** / **This isn't our fight** (`failed`: the defense started without them). | `corsair_joined` |
 | `battle` | Battle Group Two spawns west of the wall and flies scripted waypoints (FlyTowards, advance within 1.5U) along the wall's west face, through the gap, to Blackwater. Concord ships drop combat warp jammers on the crew (`PROX.tickCombatJammers`). Allies: two Piranha missile boats beside the gap (Blackwater side), two retrofitted family gunboats (Adder MK5) at Blackwater, raid survivors, plus Blackwater's own garrisons. All six Concord ships destroyed → `defended`. Blackwater hull < 20% → `failed` (the station is made indestructible for the battle). Rearming: see "The tender" below. | `corsair_arc_done` |
 
@@ -51,15 +51,24 @@ init ─► hook ─► escort ─► briefing ─► raid ─► return ─► 
 
 ### The tender
 
-The raid brought back more than mines. **CSR Magazine** (Flavia, `Corsair Friendly`, stand ground) holds
+The raid brought back more than mines. **Magazine** (Flavia, `Corsair Friendly`, stand ground) holds
 the rest of the Anvil haul at (43, 82): behind the wall, north of the fleet's road from the gap to
 Blackwater. When the crew's missile racks (homing, HVLI, mines, EMP, whatever the ship carries) are
 at or below 25%, it hails ("Your racks are nearly empty… come alongside at <grid>") and a second
-objective line appears: "Rearm alongside CSR Magazine (<grid>)". Within 1.2U for 8 s refills every
+objective line appears: "Rearm alongside Magazine (<grid>)". Within 1.2U for 8 s refills every
 rack to its maximum. Three loads aboard; it calls again each time the racks run low while loads are
 left. Hailing it says how many loads are left, or "The haul is gone". It is destructible: if the
 Concord gets to it, Reva says so and the objective goes. Arc ship only (other ships get "Corsair
 business. Keep clear.").
+
+### Keeping Corsairs out of their own mines
+
+Corsair ships never cross the wall: any that is west of it when sent to Blackwater (the raid escorts
+coming home, "Head back to Blackwater", the survivors joining the battle) flies to the gap's west
+mouth (33.5, 91), through to (39, 91), then on to Blackwater (`_sendHome`, `_tickRoutes`). The two
+gap missile boats (Long Odds, Hollis) stand ground instead of defending a location, so they fire on
+the fleet from where they are and never chase it into the mines. (Playtest: a Corsair ship hit its
+own mine.)
 
 ## Exports
 

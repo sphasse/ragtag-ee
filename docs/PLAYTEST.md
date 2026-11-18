@@ -74,7 +74,7 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 - [ ] Return: 4 mines in the rear rack; the mine wall and its single gap at J6
 - [ ] The **battle at the wall, for real**: does Battle Group Two thread the gap? How long does it take?
       Are the combat warp jammers a fun obstacle or a frustration?
-- [ ] **CSR Magazine** (new): runs low → it hails with its grid and a "Rearm" objective appears;
+- [ ] **Magazine** (new): runs low → it hails with its grid and a "Rearm" objective appears;
       8 s alongside refills the racks. Is it reachable mid-battle? Is **3 loads** right? Is **8 s**
       too long under fire? Does the Concord ever get to it?
 - [ ] Blackwater falling (hull < 20%) ends the arc as failed, and the crew can tell why

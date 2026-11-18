@@ -118,6 +118,7 @@ T.closeComms()
 local n0
 T.step("a freighter is lost", function()
     T.moveTo(VERSE.at("Lastchance Outpost", 30, 30))    -- far from every route station
+    B:setPosition(VERSE.at("Lastchance Outpost", 34, 30))  -- the second ship too: no ship may watch a respawn
     n0 = #transports()
     rec.ship:destroy()
 end)

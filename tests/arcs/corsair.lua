@@ -79,9 +79,33 @@ T.step("escorted in", function()
 end)
 T.closeComms()
 
+-- ── Arrival: Long Memory hands over, then leaves once the crew docks ─────────
+T.step("in sight of Blackwater", function() T.moveNear("Blackwater", 4000) end)
+T.waitFor("escort: within 5U, Long Memory hails", function() return T.st().arrival_hailed end, 3)
+T.talk(guide, {}, {answer = true, name = "Long Memory"})
+T.step("handed over", function()
+    T.check("escort: 'I got you here safe. Dock with Blackwater to meet Reva'",
+        T.msg():find("I got you here safe. Dock with Blackwater to meet Reva and she'll fill you in.", 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
+
 -- ── Briefing ─────────────────────────────────────────────────────────────────
 T.dock("Blackwater")
 T.waitFor("briefing: docking at Blackwater moves on", function() return T.phase() == "briefing" end, 3)
+T.step("Long Memory leaves", function()
+    T.check("briefing: the guide is no longer escorting", T.st().guide == nil)
+    T.check("briefing: it flies off (removed a minute later)", RT.valid(T.st().guide_leaving))
+end)
+T.talk("Blackwater", {})
+T.step("Reva introduces herself", function()
+    T.check("briefing: \"I'm Reva Okonkwo.\"", T.msg():find("I'm Reva Okonkwo.", 1, true) ~= nil, T.msg())
+    T.check("briefing: \"... settle the account for good, and we need help.\"",
+        T.msg():find("settle the account for good, and we need help.", 1, true) ~= nil, T.msg())
+end)
+T.talk("Blackwater", {"What do you need from us?"})
+T.step("the depot", function()
+    T.check("briefing: the depot line", T.msg():find("The Concord has provisioned a forward depot in preparation for their invasion of Blackwater", 1, true) ~= nil, T.msg())
+end)
 T.talk("Blackwater", {"What do you need from us?", "We'll take the depot."})
 T.step("raid on", function()
     T.eq("raid: phase", T.phase(), "raid")
@@ -109,8 +133,11 @@ end)
 -- ── Raid: the orders unlock in turn ──────────────────────────────────────────
 T.undock()
 T.talk(escort, {}, {name = "an escort"})
-T.step("far from the depot: form up only", function()
+T.step("far from the depot: the three standing orders", function()
+    T.check("raid: no CSR prefix on the escorts", not escort():getCallSign():find("CSR", 1, true), escort():getCallSign())
     T.check("raid: form up on offer", T.hasReply("Form up on me."))
+    T.check("raid: head to the depot on offer", T.hasReply("Head to the depot."))
+    T.check("raid: head back to Blackwater on offer", T.hasReply("Head back to Blackwater."))
     T.check("raid: no attack order far from the depot", not T.hasReply("Attack the Concord defenders."))
     T.check("raid: no boarding order yet", not T.hasReply("Board the depot"))
     T.moveTo(DEPOT_X, DEPOT_Y + 4000)
@@ -123,6 +150,10 @@ T.step("attacking; then the guards go down", function()
     T.action("Kill defenders")
 end)
 T.waitFor("raid: guards down is noticed", function() return T.st().defenders_down end, 3)
+T.step("the depot surrenders", function()
+    T.eq("raid: the depot turns neutral", T.st().depot:getFaction(), "Derelict")
+    T.check("raid: the escorts are no enemies of it", not escort():isEnemy(T.st().depot))
+end)
 T.talk(escort, {"Board the depot and take the weapons."}, {name = "an escort"})
 T.step("boarding", function()
     T.check("raid: escorts boarding", T.st().boarding)
@@ -138,6 +169,12 @@ T.waitFor("return: the haul is loaded", function() return T.phase() == "return" 
 T.step("haul loaded", function()
     T.check("return: corsair_raid_done set", T.flag("corsair_raid_done"))
     T.eq("return: no trap before the debrief", #T.st().mines, 0)
+    -- From the depot (west of the wall) the escorts go home through the gap, not over the mines.
+    local routed = 0
+    for _, r in ipairs(T.st().routes or {}) do
+        if r.steps[1][1] < 36000 and math.abs(r.steps[1][2] - 91000) < 1 then routed = routed + 1 end
+    end
+    T.eq("return: both escorts routed through the gap", routed, 2)
 end)
 
 -- ── Return and the wall ──────────────────────────────────────────────────────
@@ -151,6 +188,12 @@ T.step("the battle", function()
     T.eq("battle: two trap jammers", T.alive(s.trap_jammers), 2)
     T.check("battle: four allies plus raid survivors", T.alive(s.allies) == 4 and T.alive(s.escorts) == 2)
     T.eq("battle: four mines in the crew's rack", T.P():getWeaponStorage("Mine"), 4)
+    local held = 0
+    for _, a in ipairs(s.allies) do
+        local ok, ord = pcall(function() return a:getOrder() end)
+        if ok and (a:getCallSign() == "Long Odds" or a:getCallSign() == "Hollis") and ord == "Stand Ground" then held = held + 1 end
+    end
+    T.eq("battle: the gap boats hold position (no chasing into the mines)", held, 2)
     -- The wall: neighbours never more than 0.7U apart (a mine triggers at 0.6U), except the gap.
     local worst, gaps = 0, 0
     for i = 2, #s.mines do
@@ -163,7 +206,7 @@ T.step("the battle", function()
     T.check("battle: no hole in the wall over 0.7U", worst <= 700, string.format("%.0f", worst))
     T.eq("battle: exactly one gap", gaps, 1)
     T.eq("battle: wall mines use the narrow AI avoid range", s.mines[1].components.avoid_object.range, 800)
-    T.check("tender: CSR Magazine behind the wall", RT.valid(s.tender))
+    T.check("tender: Magazine behind the wall", RT.valid(s.tender))
     T.eq("tender: friendly", s.tender:getFaction(), "Corsair Friendly")
     T.eq("tender: three loads aboard", s.reloads, 3)
     T.check("tender: no call while the racks are full", not s.low_called)
@@ -187,7 +230,7 @@ T.step("the crew fires off its missiles", function()
 end)
 T.waitFor("tender: running low brings a call", function() return T.st().low_called end, 3)
 T.step("called in", function()
-    T.check("tender: a rearm objective with its grid", (RT.objectives["corsair_rearm"] or ""):find("CSR Magazine", 1, true) ~= nil,
+    T.check("tender: a rearm objective with its grid", (RT.objectives["corsair_rearm"] or ""):find("Magazine", 1, true) ~= nil,
         tostring(RT.objectives["corsair_rearm"]))
     T.moveNear(T.st().tender, 800)
 end)
@@ -209,7 +252,7 @@ T.step("the haul is gone", function()
     T.check("tender: no transfer either", s.reload_t0 == nil)
     T.eq("tender: the racks stay empty", T.P():getWeaponStorage("Homing"), 0)
 end)
-T.talk(function() return T.st().tender end, {}, {name = "CSR Magazine"})
+T.talk(function() return T.st().tender end, {}, {name = "Magazine"})
 T.step("the tender says so", function()
     T.check("tender: 'the haul is gone'", T.msg():find("haul is gone", 1, true) ~= nil, T.msg())
     corsairs0, concord0 = T.rep("Corsairs"), T.rep("Concord")
@@ -266,7 +309,8 @@ T.gmWalk({
         T.eq("GM hook: no mines left", #T.st().mines, 0)
     end},
     {key = "escort",   phase = "escort", check = function()
-        T.check("GM escort: guide out", RT.valid(guide()))
+        -- Still docked at Blackwater, the arc moves straight on to the briefing and Long Memory leaves.
+        T.check("GM escort: guide out (or already leaving)", RT.valid(guide()) or RT.valid(T.st().guide_leaving))
         T.eq("GM escort: Blackwater friendly", hostileAt("Blackwater"), "Corsair Friendly")
     end},
     {key = "briefing", phase = "briefing"},
@@ -301,7 +345,7 @@ T.gmWalk({
 })
 
 T.deactivate({
-    gone = {"Long Memory", "Forward Depot Anvil", "CNS Warden", "CSR Hardtack", "CNS Retribution", "CSR Long Odds", "Hearthstone"},
+    gone = {"Long Memory", "Forward Depot Anvil", "CNS Warden", "Hardtack", "CNS Retribution", "Long Odds", "Hearthstone"},
     check = function()
         T.eq("inactive: Blackwater hostile", hostileAt("Blackwater"), "Corsairs")
         T.check("inactive: patrols resume", not PROX._suspended_zones["the Gauntlet"] and not PROX._suspended_zones["Blackwater Reach"])
