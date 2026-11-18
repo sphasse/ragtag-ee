@@ -195,7 +195,7 @@ local function _deferHook(st)
     end
 end
 
-local _HOOK_TEXT = '"Easy. If we wanted you dead you\'d have noticed.\n\nWe watch things in the Drift, and we know you are someone capable of taking on the Concord. '
+local _HOOK_TEXT = '"Easy. If we wanted you dead you\'d have noticed.\n\nWe watch things in the Drift, and we know you are someone who is not intimidated by the Concord. '
     .. 'Somebody at Blackwater wants to talk to you. Follow us in, and nobody out here will touch you."'
 
 local function _guideComms(src, tgt)

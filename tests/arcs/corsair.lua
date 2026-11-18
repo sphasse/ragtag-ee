@@ -39,7 +39,12 @@ T.undock()
 T.step("fly out to meet them", function() T.moveNear(guide(), 3000) end)
 
 -- ── "Not right now": the hook stays open, but not for 10 minutes ─────────────
-T.talk(guide, {"Not right now."}, {answer = true, name = "Long Memory"})
+T.talk(guide, {}, {answer = true, name = "Long Memory"})
+T.step("the raider's pitch", function()
+    T.check("hook: 'someone who is not intimidated by the Concord'",
+        T.msg():find("we know you are someone who is not intimidated by the Concord.", 1, true) ~= nil, T.msg())
+end)
+T.talk(guide, {"Not right now."}, {name = "Long Memory"})
 T.step("deferred", function()
     T.eq("defer: still the hook", T.phase(), "hook")
     T.check("defer: the raider leaves", guide() == nil)
