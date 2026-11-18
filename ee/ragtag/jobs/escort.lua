@@ -24,21 +24,14 @@ local _ESCORT_NAMES = {
     "Mudlark",    "Guillemot",  "Puffin",     "Curlew",     "Redshank",
 }
 
--- Post-completion departure tracking; processed by _tickDeparting each JOBS cycle.
-local _departing = {}  -- list of {ships={entity,...}, despawn_at=t}
-
-local function _tickDeparting(now)
-    local i = #_departing
-    while i >= 1 do
-        local d = _departing[i]
-        if now > d.despawn_at then
-            for _, s in ipairs(d.ships) do
-                if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
-            end
-            table.remove(_departing, i)
+-- Ships leaving after the job (the fighters, the convoy) are removed `delay` seconds later, out
+-- of sight by then. A scenario timer, so it runs whether or not any job is still active.
+local function _removeLater(ships, delay)
+    RT.after(delay, function()
+        for _, s in ipairs(ships) do
+            if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
         end
-        i = i - 1
-    end
+    end, "escort_departed")
 end
 
 -- ---------------------------------------------------------------------------
@@ -191,21 +184,43 @@ local function _farewells(m, ships)
     end
 end
 
+-- Somewhere for ships leaving the job to head: a random station other than the origin and the
+-- destination, else straight on past the destination.
+local function _departureTarget(m)
+    local candidates = {}
+    for _, st in ipairs(VERSE.STATIONS or {}) do
+        if st.cs ~= m.origin and st.cs ~= m.dest then candidates[#candidates + 1] = st.cs end
+    end
+    if #candidates > 0 then
+        local dep_e = RT.find(candidates[math.random(#candidates)])
+        if RT.valid(dep_e) then return dep_e:getPosition() end
+    end
+    return m.dx + (m.dx - m.ox), m.dy + (m.dy - m.oy)
+end
+
+M.CONVOY_DESPAWN  = 120   -- seconds after the convoy leaves its destination before it is removed
+M.FIGHTER_DESPAWN = 300   -- seconds after the fighters peel off before they are removed
+
+-- The job is over after a safe arrival (paid, or never collected): the convoy undocks, heads for
+-- another station and is removed M.CONVOY_DESPAWN seconds later, like the fighters.
+local function _sendConvoyOff(m)
+    local s = m.convoy
+    if m._convoy_departed or not RT.valid(s) then return end
+    m._convoy_departed = true
+    local tx, ty = _departureTarget(m)
+    s:orderFlyTowardsBlind(tx, ty)
+    s:setCommsFunction(function(src, tgt)
+        setCommsMessage('"Cargo\'s off, and so are we. Thanks again for the escort."')
+    end)
+    _removeLater({s}, M.CONVOY_DESPAWN)
+end
+
 local function _dismissFighters(m)
     if m._fighters_dismissed then return end
     m._fighters_dismissed = true
     local fighter_list = m.fighters or {}
     if #fighter_list == 0 then return end
-    local candidates = {}
-    for _, st in ipairs(VERSE.STATIONS or {}) do
-        if st.cs ~= m.origin and st.cs ~= m.dest then candidates[#candidates + 1] = st.cs end
-    end
-    local tx, ty
-    if #candidates > 0 then
-        local dep_e = RT.find(candidates[math.random(#candidates)])
-        if RT.valid(dep_e) then tx, ty = dep_e:getPosition() end
-    end
-    if not tx then tx = m.dx + (m.dx - m.ox); ty = m.dy + (m.dy - m.oy) end
+    local tx, ty = _departureTarget(m)
     local dep_ships = {}
     for _, s in ipairs(fighter_list) do
         if RT.valid(s) then
@@ -217,7 +232,7 @@ local function _dismissFighters(m)
         end
     end
     if #dep_ships > 0 then
-        _departing[#_departing + 1] = {ships = dep_ships, despawn_at = getScenarioTime() + 300}
+        _removeLater(dep_ships, M.FIGHTER_DESPAWN)
         _farewells(m, dep_ships)
     end
 end
@@ -616,6 +631,7 @@ function M.cleanup(m)
 
     if m._convoy_arrived then
         _dismissFighters(m)  -- no-op if already dismissed in update()
+        _sendConvoyOff(m)
     else
         for _, s in ipairs(m.fighters or {}) do
             if RT.valid(s) then RT.cancelKillTracking(s) s:destroy() end
@@ -635,4 +651,3 @@ function M.completeReply(m, entry)
 end
 
 JOBS.register(M)
-JOBS._tick_hooks[#JOBS._tick_hooks + 1] = _tickDeparting

@@ -25,6 +25,7 @@ local function along(frac) return m.ox + (m.dx - m.ox) * frac, m.oy + (m.dy - m.
 T.step("post an escort job", function()
     local mod = JOBS._registry.escort
     mod.FAREWELL_DELAY, mod.FAREWELL_GAP = 0.5, 1   -- farewells come quickly in the test
+    mod.CONVOY_DESPAWN, mod.FIGHTER_DESPAWN = 4, 4   -- and departed ships are removed quickly
     m = T.postJob(T.makeJob("escort", HOME))
     -- The pay is the formula reward plus a flat allowance for the missiles the waves will cost.
     local mod = JOBS._registry.escort
@@ -81,11 +82,21 @@ T.step("farewells", function()
 end)
 T.step("note credits", function() c0 = T.credits() end)
 T.talk(function() return T.find(m.dest) end, {"Collect escort payment"})
+local done_convoy, done_fighters
 T.step("paid", function()
     T.eq("escort: paid the reward", T.credits() - c0, m.reward)
     T.check("escort: done", T.activeEntry(m) == nil)
+    done_convoy, done_fighters = convoy(), {m.fighters[1], m.fighters[2]}
+    T.check("leaving: the convoy is sent off", m._convoy_departed)
 end)
 T.closeComms()
+T.waitFor("leaving: the convoy undocks", function()
+    return RT.valid(done_convoy) and not done_convoy:getDockedWith()
+end, 3)
+T.waitFor("leaving: the convoy is removed once out of sight", function() return not RT.valid(done_convoy) end, 6)
+T.waitFor("leaving: so are the fighters", function()
+    return not RT.valid(done_fighters[1]) and not RT.valid(done_fighters[2])
+end, 6)
 
 local first = {}
 T.step("a second job; the convoy is lost", function()
