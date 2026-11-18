@@ -195,6 +195,23 @@ local function buildPlanets()
     end
 end
 
+-- Ports (every universe station the crew can trade at: not Corsair or Hollow) cannot be destroyed.
+-- Arcs and jobs hang off them (Dustmote hosts the Rezkov and Ledger hooks, Saint Brennan's the
+-- Boneyard rescue job), and fights come to them: boarding and destroy targets fly to a nearby
+-- port and turn hostile there, a hacking job's armed relay can sit beside one, arc fleets chase
+-- the crew in to dock. Playtest 2026-11-17: Dustmote and Saint Brennan's vanished mid-session.
+-- Corsair and Hollow stations stay destructible (an arc that needs one to survive, like the
+-- Corsair battle at Blackwater, makes it indestructible itself). Any station that does die is
+-- logged and reported as "station_destroyed".
+local function _reportStationLoss(s, cs)
+    RT.onKill(s, function(self, instigator)
+        local by = "unknown"
+        pcall(function() if instigator and instigator:isValid() then by = instigator:getCallSign() end end)
+        log("[VERSE] Station destroyed: " .. cs .. " (by " .. by .. ")")
+        RT.emit("station_destroyed", {station = cs, by = by}, "high")
+    end)
+end
+
 local function buildStations()
     for _, d in ipairs(VERSE.STATIONS) do
         local s
@@ -210,7 +227,9 @@ local function buildStations()
             s = RT.station({template = d.tmpl, faction = d.fac, callsign = d.cs, x = d.x * U, y = d.y * U,
                 shop = d.shop or false, flavor = d.flavor, description = d.desc})
             RT.stations[d.cs].concord = d.concord or false
+            s:setCanBeDestroyed(false)
         end
+        _reportStationLoss(s, d.cs)
         VERSE.places[d.cs] = {x = d.x * U, y = d.y * U}
     end
 end
