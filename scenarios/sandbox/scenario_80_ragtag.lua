@@ -163,13 +163,16 @@ function init()
         -- The campaign's own ship name comes first: it is free only when the primary ship has
         -- been lost, and a freighter that takes it becomes the primary again (RT.promotePrimary).
         -- Only live ships hold a name; a destroyed one is skipped (and never asked for its name).
-        if tmpl == "Light Freighter" then
+        -- A Magpie-class ship picked by name (ship_templates.lua) takes that name when it is free.
+        local by_name = MAGPIE_CLASS and MAGPIE_CLASS[tmpl]
+        if tmpl == "Light Freighter" or by_name then
             local used = {}
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) and p ~= ship then used[p:getCallSign()] = true end
             end
             local names = {}
-            if RT.campaign and RT.campaign.ship_name then names[1] = RT.campaign.ship_name end
+            if by_name then names[1] = tmpl end
+            if RT.campaign and RT.campaign.ship_name then names[#names + 1] = RT.campaign.ship_name end
             for _, name in ipairs(_SHIP_ROSTER) do names[#names + 1] = name end
             for _, name in ipairs(names) do
                 if not used[name] then ship:setCallSign(name); break end

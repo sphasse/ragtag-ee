@@ -18,6 +18,14 @@ Every player ship has its own record: **credits**, **standing** with each factio
   tier (which contract types it is offered) follows its own upgrade spend: under 500 cr tier 0,
   500–999 cr tier 1, 1000 cr and up tier 2.
 - Renaming a ship in mid-session does not lose its record; it is saved under the new name.
+- The "Create player ship" list starts with the ten **Magpie-class** sister ships (Magpie, Raven,
+  Jackdaw, Starling, Wren, Kestrel, Harrier, Merlin, Osprey, Swift). Picking one names the new
+  ship after it, so a returning crew picks its own ship to get its record back. If a live ship
+  already has that name, the new one gets the next free sister's name. Picking **Magpie** after
+  the Magpie was lost rebuilds the primary ship: it takes over the campaign record and the story
+  arcs (and the crew learns what the loss cost). The generic
+  Light Freighter is still offered and takes the next free name; the Concord Enforcer and the
+  Corsair Raider keep the engine's call sign.
 
 ## Looking
 
