@@ -202,6 +202,45 @@ T.step("surrendered", function()
 end)
 T.closeComms()
 
+-- ── Loss: Engineering ejects the AI ──────────────────────────────────────────
+local M_ledger = MISSIONS._registry.ledger
+T.step("back to carry; Engineering presses eject once", function()
+    T.jump("carry")
+    T.P():setEnergyLevel(T.P():getMaxEnergy())
+    M_ledger.ejectPressed()
+    T.eq("eject: one press only arms it", T.phase(), "carry")
+    T.check("eject: armed", T.st().eject_armed_at ~= nil)
+    T.st().eject_armed_at = T.now() - M_ledger.EJECT_CONFIRM - 1   -- let the confirm time out
+end)
+T.wait(1)
+T.step("the confirm timed out", function()
+    T.check("eject: disarmed after the confirm window", T.st().eject_armed_at == nil)
+    M_ledger.ejectPressed()
+    T.eq("eject: a press after the timeout only arms again", T.phase(), "carry")
+    M_ledger.ejectPressed()
+end)
+T.step("ejected", function()
+    T.eq("eject: status", T.status(), "done")
+    T.eq("eject: outcome", T.flag("ledger_arc_done"), "lost")
+    T.eq("eject: reason", T.flag("ledger_lost_reason"), "ejected")
+    T.check("eject: drain off", not T.st().drain_on)
+end)
+
+-- ── Loss: the ship is destroyed with the AI aboard ───────────────────────────
+-- (core reports the primary ship's loss as "ship_lost" with primary = true: tests/core/primary.lua)
+T.step("back to carry; the ship is lost", function()
+    T.jump("carry")
+    RT.emit("ship_lost", {ship = "Kestrel", primary = false}, "high")
+    T.eq("destroyed: another ship's loss changes nothing", T.phase(), "carry")
+    RT.emit("ship_lost", {ship = RT.campaign.ship_name, primary = true}, "high")
+end)
+T.step("lost with the ship", function()
+    T.eq("destroyed: status", T.status(), "done")
+    T.eq("destroyed: outcome", T.flag("ledger_arc_done"), "lost")
+    T.eq("destroyed: reason", T.flag("ledger_lost_reason"), "destroyed")
+    T.P():setEnergyLevel(T.P():getMaxEnergy())
+end)
+
 -- ── GM states ────────────────────────────────────────────────────────────────
 T.gmWalk({
     {key = "hook",      phase = "hook"},

@@ -16,7 +16,7 @@
 --   accepted      Rezkov's briefing accepted
 --   frag_1..3     fragment recovered
 --   arc_done      "full" | "lost"
---   lost_reason   "power" | "surrender"
+--   lost_reason   "power" | "surrender" | "destroyed" (the ship died carrying it) | "ejected"
 --   evidence      true when the ledger reached Rezkov (Maw finale input)
 --   rewarded      pay-once guard for resolve
 -- Reads: rezkov_ai_planted (crew planted the AI at Galen), SCIDB.known("rezkov_profile").
@@ -226,13 +226,31 @@ local function _aiVoice()
     })
 end
 
+local _ejectPressed   -- forward (defined with the endings)
+local _EJECT_STATIONS = {"engineering", "engineering+"}
+M.EJECT_CONFIRM = 10    -- seconds the "confirm" press stays armed
+
+-- Engineering's "Eject the AI" button; `armed` shows the confirm label instead.
+local function _setEjectButton(p, armed)
+    for _, pos in ipairs(_EJECT_STATIONS) do
+        pcall(function()
+            p:addCustomButton(pos, "ledger_eject_" .. pos, armed and "CONFIRM: eject the AI" or "Eject the AI",
+                function() _ejectPressed() end, 6)
+        end)
+    end
+end
+
 local function _setDrainUI(on)
     ARC.withPlayer(function(p)
         if not RT.valid(p) then return end
         if on then
             p:addCustomInfo("engineering", "ledger_drain", string.format("Unknown process: -%d energy/s", _DRAIN_PER_S), 5)
+            _setEjectButton(p, false)
         else
             pcall(function() p:removeCustom("ledger_drain") end)
+            for _, pos in ipairs(_EJECT_STATIONS) do
+                pcall(function() p:removeCustom("ledger_eject_" .. pos) end)
+            end
         end
     end)
 end
@@ -357,6 +375,49 @@ local function _tickDrain(st, delta)
         MISSIONS.phase("ledger", "done")
     end
 end
+
+-- The other two ways to lose the AI while carrying it; both end in the "lost" state.
+local function _loseAI(st, reason, ...)
+    _drainOff(st)
+    RT.flag("ledger_lost_reason", reason)
+    RT.flag("ledger_arc_done", "lost")
+    for _, line in ipairs({...}) do ARC.log(line, "#FF8080") end
+    MISSIONS.phase("ledger", "done")
+end
+
+local function _carrying()
+    return MISSIONS._status["ledger"] == "active" and MISSIONS._cur_phase["ledger"] == "carry"
+end
+
+-- Engineering ejects the AI core: one press arms it, a second within M.EJECT_CONFIRM seconds ejects.
+_ejectPressed = function()
+    local st = MISSIONS._state["ledger"]
+    if not st or not _carrying() then return end
+    local now = getScenarioTime()
+    if st.eject_armed_at and now - st.eject_armed_at <= M.EJECT_CONFIRM then
+        _loseAI(st, "ejected",
+            "[Engineering] AI core ejected. The power draw is gone.",
+            '[Unidentified Signal] "I understand. Thank you for carrying me this far."',
+            "[Ledger Arc] The core tumbles away and goes dark. The AI is gone.")
+        return
+    end
+    st.eject_armed_at = now
+    ARC.withPlayer(function(p) _setEjectButton(p, true) end)
+    ARC.log(string.format("[Engineering] Ejecting the AI core loses it for good. Press again within %d s to confirm.",
+        M.EJECT_CONFIRM), "#FFAA40")
+end
+
+M.ejectPressed = function() _ejectPressed() end   -- what the Engineering button calls (tests press it)
+
+-- The arc ship destroyed with the AI aboard: the AI dies with it. Heard on the event bus
+-- (RT.chargeLoss), which also runs when the crew's only ship is lost and the session ends.
+RT.on(function(ev)
+    if ev.type ~= "ship_lost" or not ev.data.primary or not _carrying() then return end
+    local st = MISSIONS._state["ledger"]
+    if st then
+        _loseAI(st, "destroyed", "[Ledger Arc] The ship is gone, and the AI with it.")
+    end
+end)
 
 -- ── Comms ───────────────────────────────────────────────────────────────────
 
@@ -574,6 +635,10 @@ M.phases.carry = {
     update = function(st, delta, now)
         _tickDrain(st, delta)
         if MISSIONS._cur_phase["ledger"] ~= "carry" then return end
+        if st.eject_armed_at and now - st.eject_armed_at > M.EJECT_CONFIRM then   -- confirm timed out
+            st.eject_armed_at = nil
+            ARC.withPlayer(function(p) _setEjectButton(p, false) end)
+        end
         if not st.fleet_spawned and st.fleet_due and now >= st.fleet_due then
             _spawnFleet(st)
         end
@@ -598,7 +663,7 @@ M.flags = {
     ledger_accepted    = "took the pickup from Rezkov",
     ["ledger_frag_*"]  = "AI fragment N recovered (ledger_frag_1 .. ledger_frag_3)",
     ledger_arc_done    = 'outcome: "full" (AI delivered to Rezkov) | "lost"',
-    ledger_lost_reason = '"power" (reactor hit zero) | "surrender" (data transmitted to the auditors)',
+    ledger_lost_reason = '"power" (reactor hit zero) | "surrender" (data transmitted to the auditors) | "destroyed" (the ship died carrying it) | "ejected" (Engineering ejected the core)',
     ledger_evidence    = "Rezkov holds the Containment Ledger (set on full; unlocks the Science DB entry)",
     ledger_rewarded    = "reputation and credits were paid (an end state pays once)",
     ledger_jobs_base   = "board jobs the primary ship had done when the Rezkov arc was first seen over (the hook waits for 3 more)",

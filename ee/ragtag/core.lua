@@ -626,7 +626,7 @@ function RT.chargeLoss(ship)
     rec.loss_note = (rec.loss_note or 0) + lost
     if STATS then STATS.noteCredits(-lost, "ship lost") end
     log(string.format("[RT] %s was lost: -%d credits (balance %d)", name, lost, rec.credits))
-    RT.emit("ship_lost", {ship = name, credits_lost = lost, credits = rec.credits}, "high")
+    RT.emit("ship_lost", {ship = name, credits_lost = lost, credits = rec.credits, primary = (rec == RT.campaign)}, "high")
     RT.saveCampaign()
 end
 
