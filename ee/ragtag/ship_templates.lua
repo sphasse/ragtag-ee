@@ -18,7 +18,9 @@ freighter:setDescription(
     "One of the Drift's sister ships—Magpie, Raven, Jackdaw and the rest—" ..
     "will be assigned at spawn. Solid, unglamorous, and surprisingly hard to kill."
 )
-__player_ship_templates[#__player_ship_templates + 1] = freighter
+-- First in the ship-creation list (EmptyEpsilon lists player ships in registration order,
+-- getSpawnablePlayerShips), ahead of the stock ships.
+table.insert(__player_ship_templates, 1, freighter)
 
 -- ── Concord Enforcer ──────────────────────────────────────────────────────────
 -- Heavy patrol cutter in Concord service colors. Well-armored, forward-biased

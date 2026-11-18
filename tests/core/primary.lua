@@ -29,6 +29,8 @@ end
 
 T.step("the primary ship's record", function()
     A = T.P()
+    local list = getSpawnablePlayerShips()
+    T.eq("list: the Light Freighter is first in the ship-creation list", list[1] and list[1][2], "Light Freighter")
     NAME = RT.campaign.ship_name
     T.eq("setup: the primary ship carries the campaign's name", A:getCallSign(), NAME)
     RT.setCredits(1234, A)
