@@ -49,7 +49,7 @@ without touching comms, and a small renderer shows it and wires the "Take:" repl
 `rumors` (the "any news?" replies: a background pool, injected seeds and quest hooks),
 `proximity` (zone-based faction patrols and Concord shake-downs, with per-zone intensity),
 `defenders` (a fighter posted at each Concord/Independent station),
-`salvage` (debris clusters with density/reward settings),
+`salvage` (debris clusters with density/reward settings; never within 20U of a station),
 `traffic` (freighters on their routes, with a density setting) and
 `sciencedb` (the Drift's Science database, which follows the campaign flags).
 Plugins can be toggled and tuned by the GM at runtime. Each has a regression test in

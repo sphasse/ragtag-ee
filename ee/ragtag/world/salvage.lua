@@ -125,15 +125,44 @@ local function _spawnCluster(state, cx, cy, tier)
     return cl
 end
 
--- Pick a random spawn location anchored to an existing VERSE.SALVAGE entry.
--- Returns wx, wy (world units), tier.  Stays inside the active Drift.
+-- Salvage never sits near civilization: every pod of a cluster stays at least this far (U)
+-- from every universe station (playtest: debris parked beside a port made no sense).
+-- The freight crates that freighters lose (_updateAmbient) follow the same rule.
+_P.STATION_CLEAR_U = 20
+
+-- True when a point (world units) with pods out to spread_u around it is clear of stations.
+local function _clearOfStations(wx, wy, spread_u)
+    local U    = VERSE.U
+    local need = (_P.STATION_CLEAR_U + (spread_u or 0)) * U
+    for _, s in ipairs(VERSE.STATIONS) do
+        local dx, dy = wx - s.x * U, wy - s.y * U
+        if dx * dx + dy * dy < need * need then return false end
+    end
+    return true
+end
+
+-- A spot near anchor c for a cluster of `tier`: random offsets up to `jitter` U, widening to
+-- 20U while they keep landing near a station. nil when none is clear.
+local function _spotNear(c, tier, jitter, rng)
+    local spread = _SALVAGE_TIERS[tier].spread
+    for attempt = 1, 30 do
+        local j  = math.min(20, jitter + (attempt - 1))
+        local wx = (c.x + rng.float(-j, j)) * VERSE.U
+        local wy = (c.y + rng.float(-j, j)) * VERSE.U
+        if _clearOfStations(wx, wy, spread) then return wx, wy end
+    end
+end
+
+-- Pick a random spawn location anchored to an existing VERSE.SALVAGE entry, clear of stations.
+-- Returns wx, wy (world units), tier; nil when no anchor gives a clear spot.
 local function _randomLocation()
     local rng = VERSE.rng_live
-    local c   = rng.pick(VERSE.SALVAGE)
-    local jx  = rng.float(-20, 20)
-    local jy  = rng.float(-20, 20)
-    local tier = math.max(0, math.min(3, c.tier + math.random(-1, 1)))
-    return (c.x + jx) * VERSE.U, (c.y + jy) * VERSE.U, tier
+    for _ = 1, 10 do
+        local c    = rng.pick(VERSE.SALVAGE)
+        local tier = math.max(0, math.min(3, c.tier + math.random(-1, 1)))
+        local wx, wy = _spotNear(c, tier, 20, rng)
+        if wx then return wx, wy, tier end
+    end
 end
 
 -- Destroy all pods in a cluster and mark it dead.
@@ -217,6 +246,7 @@ local function _updateAmbient(state, now)
     local rec = VERSE.rng_live.pick(VERSE.transports)
     if not RT.valid(rec.ship) or rec.ship:getDockedWith() then return end
     local x, y = rec.ship:getPosition()
+    if not _clearOfStations(x, y, 2) then return end   -- not within sight of a port
     local dx, dy = vectorFromAngle(rec.ship:getHeading() + 180, 1500, true)
     local pod = _spawnPod(x + dx, y + dy, VERSE.rng_live.int(5, 10), _POD_KINDS[1], 0)
     pod:setCallSign("Lost crate")
@@ -241,9 +271,11 @@ function _P.init(state)
 
     for i = 1, target do
         local c  = VERSE.SALVAGE[((i - 1) % base) + 1]
-        local jx = rng.float(-2, 2)
-        local jy = rng.float(-2, 2)
-        _spawnCluster(state, (c.x + jx) * VERSE.U, (c.y + jy) * VERSE.U, c.tier)
+        -- Close to its anchor (2U), unless that is near a station: then as far out as it takes.
+        local wx, wy = _spotNear(c, c.tier, 2, rng)
+        local tier = c.tier
+        if not wx then wx, wy, tier = _randomLocation() end
+        if wx then _spawnCluster(state, wx, wy, tier) end
     end
 
     log(string.format("[Salvage] %d clusters spawned (density=%s reward=%s).",
@@ -315,6 +347,7 @@ function _P.update(state, delta, now)
     -- and gradual density-increase ramp).
     while alive < target do
         local wx, wy, tier = _randomLocation()
+        if not wx then break end   -- no clear spot this time; the next check tries again
         _spawnCluster(state, wx, wy, tier)
         alive = alive + 1
         RT.shipLog(string.format("[Salvage] New debris cluster at grid %s.", JOBS.gridRef(wx, wy)), "#C0B070")
@@ -322,8 +355,9 @@ function _P.update(state, delta, now)
 
     -- One extra cluster per _PODS_PER_RESPAWN pods collected.
     while state.pod_debt >= _PODS_PER_RESPAWN do
-        state.pod_debt = state.pod_debt - _PODS_PER_RESPAWN
         local wx, wy, tier = _randomLocation()
+        if not wx then break end   -- keep the debt; the next check tries again
+        state.pod_debt = state.pod_debt - _PODS_PER_RESPAWN
         _spawnCluster(state, wx, wy, tier)
         alive = alive + 1
         RT.shipLog(string.format("[Salvage] New debris cluster at grid %s.", JOBS.gridRef(wx, wy)), "#C0B070")

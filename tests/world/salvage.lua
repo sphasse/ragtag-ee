@@ -23,6 +23,23 @@ local function alive()
     return n
 end
 local function check_now() st.next_check = 0 end
+local U = 1000
+-- Pods within 20U of a universe station (salvage never sits that close to civilization).
+local function pods_near_stations()
+    local n, worst = 0, nil
+    for _, cl in ipairs(clusters()) do
+        for _, a in ipairs(cl.pods) do
+            if RT.valid(a) then
+                local x, y = a:getPosition()
+                for _, s in ipairs(VERSE.STATIONS) do
+                    local d = math.sqrt((x - s.x * U) ^ 2 + (y - s.y * U) ^ 2)
+                    if d < 20 * U then n = n + 1; worst = s.cs .. string.format(" %.1fU", d / U) end
+                end
+            end
+        end
+    end
+    return n, worst
+end
 local _POD_NAMES = {["Cargo pod"] = true, ["Munitions crate"] = true, ["Hull patch kit"] = true, ["Encrypted data chip"] = true}
 local function pods_near(x, y, r)
     local n = 0
@@ -54,6 +71,8 @@ end)
 T.step("one cluster per universe salvage site", function()
     T.check("start: the universe defines salvage sites", base() > 0)
     T.eq("start: clusters", #clusters(), want(2))
+    local n, worst = pods_near_stations()
+    T.check("start: no pod within 20U of a station", n == 0, tostring(n) .. " pods; e.g. " .. tostring(worst))
     local empty, out_of_range = 0, 0
     for _, cl in ipairs(clusters()) do
         local n = pods_of(cl)
@@ -113,6 +132,10 @@ T.step("density Low", function() SALV.setDensity(1); check_now() end)
 T.waitFor("density: culled to half", function() return alive() == want(1) end, 3)
 T.step("density High", function() SALV.setDensity(3); check_now() end)
 T.waitFor("density: grown to double", function() return alive() == want(3) end, 3)
+T.step("the new clusters keep clear of stations", function()
+    local n, worst = pods_near_stations()
+    T.check("top-up: no pod within 20U of a station", n == 0, tostring(n) .. " pods; e.g. " .. tostring(worst))
+end)
 local old_pod
 T.step("reward High", function()
     old_pod = cargo_pod()
