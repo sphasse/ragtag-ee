@@ -815,3 +815,4 @@ require("ragtag/core/gm_tools.lua")     -- RT.addCampaignGMFunctions, campaign b
 -- Helpers that extend RT. Loaded last: they only use RT at call time.
 require("ragtag/voice.lua")
 require("ragtag/stats.lua")
+require("ragtag/battle.lua")   -- BATTLE: set-piece battles over combat points (Battle Lab, Corsair arc)

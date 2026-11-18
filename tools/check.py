@@ -391,7 +391,7 @@ ARC_DUPLICATES = [
     (re.compile(r'RT\.voice\.(hail|log)\('), "ARC.hail(RT.voice.get(id), text, name) / ARC.log (arc ship only)"),
 ]
 # Mission-layer names that must not appear in the layers below it.
-CORE_FILES = ["core.lua", "verse.lua", "voice.lua", "stats.lua", "ship_templates.lua"]
+CORE_FILES = ["core.lua", "verse.lua", "voice.lua", "stats.lua", "ship_templates.lua", "battle.lua"]
 
 
 def check_arc_helpers() -> None:

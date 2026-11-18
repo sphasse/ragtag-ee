@@ -16,7 +16,7 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
 - No warp or jump drive for any NPC.
 - **Speeds are normalized.** Each hull's impulse, turn rate and acceleration are mapped linearly
   from the range the lab's hulls have stock onto 80–120 impulse, 15–28 °/s and 15–25 acceleration
-  (`NORM` at the top of the scenario): the slowest hull gets the low end, the fastest the high end.
+  (`BATTLE.NORM` in `ee/ragtag/battle.lua`): the slowest hull gets the low end, the fastest the high end.
 
   | Hull | Stock | Normalized |
   |---|---|---|
@@ -25,7 +25,7 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
   | Piranha F12 | 40 / 6 / 8 | 88 / 16.3 / 16.5 |
   | Atlantis X23 | 30 / 3.5 / 5 | 80 / 15 / 15 |
 
-  On top of that, `HULL_TWEAKS` adjusts single hulls: the Piranha F12 gets x1.3 turn and
+  On top of that, `BATTLE.HULL_TWEAKS` adjusts single hulls: the Piranha F12 gets x1.3 turn and
   acceleration (21.2 °/s, 21.5) so it can swing its broadsides round. The impulse multipliers
   (default x1.0) scale the result.
 - Every ship, on both sides, **defends one combat point**, and the scenario keeps track of which.
@@ -52,7 +52,10 @@ on the Corsair side. Open space, no universe, its own save (`battlelab`), never 
   applies at once (every ship goes to its point's new place).
 - **Concord ships** / **Corsair ships** with +1 / -1 (1–12 and 1–24; apply on reset).
 
-To try other hull mixes, edit `CONCORD_HULLS` / `CORSAIR_HULLS` at the top of the scenario.
+To try other hull mixes, edit `CONCORD_HULLS` / `CORSAIR_HULLS` at the top of the scenario. The battle
+rules (normalization `BATTLE.NORM`, `BATTLE.HULL_TWEAKS`, points, retargeting, top-ups) live in
+`ee/ragtag/battle.lua`, shared with the Corsair arc's battle at Blackwater, so tuning found here
+carries over.
 
 First version (six points in a ring 3U out, no retargeting), headless: the sides met after about a
 minute; after 7 minutes 1 Concord ship of 5 against 4 Corsairs of 12, with a long tail as the last
