@@ -426,8 +426,10 @@ local function _dustmoteHook(src, tgt, info)
     addCommsReply(knows and "Heard Thresh was looking for us again." or "Heard someone here was asking about us.", function()
         ARC.meet("ledger", "thresh_profile", "Thresh")
         local met = SCIDB and SCIDB.known and SCIDB.known("rezkov_profile")
-        local lead = met and '"That was me. Got another one for you. Not my job, though. The big guy wants to see you in person again. Same place."'
-                          or '"That was me. My associate has work, and he wants to see you in person. Head out at bearing 15 until you hit a nebula cloud. You\'ll find him there."'
+        -- A crew that asked for Thresh by name already knows who was looking for them.
+        local opener = knows and "" or "That was me. "
+        local lead = met and ('"' .. opener .. 'Got another one for you. Not my job, though. The big guy wants to see you in person again. Same place."')
+                          or ('"' .. opener .. 'My associate has work, and he wants to see you in person. Head out at bearing 15 until you hit a nebula cloud. You\'ll find him there."')
         setCommsMessage(lead .. '\n\nThresh turns back to work.')
         RT.flag("ledger_thresh", true)
         MISSIONS.phase("ledger", "meet")
