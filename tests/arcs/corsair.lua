@@ -1,8 +1,9 @@
 -- Corsair arc: hook (Greywater message, defer, Gauntlet contact) -> escort -> briefing -> raid
--- (escort orders, both-lost restart, boarding) -> return -> battle (rearming from the tender) -> done (defended), then the
--- late-decline and Blackwater-falls endings, the GM states, and "-> Inactive". Not covered: the
--- depot fight and the battle themselves (GM helpers remove the Concord ships), the fleet threading
--- the gap, the guide waiting for a slow crew.
+-- (escort orders, a lost escort replaced, boarding) -> return (the mine ring thickened) -> battle
+-- (frozen until the crew is near, then BATTLE rules; rearming from the tender) -> done (defended),
+-- then the late-decline and crew-lost endings, the GM states, and "-> Inactive". Not covered: the
+-- depot fight and the battle themselves (GM helpers remove the Concord ships), the guide waiting
+-- for a slow crew.
 
 T.arc("corsair")
 
@@ -191,111 +192,88 @@ T.waitFor("return: the haul is loaded", function() return T.phase() == "return" 
 T.step("haul loaded", function()
     T.check("return: corsair_raid_done set", T.flag("corsair_raid_done"))
     T.eq("return: no trap before the debrief", #T.st().mines, 0)
-    -- From the depot (west of the wall) the escorts go home through the gap, not over the mines.
+    -- The escorts head for the Blackwater approach (north of the ring), never inside the ring.
     local routed = 0
     for _, r in ipairs(T.st().routes or {}) do
-        if r.steps[1][1] < 36000 and math.abs(r.steps[1][2] - 91000) < 1 then routed = routed + 1 end
+        if math.abs(r.steps[1][1] - 55000) < 1 and math.abs(r.steps[1][2] - 87000) < 1 then routed = routed + 1 end
     end
-    T.eq("return: both escorts routed through the gap", routed, 2)
+    T.eq("return: both escorts sent to the Blackwater approach", routed, 2)
 end)
 
--- ── Return and the wall ──────────────────────────────────────────────────────
+-- ── Return: the haul's mines thicken Blackwater's ring ───────────────────────
+local BW_X, BW_Y = 55000, 99000
 T.dock("Blackwater")
-T.talk("Blackwater", {"Good work.", "We'll hold the wall with you."})
+T.talk("Blackwater", {})
+T.step("the debrief", function()
+    T.check("return: no jammers in the haul", not T.msg():lower():find("jammer", 1, true), T.msg())
+    T.check("return: no mines for the crew's rack", not T.msg():find("your own rack", 1, true), T.msg())
+    T.eq("return: the crew's rack takes no mines", T.P():getWeaponStorageMax("Mine"), 0)
+    local mines = T.st().mines
+    T.check("ring: the haul's mines are laid round Blackwater", #mines > 60, #mines)
+    local out_of_band, in_lane, rmin, rmax = 0, 0, math.huge, 0
+    for _, m in ipairs(mines) do
+        local x, y = m:getPosition()
+        local d = math.sqrt((x - BW_X) ^ 2 + (y - BW_Y) ^ 2)
+        rmin, rmax = math.min(rmin, d), math.max(rmax, d)
+        if d < 8000 or d > 10000 then out_of_band = out_of_band + 1 end
+        local a = (math.deg(math.atan(y - BW_Y, x - BW_X)) + 90) % 360   -- heading: 0 = north
+        for _, lane in ipairs({{0, 25}, {103.85, 6.9}, {256.15, 6.9}}) do
+            if math.abs(((a - lane[1]) + 180) % 360 - 180) < lane[2] then in_lane = in_lane + 1 end
+        end
+    end
+    T.eq("ring: about 9U out, like the old ring", out_of_band, 0)
+    T.eq("ring: three lanes left open (north, east-south-east, west-south-west)", in_lane, 0)
+    T.check("ring: laid in a hurry, not a perfect circle", rmax - rmin > 300, string.format("%.0f", rmax - rmin))
+end)
+T.talk("Blackwater", {"Good work.", "We'll stand with you."})
 local killed_by = {}
 T.step("the battle", function()
     local s = T.st()
-    for _, a in ipairs(s.allies) do
-        local cs = a:getCallSign()
-        local ax, ay = a:getPosition()
-        RT.onKill(a, function(self, inst)
-            local who = "?"
-            pcall(function() who = inst:getCallSign() .. "/" .. tostring(inst.components.typename and inst.components.typename.type_name) end)
-            pcall(function() if inst.components.mine then who = who .. " (a mine)" end end)
-            killed_by[#killed_by + 1] = cs .. string.format("@%.1f,%.1f", ax / 1000, ay / 1000) .. " by " .. who
-        end)
-    end
     T.eq("battle: phase", T.phase(), "battle")
     T.check("battle: corsair_joined set", T.flag("corsair_joined"))
-    T.eq("battle: two trap jammers", T.alive(s.trap_jammers), 2)
-    T.check("battle: four allies plus raid survivors", T.alive(s.allies) == 4 and T.alive(s.escorts) == 2)
-    T.eq("battle: four mines in the crew's rack", T.P():getWeaponStorage("Mine"), 4)
-    -- The Corsair line: across the corridor's far end, holding.
-    local held, placed = 0, 0
+    T.eq("battle: seven Concord ships", T.alive(s.fleet), 7)
+    T.eq("battle: twelve Corsairs", T.alive(s.allies), 12)
+    T.check("battle: frozen until the crew comes near", not s.battle.started)
+    T.eq("battle: frozen ships do not move", s.fleet[1]:getImpulseMaxSpeed(), 0)
+    local cx, ax = s.fleet[1]:getPosition(), s.allies[1]:getPosition()
+    T.check("battle: the Concord line 10U west of the points", math.abs(cx - 20000) < 100, cx)
+    T.check("battle: the Corsair line 10U east, outside the ring", math.abs(ax - 40000) < 100, ax)
+    local docking = 0
+    for _, r in ipairs(s.routes or {}) do if r.dock then docking = docking + 1 end end
+    T.eq("battle: the raid escorts go home and dock, sitting it out", docking, T.alive(s.escorts))
     for _, a in ipairs(s.allies) do
-        local ok, ord = pcall(function() return a:getOrder() end)
-        if ok and ord == "Stand Ground" then held = held + 1 end
-        local x, y = a:getPosition()
-        local bw = math.sqrt((x - 55000) ^ 2 + (y - 99000) ^ 2)
-        if x > 47500 and x < 53000 and y > 81000 and y < 89000 and bw > 11000 then placed = placed + 1 end
+        local cs = a:getCallSign()
+        RT.onKill(a, function(self, inst)
+            local who = "?"
+            pcall(function() who = inst:getCallSign() end)
+            killed_by[#killed_by + 1] = cs .. " by " .. who
+        end)
     end
-    T.eq("battle: the Corsairs formed up past the corridor's exit, clear of Blackwater's mine ring", placed, 4)
-    T.eq("battle: holding position until the fleet comes through", held, 4)
-    -- The corridor: two mine lines along the gap's edges, 10U east, no hole a ship fits through.
-    local inside, worst = 0, 0
-    for i, m in ipairs(s.corridor) do
-        local x, y = m:getPosition()
-        if x >= 33000 and x <= 46500 and math.abs(math.abs(y - 91000) - 1500) < 1200 then inside = inside + 1 end
-        if i > 1 then
-            local px, py = s.corridor[i - 1]:getPosition()
-            local d = math.sqrt((x - px) ^ 2 + (y - py) ^ 2)
-            if d < 2500 and d > worst then worst = d end
-        end
-    end
-    T.check("battle: a mine corridor past the gap", #s.corridor > 30, #s.corridor)
-    T.eq("battle: corridor mines line the gap's edges", inside, #s.corridor)
-    T.check("battle: no hole in the corridor over 0.7U", worst <= 700, string.format("%.0f", worst))
-    -- The fleet waits for the crew.
-    T.moveTo(91000, 91000)   -- 55U east of the gap
-end)
-T.wait(1)
-T.step("no fleet while the crew is far", function()
-    T.check("battle: no Corsair lost to a mine while forming up", T.alive(T.st().allies) == 4, table.concat(killed_by, "; "))
-    T.check("battle: no Concord fleet yet", not T.st().fleet_spawned)
-    T.moveTo(36000 - 15000, 80000)   -- within 20U of the gap
-end)
-T.waitFor("battle: the fleet appears when the crew nears the gap", function() return T.st().fleet_spawned end, 3)
-T.step("the fleet", function()
-    local f = T.st().fleet
-    T.eq("battle: six Concord ships", T.alive(f), 6)
-    T.check("battle: no warp", not f[1]:hasWarpDrive() and not f[3]:hasWarpDrive())
-    local base = CpuShip():setTemplate("Phobos T3")
-    local fast = f[3]:getImpulseMaxSpeed() / base:getImpulseMaxSpeed()
-    base:destroy()
-    T.check("battle: 1.5x impulse", math.abs(fast - 1.5) < 0.01, string.format("%.2f", fast))
-    T.check("battle: the Corsairs still hold", not T.st().allies_engaged)
-    f[1]:setPosition(36000 + 7000, 91000)   -- 70% of the way through the corridor
-end)
-T.waitFor("battle: the Corsairs engage as the fleet comes out", function() return T.st().allies_engaged end, 3)
-T.step("engaged", function()
-    local defending = 0
-    for _, a in ipairs(T.st().allies) do
-        local ok, ord = pcall(function() return a:getOrder() end)
-        if ok and ord == "Defend Location" then defending = defending + 1 end
-    end
-    local orders = {}
-    for _, a in ipairs(T.st().allies) do
-        local ok, ord = pcall(function() return a:getOrder() end)
-        orders[#orders + 1] = (RT.valid(a) and a:getCallSign() or "dead") .. "=" .. tostring(ok and ord)
-    end
-    T.check("battle: the Corsairs move to fight at the corridor's mouth", defending == 4, table.concat(orders, ", "))
-    local s = T.st()
-    -- The wall: neighbours never more than 0.7U apart (a mine triggers at 0.6U), except the gap.
-    local worst, gaps = 0, 0
-    for i = 2, #s.mines do
-        local x1, y1 = s.mines[i - 1]:getPosition()
-        local x2, y2 = s.mines[i]:getPosition()
-        local d = math.sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2)
-        if d > 2500 then gaps = gaps + 1 elseif d > worst then worst = d end
-    end
-    T.check("battle: a wall of mines", #s.mines > 60, #s.mines)
-    T.check("battle: no hole in the wall over 0.7U", worst <= 700, string.format("%.0f", worst))
-    T.eq("battle: exactly one gap", gaps, 1)
-    T.eq("battle: wall mines use the narrow AI avoid range", s.mines[1].components.avoid_object.range, 800)
-    T.check("tender: Magazine behind the wall", RT.valid(s.tender))
+    T.check("tender: Magazine behind the Corsair line", RT.valid(s.tender))
     T.eq("tender: friendly", s.tender:getFaction(), "Corsair Friendly")
     T.eq("tender: three loads aboard", s.reloads, 3)
     T.check("tender: no call while the racks are full", not s.low_called)
+    T.moveTo(91000, 99000)   -- far from the Corsair line
+end)
+T.wait(1)
+T.step("frozen while the crew is away", function()
+    T.check("battle: not started yet", not T.st().battle.started)
+    T.check("battle: no Corsair lost to a mine", T.alive(T.st().allies) == 12, table.concat(killed_by, "; "))
+    T.moveNear(T.st().allies[6], 3000)
+end)
+T.waitFor("battle: starts once the crew is within 5U of the Corsair line", function() return T.st().battle.started end, 3)
+T.step("the battle begins", function()
+    local s = T.st()
+    local adder, atlantis
+    for _, a in ipairs(s.allies) do if a:getTypeName() == "Adder MK5" then adder = a; break end end
+    for _, f in ipairs(s.fleet) do if f:getTypeName() == "Atlantis X23" then atlantis = f; break end end
+    T.check("battle: normalized speeds (Adder 120)", math.abs(adder:getImpulseMaxSpeed() - 120) < 0.5, adder:getImpulseMaxSpeed())
+    T.check("battle: normalized speeds (Atlantis 80)", math.abs(atlantis:getImpulseMaxSpeed() - 80) < 0.5, atlantis:getImpulseMaxSpeed())
+    T.check("battle: no warp", not atlantis:hasWarpDrive() and not adder:hasWarpDrive())
+    local per = {0, 0, 0, 0, 0}
+    for _, r in ipairs(s.battle.sides.b) do if r.pos then per[r.pos] = per[r.pos] + 1 end end
+    T.eq("battle: Corsairs mapped onto the five points, north to south", table.concat(per, "/"), "2/3/2/3/2")
+    T.check("battle: objective", (RT.objectives.corsair or ""):find("Destroy Battle Group Two", 1, true) ~= nil, tostring(RT.objectives.corsair))
 end)
 
 -- ── Rearming from the tender ─────────────────────────────────────────────────
@@ -352,12 +330,11 @@ T.step("defended", function()
     T.eq("defended: Corsairs +400", T.rep("Corsairs") - corsairs0, 400)
     T.eq("defended: Concord -300", T.rep("Concord") - concord0, -300)
     T.eq("defended: Blackwater stays friendly", hostileAt("Blackwater"), "Corsair Friendly")
-    T.eq("defended: trap jammers removed at once", T.alive(T.st().trap_jammers), 0)
     T.eq("defended: one aftermath rumor", T.rumors("CORSAIR_DONE"), 1)
 end)
 T.closeComms()
 
--- ── Ending: declining at the wall counts as failed ───────────────────────────
+-- ── Ending: declining the battle counts as failed ───────────────────────────
 T.step("back to the debrief", function()
     T.jump("return")
     T.eq("late decline: return", T.phase(), "return")
@@ -373,19 +350,22 @@ T.step("walked away", function()
 end)
 T.closeComms()
 
--- ── Ending: Blackwater falls ─────────────────────────────────────────────────
-T.step("back to the battle; Blackwater takes a beating", function()
+-- ── Ending: the crew's ship is lost (nothing else fails it) ─────────────────
+T.step("back to the battle; the Corsairs are all lost", function()
     T.jump("battle")
-    local bw = T.find("Blackwater")
-    bw:setHull(bw:getHullMax() * 0.1)
+    for _, a in ipairs(T.st().allies) do a:destroy() end
+    RT.emit("ship_lost", {ship = "Kestrel", primary = false}, "high")
 end)
-T.waitFor("failed: Blackwater under 20% hull ends the battle", function() return T.status() == "done" end, 3)
-T.step("fallen", function()
-    T.eq("failed: outcome", T.flag("corsair_arc_done"), "failed")
-    T.check("failed: no ally flag", not T.flag("corsair_ally"))
-    local bw = T.find("Blackwater")
-    T.check("failed: Blackwater survives as a station", RT.valid(bw))
-    bw:setHull(bw:getHullMax())
+T.wait(1)
+T.step("still fighting", function()
+    T.eq("crew lost: losing every Corsair is not defeat", T.phase(), "battle")
+    T.eq("crew lost: nor is another ship's loss", T.status(), "active")
+    RT.emit("ship_lost", {ship = RT.campaign.ship_name, primary = true}, "high")
+end)
+T.step("lost", function()
+    T.eq("crew lost: the arc ends", T.status(), "done")
+    T.eq("crew lost: outcome failed", T.flag("corsair_arc_done"), "failed")
+    T.check("crew lost: no ally flag", not T.flag("corsair_ally"))
 end)
 
 -- ── GM states ────────────────────────────────────────────────────────────────
@@ -413,8 +393,8 @@ T.gmWalk({
         T.eq("next session resumes at the debrief", T.phase(), "return")
     end},
     {key = "battle",   phase = "battle", check = function()
-        T.check("GM battle: the corridor is laid", #T.st().corridor > 30)
-        T.check("GM battle: wall built", #T.st().mines > 60)
+        T.check("GM battle: the ring is thickened", #T.st().mines > 60)
+        T.eq("GM battle: the Concord line is out", T.alive(T.st().fleet), 7)
     end},
     {key = "done_def",  done = true, check = function()
         T.eq("GM done_def: outcome", T.flag("corsair_arc_done"), "defended")

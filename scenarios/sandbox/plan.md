@@ -127,8 +127,8 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
 left Lumen) is coming for Blackwater Reach, to settle the Corsair problem quietly while the Drift
 is distracted. Many Corsairs are Settlement War Free Ship veterans and their children, pushed into
 raiding by the "transitional" tariffs. A raider who has been watching the crew brings them in;
-the crew raids a Concord forward depot so the Corsairs can build a trap from its mines and
-jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don't do it.
+the crew raids a Concord forward depot so the Corsairs can thicken Blackwater's mine ring with its
+mines, then stands in the Corsair line when the fleet arrives. Linear: defend, or don't do it.
 
 **Trigger:** upgrades >= 1000, Rezkov arc finished or declined, `corsair_arc_done` unset, and the crew enters the Gauntlet.
 
@@ -146,40 +146,22 @@ jammers, then helps hold the wall when the fleet arrives. Linear: defend, or don
    "We have some fierce fighters out in the Drift and guarding Blackwater, but most of the ships
    here are families." The Corsair tax: "we only take back what the tariffs took, and only from
    Concord hulls or to defend our territory." The Concord has provisioned a forward depot for the
-   invasion between Cinder and Tamsin (~(-60, 62)): mines, missiles and a handful of warp
-   jammers, guarded by two Concord ships. Reva gives the crew two decent Corsair ships to take it.
+   invasion between Cinder and Tamsin (~(-60, 62)): mines and missiles, guarded by two Concord ships. Reva gives the crew two decent Corsair ships to take it.
 4. `raid` — the two Corsair ships are commanded through comms like escort-job ships, with the
    orders unlocking in sequence: "Form up on me" -> (within ~5U of the depot) "Attack the Concord
    defenders" -> (defenders dead) "Board the depot and take the weapons". The crew does not
    board: the Corsairs dock, load (~30 s) and hail: "We're loading up the haul. Meet you back at
    Blackwater." Defenders are `Concord Hostile` (no auto rep penalty; the arc applies its own).
-5. `return` — dock at Blackwater. Reva thanks the crew: the mines are already laid as a trap,
-   warp jammers included, and family freighters are being retrofitted as gunboats. **The trap
-   spawns now** (see below); the crew's ship gets a few mines from the haul. Then: "And just in
-   time too. News is the Concord attack fleet was just detected at <grid west of the wall> and
-   is closing fast. I know you have not always seen eye to eye with us Corsairs, but will you fly
-   out and join our defense?" Join / Decline (-> `failed`: the defense started without them).
-6. `battle` — a Concord fleet about the size of the Boneyard group spawns west of the wall, far
-   from the gap, and follows **scripted waypoints** (orderFlyTowards, one leg at a time) along
-   the wall's west face, through the gap, then attacks. The long traverse gives Science time to
-   scan and Relay time to hack. Corsair missile raiders are placed beside the gap on the
-   Blackwater side; the retrofitted gunboats and any raid survivors hold near Blackwater. Fewer
-   allies than the Boneyard fight. All Concord ships destroyed -> `defended`; Blackwater
-   destroyed -> `failed`. Balance by playtest.
-
-**The trap (spawned in `return`).**
-- Mine walls of stock scripted `Mine()`s laid "pirate style": jittered, not straight, but never
-  more than **0.7U** between neighbours (trigger radius 0.6U, so there is no way through).
-- One **3U gap**. The wall mines get a smaller AI avoid bubble (`avoid_object.range` ~0.8U
-  instead of the stock 1.2U; trigger 0.6U and blast 1U unchanged) so the AI can use the gap; the
-  stock bubbles would cover 2.4U of a 3U gap.
-- Corsair warp jammers along the approach and at the gap, so the fleet makes the traverse at
-  impulse instead of warping.
-- Crew mines (from the haul) can be laid in or near the gap. Risk: sealing the gap could leave
-  the AI with no route; decide at playtest whether that is a feature.
-- Size: wall length and the fleet's spawn distance from the gap set how long the traverse takes
-  (~20U of wall is ~30 mines per section). Placement west of Blackwater (55, 99), facing the
-  Concord's approach from the west; exact geometry decided when built.
+5. `return` — dock at Blackwater. Reva thanks the crew: every mine from the haul is going into
+   Blackwater's mine ring, thick enough that only a few lanes are open (no jammers, no mines for
+   the crew). Then: "And just in time too. News is the Concord attack fleet was just detected at
+   <grid> and is closing fast. … will you fly out and join our defense?" Join / Decline
+   (-> `failed`: the defense started without them).
+6. `battle` — reworked 2026-11-18 after the Battle Lab: a set piece with its rules
+   (`ee/ragtag/battle.lua`). 7 Concord ships and 12 Corsairs in two lines 25U west of Blackwater,
+   frozen until the crew comes within 5U of the Corsair line; then fought over five combat points.
+   All 7 Concord destroyed -> `defended`; the crew's ship destroyed -> `failed` (the Corsairs may
+   all be lost). Details: `ee/ragtag/missions/corsair.md`, "The battle" and "The mine ring".
 
 **Flags:** `corsair_hook`, `corsair_briefed`, `corsair_raid_done`, `corsair_joined`,
 `corsair_arc_done`, `corsair_battlegroup_destroyed`, `corsair_ally`, `corsair_rewarded`,
@@ -605,12 +587,11 @@ If an arc module is lost, rebuild against these rails:
 ## Decisions made (2026-11-15)
 
 - Corsair arc reworked: single hook (non-hostile raider hail on entering the Gauntlet), escort to
-  Blackwater, Reva's briefing, a forward-depot raid with commandable Corsair escorts, a mine-wall
-  trap with a 3U gap, and the battle at the wall. No betrayal branch: defend or decline.
+  Blackwater, Reva's briefing, a forward-depot raid with commandable Corsair escorts, and the
+  battle. No betrayal branch: defend or decline. (The mine wall, its gap and corridor were replaced
+  on 2026-11-18 by a thickened ring round Blackwater and a Battle Lab set piece.)
 - Corsair arc: one prep mission (the raid); each raid escort lost is replaced from Blackwater; declining
   the final battle after the raid is `failed`, only a refused hook is `declined`.
-- Wall mines use a smaller AI avoid bubble (~0.8U); trigger and blast stay stock. The attack
-  fleet follows scripted waypoints along the wall, never free pathfinding.
 
 ## Decisions made (2026-11-13)
 

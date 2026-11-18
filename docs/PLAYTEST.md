@@ -70,14 +70,14 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 - [ ] Escort: the guide **waits for a slow crew** (falls 8U behind). *(Not in a test.)*
 - [ ] Raid on Forward Depot Anvil: the **escorts vs the two guards, for real** (headless it was still
       going after 45 s). Too long? Do the order buttons unlock at the right time?
-- [ ] Both escorts lost → Reva sends two more and the raid restarts
-- [ ] Return: 4 mines in the rear rack; the mine wall and its single gap at J6
-- [ ] The **battle at the wall, for real**: does Battle Group Two thread the gap? How long does it take?
-      Are the combat warp jammers a fun obstacle or a frustration?
+- [ ] An escort lost → Reva names it and sends a replacement
+- [ ] Return: the thickened mine ring round Blackwater; are the three lanes (north, ESE, WSW) findable?
+- [ ] The **battle, for real** (7 Concord vs 12 Corsairs, frozen until you are within 5U of the
+      Corsair line): does it stay spread out? How long does it take? Does the crew matter?
 - [ ] **Magazine** (new): runs low → it hails with its grid and a "Rearm" objective appears;
       8 s alongside refills the racks. Is it reachable mid-battle? Is **3 loads** right? Is **8 s**
       too long under fire? Does the Concord ever get to it?
-- [ ] Blackwater falling (hull < 20%) ends the arc as failed, and the crew can tell why
+- [ ] Losing your ship in the battle ends the arc as failed; losing Corsairs does not
 
 ## 6. Jobs (all seven types, at least once each)
 
