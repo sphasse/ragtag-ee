@@ -40,7 +40,7 @@ init ─► hook ─► meet ─► relay_run ─► carry ─► done (full | l
 | `hook` | Priority-5 rumors (`LEDGER_HOOK`): "A guy at Dustmote was asking about you", etc. Docked at Dustmote: "Heard someone here was asking about us." Thresh: the big guy wants to see you in person, same place (bearing 15 directions if the crew never met Rezkov). | `ledger_thresh` |
 | `meet` | Rezkov's station is back in the nebula (~115, −72). Docked: the real briefing, then fragment grid refs. Accept. | `ledger_accepted` |
 | `relay_run` | Three `Artifact` data cores (`allowPickup`): near Valcourt (−172, −70), near Ostia (−128, −120), near Waypoint Galen (−80, −62). Flying into one picks it up. Objective counts 0/3. | `ledger_frag_1..3` |
-| `carry` | The AI hails (RT.voice "Unidentified Signal"): thank you, sorry about the power, keep energy above zero. Drain 3 energy/s (was 5; eased after playtest); Engineering info line "Unknown process". 60 s later the Concord Audit Service fleet (CAS Double Entry, Phobos T3; CAS Debit and CAS Credit, Adder MK5) spawns 10U ahead in a 35° arc, Concord Hostile, attacking, and hails: transmit the data for reconciliation. Ships > 25U away despawn (lost the crew). Each audit ship drops a warp jammer on the crew from within 11U, so on arrival 10U out (`PROX.tickCombatJammers` with a trigger range; patrols keep 5U: 1U range, brakes the ship to a stop, one at a time, 2 min life, 2 min cooldown, 10 hull = two beam hits). | — |
+| `carry` | The AI hails (RT.voice "Unidentified Signal"): thank you, sorry about the power, keep energy above zero. Drain 3 energy/s (was 5; eased after playtest); Engineering info line "Unknown process". 60 s later the Concord Audit Service fleet (CAS Double Entry, Phobos T3; CAS Debit and CAS Credit, Adder MK5) spawns 10U ahead in a 35° arc, Concord Hostile, attacking, and hails; no warp, impulse at 1.5x the hull's normal speed (about a minute to close): transmit the data for reconciliation. Ships > 25U away despawn (lost the crew). Each audit ship drops a warp jammer on the crew from within 11U, so on arrival 10U out (`PROX.tickCombatJammers` with a trigger range; patrols keep 5U: 1U range, brakes the ship to a stop, one at a time, 2 min life, 2 min cooldown, 10 hull = two beam hits). | — |
 | `done` | Dock at Rezkov's station → "Hand over the AI" → `full`. Energy at 0 → `lost` (`lost_reason = power`). "Transmit the data." to the fleet → `lost` (`surrender`). The ship destroyed with the AI aboard → `lost` (`destroyed`; heard on the `ship_lost` event, so it also counts when the crew's only ship dies). Engineering's **Eject the AI** button (Engineering and Engineering+, during `carry`): one press arms it ("CONFIRM: eject the AI", 10 s), a second ejects → `lost` (`ejected`). | `ledger_arc_done` |
 
 Docking at an independent station recharges the reactor, which is how a crew survives the
@@ -85,6 +85,6 @@ voice, rumors, `ledger` objective, `ledger_*` flags) and replay earlier phases v
 
 ## Tuning (top of `ledger.lua`)
 
-`_DRAIN_PER_S` 3, `_FLEET_DELAY` 60 s, `_FLEET_DIST` 10U, `_FLEET_JAM_U` 11U, `_FLEET_SPREAD` 35°,
+`_DRAIN_PER_S` 3, `_FLEET_DELAY` 60 s, `_FLEET_DIST` 10U, `_FLEET_JAM_U` 11U, `_FLEET_IMPULSE` 1.5, `_FLEET_SPREAD` 35°,
 `_LOSE_FLEET_R` 25U. Playtest: whether energy-zero should be instant loss (currently instant),
 and whether three audit ships are enough of a wall.

@@ -72,6 +72,8 @@ local _DRAIN_PER_S   = 3     -- energy/s while carrying the AI (playtest: 5 was 
 local _FLEET_DELAY   = 60    -- seconds after the AI's hail before the audit fleet arrives
 local _FLEET_DIST    = 10 * U -- fleet spawn distance ahead of the ship (playtest: 7U left no time to react)
 local _FLEET_JAM_U   = 11     -- the auditors jam warp from this far (U): on arrival, from 10U out
+local _FLEET_IMPULSE = 1.5    -- the auditors close in on impulse, this much faster than their hull's
+                              -- normal top speed; no warp (playtest: warping in left no time to react)
 local _FLEET_SPREAD  = 35    -- degrees between fleet ships in the arc
 local _LOSE_FLEET_R  = 25 * U   -- the fleet loses the crew beyond this range (then despawns)
 
@@ -304,7 +306,9 @@ local function _spawnFleet(st)
         local a = math.rad(rot + (i - 2) * _FLEET_SPREAD)
         local s = CpuShip():setTemplate(f.tmpl):setFaction("Concord Hostile")
         s:setCallSign(f.cs):setPosition(px + math.cos(a) * _FLEET_DIST, py + math.sin(a) * _FLEET_DIST)
-        s:setWarpDrive(true)
+        s:setWarpDrive(false)
+        local fwd, rev = s:getImpulseMaxSpeed()
+        s:setImpulseMaxSpeed(fwd * _FLEET_IMPULSE, rev)
         s:setCommsScript(""):setCommsFunction(ARC.comms(_fleetComms, '"Concord Audit Service. This matter does not concern you. Stand clear."'))
         s:orderAttack(p)
         st.fleet[#st.fleet + 1] = s
