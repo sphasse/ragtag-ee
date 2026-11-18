@@ -24,6 +24,8 @@ Contributors add **universe extensions** and **scenarios** independently.
     that joins under or is renamed to the campaign's ship name becomes the primary again: `RT.promotePrimary`), and declare
     their saved flags in `M.flags` / `M.reads` (`check.py` rejects undeclared flag names).
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
+- `scenarios/battlelab/scenario_63_battlelab.lua` — Battle Lab: a Concord group vs Corsairs (+ the crew) around six battle
+  positions in open space, tunable from the GM screen; for balancing set-piece battles (see its README)
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tests/` — in-game regression tests run by `tools/game_tests.py` (never installed into a played game): `_harness.lua`,
   `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua`, `jobs/multiship.lua`
