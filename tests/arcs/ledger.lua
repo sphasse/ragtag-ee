@@ -106,33 +106,54 @@ T.step("energy drains", function()
     T.check("other ship: the AI does not drain it", other_used < 3, string.format("%.1f in 3s", other_used))
     T.st().fleet_due = 0   -- do not wait out the 60 s
 end)
+T.closeComms()   -- the AI's hello: the crew is not on another call when the auditors arrive
 T.waitFor("carry: audit fleet arrives", function() return T.st().fleet_spawned end, 5)
 T.step("fleet", function()
     local f = T.st().fleet
-    T.eq("carry: three audit ships", T.alive(f), 3)
-    T.eq("carry: fleet is hostile", f[1]:getFaction(), "Concord Hostile")
+    T.eq("audit: three ships", T.alive(f), 3)
+    T.eq("audit: not hostile while they talk", f[1]:getFaction(), "Concord")
+    T.check("audit: not an enemy yet", not f[1]:isEnemy(T.P()))
     local d = RT.dist(T.P(), f[1])
-    T.check("carry: fleet spawns about 10U out", d > 9000 and d < 11000, string.format("%.0f", d))
-    T.check("carry: the auditors have no warp", not f[1]:hasWarpDrive() and not f[2]:hasWarpDrive())
+    T.check("audit: about 7U out", d > 6000 and d < 8000, string.format("%.0f", d))
+    T.check("audit: no warp", not f[1]:hasWarpDrive() and not f[2]:hasWarpDrive())
     local base = CpuShip():setTemplate("Phobos T3")
     local fast = f[1]:getImpulseMaxSpeed() / base:getImpulseMaxSpeed()
     base:destroy()
-    T.check("carry: a fast impulse instead (1.5x)", math.abs(fast - 1.5) < 0.01, string.format("%.2f", fast))
+    T.check("audit: a fast impulse instead (1.5x)", math.abs(fast - 1.5) < 0.01, string.format("%.2f", fast))
 end)
-T.waitFor("carry: the auditors jam warp from where they arrive", function()
+T.waitFor("audit: Double Entry's jammer brakes the crew to a stop", function() return T.st().audit.state == "stopped" end, 5)
+T.step("boxed in", function()
+    local a = T.st().audit
+    T.eq("audit: three jammers", T.alive(a.jams), 3)
     local x, y = T.P():getPosition()
-    return T.countType("WarpJammer", x, y, 3000) > 0
-end, 3)
-T.step("jammed from afar", function()
-    local nearest = math.huge
-    for _, s in ipairs(T.st().fleet) do
-        if RT.valid(s) then nearest = math.min(nearest, RT.dist(T.P(), s)) end
-    end
-    T.check("carry: still well out when they jam", nearest > 8000, string.format("%.0f", nearest))
-    T.moveNear(T.st().fleet[1], 3000)
+    T.eq("audit: all three round the ship", T.countType("WarpJammer", x, y, 1000), 3)
+    local side = 600 * math.sqrt(3)
+    local tri = true
+    for i = 1, 3 do for k = i + 1, 3 do
+        if math.abs(RT.dist(a.jams[i], a.jams[k]) - side) > 200 then tri = false end
+    end end
+    T.check("audit: in a triangle", tri)
+    T.eq("audit: still holding fire", T.st().fleet[1]:getFaction(), "Concord")
 end)
-T.talk(function() return T.st().fleet[1] end, {"Not today."})
-T.step("refusing changes nothing", function() T.eq("carry: still carrying", T.phase(), "carry") end)
+T.talk(function() return T.st().fleet[1] end, {function() return T.st().audit.excuses[1] end},
+    {answer = true, name = "CAS Double Entry"})
+T.step("first stall", function()
+    local a = T.st().audit
+    T.eq("stall: counted", a.stalls, 1)
+    T.check("stall: the auditors answer", #T.msg() > 2, T.msg())
+    T.check("stall: one more excuse on offer", T.hasReply(a.excuses[2]), table.concat(T.replies(), " | "))
+end)
+T.talk(function() return T.st().fleet[1] end, {function() return T.st().audit.excuses[2] end}, {name = "CAS Double Entry"})
+T.step("second stall", function()
+    local a = T.st().audit
+    T.eq("stall: two", a.stalls, 2)
+    T.check("stall: the final notice", T.msg():find("final notice", 1, true) ~= nil, T.msg())
+    T.check("stall: no third excuse", not T.hasReply(a.excuses[3]), table.concat(T.replies(), " | "))
+    T.check("stall: transmit or refuse remain", T.hasReply("Transmit the data.") and T.hasReply("Not today."))
+    T.eq("stall: still holding fire", T.st().fleet[1]:getFaction(), "Concord")
+    T.eq("carry: still carrying", T.phase(), "carry")
+end)
+T.closeComms()
 T.actAs(T.secondShip)
 T.talk(function() return T.st().fleet[1] end, {})
 T.step("a second ship cannot surrender the AI", function()
@@ -145,6 +166,17 @@ T.step("a second ship gets nothing from Rezkov's station", function()
     T.check("other ship: no response", T.msg():find("No response", 1, true) ~= nil, T.msg())
 end)
 T.actAs(nil)
+T.step("a minute of silence", function()
+    T.check("silence: the second ship's hail did not reset the clock", T.now() - T.st().audit.last < 30)
+    T.st().audit.last = T.now() - 61
+end)
+T.waitFor("silence: the auditors attack", function() return T.st().audit.state == "hostile" end, 3)
+T.step("collections", function()
+    local f = T.st().fleet
+    T.eq("hostile: faction", f[1]:getFaction(), "Concord Hostile")
+    T.check("hostile: an enemy now", f[1]:isEnemy(T.P()))
+    T.check("hostile: objective changes", (RT.objectives.ledger or ""):find("Break the audit", 1, true) ~= nil)
+end)
 
 -- ── Deliver ──────────────────────────────────────────────────────────────────
 T.step("refill and fly home", function()
@@ -206,6 +238,29 @@ T.step("surrendered", function()
     T.P():setEnergyLevel(T.P():getMaxEnergy())
 end)
 T.closeComms()
+
+-- ── The stop fails other ways: refusing, shooting a jammer, shooting an auditor ──
+local function freshStop(label)
+    T.step(label, function()
+        T.jump("carry")
+        T.P():setEnergyLevel(T.P():getMaxEnergy())
+        T.action("Fleet now")
+    end)
+    T.waitFor(label .. ": stopped", function() return T.st().audit and T.st().audit.state == "stopped" end, 5)
+end
+freshStop("refuse")
+T.talk(function() return T.st().fleet[1] end, {"Not today."}, {name = "CAS Double Entry"})
+T.step("refused", function()
+    T.eq("refuse: hostile", T.st().audit.state, "hostile")
+    T.eq("refuse: still carrying", T.phase(), "carry")
+end)
+T.closeComms()
+freshStop("jammer")
+T.step("shoot a jammer", function() T.st().audit.jams[2]:destroy() end)
+T.waitFor("jammer: the auditors attack", function() return T.st().audit.state == "hostile" end, 3)
+freshStop("fired")
+T.step("shoot an auditor", function() local s = T.st().fleet[2]; s:setHull(s:getHullMax() - 5) end)
+T.waitFor("fired: the auditors attack", function() return T.st().audit.state == "hostile" end, 3)
 
 -- ── Loss: Engineering ejects the AI ──────────────────────────────────────────
 local M_ledger = MISSIONS._registry.ledger

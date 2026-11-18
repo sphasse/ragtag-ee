@@ -70,8 +70,10 @@ local U = 1000
 -- ── Tuning ──────────────────────────────────────────────────────────────────
 local _DRAIN_PER_S   = 3     -- energy/s while carrying the AI (playtest: 5 was too tough)
 local _FLEET_DELAY   = 60    -- seconds after the AI's hail before the audit fleet arrives
-local _FLEET_DIST    = 10 * U -- fleet spawn distance ahead of the ship (playtest: 7U left no time to react)
-local _FLEET_JAM_U   = 11     -- the auditors jam warp from this far (U): on arrival, from 10U out
+local _FLEET_DIST    = 7 * U  -- fleet spawn distance ahead of the ship (they hold there and talk first)
+local _TRI_R         = 0.6 * U -- radius of the triangle of audit jammers round the stopped crew
+M.AUDIT_TIMEOUT      = 60     -- seconds of silence (after the hail or a stall) before they attack
+M.MAX_STALLS         = 2      -- excuses the crew can try before only "transmit" or "refuse" remain
 local _FLEET_IMPULSE = 1.5    -- the auditors close in on impulse, this much faster than their hull's
                               -- normal top speed; no warp (playtest: warping in left no time to react)
 local _FLEET_SPREAD  = 35    -- degrees between fleet ships in the arc
@@ -98,6 +100,7 @@ function M.init_state()
         frags     = {},    -- n -> Artifact
         fleet     = {},    -- audit fleet ships
         fleet_due = nil,   -- scenario time the fleet arrives
+        audit     = nil,   -- the stop (see "Concord Audit Service fleet")
         fleet_spawned = false,
         jammers   = {},    -- audit fleet combat jammers (PROX.tickCombatJammers)
         drain_on  = false,
@@ -263,6 +266,16 @@ local function _drainOff(st)
 end
 
 -- ── Concord Audit Service fleet ─────────────────────────────────────────────
+-- The audit is a stop, like a Concord shake-down (st.audit.state):
+--   arriving  three ships appear _FLEET_DIST ahead as plain Concord (not hostile) and hold
+--             position; CAS Double Entry drops a warp jammer that rides behind the crew and
+--             brakes them to a stop
+--   stopped   CAS Debit and CAS Credit drop two more: three jammers in a triangle round the
+--             crew; Double Entry hails. Transmit the data (surrender), stall (up to _MAX_STALLS
+--             times, each buys another _AUDIT_TIMEOUT s), or refuse
+--   hostile   refusing, _AUDIT_TIMEOUT s of silence, shooting a jammer or an auditor, or flying
+--             off: all three turn Concord Hostile and attack, and drop combat jammers like
+--             hostile patrols. "Transmit the data." still ends it.
 
 local _FLEET = {
     {cs = "CAS Double Entry", tmpl = "Phobos T3"},
@@ -271,28 +284,101 @@ local _FLEET = {
 }
 
 local _FLEET_HAIL = '"This is the Concord Audit Service vessel Double Entry. Our records show you are carrying unreconciled Concord financial data. '
-    .. 'Transmit it to us for reconciliation and stand down.\n\nNon-compliance will be recorded as a discrepancy. Discrepancies are resolved."'
+    .. 'Hold position and transmit it to us for reconciliation.\n\nNon-compliance will be recorded as a discrepancy. Discrepancies are resolved."'
+
+-- The crew's stalls (two picked at random per audit) and the auditors' answers.
+local _EXCUSES = {
+    "Our books close Thursday. Can this wait?",
+    "That data is fully depreciated. It's worth nothing.",
+    "We're on cash basis. It hasn't technically arrived.",
+    "Our receipts are in a shoebox. Somewhere aboard.",
+    "We filed an extension. Form 27-B, stroke 6.",
+    "It's off-balance-sheet. Legally it isn't here.",
+    "Can we get an itemized invoice first?",
+    "Our accountant is on a mandatory break.",
+    "We're still in last fiscal year. Different calendar.",
+    "That's a capital expense. Different department.",
+}
+local _STALL_REPLIES = {
+    "Your delay has been entered as a liability. Interest is accruing.",
+    "That is not a recognized accounting standard.",
+    "Extension denied. Please hold for reconciliation.",
+    "Your stalling has been capitalized and will be amortized over your remaining lifespan.",
+    "Noted in the margin. The margin is running out.",
+}
+local _FINAL_NOTICE = "This is your final notice. Late fees will be collected in hull plating."
+local _HOSTILE_LINES = {
+    refused = '"Discrepancy confirmed. Commencing collections."',
+    timeout = '"Payment period expired. Commencing collections."',
+    jammer  = '"Destruction of audit equipment noted. Commencing collections."',
+    fired   = '"Assault on an auditor is an irregular expense. Commencing collections."',
+    fled    = '"Leaving an audit in progress is an admission. Commencing collections."',
+}
 
 local function _surrender(st)
     RT.flag("ledger_lost_reason", "surrender")
     RT.flag("ledger_arc_done", "lost")
     ARC.log("[Ledger Arc] Data transmitted to the Concord Audit Service. The AI is gone.", "#FF8080")
+    ARC.kill(st.audit and st.audit.jams)   -- the stop is over: the crew can warp again
     for _, s in ipairs(st.fleet or {}) do
         if RT.valid(s) then s:setFaction("Concord"):orderFlyTowards(-133000, -75000) end
     end
     MISSIONS.phase("ledger", "done")
 end
 
-local function _fleetComms(src, tgt)
-    setCommsMessage(_FLEET_HAIL)
+-- The stop is over: every auditor turns hostile and attacks. `why` picks the line.
+local function _auditHostile(st, why)
+    local a = st.audit
+    if not a or a.state == "hostile" then return end
+    a.state = "hostile"
+    local p = ARC.player()
+    for _, s in ipairs(st.fleet or {}) do
+        if RT.valid(s) then
+            s:setFaction("Concord Hostile")
+            if p then s:orderAttack(p) end
+        end
+    end
+    ARC.log("[CAS Double Entry] " .. (_HOSTILE_LINES[why] or _HOSTILE_LINES.refused), "#FF4444")
+    RT.setObjective("Break the audit and deliver the AI to Rezkov", true, "ledger")
+end
+
+local function _auditReplies(st)
+    local a = st.audit
     addCommsReply("Transmit the data.", function()
-        local st = MISSIONS._state["ledger"]
-        if st and MISSIONS._cur_phase["ledger"] == "carry" then _surrender(st) end
+        if MISSIONS._cur_phase["ledger"] == "carry" then _surrender(st) end
         setCommsMessage('"Reconciliation received. Thank you for your cooperation. This audit is closed."')
     end)
-    addCommsReply("Not today.", function()
-        setCommsMessage('"Noted. The discrepancy will be resolved."')
-    end)
+    if a.state ~= "hostile" and a.stalls < M.MAX_STALLS then
+        addCommsReply(a.excuses[a.stalls + 1], function()
+            a.stalls = a.stalls + 1
+            a.last = getScenarioTime()   -- each stall buys another minute
+            local reply = a.stalls >= M.MAX_STALLS and _FINAL_NOTICE or _STALL_REPLIES[math.random(#_STALL_REPLIES)]
+            setCommsMessage('"' .. reply .. '"')
+            _auditReplies(st)
+        end)
+    end
+    if a.state ~= "hostile" then
+        addCommsReply("Not today.", function()
+            setCommsMessage('"Noted. The discrepancy will be resolved."')
+            _auditHostile(st, "refused")
+        end)
+    end
+end
+
+local function _fleetComms(src, tgt)
+    local st = MISSIONS._state["ledger"]
+    if not st or not st.audit or MISSIONS._cur_phase["ledger"] ~= "carry" then
+        setCommsMessage('"This audit is closed."')
+        return
+    end
+    local a = st.audit
+    if a.state == "hostile" then
+        setCommsMessage('"Collections are in progress. You may still transmit the data."')
+    else
+        a.last = getScenarioTime()   -- talking to them resets the clock
+        setCommsMessage(a.stalls == 0 and _FLEET_HAIL or '"We are still waiting on your reconciliation."')
+    end
+    _auditReplies(st)
 end
 
 local function _spawnFleet(st)
@@ -304,25 +390,107 @@ local function _spawnFleet(st)
     local rot = p:getRotation() or 0   -- degrees, 0 = east
     for i, f in ipairs(_FLEET) do
         local a = math.rad(rot + (i - 2) * _FLEET_SPREAD)
-        local s = CpuShip():setTemplate(f.tmpl):setFaction("Concord Hostile")
+        local s = CpuShip():setTemplate(f.tmpl):setFaction("Concord")   -- not hostile until the stop fails
         s:setCallSign(f.cs):setPosition(px + math.cos(a) * _FLEET_DIST, py + math.sin(a) * _FLEET_DIST)
         s:setWarpDrive(false)
         local fwd, rev = s:getImpulseMaxSpeed()
         s:setImpulseMaxSpeed(fwd * _FLEET_IMPULSE, rev)
+        s:orderStandGround()
         s:setCommsScript(""):setCommsFunction(ARC.comms(_fleetComms, '"Concord Audit Service. This matter does not concern you. Stand clear."'))
-        s:orderAttack(p)
         st.fleet[#st.fleet + 1] = s
     end
-    RT.setObjective("Deliver the AI to Rezkov", true, "ledger")
-    if not ARC.hail(st.fleet[1], _FLEET_HAIL, "CAS Double Entry") then
-        ARC.log("[CAS Double Entry] " .. _FLEET_HAIL, "#FF6666")
-    end
+    local excuses = {}
+    for i, e in ipairs(_EXCUSES) do excuses[i] = e end
+    for i = #excuses, 2, -1 do local j = math.random(i); excuses[i], excuses[j] = excuses[j], excuses[i] end
+    st.audit = {state = "arriving", stalls = 0, excuses = excuses, jams = {}, last = getScenarioTime()}
+    RT.setObjective("Deal with the audit, deliver the AI to Rezkov", true, "ledger")
+    ARC.log("[CAS Double Entry] Concord Audit Service. All vessels in this sector: hold position for reconciliation.", "#FF6666")
 end
 
 local function _despawnFleet(st)
     if PROX and PROX.clearCombatJammers then PROX.clearCombatJammers(st.jammers) end
     ARC.kill(st.fleet)
     st.fleet = {}
+    if st.audit then ARC.kill(st.audit.jams); st.audit.jams = {} end
+end
+
+-- Corner `i` of the jammer triangle round the crew (corner 1 behind the ship).
+local function _corner(p, i)
+    local px, py = p:getPosition()
+    local h = math.rad(p:getHeading() + 180 + (i - 1) * 120)
+    return px + math.sin(h) * _TRI_R, py - math.cos(h) * _TRI_R
+end
+
+local function _damaged(s)
+    return s:getHull() < s:getHullMax() or (s:getShieldCount() > 0 and s:getShieldLevel(0) < s:getShieldMax(0))
+end
+
+-- Per tick while the fleet is out: the jammers, the hail, the clock, and what turns them hostile.
+local function _tickAudit(st, now)
+    local a = st.audit
+    local p = ARC.player()
+    if not a or not p then return end
+    if a.state ~= "hostile" then
+        for _, s in ipairs(st.fleet) do
+            if RT.valid(s) and _damaged(s) then _auditHostile(st, "fired"); return end
+        end
+    end
+    if a.state == "arriving" then
+        local j = a.jams[1]
+        if not j then
+            local x, y = _corner(p, 1)
+            j = PROX.makeJammer(x, y, 1, "Concord Audit Service warp suppression emitter. Two beam hits will knock it out.")
+            a.jams[1] = j
+            RT.sound("jammer_engage", {now = true})
+            ARC.log("[Science] CAS Double Entry dropped a warp jammer on us. Engines are braking.", "#FF8040")
+        elseif not RT.valid(j) then
+            _auditHostile(st, "jammer"); return
+        end
+        -- Brake: the jammer rides behind until the ship is stopped (every tick, like the shake-down).
+        pcall(function() p:commandImpulse(0) end)
+        local x, y = _corner(p, 1)
+        j:setPosition(x, y)
+        local vx, vy = 0, 0
+        pcall(function() vx, vy = p:getVelocity() end)
+        if math.sqrt(vx * vx + vy * vy) < 25 then
+            a.state, a.stop_x, a.stop_y = "stopped", p:getPosition()
+            for i = 2, 3 do
+                local cx, cy = _corner(p, i)
+                a.jams[i] = PROX.makeJammer(cx, cy, 1, "Concord Audit Service warp suppression emitter. Two beam hits will knock it out.")
+            end
+            ARC.log("[Science] CAS Debit and CAS Credit dropped two more jammers. We're boxed in.", "#FF8040")
+            a.stopped_at, a.hailed = now, false
+        end
+    elseif a.state == "stopped" then
+        for _, j in ipairs(a.jams) do
+            if not RT.valid(j) then _auditHostile(st, "jammer"); return end
+        end
+        local px, py = p:getPosition()
+        if ARC.dist(px, py, a.stop_x, a.stop_y) > 3 * U then _auditHostile(st, "fled"); return end
+        if not a.hailed then
+            -- Hail once the crew's comms are free (opening a channel fails while they are busy);
+            -- the clock starts with the hail. Busy for 15 s: the hail goes to the log instead.
+            local free = false
+            pcall(function() free = p:isCommsInactive() or p:isCommsClosed() or p:isCommsBroken() or p:isCommsFailed() end)
+            if free then
+                local hailer = st.fleet[1]
+                if RT.valid(hailer) then pcall(function() hailer:openCommsTo(p) end) end
+                RT.sound("concord_hail", {now = true})
+                a.hailed, a.last = true, now
+            elseif now - a.stopped_at > 15 then
+                ARC.log("[CAS Double Entry] Hold position and answer our hail for reconciliation. You have one minute.", "#FF6666")
+                a.hailed, a.last = true, now
+            end
+            return
+        end
+        if a.warned_for ~= a.last and now - a.last > M.AUDIT_TIMEOUT - 10 then
+            a.warned_for = a.last
+            ARC.log('[CAS Double Entry] "Ten seconds remain in your payment period."', "#FF6666")
+        end
+        if now - a.last > M.AUDIT_TIMEOUT then _auditHostile(st, "timeout"); return end
+    else   -- hostile: combat jammers like hostile patrols
+        if PROX and PROX.tickCombatJammers then PROX.tickCombatJammers(st.jammers, st.fleet, p, now) end
+    end
 end
 
 -- Ships the crew has outrun leave the board.
@@ -647,11 +815,7 @@ M.phases.carry = {
             _spawnFleet(st)
         end
         _tickFleet(st)
-        -- The audit fleet drops warp jammers like hostile Concord patrols (2 min cooldown each),
-        -- but from as far as _FLEET_JAM_U: it arrives 10U out, hails and pins the crew at once.
-        if st.fleet_spawned and PROX and PROX.tickCombatJammers then
-            PROX.tickCombatJammers(st.jammers, st.fleet, ARC.player(), now, _FLEET_JAM_U)
-        end
+        if st.fleet_spawned then _tickAudit(st, now) end
     end,
 }
 
