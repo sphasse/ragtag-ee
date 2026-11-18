@@ -108,5 +108,10 @@ belong to the ship that bought them.
 number per faction, so every Independent ship would share it; the campaign keeps credits itself
 and shows them as the `Credits: N` line on Relay and Operations.
 
+**A crew's credits halved.** Their ship was destroyed: losing a ship costs that ship's crew half
+their credits (upgrades and standing are kept). The rebuilt ship's log says what it cost. To
+forgive it, give the credits back with **Jobs... → Credits +50**. The amount is `RT.DEATH_PENALTY`
+in `core.lua` (0.5). A player ship the GM deletes counts as lost too.
+
 **Credits or upgrades reset to the defaults.** The scenario was started with **Fresh start**,
 which wipes the campaign. Restore a backup slot.

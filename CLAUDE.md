@@ -77,6 +77,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 (Details in the skill's `references/api_notes.md`.)
 - `/exec.lua` runs in a separate Lua environment (no scenario globals, no utils.lua) and must return a string.
 - `ship:getDockedWith()` returns `false`, not nil, when undocked — test truthiness.
+- Losing a player ship costs its record half its credits (`RT.DEATH_PENALTY`, `RT.chargeLoss`), once; upgrades and standing are kept.
 - Universe ports (every station but Corsair/Hollow ones) are indestructible (`verse.lua`): job and arc fights come to them.
   A station that dies emits `station_destroyed`. An arc that needs a hostile station to survive sets that itself.
 - `getTypeName()` errors on non-ships; filter with `obj.components.typename ~= nil`. Unknown component names raise errors.

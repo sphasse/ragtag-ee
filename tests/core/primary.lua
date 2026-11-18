@@ -2,8 +2,9 @@
 -- to the primary ship (RT.players[1]); when it is destroyed the session goes on and the arcs
 -- wait. A rebuilt freighter is given the campaign's ship name first and becomes the primary
 -- again, with the campaign's credits, standing and upgrades; so does a ship renamed to it. A
--- ship that joins while there are dead ships in the list still gets a roster name.
--- A = the primary ship, B = a second ship, N = the rebuilt ship.
+-- ship that joins while there are dead ships in the list still gets a roster name. Losing a ship
+-- costs that ship's record half its credits (RT.DEATH_PENALTY), once, and the rebuilt ship is
+-- told what it cost. A = the primary ship, B = a second ship, N = the rebuilt ship.
 --
 -- Not covered: the "Create player ship" screen itself (the test makes a PlayerSpaceship from
 -- script, which fires the same onNewPlayerShip callback) and an arc actually resuming (the test
@@ -14,6 +15,8 @@ T.suite("core")
 local A, B, N, C
 local NAME
 local hull0
+local lost = {}
+RT.on(function(ev) if ev.type == "ship_lost" then lost[#lost + 1] = ev.data end end)
 
 -- A ship made the way the "Create player ship" screen makes one: the scenario's
 -- onNewPlayerShip names it, places it and adopts it.
@@ -43,7 +46,14 @@ T.step("the arcs wait, the session goes on", function()
     T.check("lost: the second ship flies on", RT.valid(B) and RT.anyPlayerAlive())
     T.eq("lost: the second ship is not promoted", index(B), 2)
     T.eq("lost: the second ship keeps its own balance", T.credits(B), 40)
+    T.eq("lost: half the campaign's credits gone", RT.campaign.credits, 617)
+    T.eq("lost: reported once", #lost, 1)
+    T.eq("lost: reported for the primary ship", lost[1] and lost[1].ship, NAME)
+    T.eq("lost: with what it cost", lost[1] and lost[1].credits_lost, 617)
+    T.eq("lost: waiting to be told", RT.campaign.loss_note, 617)
 end)
+T.wait(1)
+T.step("charged only once", function() T.eq("lost: still once", #lost, 1); T.eq("lost: balance unchanged", RT.campaign.credits, 617) end)
 
 T.step("a new freighter joins", function() N = newFreighter() end)
 T.wait(1)
@@ -53,7 +63,8 @@ T.step("it is the primary ship again", function()
     T.check("rebuilt: RT.player follows", RT.player == N)
     T.check("rebuilt: the arcs have their ship", ARC.player() == N)
     T.check("rebuilt: its record is the campaign", RT.shipRecord(N) == RT.campaign)
-    T.eq("rebuilt: the campaign's credits", T.credits(N), 1234)
+    T.eq("rebuilt: the campaign's credits, after the loss", T.credits(N), 617)
+    T.check("rebuilt: the crew has been told what the loss cost", RT.campaign.loss_note == nil)
     T.eq("rebuilt: the campaign's standing", T.rep("Concord", N), 250)
     T.check("rebuilt: the campaign's upgrades", RT.hasUpgrade("hull_plating", N))
     T.eq("rebuilt: and they are fitted", N:getHullMax(), hull0)
@@ -74,6 +85,9 @@ T.wait(1)
 T.step("join", function() C = newFreighter() end)
 T.wait(1)
 T.step("it gets a roster name", function()
+    T.eq("second lost: reported", #lost, 2)
+    T.eq("second lost: half of its own 40", lost[2] and lost[2].credits_lost, 20)
+    T.eq("second lost: the campaign untouched", RT.campaign.credits, 617)
     T.check("join: registered", index(C) ~= nil)
     T.check("join: not the primary's name", C:getCallSign() ~= NAME, C:getCallSign())
     T.check("join: the primary is unchanged", RT.players[1] == N)
@@ -88,6 +102,6 @@ T.wait(1)
 T.step("it is the primary ship", function()
     T.check("rename: first in the list", RT.players[1] == C)
     T.check("rename: the arcs have their ship", ARC.player() == C)
-    T.eq("rename: the campaign's credits", T.credits(C), 1234)
+    T.eq("rename: the campaign's credits, halved again", T.credits(C), 309)
     T.check("rename: the campaign's upgrades", RT.hasUpgrade("hull_plating", C))
 end)

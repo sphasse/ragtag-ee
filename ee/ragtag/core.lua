@@ -580,6 +580,7 @@ function RT.promotePrimary()
     for i = 2, #RT.players do
         local p = RT.players[i]
         if RT.valid(p) and p:getCallSign() == c.ship_name then
+            RT.chargeLoss(RT.players[1])   -- before the dead primary leaves the list
             table.remove(RT.players, i)
             RT.players[1] = p            -- replaces the dead primary
             RT.player = p
@@ -606,12 +607,42 @@ function RT.promotePrimary()
     end
 end
 
--- Apply the upgrades in a ship's record, once per ship per session.
+-- Losing a ship costs its crew a share of their credits (RT.DEATH_PENALTY, half). Charged once,
+-- to the dead ship's own record (the primary ship's is the campaign), when RT.update first sees
+-- a ship that was alive gone, or when a rebuilt ship takes the dead primary's place. Upgrades
+-- and standing are kept. The rebuilt ship's log says what the loss cost (RT.outfit).
+-- Note: a ship the GM deletes counts as lost too.
+RT.DEATH_PENALTY = 0.5
+
+function RT.chargeLoss(ship)
+    local st = RT.shipState(ship)
+    if st == nil or st.loss_charged or not st.was_alive or RT.valid(st.ship) then return end
+    st.loss_charged = true
+    local rec = RT.shipRecord(st.ship)
+    if rec == nil then return end
+    local name = (rec == RT.campaign and rec.ship_name) or rec.name or "a player ship"
+    local lost = math.floor((rec.credits or 0) * RT.DEATH_PENALTY)
+    rec.credits = (rec.credits or 0) - lost
+    rec.loss_note = (rec.loss_note or 0) + lost
+    if STATS then STATS.noteCredits(-lost, "ship lost") end
+    log(string.format("[RT] %s was lost: -%d credits (balance %d)", name, lost, rec.credits))
+    RT.emit("ship_lost", {ship = name, credits_lost = lost, credits = rec.credits}, "high")
+    RT.saveCampaign()
+end
+
+-- Apply the upgrades in a ship's record, once per ship per session; and tell a crew whose last
+-- ship was lost what that cost them.
 function RT.outfit(ship)
     local st = RT.shipState(ship)
     if st == nil or st.outfitted then return end
     st.outfitted = true
     for _, id in ipairs(RT.upgrades(ship)) do RT.applyUpgrade(st.ship, id) end
+    local rec = RT.shipRecord(st.ship)
+    if rec and rec.loss_note and RT.valid(st.ship) then
+        st.ship:addToShipLog(string.format("Insurance didn't cover it: losing the last hull cost %d credits. Balance: %d",
+            rec.loss_note, rec.credits or 0), "#E0C060")
+        rec.loss_note = nil
+    end
 end
 
 -- opts (optional 4th arg): {callsign, template, faction, credits}
@@ -730,6 +761,11 @@ function RT.update(delta)
             RT.adoptPlayer(ship)
             log("[RT] Registered new player ship: " .. ship:getCallSign() .. " (set to " .. RT.PLAYER_FACTION .. ")")
         end
+    end
+    -- A ship lost since the last frame pays for it (RT.chargeLoss), before anything replaces it.
+    for _, p in ipairs(RT.players) do
+        local st = RT.shipState(p)
+        if RT.valid(p) then st.was_alive = true else RT.chargeLoss(p) end
     end
     RT.promotePrimary()   -- a ship renamed to the lost primary's name takes its place
     -- Credits, standing and upgrades are per ship: each ship's record is found by its callsign
