@@ -318,7 +318,7 @@ local function _setupKaelComms(st)
                 st.meridian:orderIdle()
             end
             MISSIONS.phase("rezkov", "m3_deliver")
-            setCommsMessage('"Take it then.\n\nThis won\'t be the last time you see me, Magpie."')
+            setCommsMessage('"Take it then.\n\nUntil we meet again, Magpie."')
             addCommsReply("We like our odds, Kael.", function(s3, t3)
                 log("[RZKOV] kael-comms: 'We like our odds Kael' clicked")
                 setCommsMessage('"Meridian out."')
