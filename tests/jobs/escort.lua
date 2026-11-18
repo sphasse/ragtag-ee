@@ -7,10 +7,24 @@ T.suite("jobs")
 
 local HOME = "Port Vesper"
 local m, c0, rep0
+-- Farewell hails from the escort fighters: recorded instead of read off a comms screen.
+local farewells = {}
+local _hail, _jlog = JOBS.hail, JOBS.log
+JOBS.hail = function(job, from, text)
+    local ok = _hail(job, from, text)
+    if ok and job == m then farewells[#farewells + 1] = {from = from, text = text} end
+    return ok
+end
+JOBS.log = function(job, text, color)
+    if job == m and text:find('^%[.-%] "') then farewells[#farewells + 1] = {text = text:gsub("^%[.-%] ", "")} end
+    return _jlog(job, text, color)
+end
 local function convoy() return m.convoy end
 local function along(frac) return m.ox + (m.dx - m.ox) * frac, m.oy + (m.dy - m.oy) * frac end
 
 T.step("post an escort job", function()
+    local mod = JOBS._registry.escort
+    mod.FAREWELL_DELAY, mod.FAREWELL_GAP = 0.5, 1   -- farewells come quickly in the test
     m = T.postJob(T.makeJob("escort", HOME))
     -- The pay is the formula reward plus a flat allowance for the missiles the waves will cost.
     local mod = JOBS._registry.escort
@@ -55,6 +69,16 @@ T.step("no payment before she docks", function()
     dp.target = T.find(m.dest); dp.state = "docked"
 end)
 T.waitFor("escort: a docked convoy completes the run", function() return m._convoy_arrived end, 3)
+T.waitFor("farewell: both fighters say goodbye", function() return #farewells >= 2 end, 5)
+T.step("farewells", function()
+    local known = {}
+    for _, l in ipairs(JOBS._registry.escort.FAREWELLS) do known['"' .. l .. '"'] = true end
+    T.check("farewell: lines from the list", known[farewells[1].text] and known[farewells[2].text],
+        tostring(farewells[1].text) .. " / " .. tostring(farewells[2].text))
+    T.check("farewell: two different lines", farewells[1].text ~= farewells[2].text)
+    T.check("farewell: from two different fighters",
+        farewells[1].from == nil or farewells[2].from == nil or farewells[1].from ~= farewells[2].from)
+end)
 T.step("note credits", function() c0 = T.credits() end)
 T.talk(function() return T.find(m.dest) end, {"Collect escort payment"})
 T.step("paid", function()

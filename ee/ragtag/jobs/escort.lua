@@ -155,6 +155,42 @@ local _ARCHETYPES = {
 -- Internal helpers
 -- ---------------------------------------------------------------------------
 
+-- What the escort fighters say as they peel off after a safe arrival (one line each, no repeats).
+M.FAREWELLS = {
+    "Nice working with you, Captain.",
+    "Fair winds and following seas.",
+    "Be safe out there.",
+    "Good flying. Drinks are on you next time we're docked together.",
+    "That's us. Clear skies, freighter.",
+    "Pleasure doing business. Keep your shields up.",
+    "We'll tell them at the bar how you handled those Corsairs.",
+    "Peeling off. Don't go picking fights without us.",
+    "Smooth run. Call us if you ever need wings again.",
+    "Heading home. Watch the dark places, Captain.",
+    "Thanks for keeping us alive out there.",
+    "Mind the rocks on your way back.",
+}
+M.FAREWELL_DELAY = 4   -- seconds after the fighters turn away before the first farewell
+M.FAREWELL_GAP   = 6   -- seconds between fighters (one hail at a time)
+
+-- Each departing fighter hails the job's owner with its own farewell line. Comms busy: the
+-- line goes to the owner's ship log instead.
+local function _farewells(m, ships)
+    local pool = {}
+    for i, l in ipairs(M.FAREWELLS) do pool[i] = l end
+    for i = #pool, 2, -1 do
+        local j = math.random(i); pool[i], pool[j] = pool[j], pool[i]
+    end
+    for i, s in ipairs(ships) do
+        local line = '"' .. pool[(i - 1) % #pool + 1] .. '"'
+        local cs = s:getCallSign()
+        RT.after(M.FAREWELL_DELAY + (i - 1) * M.FAREWELL_GAP, function()
+            if not RT.valid(s) then return end
+            if not JOBS.hail(m, s, line) then JOBS.log(m, "[" .. cs .. "] " .. line, "#A0E0A0") end
+        end, "escort_farewell")
+    end
+end
+
 local function _dismissFighters(m)
     if m._fighters_dismissed then return end
     m._fighters_dismissed = true
@@ -182,6 +218,7 @@ local function _dismissFighters(m)
     end
     if #dep_ships > 0 then
         _departing[#_departing + 1] = {ships = dep_ships, despawn_at = getScenarioTime() + 300}
+        _farewells(m, dep_ships)
     end
 end
 
