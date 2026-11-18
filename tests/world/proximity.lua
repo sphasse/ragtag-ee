@@ -1,6 +1,9 @@
 -- Proximity spawns: ambient faction patrols by zone. Corsair attack groups (spawn conditions,
 -- the leash, suspension), Concord shake-downs (approach, jammer, hail, the outcomes by standing,
--- the timeout) and hostile Concord groups with their combat jammers.
+-- the timeout) and hostile Concord groups with their combat jammers. With two ships: each patrol
+-- hunts one ship and judges it by its own standing, a second ship draws its own patrol, zones
+-- send one patrol per cooldown however many ships are in them, and a patrol whose ship leaves
+-- takes another ship still in the zone.
 --
 -- The plugin's own update does the spawning: the test only puts the ship somewhere and brings
 -- the next check forward (the real interval is 8 s). Patrol ships are moved next to the player
@@ -46,7 +49,9 @@ local function clear_of_stations(x, y, margin)
     end
     return true
 end
-local function spot(zone)
+-- The plugin's grid cell (18U squares): one patrol per cell at a time.
+local function cell(x, y) return math.floor(x / (18 * U) + 0.5) .. "," .. math.floor(y / (18 * U) + 0.5) end
+local function spot(zone, away)    -- away = {x, y}: in another grid cell, 10U+ from there
     local r = st.regions[zone]
     if not r then error("no such patrol zone: " .. zone) end
     for _, frac in ipairs({0.3, 0.5, 0.15, 0.65}) do
@@ -58,6 +63,8 @@ local function spot(zone)
             for name, other in pairs(st.regions) do
                 if name ~= zone and depth(x, y, other) >= depth(x, y, r) then ok = false end
             end
+            if ok and away and (cell(x, y) == cell(away[1], away[2])
+                                or math.sqrt((x - away[1]) ^ 2 + (y - away[2]) ^ 2) < 10 * U) then ok = false end
             if ok then
                 local hostiles = 0
                 for _, o in ipairs(getObjectsInRadius(x, y, 12 * U)) do
@@ -96,10 +103,28 @@ end
 local function set_rep(faction, value, who)
     RT.addReputation(faction, value - T.rep(faction, who), "test", who)
 end
--- Put the group's first ship next to the player (inside the 5U interception range).
-local function close_in()
-    local x, y = A:getPosition()
+-- Put the group's first ship next to a player ship (inside the 5U interception range).
+local function close_in(who)
+    local x, y = (who or A):getPosition()
     ship:setPosition(x + 3000, y)
+end
+-- Put any player ship at this zone's test spot (dx east of it), stopped and facing north.
+local function place(who, zone, dx)
+    if not _spots[zone] then _spots[zone] = {spot(zone)} end
+    pcall(function() if who:getDockedWith() then who:commandUndock() end end)
+    who:setPosition(_spots[zone][1] + (dx or 0), _spots[zone][2])
+    who:setHeading(0)
+    pcall(function() who:commandImpulse(0) end)
+end
+-- The second ship waits out of the way, away from every zone.
+local function park(who)
+    local x, y = VERSE.at("Port Vesper", -2, -2)
+    who:setPosition(x, y)
+    pcall(function() who:commandImpulse(0) end)
+end
+local function order_target(s)
+    local ok, t = pcall(function() return s:getOrderTarget() end)
+    return ok and t or nil
 end
 
 T.step("setup", function()
@@ -150,6 +175,7 @@ T.step("the patrol", function()
     group = groups()[1]
     ship = group.ships[1]
     T.eq("corsairs: in the zone the ship is in", group.region_name, "the Gauntlet")
+    T.check("corsairs: hunts the ship that drew it", group.target == A)
     T.check("corsairs: the group holds its ships as entities", type(ship) ~= "string" and RT.valid(ship))
     T.eq("corsairs: all its ships are alive", alive(group), #group.ships)
     T.eq("corsairs: faction", ship:getFaction(), "Corsairs")
@@ -247,6 +273,7 @@ T.waitFor("clean: the patrol despawns", function() return #groups() == 0 end, 3)
 -- ── Concord: a record with flags on it pays a fine (and only that ship pays) ──
 T.step("a poor record, and a second ship in the game", function()
     B = T.secondShip()
+    park(B)                          -- out of Concord space: the patrol is A's
     set_rep("Concord", -100, A)
     RT.setCredits(500, A)
     RT.setCredits(500, B)
@@ -336,6 +363,107 @@ T.step("no questions asked", function()
     T.check("wanted: not a shake-down", not group.is_shakedown)
     T.eq("wanted: spawned hostile", ship:getFaction(), "Concord Hostile")
     T.check("wanted: an enemy", ship:isEnemy(A))
+end)
+
+-- ── Two ships: a second ship alone in a zone draws its own patrol ────────────
+T.step("only the second ship in the Gauntlet", function()
+    wipe()
+    set_rep("Concord", 0, A)
+    leave()
+    place(B, "the Gauntlet")
+    check_now()
+end)
+T.waitFor("two ships: a patrol spawns for the second ship", function() return #groups() == 1 end, 5)
+T.step("it hunts the second ship", function()
+    group = groups()[1]; ship = group.ships[1]
+    T.eq("two ships: in the second ship's zone", group.region_name, "the Gauntlet")
+    T.check("two ships: its target is the second ship", group.target == B)
+    T.check("two ships: attacking the second ship", order_target(ship) == B)
+    -- The primary ship joins it, then the second ship leaves.
+    place(A, "the Gauntlet", 2 * U)
+    park(B)
+    check_now()
+end)
+T.waitFor("retarget: the patrol takes the ship still in the zone", function() return group.target == A end, 3)
+T.step("on the primary ship now", function()
+    T.check("retarget: not recalled", not group.recalled)
+    T.check("retarget: attacking the primary ship", order_target(ship) == A)
+    leave(); check_now()
+end)
+T.waitFor("retarget: recalled once no ship is left in the zone", function() return group.recalled end, 3)
+
+-- ── Two ships in one zone draw one patrol per cooldown ───────────────────────
+T.step("both ships in the Gauntlet, far apart", function()
+    wipe()
+    place(A, "the Gauntlet")
+    local x, y = spot("the Gauntlet", _spots["the Gauntlet"])
+    B:setPosition(x, y); B:setHeading(0)
+    local ax, ay = A:getPosition()
+    T.check("shared: the ships are in different grid cells", cell(x, y) ~= cell(ax, ay))
+    check_now()
+end)
+T.waitFor("shared: a patrol spawns", function() return #groups() >= 1 end, 5)
+T.wait(1)
+T.step("only one", function()
+    T.eq("shared: one patrol for the zone, not one per ship", #groups(), 1)
+    local t = groups()[1].target
+    T.check("shared: it hunts one of the two ships", t == A or t == B)
+    check_now()
+end)
+T.wait(1)
+T.step("still one while the zone is on cooldown", function()
+    T.eq("shared: no second patrol before the cooldown is over", #groups(), 1)
+    wipe(); park(B); leave()
+end)
+
+-- ── Two ships: a shake-down judges and fights only the ship it stopped ───────
+local a_rep0, a_c0
+T.step("the second ship alone in Concord space, with flags on its record", function()
+    set_rep("Concord", 0, A)
+    set_rep("Concord", -100, B)
+    RT.setCredits(500, B)
+    place(B, "the Concord Core")
+    check_now()
+end)
+T.waitFor("judged: a patrol spawns for the second ship", function() return #groups() == 1 end, 5)
+T.step("intercept the second ship", function()
+    group = groups()[1]; ship = group.ships[1]
+    T.check("judged: a shake-down (the second ship's -100, not the primary's)", group.is_shakedown)
+    T.check("judged: its target is the second ship", group.target == B)
+    close_in(B); check_now()
+end)
+T.waitFor("judged: the jammer is dropped on the second ship", function() return RT.valid(group.jammer) end, 3)
+T.step("behind the second ship", function()
+    local jx, jy = group.jammer:getPosition()
+    local bx, by = B:getPosition()
+    T.check("judged: the jammer is right behind the second ship", math.sqrt((jx - bx) ^ 2 + (jy - by) ^ 2) < 600)
+    a_rep0, a_c0 = T.rep("Concord", A), T.credits(A)
+    b_rep0 = T.rep("Concord", B)
+end)
+T.talk(function() return ship end, {}, {name = "the patrol (from the primary ship)"})
+T.step("the primary ship is not part of the stop", function()
+    T.check("judged: a bystander is told to keep clear", T.msg():find("not about you", 1, true) ~= nil, T.msg())
+    T.check("judged: no fine offered to a bystander", not T.hasReply("Pay the fine"))
+end)
+T.closeComms()
+T.actAs(function() return B end)
+T.talk(function() return ship end, {"Confirmed. Standing by."}, {name = "the patrol"})
+T.step("the second ship's record", function()
+    T.check("judged: the fee is quoted to the second ship", T.msg():find("Inspection fee: 100 credits", 1, true) ~= nil, T.msg())
+end)
+T.talk(function() return ship end, {"Confirmed. Standing by.", "Refuse to pay", "[Acknowledge.]"}, {name = "the patrol"})
+T.step("refused", function()
+    T.check("refused: the patrol is hostile", group.shakedown_hostile)
+    T.eq("refused: the second ship's standing -150", T.rep("Concord", B) - b_rep0, -150)
+    T.eq("refused: the primary ship's standing untouched", T.rep("Concord", A), a_rep0)
+    T.eq("refused: the primary ship paid nothing", T.credits(A), a_c0)
+    T.check("refused: attacking the second ship", order_target(ship) == B)
+end)
+T.closeComms()
+T.actAs(nil)
+T.step("done with two ships", function()
+    wipe(); park(B)
+    set_rep("Concord", 0, B)
 end)
 
 -- ── Switching the plugin off removes everything ──────────────────────────────

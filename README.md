@@ -50,7 +50,7 @@ the primary ship.
 
 ### Proximity Spawn System
 
-Ambient faction patrols are driven by `ee/ragtag/world/proximity.lua`, not hard-coded encounter tables. Every 8 seconds the system checks which zone the primary ship is in and whether conditions allow a new spawn.
+Ambient faction patrols are driven by `ee/ragtag/world/proximity.lua`, not hard-coded encounter tables. Every 8 seconds the system checks which zone each player ship is in and whether conditions allow a new spawn. A patrol hunts the ship that drew it and judges it by that ship's own standing; zone cooldowns are shared, so ships flying together draw no more patrols than one ship.
 
 **Spawn strength** is the sum of two numbers:
 - **Player tier**: 0 (0–1 upgrades) · 1 (2–4 upgrades) · 2 (5+ upgrades)

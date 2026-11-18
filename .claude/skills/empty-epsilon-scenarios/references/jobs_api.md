@@ -322,7 +322,7 @@ own spend.
 
 Logic lives in `_repGate()` (called by `JOBS.board`) in `_engine.lua`, judged by the asking ship's own standing. Slot storage is unaffected; only the displayed count is clamped. Recovery is immediate when standing crosses back above a threshold.
 
-**Proximity spawn effects** (`ee/ragtag/world/proximity.lua`; the primary ship's standing):
+**Proximity spawn effects** (`ee/ragtag/world/proximity.lua`; the standing of the ship the patrol hunts, `group.target`):
 - Corsairs ≤ −200: 30% shorter spawn cooldowns; ≤ −400: 50% shorter
 - Concord shake-down outcome by standing: ≥ 500 recognised, ≥ 200 clean pass, ≥ 0 nothing flagged,
   ≥ −200 a 100 cr fine, < −200 no shake-down: patrols spawn hostile

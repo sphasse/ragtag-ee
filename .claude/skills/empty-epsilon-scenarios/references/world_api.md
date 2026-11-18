@@ -152,8 +152,16 @@ arc that grants the player local military authority.
 ## Proximity plugin
 
 Zone-based ambient patrol spawns that create predictable risk zones players
-learn to navigate. Ships spawn ahead of the player, leash to their region,
-and despawn when the player leaves.
+learn to navigate. Ships spawn ahead of a player ship, leash to their region,
+and despawn when no player ship is left in it.
+
+With several player ships, each group hunts one ship, `group.target` (the ship that drew it), and
+judges it by that ship's own standing: strength, shake-down or hostile, the fine, standing changes,
+jammers, attack orders and log lines all go to that ship. Another ship hailing a shake-down is told
+to keep clear. If the target dies or leaves the zone while another player ship is in it, the group
+takes the nearest one. Cooldowns and caps are per zone, shared by every ship: a zone sends at most
+one patrol per check. `PROX.tickCombatJammers(holder, ships, player, now)` still takes the ship
+to brake (arcs pass `ARC.player()`).
 
 ### Spawn mode (GM control)
 

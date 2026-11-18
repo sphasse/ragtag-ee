@@ -124,7 +124,8 @@ upgrades); credits show as a `Credits: N` line on Relay and Operations: use
 `RT.credits(ship)` / `RT.addCredits(amount, reason, ship)`. An upgrade is bought by, applied to and saved for one ship
 (`RT.installUpgrade` / `RT.grantUpgrade` / `RT.revokeUpgrade(id, ship)`). EE's own reputation points are per faction (shared by all
 player ships), so they are unused and held at 0; nothing outside `core.lua` may call the `ReputationPoints` methods. Details: `jobs_api.md`, "Ownership".
-Patrols and shakedowns (`PROX`) still judge every ship by the primary ship's standing.
+Patrols and shakedowns (`PROX`) hunt one ship each (`group.target`, the ship that drew them) and judge it by its own
+standing; only that ship is stopped, fined, jammed and attacked. Zone cooldowns and caps are shared by all ships.
 
 ### Mission Generation Flow
 
@@ -154,7 +155,8 @@ with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unloa
 - **Boneyard**: Relic war drones (no comms, attack)
 - **Maw**: Hollow (no comms, attack)
 
-**Spawn conditions** (checked every 8 s for the zone the primary ship is deepest in; per-zone GM mode None/Low/Medium/High):
+**Spawn conditions** (checked every 8 s, for each player ship, in the zone that ship is deepest in; per-zone GM mode None/Low/Medium/High;
+a zone sends at most one patrol per check, after one ship picked at random, so ships flying together draw no more patrols than one):
 - Zone cooldown expired (Concord 600/720 s, Corsairs 180–240 s, Boneyard 180 s, Maw 120 s; divided by the mode's frequency,
   shorter with bad Corsair standing)
 - Zone ship cap not reached (mode: 6 / 12 / 24; Concord zones: 1)
@@ -172,7 +174,12 @@ each tick until stopped, then stays put). One per ship at a time; it expires aft
 can drop the next 2 min after the last.
 All Concord jammers (including the shakedown one) have 10 hull: two 6-damage beam hits. Tuning: `PROX.JAMMER`.
 
-**Leash system**: Ships recall to spawn point when player exits region, despawn after 120s if player doesn't return.
+**Several ships**: a patrol hunts its `group.target` and judges it by that ship's own standing (strength, shake-down or
+hostile, fine, standing changes, jammers, attack orders, log lines). Another ship that hails a shake-down is told to keep
+clear. If the target dies or leaves the zone while another player ship is in it, the patrol takes the nearest one (a new
+shake-down target is stopped from scratch; a hostile patrol stays hostile).
+
+**Leash system**: Ships recall to spawn point when no player ship is left in the region, despawn after 120s if none returns.
 
 **Reputation effects**:
 - Corsairs ≤ −200 rep: 30% shorter cooldowns; ≤ −400: 50% shorter (hunt you)
