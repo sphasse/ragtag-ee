@@ -147,7 +147,8 @@ function MISSIONS._unload(id)
     end
 end
 
--- Enable or disable a waiting mission (GM). Disabled: triggers ignored, on_unload runs.
+-- Enable or disable a waiting mission. Disabled: triggers ignored, on_unload runs. Low level: it
+-- keeps the arc's flags and state; the GM button resets the arc too (MISSIONS.gmToggleEnabled).
 function MISSIONS.setEnabled(id, on)
     if not MISSIONS._registry[id] then return end
     MISSIONS._enabled[id] = on and true or false
@@ -615,10 +616,11 @@ function MISSIONS._syncScienceDB()
     end
 end
 
--- Default "-> Inactive": stop the arc, reset it to "never happened" (M.gm_reset with no target:
--- world, timers, flags), keep it from re-triggering (until re-enabled), and resync the Science
--- database so nothing the arc revealed remains.
-function MISSIONS.gmDeactivate(id)
+-- Reset an arc to "never happened", from any status (active, done or waiting): M.gm_reset with
+-- no target (world, timers, flags), stop it, clear EVERY saved flag of the arc (its "done" flag
+-- included, whatever gm_reset keeps), rebuild its state table, leave it waiting (inactive) and
+-- resync the Science database so nothing the arc revealed remains. Enabled is left as it was.
+function MISSIONS.gmResetArc(id)
     local M = MISSIONS._registry[id]
     if not M then return end
     if M.gm_reset then
@@ -627,14 +629,30 @@ function MISSIONS.gmDeactivate(id)
     end
     if MISSIONS._status[id] == "active" then
         MISSIONS.cancel(id)
-    elseif MISSIONS._status[id] == "done" then
-        if M.on_cancel then pcall(M.on_cancel, MISSIONS._state[id] or {}) end
-        MISSIONS._status[id]    = "inactive"
-        MISSIONS._cur_phase[id] = nil
-        MISSIONS._state[id]     = {}
+    elseif MISSIONS._status[id] == "done" and M.on_cancel then
+        pcall(M.on_cancel, MISSIONS._state[id] or {})
     end
-    MISSIONS.setEnabled(id, false)
+    MISSIONS.gmClearFlags(id)
+    MISSIONS._status[id]    = "inactive"
+    MISSIONS._cur_phase[id] = nil
+    MISSIONS._state[id]     = M.init_state and M.init_state() or {}
+    MISSIONS._unload(id)   -- an enabled arc loads again next frame (fresh seeds)
     MISSIONS._syncScienceDB()
+end
+
+-- Default "-> Inactive": reset the arc (gmResetArc) and keep it from re-triggering until re-enabled.
+function MISSIONS.gmDeactivate(id)
+    MISSIONS.gmResetArc(id)
+    MISSIONS.setEnabled(id, false)
+end
+
+-- The GM's "Enable arc" / "Disable arc" button: either way the arc is reset first (gmResetArc),
+-- so a finished arc ("done", or its done flag from an earlier session) starts over when enabled.
+function MISSIONS.gmToggleEnabled(id)
+    if not MISSIONS._registry[id] then return end
+    local on = MISSIONS._enabled[id]
+    MISSIONS.gmResetArc(id)
+    MISSIONS.setEnabled(id, not on)
 end
 
 -- GM detail screen, same shape for every arc:
@@ -665,10 +683,11 @@ function MISSIONS._showDetail(id, backToMainFn)
         addGMMessage(MISSIONS._stateText(id))
     end)
 
-    if status == "inactive" or status == "triggered" then
+    if status ~= "active" then
         local on = MISSIONS._enabled[id]
         addGMFunction(on and "Disable arc" or "Enable arc", function()
-            MISSIONS.setEnabled(id, not on)
+            MISSIONS.gmToggleEnabled(id)
+            globalMessage("[GM] " .. M.name .. ": reset and " .. (on and "disabled" or "enabled") .. ".", 4)
             MISSIONS._showDetail(id, backToMainFn)
         end)
     end

@@ -429,6 +429,32 @@ function T.deactivate(opts)
         T.check("inactive: objective cleared", RT.objectives[key] == nil, tostring(RT.objectives[key]))
         if opts.check then opts.check() end
     end)
+    -- The GM's Enable/Disable button resets the arc either way: a finished arc (status "done",
+    -- or every saved flag set, as left by an earlier session) comes back with nothing set.
+    -- One step, so no frame runs in between (an enabled arc could trigger and start).
+    T.step("Enable/Disable resets a finished arc", function()
+        local M = MISSIONS._registry[_arc]
+        local function set_all()
+            for name in pairs(M.flags or {}) do
+                if name:sub(-1) ~= "*" then RT.flag(name, true) end
+            end
+            MISSIONS._status[_arc] = "done"
+            MISSIONS._state[_arc] = {leftover = true}
+        end
+        local function clean(when)
+            T.eq(when .. ": no arc flags", table.concat(T.arcFlags(), ", "), "")
+            T.eq(when .. ": waiting", T.status(), "inactive")
+            T.check(when .. ": no phase", T.phase() == nil)
+            T.check(when .. ": state table rebuilt", T.st().leftover == nil)
+        end
+        for round = 1, 2 do
+            local was = MISSIONS._enabled[_arc] == true
+            set_all()
+            MISSIONS.gmToggleEnabled(_arc)
+            T.check("toggle " .. round .. ": switched", (MISSIONS._enabled[_arc] == true) == not was)
+            clean(was and "disable" or "enable")
+        end
+    end)
 end
 
 -- ── Runner ───────────────────────────────────────────────────────────────────

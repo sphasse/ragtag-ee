@@ -230,6 +230,11 @@ T.step("a taken slot stays empty until it cools down", function()
     T.check("slot: the taken job is off the board", not offered)
     T.check("slot: its slot stays empty", #b.offers <= JOBS.stationSlots(HOME) - 1, #b.offers)
     T.check("slot: the board says when to come back", b.wait and b.wait > 0 and b.wait <= JOBS.config.work_cooldown_secs, tostring(b.wait))
+    -- The crew hears a rough time, never minutes and seconds.
+    T.eq("check back: over 5 min", JOBS.checkBackText(301), '"No new contracts right now. Check back in a while."')
+    T.eq("check back: over 2 min", JOBS.checkBackText(121), '"No new contracts right now. Check back in a few."')
+    T.eq("check back: 2 min or less", JOBS.checkBackText(120), '"No new contracts right now. Check back in a bit."')
+    T.eq("check back: 5 min exactly is a few", JOBS.checkBackText(300), '"No new contracts right now. Check back in a few."')
     for _, slot in pairs(JOBS._station_work[HOME].slots) do
         if slot.taken_at then slot.taken_at = T.now() - JOBS.config.work_cooldown_secs - 1 end
     end

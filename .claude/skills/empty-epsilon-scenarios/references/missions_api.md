@@ -104,7 +104,8 @@ The engine builds the arc's GM screen. Buttons, in order:
 `← Missions` | `Mission criteria` (popup: each trigger condition, `[MET]` or `[ ? ]`) |
 `Mission state` (popup: status, phase, `gm_state_fn` label, saved flags matching
 `gm_flag_prefixes`, and every variable in the arc's state table) | `Enable arc` / `Disable arc`
-(only while waiting) | one `→` button per entry in `M.gm_states` | phase helpers from `M.gm_actions`.
+(whenever the arc is not running; either way it first resets the arc to "never happened": `MISSIONS.gmResetArc`
+clears every flag of the arc, its done flag included, and rebuilds its state table) | one `→` button per entry in `M.gm_states` | phase helpers from `M.gm_actions`.
 
 ```lua
 M.gm_flag_prefixes = {"myarc_"}            -- flags shown in "Mission state" (default: id .. "_")
@@ -191,7 +192,9 @@ MISSIONS.register(M)         -- called by each module at load time
 MISSIONS.start(id)           -- activate; init_state, lock jobs, enter start_phase
 MISSIONS.phase(id, name)     -- transition to named phase (NOTE: not .goto — reserved keyword)
 MISSIONS.cancel(id)          -- exit current phase, call on_cancel, unlock jobs
-MISSIONS.setEnabled(id, bool) -- false: ignore triggers and call on_unload (GM "Disable arc")
+MISSIONS.setEnabled(id, bool) -- false: ignore triggers and call on_unload (keeps flags and state)
+MISSIONS.gmToggleEnabled(id) -- the GM "Enable/Disable arc" button: gmResetArc, then flip enabled
+MISSIONS.gmResetArc(id)       -- reset to "never happened" from any status: gm_reset, every arc flag cleared, fresh state
 MISSIONS.update(delta)       -- call every frame from scenario update()
 MISSIONS.addGMButton(backFn) -- single top-level GM button (self-labels when any triggered)
 ```

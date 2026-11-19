@@ -856,6 +856,13 @@ local function _offerLine(m)
     return txt
 end
 
+-- "Check back ..." for a board with nothing on offer yet: a rough time, never minutes and
+-- seconds (over 5 min: "in a while"; over 2 min: "in a few"; less: "in a bit").
+function JOBS.checkBackText(wait)
+    local when = (wait > 300 and "in a while") or (wait > 120 and "in a few") or "in a bit"
+    return '"No new contracts right now. Check back ' .. when .. '."'
+end
+
 -- Render JOBS.board(cs, ship) in the open comms window.
 local function _showBoard(cs, ship)
     local b = JOBS.board(cs, ship)
@@ -865,8 +872,7 @@ local function _showBoard(cs, ship)
         if b.nag and b.closed then
             setCommsMessage(b.nag)
         elseif b.wait then
-            setCommsMessage(string.format('"No new contracts right now. Check back in %dm %ds."',
-                math.floor(b.wait/60), math.ceil(b.wait%60)))
+            setCommsMessage(JOBS.checkBackText(b.wait))
         else
             setCommsMessage('"Nothing going out from here right now."')
         end
