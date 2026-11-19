@@ -1,6 +1,6 @@
 ---
 name: sandbox-missions
-description: Add or extend a story arc in the ragtag sandbox campaign using the MISSIONS phase-machine engine. Use for new arc modules, extending or debugging existing arcs (Witness, Rezkov), or understanding how the arc engine works. For scenario writing, job types, universe extensions, proximity spawns, or core campaign changes, use the empty-epsilon-scenarios skill instead.
+description: Add or extend a story arc in the ragtag sandbox campaign using the MISSIONS phase-machine engine. Use for new arc modules, extending or debugging existing arcs (Witness, Rezkov), or understanding how the arc engine works, and for set-piece battles between groups of NPC ships (BATTLE, the Battle Lab). For scenario writing, job types, universe extensions, proximity spawns, or core campaign changes, use the empty-epsilon-scenarios skill instead.
 ---
 
 # Adding a story arc (sandbox-missions)
@@ -88,6 +88,7 @@ prefix (`<id>_`). Details: `missions_api.md`, "Flags".
 - **Seed jobs on the station boards**: `JOBS.inject{category, priority 3|5, origin, when, record}` from `M.on_load` (priority-3 filler deliveries) and the hook phase (one priority-5 `story = true` contract, e.g. a special salvage job whose `on_found` reveals the lead). Remove by category in `on_unload`/`exit`/`_clearState`. See `references/missions_api.md` → "Seeding jobs from an arc" and `jobs_api.md` → "Injected jobs".
 - **Add a rumor as an arc hook**: inject in the hook phase's `enter` (call `RUMORS.removeCategory` first so GM re-entry doesn't duplicate), remove the category in `exit` and in `_clearState`. Do NOT gate injection on a persistent `RT.flag` — injected rumors reset every session, so a persistent "already injected" flag silently kills the hook in session 2.
 - **Proximity spawn suspension**: call `PROX.suspendZone("zone name")` to block new spawns in a region while your arc controls it, and `PROX.resumeZone("zone name")` in both `M.resolve` and `M.on_cancel`. Zone names match the keys in `PROX.zones`. Call suspend again in any GM skip action that jumps to a post-suspend phase.
+- **Battles between groups of ships** (a fleet against the crew's allies, a set piece): use `BATTLE` (`ee/ragtag/battle.lua`): combat points, normalized speeds, no warp, retargeting. **Read `references/set_piece_battles.md` first**: what the stock AI does wrong with big groups and what playtests taught. Tune it in the Battle Lab (scenario 63).
 - **Cross-session state**: `RT.flag(name, true)` to persist, `RT.clearFlag(name)` to clear. Never use `RT.flag(name, nil)` to clear — that is a read, not a write.
 
 ---
