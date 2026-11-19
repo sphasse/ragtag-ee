@@ -1,6 +1,8 @@
 -- Boneyard arc: hook -> annex_hack -> annex_control (download, drone IFF flip) -> extract -> done
 -- (full), then the GM states and "-> Inactive". Not covered: the lifeboat rescue job (the other
--- way to reveal the Annex), a real Relay hack (the GM helper sets the level), the fight itself.
+-- way to reveal the Annex), a real Relay hack (the GM helper sets the level), how the fight plays
+-- out (the Battle Lab's Annex mode is for that); covered: who spawns where, how fast, with what
+-- lasers, drone replacement from the same nebula, and the Annex's lasers picking a Concord ship.
 -- The 60 s download and 30 s reprogram timers are shortened by moving their start times back.
 
 T.arc("boneyard")
@@ -53,9 +55,28 @@ T.step("locked down", function()
     T.action("Complete hack")
 end)
 T.waitFor("annex_control: a finished hack opens the Annex", function() return T.phase() == "annex_control" end, 3)
+local function dist(s, x, y) local sx, sy = s:getPosition(); return math.sqrt((sx - x) ^ 2 + (sy - y) ^ 2) end
 T.step("battle group inbound", function()
-    T.eq("annex_control: six Concord ships", T.alive(T.st().concord_group), 6)
-    T.eq("annex_control: battle group is hostile", T.st().concord_group[1]:getFaction(), "Concord Hostile")
+    local g = T.st().concord_group
+    T.eq("annex_control: seven Concord ships", T.alive(g), 7)
+    T.eq("annex_control: battle group is hostile", g[1]:getFaction(), "Concord Hostile")
+    T.eq("annex_control: the middle ship is the command ship", g[4], T.st().concord_cmd)
+    T.eq("annex_control: CNS Vanguard", g[4]:getCallSign(), "CNS Vanguard")
+    -- A line 15U north-west of the Annex, running north-east / south-west (ends 12U apart).
+    local mx, my = g[4]:getPosition()
+    T.check("annex_control: line centre 15U north-west", math.abs(dist(g[4], ANNEX_X, ANNEX_Y) - 15000) < 300
+        and mx < ANNEX_X and my < ANNEX_Y, string.format("%.0f, %.0f", mx, my))
+    local x1, y1 = g[1]:getPosition()
+    local x7, y7 = g[7]:getPosition()
+    T.check("annex_control: the line runs at 45 degrees", math.abs(math.abs(x7 - x1) - math.abs(y7 - y1)) < 300
+        and math.abs(dist(g[1], x7, y7) - 12000) < 300, string.format("(%.0f,%.0f) (%.0f,%.0f)", x1, y1, x7, y7))
+    T.check("annex_control: no warp", not g[1]:hasWarpDrive() and not g[4]:hasWarpDrive())
+    T.eq("annex_control: Phobos T3 at the lab's 104 impulse", math.floor(g[4]:getImpulseMaxSpeed() + 0.5), 104)
+    T.eq("annex_control: Atlantis X23 at the lab's 80 impulse", math.floor(g[1]:getImpulseMaxSpeed() + 0.5), 80)
+    local p = T.st().annex_battle.b.points
+    T.check("annex_control: combat points 3U north-west of the Annex",
+        math.abs(math.sqrt((p[3][1] - ANNEX_X) ^ 2 + (p[3][2] - ANNEX_Y) ^ 2) - 3000) < 50 and p[3][1] < ANNEX_X and p[3][2] < ANNEX_Y)
+    T.check("annex_control: the Annex is not armed yet", annex():getBeamWeaponRange(0) == 0)
     T.check("annex_control: Boneyard patrols suspended", PROX._suspended_zones["the Boneyard"])
     T.eq("annex_control: objective", RT.objectives.boneyard, "Defend the Annex")
     local relic = 0
@@ -85,11 +106,45 @@ T.step("reprogram running", function()
     T.st().reprogram_start = T.st().reprogram_start - 28
 end)
 T.waitFor("control: IFF override completes", function() return T.flag("boneyard_drone_flip") end, 5)
+local G = BATTLE.ANNEX.gates
+local function gateOf(s)
+    for k, g in ipairs(G) do
+        if dist(s, ANNEX_X + g[1] * 1000, ANNEX_Y + g[2] * 1000) < 4000 then return k end
+    end
+end
+local victim, victim_gate
 T.step("drones on our side", function()
-    T.eq("control: eight reinforcement drones", T.alive(T.st().rein_drones), 8)
-    T.eq("control: reinforcements are Relic Active", T.st().rein_drones[1]:getFaction(), "Relic Active")
+    local d = T.st().rein_drones
+    T.eq("control: 24 drones", T.alive(d), 24)
+    T.eq("control: drones are Relic Active", d[1]:getFaction(), "Relic Active")
+    T.eq("control: small ships (MT52 Hornet)", d[1]:getTypeName(), "MT52 Hornet")
+    T.eq("control: lasers twice a stock drone's (12)", d[1]:getBeamWeaponDamage(0), 12)
+    T.eq("control: 1.5x the fastest Concord impulse (156)", math.floor(d[1]:getImpulseMaxSpeed() + 0.5), 156)
+    T.check("control: drones have no warp", not d[1]:hasWarpDrive())
+    local at = {0, 0}
+    for _, s in ipairs(d) do local k = gateOf(s); if k then at[k] = at[k] + 1 end end
+    T.eq("control: 12 out of the north-east nebula, 12 out of the south-west one", at[1] .. "/" .. at[2], "12/12")
+    local ax, ay = ANNEX_X + G[2][1] * 1000, ANNEX_Y + G[2][2] * 1000
+    T.check("control: the south-west gate is clear of Ashgrave", math.sqrt((ax - 39000) ^ 2 + (ay + 96000) ^ 2) > 5000)
+    T.eq("control: the Annex takes the drones' side", annex():getFaction(), "Relic Active")
+    T.eq("control: the Annex has lasers", annex():getBeamWeaponRange(0), BATTLE.ANNEX.lasers.range)
     T.eq("control: still at the Annex", T.phase(), "annex_control")
+    -- A drone dies: a new one comes out of the same nebula.
+    victim = d[2]
+    victim_gate = gateOf(victim)
+    victim:destroy()
 end)
+T.waitFor("control: a dead drone is replaced", function() return T.alive(T.st().rein_drones) == 24 end, 3)
+T.step("from the same nebula", function()
+    local d = T.st().rein_drones
+    T.eq("control: the replacement came from the dead drone's nebula", gateOf(d[#d]), victim_gate)
+    -- A Concord ship in laser range of the Annex draws its fire.
+    local s = T.st().concord_group[2]
+    s:setPosition(ANNEX_X - 2000, ANNEX_Y - 2000)
+end)
+T.waitFor("control: the Annex's lasers pick the Concord ship in range", function()
+    return T.st().annex_battle.laser_target == T.st().concord_group[2]
+end, 3)
 T.closeComms()
 
 -- ── Extract and resolve ──────────────────────────────────────────────────────
@@ -127,7 +182,7 @@ T.gmWalk({
         T.eq("GM hack: still hacking a second later", T.phase(), "annex_hack")
     end},
     {key = "control", phase = "annex_control", check = function()
-        T.eq("GM control: six Concord ships", T.alive(T.st().concord_group), 6)
+        T.eq("GM control: seven Concord ships", T.alive(T.st().concord_group), 7)
         T.check("GM control: zone suspended", PROX._suspended_zones["the Boneyard"])
     end},
     {key = "extract", phase = "extract", check = function()

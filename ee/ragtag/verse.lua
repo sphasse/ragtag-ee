@@ -178,21 +178,25 @@ local function buildStars()
     end
 end
 
-local function buildPlanets()
-    for _, d in ipairs(VERSE.PLANETS) do
-        local p = Planet():setPosition(d.x * U, d.y * U):setPlanetRadius(d.r * U)
-        p:setDistanceFromMovementPlane(-d.r * U * 0.4)
-        p:setPlanetSurfaceTexture(d.tex)
-        if d.clouds then p:setPlanetCloudTexture(d.clouds):setPlanetCloudRadius(d.r * U * 1.05) end
-        if d.atmo then
-            p:setPlanetAtmosphereTexture("planets/atmosphere.png")
-            p:setPlanetAtmosphereColor(d.atmo[1], d.atmo[2], d.atmo[3])
-        end
-        p:setAxialRotationTime(400)
-        p:setCallSign(d.name)
-        p:setDescription(d.desc)
-        VERSE.places[d.name] = {x = d.x * U, y = d.y * U}
+-- One planet from the data (the Battle Lab builds Ashgrave alone with it).
+function VERSE.buildPlanet(d)
+    local p = Planet():setPosition(d.x * U, d.y * U):setPlanetRadius(d.r * U)
+    p:setDistanceFromMovementPlane(-d.r * U * 0.4)
+    p:setPlanetSurfaceTexture(d.tex)
+    if d.clouds then p:setPlanetCloudTexture(d.clouds):setPlanetCloudRadius(d.r * U * 1.05) end
+    if d.atmo then
+        p:setPlanetAtmosphereTexture("planets/atmosphere.png")
+        p:setPlanetAtmosphereColor(d.atmo[1], d.atmo[2], d.atmo[3])
     end
+    p:setAxialRotationTime(400)
+    p:setCallSign(d.name)
+    p:setDescription(d.desc)
+    VERSE.places[d.name] = {x = d.x * U, y = d.y * U}
+    return p
+end
+
+local function buildPlanets()
+    for _, d in ipairs(VERSE.PLANETS) do VERSE.buildPlanet(d) end
 end
 
 -- Ports (every universe station the crew can trade at: not Corsair or Hollow) cannot be destroyed.
@@ -234,15 +238,24 @@ local function buildStations()
     end
 end
 
-local function buildNebulae(rng)
+-- Where every nebula goes ({x, y, field} in world units), drawn from `rng` (the map's, so the
+-- asteroids after it come out the same). VERSE.nebulaSpots(VERSE.rng(VERSE.SEED)) gives the same
+-- places without building anything (the Battle Lab places the Boneyard's clouds with it).
+function VERSE.nebulaSpots(rng)
+    local out = {}
     for _, f in ipairs(VERSE.NEBULA_FIELDS) do
         for i = 1, f.count do
             local a = rng.float(0, 360)
             local d = math.sqrt(rng.float(0, 1)) * f.r
             local dx, dy = vectorFromAngle(a, d * U, true)
-            Nebula():setPosition(f.x * U + dx, f.y * U + dy)
+            out[#out + 1] = {x = f.x * U + dx, y = f.y * U + dy, field = f}
         end
     end
+    return out
+end
+
+local function buildNebulae(rng)
+    for _, n in ipairs(VERSE.nebulaSpots(rng)) do Nebula():setPosition(n.x, n.y) end
 end
 
 -- Points asteroids must keep clear of (stations, planets, suns), in units.

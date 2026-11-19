@@ -39,10 +39,6 @@ local _ASHGRAVE_X   =  39000   -- Ashgrave dead world (hook scan target)
 local _ASHGRAVE_Y   = -96000
 local _ANNEX_X      =  43000   -- Ashgrave Annex deep in the debris field
 local _ANNEX_Y      = -104000
-local _BATTLE_X     =  30000   -- Concord battle group arrives at grid zy6 (centre), ~26U NW of the Annex
-local _BATTLE_Y     = -130000
-local _REIN_X       =  43000   -- Reinforcement drone spawn (~35U S of Annex, outside scan range)
-local _REIN_Y       = -139000
 local _BONEYARD_CX  =  36000   -- Boneyard center (for the exit check)
 local _BONEYARD_CY  = -96000
 local _BONEYARD_R   =  29500   -- Boneyard radius in world units (29U + small buffer)
@@ -53,9 +49,10 @@ function M.init_state()
     return {
         annex            = nil,    -- SpaceStation "Ashgrave Annex"
         idle_drones      = {},     -- Relic ships set Derelict when hack completes
+        annex_battle     = nil,    -- BATTLE.annex: the Concord group, the drones, the Annex's lasers
         concord_group    = {},     -- Concord Hostile battle group ships
         concord_cmd      = nil,    -- command ship reference
-        rein_drones      = {},     -- Relic Active reinforcement wave
+        rein_drones      = {},     -- Relic Active drones (every one spawned, replacements too)
 
         hack_mid_logged  = false,  -- mid-hack revelation fired
 
@@ -71,18 +68,6 @@ function M.init_state()
 end
 
 -- ── Helpers ───────────────────────────────────────────────────────────────────
-
-local function _nearestConcord(st, x, y)
-    local best, best_d = nil, math.huge
-    for _, s in ipairs(st.concord_group) do
-        if RT.valid(s) then
-            local cx, cy = s:getPosition()
-            local d = ARC.dist(x, y, cx, cy)
-            if d < best_d then best_d = d; best = s end
-        end
-    end
-    return best
-end
 
 local function _spawnAnnex(st)
     if RT.valid(st.annex) then return end
@@ -133,185 +118,39 @@ local function _idleDrones(st)
     log("[BONEYARD] idled " .. #found .. " Relic drones")
 end
 
--- Battle-group orders. Two ships (the command ship and the first escort) hunt the player and
--- keep hunting: their orders are re-issued every few seconds so a dead or respawned player never
--- leaves them idle. The other four hold fixed posts on a ring _CIRCLE_R from the Annex
--- (defend-location: go there, patrol close by, engage anything hostile that comes near), so the
--- group no longer clumps into one ball the drones can't break.
--- Note: orderFlyTowards takes coordinates, not an entity; passing the Annex there once made the
--- group roam off toward independent traffic outside the Boneyard.
-local _CIRCLE_R  = 2000   -- 2U from the Annex
-local _HUNTERS   = 2      -- ships 1..2 of the group hunt the player; the rest guard the ring
-
-local function _annexXY(st)
-    if RT.valid(st.annex) then return st.annex:getPosition() end
-    return _ANNEX_X, _ANNEX_Y
-end
-
-local function _orderConcordHunters(st)
-    local target = ARC.player()
-    for i, s in ipairs(st.concord_group or {}) do
-        if i <= _HUNTERS and RT.valid(s) then
-            if target then
-                s:orderAttack(target)
-            elseif RT.valid(st.annex) then
-                s:orderDefendTarget(st.annex)
-            end
-        end
-    end
-end
-
--- Send the guards to their posts (once, at spawn): evenly spaced on the ring, offset 45 degrees.
-local function _orderConcordGuards(st)
-    local ax, ay = _annexXY(st)
-    local n = #(st.concord_group or {}) - _HUNTERS
-    for i, s in ipairs(st.concord_group or {}) do
-        if i > _HUNTERS and RT.valid(s) then
-            local k = i - _HUNTERS - 1
-            local a = math.rad(45 + k * (360 / math.max(n, 1)))
-            s:orderDefendLocation(ax + _CIRCLE_R * math.cos(a), ay + _CIRCLE_R * math.sin(a))
-        end
-    end
-end
-
-local function _orderConcordAttack(st)
-    _orderConcordHunters(st)
-    _orderConcordGuards(st)
-end
-
-local function _tickConcordOrders(st, now)
-    if now - (st.concord_ordered_at or 0) < 10 then return end
-    st.concord_ordered_at = now
-    _orderConcordHunters(st)
-end
-
+-- The Annex fight is BATTLE.annex (ragtag/battle.lua; the Battle Lab's Annex mode runs the same
+-- code): when the hack lands, a seven-ship Concord battle group spawns active on a line 15U
+-- north-west of the Annex (no warp, the Battle Lab's speeds) and heads for five combat points 3U
+-- north-west of it, engaging the crew there. The drone flip launches 24 small, fast Relic drones
+-- (twice a stock drone's laser) from the nebulae north-east and south-west of the Annex, each
+-- replaced from its own nebula when it dies while any Concord ship is left, and turns the
+-- Annex's own lasers on the Concord: a rout.
 local function _spawnConcordGroup(st)
-    local offsets = {
-        {    0,     0},   -- command ship
-        {-1500,  1200},
-        { 1500,  1200},
-        {-2500,  -400},
-        { 2500,  -400},
-        {    0, -2200},
-    }
-    local templates = {
-        "Phobos T3",
-        "Atlantis X23", "Atlantis X23",
-        "Atlantis X23", "Atlantis X23",
-        "Atlantis X23",
-    }
-
-    for i, o in ipairs(offsets) do
-        local s = CpuShip():setTemplate(templates[i]):setFaction("Concord Hostile")
-        s:setPosition(_BATTLE_X + o[1], _BATTLE_Y + o[2])
-        s:setWarpDrive(true)
-        st.concord_group[#st.concord_group + 1] = s
-        if i == 1 then
-            s:setCallSign("CNS Vanguard")
-            s:setCanBeDestroyed(false)
-            RT.register(s)
-            st.concord_cmd = s
-        end
+    if not RT.valid(st.annex) then return end
+    st.annex_battle = st.annex_battle or BATTLE.annex(st.annex)
+    st.concord_group = st.annex_battle:spawnConcord()
+    st.concord_cmd = st.annex_battle.cmd
+    if RT.valid(st.concord_cmd) then
+        st.concord_cmd:setCanBeDestroyed(false)
+        RT.register(st.concord_cmd)
     end
-
-    _orderConcordAttack(st)
-
     ARC.log(
         "[Comms] [CNS Vanguard] All vessels in Boneyard sector: restricted military zone. " ..
         "Stand down and prepare for boarding. Non-compliance will be treated as hostility.", "#FF6666")
 end
 
--- Friendly (Relic Active) drones. They arrive from the north of the Annex, outside scan range.
--- Tuning: every Concord ship the drones kill is matched by a fresh drone until the cap, so the
--- fight is a stream of drones against a fixed Concord group, not a one-off wave.
-local _DRONE_SPAWNS = {
-    { 40000, -130000}, { 44000, -132000}, { 46000, -128000}, { 38000, -131000},
-    { 50000, -134000}, { 36000, -129000}, { 48000, -138000}, { 42000, -133000},
-}
-local _DRONE_TEMPLATES = {"WX-Lindworm", "WX-Lindworm", "WX-Lindworm", "Stalker Q7", "Stalker R7"}
-local _DRONE_TARGET_CAP   = 20   -- keep up to this many friendly drones alive
-local _DRONE_RESPAWN_MAX  = 40   -- replacement drones per battle (stops the stream eventually)
-local _DRONE_RESPAWN_GAP  = 4    -- seconds between replacements
-
-local function _orderDrone(st, s)
-    local sx, sy = s:getPosition()
-    local target = _nearestConcord(st, sx, sy)
-    if target then
-        s:orderAttack(target)
-    elseif RT.valid(st.annex) then
-        s:orderDefendTarget(st.annex)
-    else
-        s:orderRoaming()
-    end
-end
-
-local function _spawnReinDrone(st, i, template)
-    local pos = _DRONE_SPAWNS[((i - 1) % #_DRONE_SPAWNS) + 1]
-    local tmpl = template or _DRONE_TEMPLATES[math.random(#_DRONE_TEMPLATES)]
-    local s = CpuShip():setTemplate(tmpl):setFaction("Relic Active")
-    s:setPosition(pos[1] + math.random(-1500, 1500), pos[2] + math.random(-1500, 1500))
-    s:setWarpDrive(true)
-    _orderDrone(st, s)
-    st.rein_drones[#st.rein_drones + 1] = s
-    return s
-end
-
-local function _aliveDrones(st)
-    local alive = {}
-    for _, s in ipairs(st.idle_drones or {}) do if RT.valid(s) then alive[#alive + 1] = s end end
-    for _, s in ipairs(st.rein_drones or {}) do if RT.valid(s) then alive[#alive + 1] = s end end
-    return alive
-end
-
-local function _concordAlive(st)
-    for _, s in ipairs(st.concord_group or {}) do if RT.valid(s) then return true end end
-    return false
-end
-
--- Per-frame from annex_control / extract: keep the drones fighting and replace casualties.
-local function _tickDrones(st, now)
-    if not st.drones_flipped then return end
-    if not _concordAlive(st) then return end
-
-    -- Re-aim every 10 s: a drone whose target died would otherwise go idle.
-    if now - (st.drone_aimed_at or 0) >= 10 then
-        st.drone_aimed_at = now
-        for _, s in ipairs(_aliveDrones(st)) do _orderDrone(st, s) end
-    end
-
-    -- Replace casualties, one every _DRONE_RESPAWN_GAP seconds, up to the caps.
-    if (st.drone_respawns or 0) < _DRONE_RESPAWN_MAX and now >= (st.drone_next_at or 0) then
-        if #_aliveDrones(st) < (st.drone_target or 0) then
-            st.drone_next_at = now + _DRONE_RESPAWN_GAP
-            st.drone_respawns = (st.drone_respawns or 0) + 1
-            _spawnReinDrone(st, st.drone_respawns)
-            if st.drone_respawns == 1 then
-                ARC.log("[Science] More Relic contacts warping in from the north. The Annex is feeding them in.", "#00FF88")
-            end
-        end
-    end
+local function _tickBattle(st, now)
+    if st.annex_battle then st.annex_battle:tick(now) end
 end
 
 local function _reprogramDrones(st)
-    for _, s in ipairs(st.idle_drones) do
-        if RT.valid(s) then
-            s:setFaction("Relic Active")
-            _orderDrone(st, s)
-        end
-    end
-
-    -- Eight-ship reinforcement wave from the north, outside scan range
-    st.rein_drones = {}
-    local first_wave = {"WX-Lindworm", "WX-Lindworm", "WX-Lindworm", "WX-Lindworm",
-                        "Stalker Q7", "Stalker Q7", "Stalker R7", "Stalker R7"}
-    for i = 1, 8 do _spawnReinDrone(st, i, first_wave[i]) end
-
-    st.drones_flipped = true
-    st.drone_respawns = 0
-    st.drone_target   = math.min(_DRONE_TARGET_CAP, #_aliveDrones(st))
-
-    ARC.log("[Relay] IFF override complete. All drones retargeting Concord transponders.", "#FF8800")
-    ARC.log("[Science] Eight Relic contacts inbound from the north — fast approach. They are on our side.", "#00FF88")
+    if not st.annex_battle then return end
+    st.annex_battle:spawnDrones()
+    st.annex_battle:armAnnex()
+    st.rein_drones = st.annex_battle.drones   -- the battle appends replacements to this list
+    ARC.log("[Relay] IFF override complete. Drones and Annex defenses retargeting Concord transponders.", "#FF8800")
+    ARC.log("[Science] Relic drone swarms launching from the nebulae north-east and south-west of us. " ..
+        "Fast movers, and they are on our side.", "#00FF88")
 end
 
 -- Unlock the Ashgrave Science DB entries once the archive has been downloaded (idempotent: the
@@ -407,6 +246,7 @@ local function _setAnnexControlComms(st)
 end
 
 local function _cleanupCombat(st)
+    if st.annex_battle then st.annex_battle:clear() end
     ARC.kill(st.concord_group)
     ARC.kill(st.rein_drones)
 end
@@ -422,6 +262,8 @@ local function _clearState(st)
     end
     st.idle_drones = {}
 
+    if st.annex_battle then st.annex_battle:clear() end
+    st.annex_battle = nil
     ARC.kill(st.concord_group)
     st.concord_group = {}
     st.concord_cmd   = nil
@@ -732,7 +574,7 @@ M.phases = {
                 _idleDrones(st)
                 PROX.suspendZone("the Boneyard")
 
-                -- Concord battle group: ~85 seconds travel time at warp
+                -- Concord battle group: spawns 15U out, no warp
                 _spawnConcordGroup(st)
 
                 MISSIONS.phase("boneyard", "annex_control")
@@ -768,8 +610,7 @@ M.phases = {
             end
 
             _trackCmdShip(st)
-            _tickConcordOrders(st, now)
-            _tickDrones(st, now)
+            _tickBattle(st, now)
 
             -- Advance to extract when player moves >10U from Annex
             local player = ARC.player()
@@ -790,12 +631,11 @@ M.phases = {
     extract = {
         enter = function(st)
             RT.clearObjective("boneyard")   -- the Annex fight is over
-            ARC.log("[Nav] Exit the Boneyard. Warp is available; the battle group will pursue.", "#FFAA44")
+            ARC.log("[Nav] Exit the Boneyard. Warp is available.", "#FFAA44")
         end,
         update = function(st, delta, now)
             _trackCmdShip(st)
-            _tickConcordOrders(st, now)
-            _tickDrones(st, now)
+            _tickBattle(st, now)
 
             local player = ARC.player()
             if not player then return end
