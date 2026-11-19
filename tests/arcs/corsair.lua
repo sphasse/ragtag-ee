@@ -377,6 +377,7 @@ end)
 T.closeComms()
 
 -- ── Ending: the crew's ship is lost (nothing else fails it) ─────────────────
+local lost_tender
 T.step("back to the battle; the Corsairs are all lost", function()
     T.jump("battle")
     for _, a in ipairs(T.st().allies) do a:destroy() end
@@ -386,12 +387,15 @@ T.wait(1)
 T.step("still fighting", function()
     T.eq("crew lost: losing every Corsair is not defeat", T.phase(), "battle")
     T.eq("crew lost: nor is another ship's loss", T.status(), "active")
+    lost_tender = T.st().tender
+    T.check("crew lost: the tender is out", RT.valid(lost_tender))
     RT.emit("ship_lost", {ship = RT.campaign.ship_name, primary = true}, "high")
 end)
 T.step("lost", function()
     T.eq("crew lost: the arc ends", T.status(), "done")
     T.eq("crew lost: outcome failed", T.flag("corsair_arc_done"), "failed")
     T.check("crew lost: no ally flag", not T.flag("corsair_ally"))
+    T.eq("crew lost: the arc's own tender keeps its colours", RT.valid(lost_tender) and lost_tender:getFaction(), "Corsair Friendly")
 end)
 
 -- ── Victory again, the Corsairs already friendly: +500 on top ─────────────────

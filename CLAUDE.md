@@ -79,8 +79,9 @@ Contributors add **universe extensions** and **scenarios** independently.
    campaign table; others are in `campaign.extra_ships`). Outside `ee/ragtag/missions/`, `RT.addCredits`, `RT.addReputation`
    and `RT.grantUpgrade` must be given the ship (`check.py` enforces); "no ship" means the primary ship and is for arcs only.
 10. **A callsign is a name, not an identity.** Keep the entity of whatever you spawn (`m.target`, `group.ships`, `slot.ship`)
-    and never find it again by callsign; `RT.find` is for universe places and names a person typed. Per-ship state is found
-    with `==` on the entity (a list, not a table keyed by ship: one ship can have several Lua handles).
+    and never find it again by callsign; `RT.find` is for universe places and names a person typed. An entity reaches Lua as
+    a light userdata of its id, so every handle to one ship is `==` and the same table key: keying a table by ship is fine
+    (a destroyed ship's id is never reused for another).
 
 ## Engine gotchas that have bitten this project
 (Details in the skill's `references/api_notes.md`.)

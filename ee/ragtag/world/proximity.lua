@@ -723,6 +723,14 @@ local function _processGroup(st, group, now)
     _retarget(st, group)
     local player = _target(group)   -- the ship this patrol hunts (nil: none alive)
 
+    -- The stopped ship is gone and no other ship is in the zone to stop instead: the stop is
+    -- over and nobody is charged for it (a standing change with no ship would hit the primary).
+    if group.is_shakedown and not group.shakedown_done and group.shakedown_state == "pending"
+       and not player then
+        group.shakedown_done    = true
+        group.shakedown_hostile = false
+    end
+
     if group.is_shakedown and not group.shakedown_done then
         -- Dynamic rep watch: if rep drops below -200 while this group is on a shakedown
         -- approach (before jammer deploy), flip them to hostile immediately.

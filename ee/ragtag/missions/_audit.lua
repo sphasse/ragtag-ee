@@ -270,6 +270,12 @@ function AUDIT.spawnFleet(st, hooks)
         s:orderStandGround()
         s:setCommsScript(""):setCommsFunction(ARC.comms(_fleetComms(st, hooks),
             '"Concord Audit Service. This matter does not concern you. Stand clear."'))
+        -- Only the crew's fire counts as an assault: Corsairs, drones, mines or a collision do not.
+        local function hit(_, instigator)
+            if st.audit and RT.isPlayer(instigator) then st.audit.fired_on = true end
+        end
+        s:onTakingDamage(hit)          -- hull hits
+        s:onTakingShieldDamage(hit)    -- hits the shields absorb
         st.fleet[#st.fleet + 1] = s
     end
     local excuses = {}
@@ -294,10 +300,6 @@ local function _corner(p, i)
     return px + math.sin(h) * AUDIT.TRI_R, py - math.cos(h) * AUDIT.TRI_R
 end
 
-local function _damaged(s)
-    return s:getHull() < s:getHullMax() or (s:getShieldCount() > 0 and s:getShieldLevel(0) < s:getShieldMax(0))
-end
-
 local _JAMMER_DESC = "Concord Audit Service warp suppression emitter. Two beam hits will knock it out."
 
 -- Per tick while the fleet is out: the jammers, the hail, the clock, and what turns them hostile.
@@ -305,11 +307,7 @@ local function _tickAudit(st, hooks, now)
     local a = st.audit
     local p = ARC.player()
     if not a or not p then return end
-    if a.state ~= "hostile" then
-        for _, s in ipairs(st.fleet) do
-            if RT.valid(s) and _damaged(s) then AUDIT.hostile(st, hooks, "fired"); return end
-        end
-    end
+    if a.state ~= "hostile" and a.fired_on then AUDIT.hostile(st, hooks, "fired"); return end
     if a.state == "arriving" then
         local j = a.jams[1]
         if not j then

@@ -137,8 +137,10 @@ end
 
 local function _unfriend(st)
     local own = {}
-    for _, list in ipairs({{st.guide}, st.escorts or {}, st.allies or {}}) do
-        for _, s in ipairs(list) do if s then own[s] = true end end
+    -- The arc's own Corsair ships (guide, escorts, the battle line, the munitions tender) keep
+    -- their colours; any other Corsair ship in the Gauntlet or Blackwater Reach turns hostile.
+    for _, list in ipairs({{st.guide, st.guide_leaving, st.tender}, st.escorts or {}, st.allies or {}}) do
+        for _, s in pairs(list) do own[s] = true end   -- pairs: the first list has holes
     end
     for _, s in ipairs(_corsairShipsIn("Corsair Friendly")) do
         if not own[s] then

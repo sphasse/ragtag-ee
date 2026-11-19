@@ -466,6 +466,39 @@ T.step("done with two ships", function()
     set_rep("Concord", 0, B)
 end)
 
+-- ── The stopped ship is destroyed with no other ship in the zone: nobody is charged ──
+local orphan_jammer
+T.step("stop the second ship once more", function()
+    set_rep("Concord", -100, B)
+    reset_cooldowns()
+    place(B, "the Concord Core")
+    check_now()
+end)
+T.waitFor("orphaned: a patrol spawns for the second ship", function() return #groups() == 1 end, 5)
+T.step("intercept", function()
+    group = groups()[1]; ship = group.ships[1]
+    T.check("orphaned: its target is the second ship", group.target == B)
+    close_in(B); check_now()
+end)
+T.waitFor("orphaned: the second ship is hailed", function() return group.shakedown_hailed end, 4)
+T.step("the second ship is destroyed mid-stop", function()
+    a_rep0, a_c0 = T.rep("Concord", A), T.credits(A)
+    orphan_jammer = group.jammer
+    B:destroy()
+    group.last_comms_activity = now() - 61   -- the compliance timeout would be due
+    check_now()
+end)
+T.waitFor("orphaned: the stop is closed", function() return group.shakedown_done end, 3)
+T.wait(1)
+T.step("nobody is charged", function()
+    T.check("orphaned: not hostile", not group.shakedown_hostile)
+    T.check("orphaned: the jammer is removed", not RT.valid(orphan_jammer))
+    T.check("orphaned: the patrol heads home", group.despawn_at ~= nil)
+    T.eq("orphaned: the primary ship's standing untouched", T.rep("Concord", A), a_rep0)
+    T.eq("orphaned: the primary ship paid nothing", T.credits(A), a_c0)
+    wipe()
+end)
+
 -- ── Switching the plugin off removes everything ──────────────────────────────
 T.step("plugin off", function()
     WORLD.disable("proximity")

@@ -265,7 +265,25 @@ freshStop("jammer")
 T.step("shoot a jammer", function() T.st().audit.jams[2]:destroy() end)
 T.waitFor("jammer: the auditors attack", function() return T.st().audit.state == "hostile" end, 3)
 freshStop("fired")
-T.step("shoot an auditor", function() local s = T.st().fleet[2]; s:setHull(s:getHullMax() - 5) end)
+T.step("someone else damages an auditor", function()
+    local s = T.st().fleet[2]
+    local x, y = s:getPosition()
+    applyDamageToEntity(s, 5, {type = "kinetic", x = x + 500, y = y})   -- no instigator: a mine, a collision
+    local raider = CpuShip():setTemplate("MT52 Hornet"):setFaction("Corsairs"):setPosition(x + 3000, y)
+    applyDamageToEntity(s, 5, {instigator = raider, type = "energy", x = x + 500, y = y})
+    raider:destroy()
+end)
+T.wait(2)
+T.step("not the crew: no assault", function()
+    local s = T.st().fleet[2]
+    T.check("fired: the auditor did take damage", s:getHull() < s:getHullMax() or s:getShieldLevel(0) < s:getShieldMax(0))
+    T.check("fired: other fire is not blamed on the crew", T.st().audit.state ~= "hostile")
+end)
+T.step("the crew shoots an auditor", function()
+    local s = T.st().fleet[2]
+    local x, y = s:getPosition()
+    applyDamageToEntity(s, 5, {instigator = T.P(), type = "energy", x = x + 500, y = y})
+end)
 T.waitFor("fired: the auditors attack", function() return T.st().audit.state == "hostile" end, 3)
 
 -- ── Loss: Engineering ejects the AI ──────────────────────────────────────────

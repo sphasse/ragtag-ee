@@ -12,7 +12,8 @@
 
 T.suite("core")
 
-local A, B, N, C
+local A, B, N, C, D
+local B_NAME
 local NAME
 local hull0
 local lost = {}
@@ -82,6 +83,7 @@ end)
 
 -- ── A ship joins while a dead ship is still in the list ──────────────────────
 T.step("the second ship is destroyed, then another freighter joins", function()
+    B_NAME = B:getCallSign()
     B:destroy()
 end)
 T.wait(1)
@@ -95,6 +97,20 @@ T.step("it gets a roster name", function()
     T.check("join: registered", index(C) ~= nil)
     T.check("join: not the primary's name", C:getCallSign() ~= NAME, C:getCallSign())
     T.check("join: the primary is unchanged", RT.players[1] == N)
+end)
+
+-- ── A rebuilt second ship under the lost one's name takes over its record ────
+T.step("a new ship under the lost second ship's name", function()
+    local x, y = N:getPosition()
+    D = RT.spawnPlayer(x - 6000, y, 0, {callsign = B_NAME})
+end)
+T.wait(1)
+T.step("it has the lost ship's record", function()
+    T.eq("successor: the lost ship's balance, after the loss", T.credits(D), 20)
+    local n = 0
+    for _, e in ipairs(RT.campaign.extra_ships or {}) do if e.name == B_NAME then n = n + 1 end end
+    T.eq("successor: one record under the name", n, 1)
+    T.check("successor: not the primary", RT.players[1] == N)
 end)
 
 -- ── A ship renamed to the lost primary's name takes its place ────────────────

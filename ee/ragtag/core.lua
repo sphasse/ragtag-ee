@@ -435,9 +435,8 @@ end
 -- which ship it is dealing with and must pass it. tools/check.py rejects RT.addCredits /
 -- RT.addReputation / RT.grantUpgrade without a ship outside ee/ragtag/missions/.
 
--- Session state per player ship: {ship, rec, campaign, shown, outfitted, hull_marks}. A list, not
--- a table keyed by ship: script calls can hand out different Lua objects for one ship, and only
--- `==` sees through that.
+-- Session state per player ship: {ship, rec, campaign, shown, outfitted, hull_marks}, one entry
+-- per ship ever seen this session (destroyed ones included), found with `==` on the entity.
 RT._ship_state = {}
 
 function RT.shipState(ship)
@@ -470,12 +469,15 @@ function RT.shipRecord(ship)
     if not RT.valid(p) then return nil end
     if type(c.extra_ships) ~= "table" then c.extra_ships = {} end
     -- A returning crew: the saved record under this callsign, unless another live ship has it.
+    -- (A destroyed ship's record is free: the crew's rebuilt ship under that name takes it over.)
     local name, rec = p:getCallSign(), nil
     for _, e in ipairs(c.extra_ships) do
         if type(e) == "table" and e.name == name then
             local taken = false
             for _, other in ipairs(RT._ship_state) do
-                if other.rec == e and other.campaign == c and other.ship ~= p then taken = true end
+                if other.rec == e and other.campaign == c and other.ship ~= p and RT.valid(other.ship) then
+                    taken = true
+                end
             end
             if not taken then rec = e; break end
         end
