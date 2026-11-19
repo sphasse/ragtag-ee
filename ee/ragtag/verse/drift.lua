@@ -132,7 +132,7 @@ VERSE.extend({
     regions = {
         {name = "the Concord Core", x = -136, y = -81, r = 55, danger = 0,
          desc = "The Core: Concord worlds around the white sun Lumen. Rich, safe, and watched."},
-        {name = "the Arbiter Line", x = -62, y = -42, r = 21, danger = 0,
+        {name = "the Arbiter Line", x = -62, y = -42, r = 53, danger = 0,   -- r 21 -> 53 (2026-11-18): more Concord space; edge 15U from Calder's Reach, 22U from Port Vesper
          desc = "The Arbiter Line, where Concord checkpoints watch traffic between the Core and the Border."},
         {name = "Vesper Drift", x = 8, y = -5, r = 20, danger = 0,
          desc = "Vesper Drift: busy lanes, loose rock, and Port Vesper at the centre of it all."},

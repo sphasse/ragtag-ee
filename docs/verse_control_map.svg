@@ -348,8 +348,8 @@
 <defs><pattern id="concord" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="14" height="14" fill="#6fa8ff" opacity="0.10"/><line x1="0" y1="0" x2="0" y2="14" stroke="#6fa8ff" stroke-width="4" opacity="0.35"/></pattern></defs>
 <circle cx="276.0" cy="268.0" r="220.0" fill="url(#concord)" stroke="#6fa8ff" stroke-width="4"/>
 <text x="276.0" y="478.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 55u · every 10 min</text>
-<circle cx="572.0" cy="424.0" r="84.0" fill="url(#concord)" stroke="#6fa8ff" stroke-width="4"/>
-<text x="572.0" y="498.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 21u · every 12 min</text>
+<circle cx="572.0" cy="424.0" r="212.0" fill="url(#concord)" stroke="#6fa8ff" stroke-width="4"/>
+<text x="572.0" y="626.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 53u · every 12 min</text>
 <circle cx="1092.0" cy="560.0" r="136.0" fill="#ff8c3c" opacity="0.08"/>
 <circle cx="1092.0" cy="560.0" r="136.0" fill="none" stroke="#ff8c3c" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
 <text x="1092.0" y="686.0" fill="#ff8c3c" font-size="12" text-anchor="middle" font-weight="600">CORSAIRS raiders · r 34u · every 4 min</text>
@@ -427,7 +427,7 @@
 <rect x="1419.0" y="1043.0" width="10" height="10" fill="#e03030" transform="rotate(45 1424.0 1048.0)"/>
 <text x="1433.0" y="1052.0" fill="#e03030" font-size="12">The Maw</text>
 <text x="276.0" y="66.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CONCORD CORE</text>
-<text x="572.0" y="358.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE ARBITER LINE</text>
+<text x="572.0" y="230.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE ARBITER LINE</text>
 <text x="852.0" y="510.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">VESPER DRIFT</text>
 <text x="696.0" y="638.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">CALDER'S REACH</text>
 <text x="588.0" y="738.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CINDER FIELDS</text>
@@ -455,7 +455,7 @@
 <rect x="1334" y="16" width="370" height="172" fill="#0d1520" opacity="0.85" stroke="#2a3a4d"/>
 <text x="1344" y="36" fill="#d9d4c7" font-size="13" font-weight="700">Patrol zones (world/proximity.lua)</text>
 <text x="1344" y="56" fill="#6fa8ff" font-size="12">the Concord Core · Concord · r 55u · cooldown 600 s</text>
-<text x="1344" y="73" fill="#6fa8ff" font-size="12">the Arbiter Line · Concord · r 21u · cooldown 720 s</text>
+<text x="1344" y="73" fill="#6fa8ff" font-size="12">the Arbiter Line · Concord · r 53u · cooldown 720 s</text>
 <text x="1344" y="90" fill="#ff8c3c" font-size="12">the Shroud · Corsairs · r 34u · cooldown 240 s</text>
 <text x="1344" y="107" fill="#ff8c3c" font-size="12">Halcyon Rest · Corsairs · r 9u · cooldown 240 s</text>
 <text x="1344" y="124" fill="#ff8c3c" font-size="12">the Gauntlet · Corsairs · r 29u · cooldown 180 s</text>

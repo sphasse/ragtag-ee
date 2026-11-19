@@ -13,7 +13,7 @@ The nebula patches between Port Vesper and Dustmote aren't dense enough to hide 
 - Hob's Landing [safe]: Hob's Landing, the biggest town on the Rim. Stations: Hob's Landing (shipwright).
 - Saint Brennan's [safe]: Saint Brennan's Mission: neutral ground. Even Corsairs keep the peace here. Stations: Saint Brennan's Mission.
 - Vesper Drift [safe]: Vesper Drift: busy lanes, loose rock, and Port Vesper at the centre of it all. Stations: Port Vesper (shipwright).
-- The Arbiter Line [safe]: The Arbiter Line, where Concord checkpoints watch traffic between the Core and the Border. Stations: Concord Waypoint Galen.
+- The Arbiter Line [safe]: The Arbiter Line, where Concord checkpoints watch traffic between the Core and the Border. Stations: Concord Waypoint Galen, Concord Station Arbiter.
 - The Cinder Fields [safe]: The Cinder Fields: farming worlds under a cold red sun. Stations: Tamsin Hollow (shipwright).
 - The Concord Core [safe]: The Core: Concord worlds around the white sun Lumen. Rich, safe, and watched. Stations: Ostia Highport (shipwright), Lumen Exchange (shipwright), Sentinel Fleet Yard.
 - The Deep Black [safe]: Past the edge of the charts. Nothing here but silence and distance.
@@ -27,7 +27,6 @@ The nebula patches between Port Vesper and Dustmote aren't dense enough to hide 
 - Blackwater Reach [dangerous]: Blackwater Reach: the Corsairs' home, wrapped in dark nebula and minefields. Stations: Blackwater.
 - The Boneyard [dangerous]: The Boneyard: the Settlement War battlefield around dead Ashgrave. Wrecks everywhere, and the drones never stopped fighting.
 - The Maw [DEADLY]: The Maw. Hollow space. Nobody comes back from here in a ship like yours. Stations: The Maw.
-- Elsewhere: Concord Station Arbiter.
 
 ### Factions (EmptyEpsilon faction names)
 - Independent: the crew, independent stations and freighters. Friendly but mercenary.
