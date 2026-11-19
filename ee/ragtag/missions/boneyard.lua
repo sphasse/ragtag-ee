@@ -56,12 +56,13 @@ function M.init_state()
 
         hack_mid_logged  = false,  -- mid-hack revelation fired
 
-        downloading      = false,
-        download_start   = 0,
+        -- Annex operations (_OPS): <key>_start is when it began (nil: not started), <key>_done.
+        download_start   = nil,
         download_done    = false,
-        reprogramming    = false,
-        reprogram_start  = 0,
+        reprogram_start  = nil,
         reprogram_done   = false,
+        lasers_start     = nil,
+        lasers_done      = false,
 
         cmd_vulnerable   = false,
     }
@@ -123,8 +124,9 @@ end
 -- north-west of the Annex (no warp, the Battle Lab's speeds) and heads for five combat points 3U
 -- north-west of it, engaging the crew there. The drone flip launches 24 small, fast Relic drones
 -- (lasers 3x a stock drone's) from the nebulae north-east and south-west of the Annex, each
--- replaced from its own nebula when it dies while any Concord ship is left, and turns the
--- Annex's own lasers on the Concord: a rout. With the Concord gone, the drones guard the Annex.
+-- replaced from its own nebula when it dies while any Concord ship is left. A separate operation
+-- turns the Annex's own lasers on the Concord. With all three done, a rout; with the Concord gone,
+-- the drones guard the Annex.
 local function _spawnConcordGroup(st)
     if not RT.valid(st.annex) then return end
     st.annex_battle = st.annex_battle or BATTLE.annex(st.annex)
@@ -146,9 +148,8 @@ end
 local function _reprogramDrones(st)
     if not st.annex_battle then return end
     st.annex_battle:spawnDrones()
-    st.annex_battle:armAnnex()
     st.rein_drones = st.annex_battle.drones   -- the battle appends replacements to this list
-    ARC.log("[Relay] IFF override complete. Drones and Annex defenses retargeting Concord transponders.", "#FF8800")
+    ARC.log("[Relay] IFF override complete. Drones retargeting Concord transponders.", "#FF8800")
     ARC.log("[Science] Relic drone swarms launching from the nebulae north-east and south-west of us. " ..
         "Fast movers, and they are on our side.", "#00FF88")
 end
@@ -166,11 +167,32 @@ end
 
 -- The two Annex operations (archive download, drone IFF reprogram) run one at a time: while
 -- one is in progress the other cannot be started. `which` is the operation being requested.
-local function _annexBusy(st, which)
-    if which == "download" then
-        return st.reprogramming and not st.reprogram_done
+-- The Annex's admin operations, one at a time. The order matters: the Concord group is already
+-- on its way when the menu opens, the drones only launch when their override finishes, and the
+-- long download keeps the crew at the Annex for most of the fight.
+local _OPS = {
+    {key = "download",  label = "Download research archive",      time = 240,
+     running = "Downloading archive", done = "Archive download", color = "#00AAFF",
+     started = "[Relay] Archive download initiated. Four minutes to complete.",
+     busy_msg = "Transfer in progress. Hold position.",
+     done_msg = "Transfer complete. Research files indexed in Science database."},
+    {key = "reprogram", label = "Reprogram drone IFF targets",     time = 60,
+     running = "IFF reprogram", done = "Drone IFF override", color = "#FF8800",
+     started = "[Relay] Drone IFF override sequence initiated. 60 seconds.",
+     busy_msg = "Override sequence running. Stand by.",
+     done_msg = "Targeting override active. Drones are retargeting Concord."},
+    {key = "lasers",    label = "Enable station defense lasers",   time = 60,
+     running = "Defense grid boot", done = "Station defense lasers", color = "#FF4444",
+     started = "[Relay] Annex defense grid boot sequence initiated. 60 seconds.",
+     busy_msg = "Defense grid booting. Stand by.",
+     done_msg = "Defense lasers online. Targeting Concord transponders."},
+}
+
+-- The operation running now, if any.
+local function _runningOp(st)
+    for _, op in ipairs(_OPS) do
+        if st[op.key .. "_start"] and not st[op.key .. "_done"] then return op end
     end
-    return st.downloading and not st.download_done
 end
 
 local function _setAnnexControlComms(st)
@@ -180,65 +202,34 @@ local function _setAnnexControlComms(st)
         setCommsMessage(
             "[Ashgrave Annex — Admin Access Granted]\n\n" ..
             "Concord battle group inbound. Time is critical.\n\n" ..
-            "Select operation:"
+            "The Annex runs one operation at a time. Select operation:"
         )
-
-        -- Download option
-        if st.download_done then
-            addCommsReply("[COMPLETE] Archive download", function()
-                setCommsMessage("Transfer complete. Research files indexed in Science database.")
-            end)
-        elseif st.downloading then
-            local elapsed   = now - st.download_start
-            local remaining = math.max(0, 60 - math.floor(elapsed))
-            addCommsReply("[IN PROGRESS] Downloading archive: " .. remaining .. "s", function()
-                setCommsMessage("Transfer in progress. Hold position.")
-            end)
-        elseif _annexBusy(st, "download") then
-            addCommsReply("[LOCKED] Download archive", function()
-                setCommsMessage("The Annex runs one operation at a time. Wait for the drone override to finish.")
-            end)
-        else
-            addCommsReply("1) Download research archive (60s)", function(s, t)
-                if _annexBusy(st, "download") then
-                    setCommsMessage("The Annex runs one operation at a time. Wait for the drone override to finish.")
-                    return
-                end
-                st.downloading    = true
-                st.download_start = getScenarioTime()
-                ARC.log("[Relay] Archive download initiated. 60 seconds to complete.", "#00AAFF")
-                setCommsMessage("Transfer started. Stand by for 60 seconds.")
-            end)
+        for i, op in ipairs(_OPS) do
+            local running = _runningOp(st)
+            if st[op.key .. "_done"] then
+                addCommsReply("[COMPLETE] " .. op.done, function() setCommsMessage(op.done_msg) end)
+            elseif running == op then
+                local remaining = math.max(0, op.time - math.floor(now - st[op.key .. "_start"]))
+                addCommsReply("[IN PROGRESS] " .. op.running .. ": " .. remaining .. "s", function()
+                    setCommsMessage(op.busy_msg)
+                end)
+            elseif running then
+                addCommsReply("[LOCKED] " .. op.label, function()
+                    setCommsMessage("The Annex runs one operation at a time. Wait for the current one to finish.")
+                end)
+            else
+                local secs = op.time >= 120 and (op.time // 60 .. " min") or (op.time .. "s")
+                addCommsReply(i .. ") " .. op.label .. " (" .. secs .. ")", function()
+                    if _runningOp(st) then
+                        setCommsMessage("The Annex runs one operation at a time. Wait for the current one to finish.")
+                        return
+                    end
+                    st[op.key .. "_start"] = getScenarioTime()
+                    ARC.log(op.started, op.color)
+                    setCommsMessage("Operation started. Stand by for " .. secs .. ".")
+                end)
+            end
         end
-
-        -- Reprogram option
-        if st.reprogram_done then
-            addCommsReply("[COMPLETE] Drone IFF override", function()
-                setCommsMessage("Targeting override active. Drones are retargeting Concord.")
-            end)
-        elseif st.reprogramming then
-            local elapsed   = now - st.reprogram_start
-            local remaining = math.max(0, 30 - math.floor(elapsed))
-            addCommsReply("[IN PROGRESS] IFF reprogram: " .. remaining .. "s", function()
-                setCommsMessage("Override sequence running. Stand by.")
-            end)
-        elseif _annexBusy(st, "reprogram") then
-            addCommsReply("[LOCKED] Reprogram drone IFF", function()
-                setCommsMessage("The Annex runs one operation at a time. Wait for the archive download to finish.")
-            end)
-        else
-            addCommsReply("2) Reprogram drone IFF targets (30s)", function(s, t)
-                if _annexBusy(st, "reprogram") then
-                    setCommsMessage("The Annex runs one operation at a time. Wait for the archive download to finish.")
-                    return
-                end
-                st.reprogramming    = true
-                st.reprogram_start  = getScenarioTime()
-                ARC.log("[Relay] Drone IFF override sequence initiated. 30 seconds.", "#FF8800")
-                setCommsMessage("Override started. Stand by for 30 seconds.")
-            end)
-        end
-
         addCommsReply("Disconnect", function()
             setCommsMessage("Channel closed.")
         end)
@@ -590,22 +581,20 @@ M.phases = {
             _setAnnexControlComms(st)
         end,
         update = function(st, delta, now)
-            -- Download timer
-            if st.downloading and not st.download_done then
-                if now - st.download_start >= 60 then
-                    st.download_done = true
+            -- Operation timers (one runs at a time; see _OPS)
+            local op = _runningOp(st)
+            if op and now - st[op.key .. "_start"] >= op.time then
+                st[op.key .. "_done"] = true
+                if op.key == "download" then
                     RT.flag("boneyard_hack_done", true)
                     ARC.log("[Relay] Research archive download complete. Data secured.", "#00AAFF")
                     _indexAshgraveResearch()
-                end
-            end
-
-            -- Reprogram timer
-            if st.reprogramming and not st.reprogram_done then
-                if now - st.reprogram_start >= 30 then
-                    st.reprogram_done = true
+                elseif op.key == "reprogram" then
                     RT.flag("boneyard_drone_flip", true)
                     _reprogramDrones(st)
+                else
+                    if st.annex_battle then st.annex_battle:armAnnex() end
+                    ARC.log("[Relay] Annex defense lasers online. They are firing on the Concord.", "#FF4444")
                 end
             end
 

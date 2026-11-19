@@ -101,9 +101,10 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   Rezkov is the gate for every Phase II arc (Ledger, Boneyard, Corsair).
 - **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are recovered, or at 8U from Ashgrave) →
   annex_hack (Relay hacks frontshield to
-  100%; drones go idle) → annex_control (60s archive download and/or 30s drone
-  IFF reprogram, while a 7-ship Concord Hostile battle group closes on impulse from 15U;
-  the flip launches 24 fast drones from two nebulae and arms the Annex: a rout;
+  100%; drones go idle) → annex_control (one operation at a time: 4 min archive
+  download, 60s drone IFF reprogram, 60s station defense lasers, while a 7-ship Concord
+  Hostile battle group closes on impulse from 15U; the flip launches 24 fast drones from
+  two nebulae; the order decides the fight, the long download keeps the crew there;
   no warp jammer, the crew keeps warp) → extract (fly out past the Boneyard
   boundary) → done.
 - **Exports**:

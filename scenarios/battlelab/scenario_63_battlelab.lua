@@ -122,9 +122,13 @@ end
 local function spawnDrones()
     local f = annexFight()
     f:spawnDrones(SET.annex_drones)
-    f:armAnnex()
-    log(string.format("[BATTLELAB] Annex: %d drones (impulse %.0f x%.2f), Annex lasers armed",
+    log(string.format("[BATTLELAB] Annex: %d drones (impulse %.0f x%.2f)",
         SET.annex_drones, f.drone_impulse, SET.drone_impulse))
+end
+
+local function armLasers()
+    annexFight():armAnnex()
+    log("[BATTLELAB] Annex: lasers armed")
 end
 
 local function clearAnnex()
@@ -142,7 +146,7 @@ local function annexStatus()
         string.format("Drones: %d alive, %d / %d per nebula (NE / SW)   (impulse %.0f x%.2f)", f:dronesAlive(),
             f.quota[1], f.quota[2], f.drone_impulse, SET.drone_impulse),
         string.format("Drones replaced so far: %d", f.replaced),
-        string.format("Annex lasers: %s%s", f.armed and "armed" or "not armed (they arm with the drones)",
+        string.format("Annex lasers: %s%s", f.armed and "armed" or "not armed",
             f.laser_target and f.laser_target:isValid() and (", firing on " .. f.laser_target:getCallSign()) or ""),
         "", "Ships targeting each point, south-west to north-east (Concord / drones):"}
     for k = 1, f.b.n_points do
@@ -211,6 +215,7 @@ local function annexMenu()
     addGMFunction("Start (Concord + drones)", function() clearAnnex(); spawnConcord(); spawnDrones() end)
     addGMFunction(string.format("Spawn Concord (%d)", SET.annex_concord), spawnConcord)
     addGMFunction(string.format("Spawn drones (%d)", SET.annex_drones), spawnDrones)
+    addGMFunction("Arm the Annex's lasers", armLasers)
     addGMFunction("Clear the battle", clearAnnex)
     addGMFunction("  Concord +1", function() SET.annex_concord = math.min(12, SET.annex_concord + 1); showGM() end)
     addGMFunction("  Concord -1", function() SET.annex_concord = math.max(1, SET.annex_concord - 1); showGM() end)

@@ -20,12 +20,12 @@ the Boneyard arc runs, tuned by `BATTLE.ANNEX`:
   south-west (11.5U, clear of Ashgrave). Every drone that dies is replaced from its own nebula
   (checked every second) while any Concord ship is left. When the last Concord ship dies, the drones
   fall back to defend the Annex (spawning more Concord sends them back to the points).
-- **The Annex's lasers** arm with the drones: the Annex turns `Relic Active` and its three beams
+- **The Annex's lasers** (in the campaign, the Annex's third operation; here a GM button): the Annex turns `Relic Active` and its three beams
   (360°, 4.5U, 32 damage every 3 s) fire on the nearest Concord ship in range.
 
 GM console: **Battle status** (survivors, drones per nebula, replacements, what the Annex is firing at,
 ships per point), **Start (Concord + drones)**, **Spawn Concord (n)** and **Spawn drones (n)** separately
-(hold the drones back for tension), **Clear the battle**, **Concord +1 / -1** (1–12), **Drones +2 / -2**
+(hold the drones back for tension), **Arm the Annex's lasers**, **Clear the battle**, **Concord +1 / -1** (1–12), **Drones +2 / -2**
 (2–48), **Concord impulse** and **Drone impulse** multipliers (apply at once), and **Mode: Annex -> open
 space**. When the last Concord ship dies, the time and drone losses go to the GM and the crew.
 

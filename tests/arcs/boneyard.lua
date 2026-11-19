@@ -1,9 +1,9 @@
--- Boneyard arc: hook -> annex_hack -> annex_control (download, drone IFF flip) -> extract -> done
+-- Boneyard arc: hook -> annex_hack -> annex_control (download, drone IFF flip, Annex lasers) -> extract -> done
 -- (full), then the GM states and "-> Inactive". Not covered: the lifeboat rescue job (the other
 -- way to reveal the Annex), a real Relay hack (the GM helper sets the level), how the fight plays
 -- out (the Battle Lab's Annex mode is for that); covered: who spawns where, how fast, with what
 -- lasers, drone replacement from the same nebula, and the Annex's lasers picking a Concord ship.
--- The 60 s download and 30 s reprogram timers are shortened by moving their start times back.
+-- The 4 min download and the 60 s reprogram and laser timers are shortened by moving their start times back.
 
 T.arc("boneyard")
 
@@ -87,14 +87,21 @@ T.step("battle group inbound", function()
 end)
 
 -- ── Control: one operation at a time ─────────────────────────────────────────
-T.talk(annex, {"1) Download research archive"})
-T.step("download running", function() T.check("control: downloading", T.st().downloading) end)
 T.talk(annex, {})
-T.step("reprogram is locked meanwhile", function()
+T.step("three operations on offer", function()
+    T.check("control: download, 4 min", T.hasReply("1) Download research archive (4 min)"), table.concat(T.replies(), " | "))
+    T.check("control: reprogram, 60 s", T.hasReply("2) Reprogram drone IFF targets (60s)"), table.concat(T.replies(), " | "))
+    T.check("control: lasers, 60 s", T.hasReply("3) Enable station defense lasers (60s)"), table.concat(T.replies(), " | "))
+end)
+T.talk(annex, {"1) Download research archive"})
+T.step("download running", function() T.check("control: downloading", T.st().download_start ~= nil) end)
+T.talk(annex, {})
+T.step("the others are locked meanwhile", function()
     T.check("control: download shown in progress", T.hasReply("[IN PROGRESS] Downloading archive"), table.concat(T.replies(), " | "))
     T.check("control: reprogram locked during download", T.hasReply("[LOCKED] Reprogram drone IFF"), table.concat(T.replies(), " | "))
+    T.check("control: lasers locked during download", T.hasReply("[LOCKED] Enable station defense lasers"), table.concat(T.replies(), " | "))
     T.check("control: not done early", not T.flag("boneyard_hack_done"))
-    T.st().download_start = T.st().download_start - 58
+    T.st().download_start = T.st().download_start - 238
 end)
 T.waitFor("control: download completes", function() return T.flag("boneyard_hack_done") end, 5)
 T.step("research indexed", function()
@@ -102,8 +109,9 @@ T.step("research indexed", function()
 end)
 T.talk(annex, {"2) Reprogram drone IFF targets"})
 T.step("reprogram running", function()
-    T.check("control: reprogramming", T.st().reprogramming)
-    T.st().reprogram_start = T.st().reprogram_start - 28
+    T.check("control: reprogramming", T.st().reprogram_start ~= nil)
+    T.check("control: no drones before the override finishes", #T.st().rein_drones == 0)
+    T.st().reprogram_start = T.st().reprogram_start - 58
 end)
 T.waitFor("control: IFF override completes", function() return T.flag("boneyard_drone_flip") end, 5)
 local G = BATTLE.ANNEX.gates
@@ -126,8 +134,7 @@ T.step("drones on our side", function()
     T.eq("control: 12 out of the north-east nebula, 12 out of the south-west one", at[1] .. "/" .. at[2], "12/12")
     local ax, ay = ANNEX_X + G[2][1] * 1000, ANNEX_Y + G[2][2] * 1000
     T.check("control: the south-west gate is clear of Ashgrave", math.sqrt((ax - 39000) ^ 2 + (ay + 96000) ^ 2) > 5000)
-    T.eq("control: the Annex takes the drones' side", annex():getFaction(), "Relic Active")
-    T.eq("control: the Annex has lasers", annex():getBeamWeaponRange(0), BATTLE.ANNEX.lasers.range)
+    T.check("control: the drone override does not arm the Annex", annex():getBeamWeaponRange(0) == 0)
     T.eq("control: still at the Annex", T.phase(), "annex_control")
     -- A drone dies: a new one comes out of the same nebula.
     victim = d[2]
@@ -138,6 +145,16 @@ T.waitFor("control: a dead drone is replaced", function() return T.alive(T.st().
 T.step("from the same nebula", function()
     local d = T.st().rein_drones
     T.eq("control: the replacement came from the dead drone's nebula", gateOf(d[#d]), victim_gate)
+end)
+T.talk(annex, {"3) Enable station defense lasers"})
+T.step("lasers booting", function()
+    T.check("control: laser boot running", T.st().lasers_start ~= nil)
+    T.st().lasers_start = T.st().lasers_start - 58
+end)
+T.waitFor("control: the lasers come online", function() return T.st().lasers_done end, 5)
+T.step("the Annex is armed", function()
+    T.eq("control: the Annex takes the drones' side", annex():getFaction(), "Relic Active")
+    T.eq("control: the Annex has lasers", annex():getBeamWeaponRange(0), BATTLE.ANNEX.lasers.range)
     -- A Concord ship in laser range of the Annex draws its fire.
     local s = T.st().concord_group[2]
     s:setPosition(ANNEX_X - 2000, ANNEX_Y - 2000)
