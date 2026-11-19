@@ -16,6 +16,9 @@ local function child_names(key)
     for _, c in ipairs(SCIDB.get(key):getEntries()) do out[c:getName()] = true end
     return out
 end
+-- The last ship-log announcement SCIDB made, and how many it has made.
+local function last() return SCIDB.announced[#SCIDB.announced] end
+local function count() return #SCIDB.announced end
 local function top_names()
     local out = {}
     for _, t in ipairs(getScienceDatabases()) do out[t:getName()] = (out[t:getName()] or 0) + 1 end
@@ -24,6 +27,7 @@ end
 
 T.step("setup", function()
     T.check("setup: the plugin is running", WORLD.isEnabled("sciencedb") and T.world("sciencedb")._initialized)
+    T.eq("announce: building the database (session start) is quiet", count(), 0)
 end)
 
 -- ── The sections ─────────────────────────────────────────────────────────────
@@ -61,8 +65,13 @@ T.step("a locked entry", function()
     T.check("lock: it shows a placeholder, not the real text", locked_text ~= L.description)
     SCIDB.unlock("maw_full")
     T.eq("lock: unlocking reveals the text", desc("region_maw"), L.description)
+    T.check("announce: an unlock tells Relay where", last() ~= nil
+        and last():find("^%[Science%] Database entry updated: Regions > ") ~= nil
+        and last():find("Maw", 1, true) ~= nil, tostring(last()))
+    local n = count()
     SCIDB.unlock("maw_full")
     T.check("lock: unlocking twice is harmless", L.unlocked)
+    T.eq("announce: not twice", count(), n)
     SCIDB.relock("maw_full")
     T.eq("lock: relocking hides it again", desc("region_maw"), locked_text)
     SCIDB.unlock("no_such_key")
@@ -76,6 +85,7 @@ T.step("a mission adds an entry", function()
     T.check("add: created under Lore", e ~= nil and child_names("lore")["Test Finding"])
     T.eq("add: its text", e:getLongDescription(), "What the crew found.")
     T.eq("add: its key/value", e:getKeyValue("Source"), "a test")
+    T.eq("announce: a new entry and where it is", last(), "[Science] Database entry added: Lore > Test Finding.")
     SCIDB._entries["test_finding"] = e
     T.check("remove: done", SCIDB.removeEntry("test_finding"))
     T.check("remove: gone from Lore", not child_names("lore")["Test Finding"])
@@ -99,6 +109,7 @@ T.step("meeting someone", function()
     T.check("profile: unknown before the meeting", SCIDB.get("thresh_profile") == nil and not SCIDB.known("thresh_profile"))
     T.check("profile: first meeting adds the entry", SCIDB.meet("rezkov", "thresh_profile") == true)
     T.check("profile: under Lore", child_names("lore")["Thresh"])
+    T.eq("announce: a profile", last(), "[Science] Database entry added: Lore > Thresh.")
     T.check("profile: remembered in a campaign flag", T.flag("rezkov_met_thresh") == true)
     T.check("profile: meeting again adds nothing", SCIDB.meet("rezkov", "thresh_profile") == false)
     T.check("profile: nobody by that name", SCIDB.meet("rezkov", "no_such_profile") == false)
@@ -113,8 +124,10 @@ T.step("the database follows the flags", function()
     T.check("sync: forgotten once no arc remembers the meeting", SCIDB.get("thresh_profile") == nil)
     T.check("sync: the entry is gone from Lore", not child_names("lore")["Thresh"])
     RT.flag("rezkov_met_thresh", true)
+    local n = count()
     SCIDB.sync()
     T.check("sync: a flag set elsewhere (a loaded save) brings the profile back", SCIDB.get("thresh_profile") ~= nil)
+    T.eq("announce: sync restores quietly", count(), n)
     RT.clearFlag("rezkov_met_thresh")
     SCIDB.sync()
 end)

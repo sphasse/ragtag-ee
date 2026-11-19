@@ -4,6 +4,12 @@
 -- explains their posting and (if the "defender_cmds_<faction>" flag is set)
 -- accepts orders from the player.
 --
+-- Lane pickets: the universe's garrisons with a beat (VERSE.PICKETS, from beat_u in the verse
+-- data: the Concord pickets, not tied to a port) walk a slow square round their post, holding
+-- each corner for a while before moving on. The lead flies (orderFlyTowards: it still engages
+-- enemies on the way); the rest of the group keeps formation on it. Plugin off: back to holding
+-- the post.
+--
 -- Player-command flags:
 --   RT.flag("defender_cmds_independent", true)  -- enables orders for Indie defenders
 --   RT.flag("defender_cmds_concord",     true)  -- enables orders for Concord defenders
@@ -18,6 +24,8 @@ _P.defaults = {
     orbit_range_ku  = 3,            -- kU: spawn/orbit distance from station (3-5)
     order_radius_u  = 20000,        -- meters: search radius when ordered to attack
     factions        = {"Concord", "Independent"},
+    picket_dwell_secs  = 45,        -- how long a picket holds each corner of its beat
+    picket_arrive_u    = 600,       -- meters: this close to a corner counts as there
 }
 
 -- ── Name pools ──────────────────────────────────────────────────────────────
@@ -164,6 +172,67 @@ local function _spawnDefender(state, cs, fac)
     state.slots[cs].respawn_at = nil
 end
 
+-- ── Lane pickets ─────────────────────────────────────────────────────────────
+
+-- Corner k (1-4) of a picket's beat: a square round its post, starting at its own angle.
+local function _corner(p, k)
+    local a = p.angle + (k - 1) * math.pi / 2
+    return p.x + math.cos(a) * p.r, p.y + math.sin(a) * p.r
+end
+
+-- Send the group to its current corner: the lead flies there, the rest keep formation behind
+-- it, 700 m apart.
+local function _walk(p)
+    local lead, n = nil, 0
+    for _, s in ipairs(p.ships) do
+        if RT.valid(s) then
+            if not lead then
+                lead = s
+                lead:orderFlyTowards(_corner(p, p.k))
+            else
+                n = n + 1
+                s:orderFlyFormation(lead, -700 * n, 0)
+            end
+        end
+    end
+    p.lead = lead
+end
+
+local function _initPickets(state)
+    state.pickets = {}
+    for _, g in ipairs(VERSE.PICKETS or {}) do
+        state.pickets[#state.pickets + 1] = {ships = g.ships, x = g.x, y = g.y, r = g.r,
+            angle = math.random() * 2 * math.pi, k = 1, holding_until = nil}
+    end
+end
+
+local function _tickPickets(state, now)
+    local dwell  = WORLD.get("defenders", "picket_dwell_secs", 45)
+    local arrive = WORLD.get("defenders", "picket_arrive_u", 600)
+    for _, p in ipairs(state.pickets or {}) do
+        local lead
+        for _, s in ipairs(p.ships) do if RT.valid(s) then lead = s; break end end
+        if lead then
+            if p.holding_until then
+                if now >= p.holding_until then            -- move on to the next corner
+                    p.holding_until = nil
+                    p.k = p.k % 4 + 1
+                    _walk(p)
+                end
+            elseif lead ~= p.lead then                    -- first tick, or the lead was lost
+                _walk(p)
+            else
+                local lx, ly = lead:getPosition()
+                local cx, cy = _corner(p, p.k)
+                if math.sqrt((lx - cx) ^ 2 + (ly - cy) ^ 2) < arrive then
+                    p.holding_until = now + dwell          -- hold the corner a while
+                    lead:orderDefendLocation(cx, cy)
+                end
+            end
+        end
+    end
+end
+
 -- ── Plugin interface ─────────────────────────────────────────────────────────
 
 function _P.gmMenu(addButton, showSelf)
@@ -184,6 +253,8 @@ function _P.init(state)
         target_facs[f] = true
     end
 
+    _initPickets(state)
+
     for _, d in ipairs(VERSE.STATIONS) do
         if target_facs[d.fac] then
             state.slots[d.cs] = {
@@ -198,6 +269,7 @@ end
 
 function _P.update(state, delta, now)
     local respawn_secs = WORLD.get("defenders", "respawn_secs", 120)
+    _tickPickets(state, now)
 
     for cs, slot in pairs(state.slots) do
         if slot.ship then
@@ -224,6 +296,13 @@ function _P.cleanup(state)
     for cs, slot in pairs(state.slots or {}) do
         if RT.valid(slot.ship) then slot.ship:destroy() end
         slot.ship = nil
+    end
+    -- Pickets stay in the universe: back to holding their post.
+    for _, p in ipairs(state.pickets or {}) do
+        for _, s in ipairs(p.ships) do
+            if RT.valid(s) then s:orderDefendLocation(p.x, p.y) end
+        end
+        p.lead = nil
     end
 end
 

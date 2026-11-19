@@ -219,10 +219,13 @@ VERSE.extend({
         {fac = "Hollow", x = 166, y = 120, ships = {"Starhammer II", "Fiend G4", "Ranus U"}},
         {fac = "Hollow", x = 143, y = 117, ships = {"Defense platform"}},
         {fac = "Hollow", x = 159, y = 101, ships = {"Defense platform"}},
-        -- Concord pickets (neutral to the crew unless a session says otherwise)
-        {fac = "Concord", x = -70, y = -39, ships = {"Phobos M3"}, callsign = "CPV Vigilant"},
-        {fac = "Concord", x = -55, y = -57, ships = {"Phobos M3"}, callsign = "CPV Temperance"},
-        {fac = "Concord", x = -130, y = -86, ships = {"Atlantis X23", "Phobos M3"}, callsign = "CNS Lawgiver"},
+        -- Concord lane pickets (neutral to the crew unless a session says otherwise): not tied to
+        -- a port. beat_u: they walk a slow beat of this radius round their post, pausing at each
+        -- corner (world/defenders.lua); callsigns name every ship of the group in order.
+        {fac = "Concord", x = -70, y = -39, ships = {"Phobos M3"}, callsign = "CPV Vigilant", beat_u = 4},
+        {fac = "Concord", x = -55, y = -57, ships = {"Phobos M3"}, callsign = "CPV Temperance", beat_u = 4},
+        {fac = "Concord", x = -130, y = -86, ships = {"Atlantis X23", "Phobos M3"},
+         callsigns = {"CNS Lawgiver", "CPV Forbearance"}, beat_u = 4},
         -- Watchers in the Deep Shroud (neutral, silent)
         {fac = "Unknown", x = 166, y = -23, ships = {"Stalker Q7"}, idle = true},
         {fac = "Unknown", x = 140, y = -49, ships = {"Stalker Q7"}, idle = true},

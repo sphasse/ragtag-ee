@@ -13,6 +13,13 @@
 --   SCIDB.meet(arc_id, profile_key) -- the crew met someone: flag "<arc>_met_<who>", add profile
 --   SCIDB.rule(key, spec)          -- tie a locked entry or a runtime entry to campaign flags
 --   SCIDB.sync()                   -- make the database match the flags (session start, GM jumps)
+--   SCIDB.quietly(fn)              -- run fn without the ship-log announcements (a restore, not news)
+--
+-- Every entry added (SCIDB.addEntry, profiles) or revealed (SCIDB.unlock) during play is announced
+-- in the ship log, where Relay sees it, with where it is: "[Science] Database entry added: Lore >
+-- Thresh." Building the database and SCIDB.sync (restoring what a save already earned) are quiet.
+-- Arcs therefore never write their own "database updated" lines; a narrative line ("Survivor
+-- records received.") goes before the change, so it reads first.
 --
 -- State rule: every arc-dependent entry is derived from campaign flags. Profiles exist while any
 -- "<arc>_met_<who>" flag is set; rules say when a locked entry is unlocked or a runtime entry
@@ -24,6 +31,34 @@ SCIDB = SCIDB or {}
 SCIDB._entries = {}   -- key → ScienceDatabase handle
 SCIDB._locked  = {}   -- key → {entry, description, kv, locked_desc, on_unlock, unlocked}
 SCIDB._rules   = SCIDB._rules or {}   -- key → spec (see SCIDB.rule); survives _build
+SCIDB._paths   = {}   -- entry handle → where it is, "Lore > Thresh" (for the announcements)
+SCIDB._quiet   = 0    -- > 0: no announcements (building, sync)
+SCIDB.announced = {}  -- the last announcements, newest last (tests read it: the ship log can't be)
+
+-- Remember where an entry sits: its parent's place, then its name.
+local function _place(entry, parent, name)
+    local up = parent and SCIDB._paths[parent]
+    SCIDB._paths[entry] = up and (up .. " > " .. name) or name
+    return entry
+end
+
+-- Tell the crew (every player ship's log; Relay reads it) that an entry was added or updated.
+local function _announce(entry, verb)
+    if SCIDB._quiet > 0 then return end
+    local where = SCIDB._paths[entry] or "the database"
+    local line = "[Science] Database entry " .. verb .. ": " .. where .. "."
+    SCIDB.announced[#SCIDB.announced + 1] = line
+    while #SCIDB.announced > 20 do table.remove(SCIDB.announced, 1) end
+    if RT and RT.shipLog then RT.shipLog(line, "#00CCAA") end
+end
+
+-- Run fn(...) with the announcements off (a restore of what the crew already had, not news).
+function SCIDB.quietly(fn, ...)
+    SCIDB._quiet = SCIDB._quiet + 1
+    local ok, err = pcall(fn, ...)
+    SCIDB._quiet = SCIDB._quiet - 1
+    if not ok then error(err, 0) end
+end
 
 -- ─── Public API ──────────────────────────────────────────────────────────────
 
@@ -38,6 +73,7 @@ function SCIDB.unlock(key)
     end
     if L.on_unlock then pcall(L.on_unlock, L.entry) end
     log("[SCIDB] unlocked: " .. key)
+    _announce(L.entry, "updated")
 end
 
 -- Return an entry handle so missions can setKeyValue / setLongDescription.
@@ -58,7 +94,7 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
         log("[SCIDB] addEntry: unknown parent key '" .. tostring(parent_key) .. "'")
         return nil
     end
-    local entry = parent:addEntry(name)
+    local entry = _place(parent:addEntry(name), parent, name)
     local display_desc = desc
     if lock_key then
         display_desc = locked_desc or "[ CLASSIFIED — access restricted ]"
@@ -74,6 +110,7 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
         end
     end
     entry:setLongDescription(display_desc)
+    _announce(entry, "added")
     return entry
 end
 
@@ -215,8 +252,13 @@ local function _migrateProfileFlags()
     end
 end
 
--- Make the database match the campaign flags. Quiet (server log only).
+-- Make the database match the campaign flags. Quiet (server log only): it restores what the
+-- campaign already earned, or follows a GM jump.
 function SCIDB.sync()
+    SCIDB.quietly(SCIDB._sync)
+end
+
+function SCIDB._sync()
     if not (RT and RT.campaign and SCIDB._entries["lore"]) then return end
     pcall(_migrateProfileFlags)
     for key in pairs(SCIDB.PROFILES) do
@@ -240,14 +282,14 @@ end
 
 local function _entry(parent, name, desc, kv)
     -- parent == nil makes a top-level section (the Science screen's first column).
-    local e = parent and parent:addEntry(name) or ScienceDatabase():setName(name)
+    local e = _place(parent and parent:addEntry(name) or ScienceDatabase():setName(name), parent, name)
     if desc then e:setLongDescription(desc) end
     if kv then for k, v in pairs(kv) do e:setKeyValue(k, v) end end
     return e
 end
 
 local function _locked(parent, name, locked_desc, real_desc, real_kv, lock_key)
-    local e = parent and parent:addEntry(name) or ScienceDatabase():setName(name)
+    local e = _place(parent and parent:addEntry(name) or ScienceDatabase():setName(name), parent, name)
     e:setLongDescription(locked_desc)
     SCIDB._locked[lock_key] = {
         entry       = e,
@@ -603,7 +645,7 @@ end
 
 function _P.init(state)
     _removeStockSections()
-    _build()
+    SCIDB.quietly(_build)   -- the database as it stands at session start is not news
 end
 
 function _P.update(state, delta, now) end

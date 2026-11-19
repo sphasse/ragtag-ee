@@ -127,9 +127,11 @@ local function _unlockLedger(quiet)
     if not (SCIDB and SCIDB._locked) then return end
     local L = SCIDB._locked["ledger_findings"]
     if not L or L.unlocked then return end
-    SCIDB.unlock("ledger_findings")
-    if not quiet then
-        ARC.log("[Science] The Containment Ledger indexed. Database updated: Lore, The Containment Ledger.", "#00CCAA")
+    if quiet then
+        SCIDB.quietly(SCIDB.unlock, "ledger_findings")
+    else
+        ARC.log("[Science] The Containment Ledger indexed.", "#00CCAA")   -- SCIDB announces the entry
+        SCIDB.unlock("ledger_findings")
     end
 end
 

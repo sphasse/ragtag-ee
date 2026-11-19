@@ -338,13 +338,22 @@ local function concordPatrolComms(source, target)
     setCommsMessage("\"Concord patrol " .. target:getCallSign() .. ". Lanes are clear. Keep it that way.\"")
 end
 
+-- Garrisons with a beat (beat_u): {ships = {entity, ...}, x, y, r} in world units, for the
+-- defenders plugin to walk round their post. Rebuilt with the universe.
+VERSE.PICKETS = {}
+
 local function buildGarrisons()
     local n = 0
+    VERSE.PICKETS = {}
     for _, g in ipairs(VERSE.GARRISONS) do
+        local group = g.beat_u and {ships = {}, x = g.x * U, y = g.y * U, r = g.beat_u * U} or nil
+        if group then VERSE.PICKETS[#VERSE.PICKETS + 1] = group end
         for i, tmpl in ipairs(g.ships) do
             local dx, dy = vectorFromAngle((360 / #g.ships) * i, (#g.ships > 1) and 700 or 0, true)
             local s = CpuShip():setTemplate(tmpl):setFaction(g.fac):setPosition(g.x * U + dx, g.y * U + dy)
-            if g.callsign and i == 1 then s:setCallSign(g.callsign) end
+            local cs = (g.callsigns and g.callsigns[i]) or (i == 1 and g.callsign) or nil
+            if cs then s:setCallSign(cs) end
+            if group then group.ships[#group.ships + 1] = s end
             if g.idle then
                 s:orderIdle()
             else
@@ -355,8 +364,8 @@ local function buildGarrisons()
                 s:setDescriptions("No transponder.", "Hull configuration matches no registry. Emissions are... rhythmic.")
             elseif g.fac == "Concord" then
                 s:setCommsFunction(concordPatrolComms)
-                s:setDescriptions("CWS-registered warship.", "Concord Navy. Base defense posting.")
-                s:setDescriptionForScanState("fullscan", "Permanent sector assignment. Authorized to enforce Concord law and customs within this region. Not actively targeting independent traffic — unless you give them a reason.")
+                s:setDescriptions("CWS-registered warship.", "Concord lane picket. Holds this stretch of the lanes.")
+                s:setDescriptionForScanState("fullscan", "Concord lane picket. Holds this stretch of the lanes. Authorized to enforce Concord law and customs here. Not actively targeting independent traffic — unless you give them a reason.")
                 s:setScanningParameters(1, 2)
             elseif g.fac == "Corsairs" then
                 s:setCommsFunction(function(source, target)

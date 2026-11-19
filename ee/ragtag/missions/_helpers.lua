@@ -145,18 +145,14 @@ function ARC.stationHook(callsign, fn)
     end)
 end
 
--- First meeting with a Science DB profile: sets "<arc>_met_<who>" (SCIDB.meet), adds the profile
--- and tells the crew once. `who` is the name for the log line. GM resets clear the flag with the
--- arc's other flags and SCIDB.sync removes the profile.
+-- First meeting with a Science DB profile: sets "<arc>_met_<who>" (SCIDB.meet) and adds the
+-- profile; SCIDB announces it in the ship log ("Database entry added: Lore > Thresh"). Returns true
+-- the first time. `who` (the person's name) is kept for callers and readability. GM resets clear
+-- the flag with the arc's other flags and SCIDB.sync removes the profile.
 function ARC.meet(arc_id, profile_key, who)
     if not (SCIDB and SCIDB.meet) then return false end
     local ok, added = pcall(SCIDB.meet, arc_id, profile_key)
-    if ok and added then
-        local M = MISSIONS._registry[arc_id]
-        ARC.log("[" .. (M and M.name or arc_id) .. "] " .. who .. " personnel records added to our database.", "#80C0FF")
-        return true
-    end
-    return false
+    return ok and added == true
 end
 
 -- ── Flags, rewards, routing ──────────────────────────────────────────────────

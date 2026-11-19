@@ -1,7 +1,9 @@
 -- Station defenders: one fighter per Concord / Independent station, respawned after a death,
 -- answering hails and (when the arc flag allows it) taking orders from the ship that asks.
+-- Lane pickets: the Concord pickets out on the lanes are named and described as pickets, and
+-- walk a slow beat round their post (fly to a corner, hold it, move on), the escort in formation.
 --
--- Not covered: the defenders' flying and fighting.
+-- Not covered: the defenders' and pickets' flying and fighting (orders and positions only).
 
 T.suite("world")
 
@@ -113,6 +115,42 @@ T.step("a new ship", function()
     T.eq("respawn: still one per slot", count(function(_, s) return RT.valid(s.ship) end), count(function() return true end))
 end)
 
+-- ── Lane pickets ─────────────────────────────────────────────────────────────
+local law   -- the CNS Lawgiver group
+local function dist(x1, y1, x2, y2) return math.sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2) end
+T.step("the lane pickets", function()
+    T.eq("pickets: three groups with a beat", #st.pickets, 3)
+    for _, p in ipairs(st.pickets) do
+        if p.ships[1]:getCallSign() == "CNS Lawgiver" then law = p end
+    end
+    T.check("pickets: CNS Lawgiver found", law ~= nil)
+    T.eq("pickets: its escort has a name", law.ships[2]:getCallSign(), "CPV Forbearance")
+    T.eq("pickets: described as a lane picket", law.ships[1]:getDescription("simplescan"),
+        "Concord lane picket. Holds this stretch of the lanes.")
+    T.check("pickets: not a base posting", not law.ships[1]:getDescription("fullscan"):find("defense posting", 1, true))
+    T.eq("pickets: a 4U beat", law.r, 4000)
+    -- On its beat: the lead flies to a corner 4U from the post, the escort keeps formation.
+    T.eq("beat: the lead flies", law.ships[1]:getOrder(), "Fly towards")
+    local tx, ty = law.ships[1]:getOrderTargetLocation()
+    T.check("beat: to a corner 4U from its post", math.abs(dist(tx, ty, law.x, law.y) - 4000) < 50, string.format("%.0f", dist(tx, ty, law.x, law.y)))
+    T.eq("beat: the escort flies in formation", law.ships[2]:getOrder(), "Fly in formation")
+    T.eq("beat: on the lead", law.ships[2]:getOrderTarget(), law.ships[1])
+    law.ships[1]:setPosition(tx, ty)   -- arrive
+end)
+local corner1
+T.waitFor("beat: at the corner it holds a while", function() return law.holding_until ~= nil end, 3)
+T.step("holding", function()
+    T.eq("hold: defends the corner", law.ships[1]:getOrder(), "Defend Location")
+    corner1 = law.k
+    law.holding_until = T.now()   -- the wait is over
+end)
+T.waitFor("beat: then on to the next corner", function() return law.k ~= corner1 and law.holding_until == nil end, 3)
+T.step("next corner", function()
+    T.eq("next: flying again", law.ships[1]:getOrder(), "Fly towards")
+    local tx, ty = law.ships[1]:getOrderTargetLocation()
+    T.check("next: a different corner of the same beat", math.abs(dist(tx, ty, law.x, law.y) - 4000) < 50)
+end)
+
 -- ── Off and on ───────────────────────────────────────────────────────────────
 local before = {}
 T.step("plugin off", function()
@@ -121,6 +159,8 @@ T.step("plugin off", function()
     local left = 0
     for _, e in pairs(before) do if RT.valid(e) then left = left + 1 end end
     T.eq("off: every defender is removed", left, 0)
+    T.eq("off: the pickets stay", RT.valid(law.ships[1]), true)
+    T.eq("off: and hold their post", law.ships[1]:getOrder(), "Defend Location")
     WORLD.enable("defenders")
 end)
 T.waitFor("on: defenders are posted again", function()

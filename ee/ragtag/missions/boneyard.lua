@@ -196,10 +196,10 @@ end
 local function _indexAshgraveResearch()
     local L = SCIDB._locked and SCIDB._locked["hollow_true_nature"]
     if L and L.unlocked then return end
+    ARC.log("[Science] Ashgrave research files indexed.", "#00CCAA")   -- SCIDB announces each entry
     SCIDB.unlock("hollow_true_nature")
     SCIDB.unlock("ashgrave_research")
     SCIDB.unlock("synthesis_details")
-    ARC.log("[Science] Ashgrave research files indexed. Database updated.", "#00CCAA")
 end
 
 -- The Annex's admin operations, one at a time, offered only to a ship docked at the Annex. The
@@ -420,8 +420,8 @@ local function _survivorHail()
         ARC.log("[Lifeboat Survivors] " .. _SURVIVOR_MSG, "#C0E0FF")   -- comms busy: never lose it
     end
     RT.after(5, function()
+        ARC.log("[Science] Survivor records received.", "#00CCAA")   -- SCIDB announces the entry
         _addSurvivorRecords()
-        ARC.log("[Science] Survivor records received. Science database updated: Lore, Boneyard Survivor Records.", "#00CCAA")
     end, "boneyard_survivor_records")
 end
 

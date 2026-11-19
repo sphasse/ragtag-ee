@@ -77,6 +77,10 @@ T.step("the survivors ask for the Annex", function()
     T.eq("survivors: nothing of theirs at Port Vesper", near, 0)
 end)
 T.closeComms()
+T.waitFor("survivors: their records are announced with where they are", function()
+    local l = SCIDB.announced[#SCIDB.announced]
+    return l == "[Science] Database entry added: Lore > Boneyard Survivor Records."
+end, 7)
 T.waitFor("annex_hack: the hack starts at once (Relay works from range)", function() return T.phase() == "annex_hack" end, 3)
 T.step("lead paid off", function()
     T.eq("hook: rumors removed once found", T.rumors("BONEYARD_HOOK"), 0)
@@ -184,6 +188,11 @@ end)
 T.waitFor("control: download completes", function() return T.flag("boneyard_hack_done") end, 5)
 T.step("research indexed", function()
     T.check("control: Ashgrave research readable", SCIDB._locked.ashgrave_research and SCIDB._locked.ashgrave_research.unlocked)
+    local n, upd = #SCIDB.announced, 0
+    for i = math.max(1, n - 2), n do
+        if SCIDB.announced[i]:find("Database entry updated: ", 1, true) then upd = upd + 1 end
+    end
+    T.eq("control: each of the three research entries is announced", upd, 3)
     T.eq("control: the fleet is the objective now", RT.objectives.boneyard, "Defeat the Concord fleet")
     T.eq("control: still at the Annex (the fleet is not beaten)", T.phase(), "annex_control")
 end)

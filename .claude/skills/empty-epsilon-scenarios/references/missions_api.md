@@ -85,9 +85,17 @@ to an end state, or `→ Inactive`) leaves the database matching the state it la
 `MISSIONS.gmJump` and `gmDeactivate` call `SCIDB.sync()`, and so does every session start.
 
 - **People**: `SCIDB.meet(arc_id, "thresh_profile")` when the crew meets someone. It sets
-  `<arc_id>_met_<who>` and adds the profile, returning true the first time (log "records added").
+  `<arc_id>_met_<who>` and adds the profile, returning true the first time.
   The profile exists while any arc's met-flag is set, so it disappears when the arcs that met the
   person are reset, and stays while another arc still has met them.
+- **Announcements**: every entry added (`SCIDB.addEntry`, profiles) or revealed (`SCIDB.unlock`)
+  during play is announced in every player ship's log (Relay reads it) with where it is:
+  `[Science] Database entry added: Lore > Thresh.` / `... updated: Lore > Ashgrave Research.`
+  An arc never writes its own "database updated" line. A story line ("Survivor records
+  received.") goes **before** the SCIDB call so it reads first. Building the database and
+  `SCIDB.sync()` are quiet (restoring what a save already earned is not news); for any other
+  restore use `SCIDB.quietly(SCIDB.unlock, key)`. Tests read `SCIDB.announced` (the ship log
+  cannot be read from Lua).
 - **Locked lore**: `SCIDB.rule("ashgrave_research", {lock = true, want = fn})` is unlocked while
   `want()` is true and goes back to its placeholder (description and revealed keys) otherwise.
 - **Runtime entries**: `SCIDB.rule("boneyard_survivors", {want = fn, add = fn})`. `add()` creates the
@@ -552,9 +560,9 @@ When an arc recovers classified information, unlock the corresponding SCIDB entr
 ```lua
 function M.resolve(st)
     if RT.flag("myarc_data_retrieved") then
+        ARC.log("[Science] Recovered files indexed.", "#00CCAA")   -- first: SCIDB announces each entry
         SCIDB.unlock("hollow_true_nature")
         SCIDB.unlock("ashgrave_research")
-        RT.shipLog("[Science] Database updated with recovered files.", "#00CCAA")
     end
 end
 ```
