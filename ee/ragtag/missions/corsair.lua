@@ -76,6 +76,8 @@ local _RING_LANES = {{0, 25}, {103.85, 6.9}, {256.15, 6.9}}   -- {centre, half-w
 
 -- ── Tuning ───────────────────────────────────────────────────────────────────
 local _LOAD_TIME      = 30          -- seconds the raid escorts spend loading the haul
+-- What the escort says as it starts loading.
+local _JACKPOT = '"Gao yang jong duh goo yang... we hit the jackpot. Mines, missiles, the lot. Loading it all now."'
 -- The guide paces the crew: it holds (defending itself) once the crew is more than _GUIDE_HOLD_D
 -- behind and flies on once they are back within _GUIDE_GO_D. It warps and the crew is slower, so
 -- it leads in short hops. Past _GUIDE_WAIT_D it tells them to keep up (once a minute at most).
@@ -645,7 +647,7 @@ local function _returnDialog(src)
             MISSIONS.phase("corsair", "battle")
             setCommsMessage('"I\'ve heard your hackers are second to none. If you can hack their big ships, that gives us a much better shot at winning this thing.\n\n'
                 .. 'Also, since we took out their supply depot, they have a limited supply of missiles, so once they run out they\'ll be sitting ducks. '
-                .. 'Any distraction you can provide improves our odds."')
+                .. 'Any distraction your awesome piloting can provide improves our odds."')
             addCommsReply("Understood. We're on our way.", function()
                 setCommsMessage('"Then let\'s show them what a pirate nest can do. Our line is forming west of the ring, at grid ' .. _grid(_BATTLE_X + _LINE_U, _BATTLE_Y) .. '. Join them."')
             end)
@@ -966,11 +968,14 @@ M.phases.raid = {
                     if docked or ARC.near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then
                         st.load_t0 = now
                         ARC.log("[" .. s:getCallSign() .. "] Docked at the depot. Loading the cargo bays.", "#FFCC80")
+                        if not ARC.hail(s, _JACKPOT, s:getCallSign()) then
+                            ARC.log("[" .. s:getCallSign() .. "] " .. _JACKPOT, "#FFCC80")
+                        end
                         break
                     end
                 end
             elseif now - st.load_t0 >= _LOAD_TIME then
-                ARC.hail(escorts[1], '"We\'re loading up the haul now: mines, missiles, the lot. Meet you back at Blackwater."', escorts[1]:getCallSign())
+                ARC.hail(escorts[1], '"Haul\'s aboard: mines, missiles, the lot. Meet you back at Blackwater."', escorts[1]:getCallSign())
                 RT.flag("corsair_raid_done", true)
                 MISSIONS.phase("corsair", "return")
             end
