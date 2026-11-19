@@ -104,7 +104,8 @@ code the arc runs, so tuning carries over (`AUDIT.*` at the top of that file).
     appears 7U ahead as plain Concord; Double Entry's jammer brakes the ship, the other two box it in
     with two more, and Double Entry hails;
   - **60 s** after the hail (or after each of up to two stalls) without an answer they attack; so do
-    refusing, shooting a jammer or an auditor, or flying 3U off. "Transmit the data." ends it.
+    refusing, shooting a jammer or an auditor, or flying 3U off. Once hostile, each auditor drops a combat
+    jammer only after a 2 min cooldown (`PROX.JAMMER.cooldown`) from that moment. "Transmit the data." ends it.
 - A round ends when the crew transmits the data, the reactor hits zero, the AI is ejected, or the ship
   is destroyed with it aboard: the time and the reason go to the GM and the crew. The GM is also told
   when the fleet is gone (destroyed or outrun) with the AI still aboard.

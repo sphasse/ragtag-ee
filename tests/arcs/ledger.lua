@@ -176,6 +176,12 @@ T.step("collections", function()
     T.eq("hostile: faction", f[1]:getFaction(), "Concord Hostile")
     T.check("hostile: an enemy now", f[1]:isEnemy(T.P()))
     T.check("hostile: objective changes", (RT.objectives.ledger or ""):find("Break the audit", 1, true) ~= nil)
+    T.eq("hostile: every auditor's jammer cooldown started", #T.st().jammers, 3)
+end)
+T.step("no combat jammer right away", function()
+    local dropped = 0
+    for _, r in ipairs(T.st().jammers) do if r.jammer then dropped = dropped + 1 end end
+    T.eq("hostile: no combat jammer during the cooldown", dropped, 0)
 end)
 
 -- ── Deliver ──────────────────────────────────────────────────────────────────

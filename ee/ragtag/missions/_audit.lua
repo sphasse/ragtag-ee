@@ -141,7 +141,7 @@ end
 --             times, each buys another TIMEOUT s), or refuse
 --   hostile   refusing, TIMEOUT s of silence, shooting a jammer or an auditor, or flying
 --             off: all three turn Concord Hostile and attack, and drop combat jammers like
---             hostile patrols. "Transmit the data." still ends it.
+--             hostile patrols, each only after a cooldown (PROX.JAMMER.cooldown) from that moment. "Transmit the data." still ends it.
 
 AUDIT.FLEET = {
     {cs = "CAS Double Entry", tmpl = "Phobos T3"},
@@ -197,10 +197,15 @@ function AUDIT.hostile(st, hooks, why)
     if not a or a.state == "hostile" then return end
     a.state = "hostile"
     local p = ARC.player()
+    -- Each auditor's combat-jammer cooldown starts now (the crew was just boxed in): no ship drops
+    -- one until PROX.JAMMER.cooldown seconds after the stop fails.
+    st.jammers = st.jammers or {}
+    local now = getScenarioTime()
     for _, s in ipairs(st.fleet or {}) do
         if RT.valid(s) then
             s:setFaction("Concord Hostile")
             if p then s:orderAttack(p) end
+            st.jammers[#st.jammers + 1] = {ship = s, at = now}
         end
     end
     ARC.log("[CAS Double Entry] " .. (_HOSTILE_LINES[why] or _HOSTILE_LINES.refused), "#FF4444")
