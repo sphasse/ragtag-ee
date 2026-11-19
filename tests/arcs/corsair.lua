@@ -249,7 +249,12 @@ T.step("attacking; then the guards go down", function()
 end)
 T.waitFor("raid: guards down is noticed", function() return T.st().defenders_down end, 3)
 T.step("the depot surrenders", function()
-    T.eq("raid: the depot turns neutral", T.st().depot:getFaction(), "Derelict")
+    T.eq("raid: the depot surrenders (a Concord faction)", T.st().depot:getFaction(), "Concord Surrendered")
+    local d = T.st().depot
+    local enemies = 0
+    for _, s in ipairs(T.st().escorts) do if RT.valid(s) and s:isEnemy(d) then enemies = enemies + 1 end end
+    T.eq("raid: the escorts are not its enemies (they board it, they don't shoot it)", enemies, 0)
+    T.check("raid: nor is the crew", not T.P():isEnemy(d))
     T.check("raid: the escorts are no enemies of it", not escort():isEnemy(T.st().depot))
 end)
 T.talk(escort, {"Board the depot and take the weapons."}, {name = "an escort"})

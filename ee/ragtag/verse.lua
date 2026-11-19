@@ -138,6 +138,13 @@ function VERSE.setupFactions()
     relic_active:setEnemy(concord)
     relic_active:setEnemy(concord_hostile)
 
+    -- Concord Surrendered: a Concord post whose crew has given up (the Corsair arc's Forward Depot
+    -- Anvil once its guards are down). Enemy of nobody, so nothing keeps firing on it and the
+    -- Corsair ships can dock and board it. (Plain Concord would do, but the Corsairs are its
+    -- enemies and their ships fire on it whenever they are near it and not docking.)
+    make("Concord Surrendered", 140, 160, 200,
+        "Concord personnel who have surrendered their post. Not fighting anyone.")
+
     VERSE.factions_ready = true
 end
 

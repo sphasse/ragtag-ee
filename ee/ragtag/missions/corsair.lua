@@ -265,14 +265,15 @@ end
 local _escortComms   -- forward
 local _sendHome      -- forward (with the routing below)
 
--- The guards are down: the depot crew gives up. The depot turns neutral (Derelict), so nobody
+-- The guards are down: the depot crew gives up. The depot turns Concord Surrendered (a Concord
+-- faction that is nobody's enemy, verse.lua), so nobody
 -- keeps shooting at it and the escorts can dock to load the haul.
 local function _depotSurrenders(st)
     if st.depot_surrendered then return end
     st.depot_surrendered = true
     local d = st.depot
     if RT.valid(d) then
-        d:setFaction("Derelict")
+        d:setFaction("Concord Surrendered")   -- enemy of nobody: the escorts board it, nobody fires on it
         d:setDescriptions("Concord supply depot.", "Concord forward depot. The crew has surrendered and the docking clamps are open.")
         d:setCommsFunction(function() setCommsMessage('"We surrender. Take what you want, just leave us the air."') end)
     end
