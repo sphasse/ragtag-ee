@@ -76,7 +76,9 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 ## 5. Corsair Arc (1000 cr of upgrades)
 
 - [ ] Hook: Greywater barkeep message, or entering the Gauntlet; "Not right now" re-offers after 10 min
-- [ ] Escort: the guide **waits for a slow crew** (falls 8U behind). *(Not in a test.)*
+- [ ] Escort: the guide **paces the crew** (holds past 5.5U behind, leads on within 4.5U). Stop for a
+      while (a shake-down, a fight), then follow again: does it pick the crew back up? Do the short hops
+      read as leading, or as stop-and-go? *(The test moves the crew; real flight is not tested.)*
 - [ ] Raid on Forward Depot Anvil: the **escorts vs the two guards, for real** (headless it was still
       going after 45 s). Too long? Do the order buttons unlock at the right time?
 - [ ] An escort lost → Reva names it and sends a replacement

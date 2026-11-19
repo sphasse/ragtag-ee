@@ -231,9 +231,12 @@ VERSE.extend({
         {fac = "Unknown", x = 140, y = -49, ships = {"Stalker Q7"}, idle = true},
     },
 
-    -- Minefields: rings with a gap (gap_angle = where the way in is, degrees, 0 = up)
+    -- Minefields: rings with gaps, the ways in. gaps = {{angle, width}, ...} in degrees (0 = up,
+    -- clockwise), or a single gap_angle / gap_width.
     minefields = {
-        {x = 55, y = 99, r = 9, count = 26, gap_angle = 0, gap_width = 50},
+        -- Blackwater: in from the north, and out to the west (where the Corsairs' raids go: their
+        -- ships start west of the station and cross the ring at about 282 degrees).
+        {x = 55, y = 99, r = 9, count = 26, gaps = {{0, 50}, {270, 50}}},
         {x = 151, y = 114, r = 12, count = 34, gap_angle = 300, gap_width = 40},
     },
 

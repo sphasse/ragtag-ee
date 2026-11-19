@@ -310,12 +310,21 @@ local function buildAsteroids(rng)
     end
 end
 
+-- A ring's gaps: `gaps = {{angle, width}, ...}` (degrees, 0 = up, clockwise), or the older single
+-- gap_angle / gap_width. A mine is left out when it falls in any gap.
+local function inGap(m, a)
+    local gaps = m.gaps or {{m.gap_angle or 0, m.gap_width or 0}}
+    for _, g in ipairs(gaps) do
+        if math.abs(((a - g[1]) + 180) % 360 - 180) <= g[2] / 2 then return true end
+    end
+    return false
+end
+
 local function buildMines()
     for _, m in ipairs(VERSE.MINEFIELDS) do
         for i = 0, m.count - 1 do
             local a = (360 / m.count) * i
-            local diff = math.abs(((a - m.gap_angle) + 180) % 360 - 180)
-            if diff > m.gap_width / 2 then
+            if not inGap(m, a) then
                 local dx, dy = vectorFromAngle(a, m.r * U, true)
                 Mine():setPosition(m.x * U + dx, m.y * U + dy)
             end

@@ -48,7 +48,8 @@ local U = 1000
 local _GAUNTLET_X, _GAUNTLET_Y, _GAUNTLET_R = 23 * U, 69 * U, 29 * U
 local _BW_X, _BW_Y = 55 * U, 99 * U                 -- Blackwater station
 local _BW_R        = 22 * U                         -- Blackwater Reach (region r21)
--- Blackwater has its own mine ring (drift.lua minefields: r 9U, the way in at the north). Ships
+-- Blackwater has its own mine ring (drift.lua minefields: r 9U, gaps north and west; the raid
+-- escorts leave through the west one). Ships
 -- heading "to Blackwater" go to this point instead: north of the ring, in front of its opening.
 -- (Playtest: Corsairs flying to a point inside the ring hit its mines.)
 local _BW_APPROACH_X, _BW_APPROACH_Y = _BW_X, _BW_Y - 12 * U
@@ -75,7 +76,12 @@ local _RING_LANES = {{0, 25}, {103.85, 6.9}, {256.15, 6.9}}   -- {centre, half-w
 
 -- ── Tuning ───────────────────────────────────────────────────────────────────
 local _LOAD_TIME      = 30          -- seconds the raid escorts spend loading the haul
-local _GUIDE_WAIT_D   = 8 * U       -- the guide waits when the crew falls this far behind
+-- The guide paces the crew: it holds (defending itself) once the crew is more than _GUIDE_HOLD_D
+-- behind and flies on once they are back within _GUIDE_GO_D. It warps and the crew is slower, so
+-- it leads in short hops. Past _GUIDE_WAIT_D it tells them to keep up (once a minute at most).
+local _GUIDE_HOLD_D   = 5.5 * U
+local _GUIDE_GO_D     = 4.5 * U
+local _GUIDE_WAIT_D   = 8 * U
 
 -- The munitions tender: the rest of the Anvil haul, behind the north end of the Corsair line and
 -- clear of Blackwater's ring, so the crew can pull back and rearm mid-battle.
@@ -88,7 +94,7 @@ local _MISSILES      = {"Homing", "HVLI", "Mine", "EMP"}
 
 function M.init_state()
     return {
-        guide = nil, hook_hailed = false, guide_waiting = false,
+        guide = nil, hook_hailed = false, guide_waiting = false, guide_lost = false,
         depot = nil, defenders = {}, escorts = {}, attacking = false, boarding = false,
         defenders_down = false, load_t0 = nil,
         mines = {}, trap_built = false,
@@ -282,12 +288,20 @@ local _REPLACEMENT_NAMES = {
     "Lucky Break", "Sweet Revenge", "Rust Bucket", "Bad Habit", "Spare Change",
 }
 
+-- The raid escorts are tougher than a stock Phobos T3 (hull 70, shields 50/40): a mine does up to
+-- 160 at its centre, so one stray mine destroyed an escort. With 100/100 shields and 120 hull an
+-- escort survives one direct hit (the shield takes 100, the hull 60); two still finish it.
+local _ESCORT_HULL    = 120
+local _ESCORT_SHIELDS = {100, 100}   -- front, rear
+
 -- One raid escort, near Blackwater, forming up on the crew. st.escort_cs keeps its name (by
 -- index, alongside st.escorts) so a lost ship can still be named.
 local function _spawnEscort(st, cs, x, y)
     local s = CpuShip():setTemplate("Phobos T3"):setFaction("Corsair Friendly")
     s:setCallSign(cs):setPosition(x, y)
     s:setWarpDrive(true)
+    s:setHullMax(_ESCORT_HULL):setHull(_ESCORT_HULL)
+    s:setShieldsMax(_ESCORT_SHIELDS[1], _ESCORT_SHIELDS[2]):setShields(_ESCORT_SHIELDS[1], _ESCORT_SHIELDS[2])
     s:setDescriptions("Corsair warship.", "Corsair warship " .. cs .. ", lent by Blackwater for the depot raid.")
     s:setScanningParameters(1, 1)
     s:setCommsScript(""):setCommsFunction(ARC.comms(function(src, tgt) _escortComms(src, tgt) end, '"We take our orders from someone else."'))
@@ -601,7 +615,7 @@ local function _briefing(src)
         .. 'Free Ship crews\' kids, and their kids.\n\nThe Concord calls what we do piracy. We call it the Corsair tax. We only take back what the "transitional" tariffs took, '
         .. 'and only from Concord hulls or to defend our territory. Now the Concord means to settle the account for good, and we need help."')
     addCommsReply("What do you need from us?", function()
-        setCommsMessage('"The Concord has provisioned a forward depot in preparation for their invasion of Blackwater, between Cinder and Tamsin, grid ' .. _grid(_DEPOT_X, _DEPOT_Y) .. '. '
+        setCommsMessage('"The Concord has provisioned a forward depot in preparation for a full-scale invasion and occupation of Blackwater. It sits between Cinder and Tamsin, grid ' .. _grid(_DEPOT_X, _DEPOT_Y) .. '. '
             .. 'Mines and missiles. Two Concord ships guarding it.\n\n'
             .. 'I\'ll give you two of my best ships. You lead them in, deal with the guards, and my crews will board the depot and take everything that isn\'t bolted down. '
             .. 'Then we turn their own weapons on them."')
@@ -874,7 +888,17 @@ M.phases.escort = {
             return
         end
         local g = st.guide
-        if not RT.valid(g) then return end
+        if not RT.valid(g) then
+            -- Long Memory was lost on the way: the crew finds Blackwater on its own (docking still
+            -- moves the arc on).
+            if not st.guide_lost then
+                st.guide_lost = true
+                RT.setObjective("Dock at Blackwater", true, "corsair")
+                ARC.log("[Relay] We've lost Long Memory. Blackwater is at grid " .. _grid(_BW_X, _BW_Y)
+                    .. "; their approach lane comes in from the north. Dock there and ask for Reva.", "#FFCC80")
+            end
+            return
+        end
         -- In sight of Blackwater: Long Memory hands the crew over to Reva.
         if not st.arrival_hailed and ARC.near(p, _BW_X, _BW_Y, 5 * U) then
             st.arrival_hailed = true
@@ -882,16 +906,17 @@ M.phases.escort = {
             if not ARC.hail(g, line, "Long Memory") then ARC.log("[Long Memory] " .. line, "#FFCC80") end
         end
         local d = RT.dist(p, g)
-        if not st.guide_waiting and d > _GUIDE_WAIT_D and not ARC.near(g, _BW_X, _BW_Y, 5 * U) then
+        if not st.guide_waiting and d > _GUIDE_HOLD_D and not ARC.near(g, _BW_X, _BW_Y, 5 * U) then
             st.guide_waiting = true
-            g:orderIdle()
-            if now >= (st.keep_up_at or 0) then
-                st.keep_up_at = now + 60
-                ARC.hail(g, '"Keep up. These rocks eat the careless."', "Long Memory")
-            end
-        elseif st.guide_waiting and d < 4 * U then
+            local gx, gy = g:getPosition()
+            g:orderDefendLocation(gx, gy)   -- hold here, and fight back if anything comes at it
+        elseif st.guide_waiting and d < _GUIDE_GO_D then
             st.guide_waiting = false
             g:orderFlyTowards(_BW_APPROACH_X, _BW_APPROACH_Y)
+        end
+        if st.guide_waiting and d > _GUIDE_WAIT_D and now >= (st.keep_up_at or 0) then
+            st.keep_up_at = now + 60
+            ARC.hail(g, '"Keep up. These rocks eat the careless."', "Long Memory")
         end
     end,
 }

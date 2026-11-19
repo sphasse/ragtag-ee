@@ -2,8 +2,9 @@
 -- (escort orders, a lost escort replaced, boarding) -> return (the mine ring thickened) -> battle
 -- (frozen until the crew is near, then BATTLE rules; rearming from the tender) -> done (defended),
 -- then the late-decline and crew-lost endings, the GM states, and "-> Inactive". Not covered: the
--- depot fight and the battle themselves (GM helpers remove the Concord ships), the guide waiting
--- for a slow crew.
+-- depot fight and the battle themselves (GM helpers remove the Concord ships). The guide's pacing
+-- is checked by moving the crew (it holds when they fall behind, goes on when they close), not
+-- by real flight; and the escort without the guide (Long Memory lost).
 
 T.arc("corsair")
 
@@ -80,6 +81,30 @@ T.step("escorted in", function()
 end)
 T.closeComms()
 
+-- ── The guide paces the crew: holds when they stop, goes on when they close ──
+T.step("the crew stops 7U behind", function()
+    local gx, gy = guide():getPosition()
+    T.P():setPosition(gx - 7000, gy)
+end)
+T.waitFor("escort: Long Memory holds for them", function() return T.st().guide_waiting end, 3)
+T.step("holding", function()
+    T.eq("pace: holds, defending itself (not idle)", guide():getOrder(), "Defend Location")
+    -- 6U: closer than where it stopped, but not yet close: still holding (the old code only went
+    -- on under 4U, so a crew stopped at 5-7U saw it sit there for good).
+    local gx, gy = guide():getPosition()
+    T.P():setPosition(gx - 6000, gy)
+end)
+T.wait(1)
+T.step("still holding at 6U", function()
+    T.check("pace: still holding at 6U", T.st().guide_waiting)
+    local gx, gy = guide():getPosition()
+    T.P():setPosition(gx - 4000, gy)
+end)
+T.waitFor("escort: within 4.5U it leads on", function() return not T.st().guide_waiting end, 3)
+T.step("leading", function()
+    T.eq("pace: flies on to Blackwater", guide():getOrder(), "Fly towards")
+end)
+
 -- ── Arrival: Long Memory hands over, then leaves once the crew docks ─────────
 T.step("in sight of Blackwater", function() T.moveNear("Blackwater", 4000) end)
 T.waitFor("escort: within 5U, Long Memory hails", function() return T.st().arrival_hailed end, 3)
@@ -105,7 +130,7 @@ T.step("Reva introduces herself", function()
 end)
 T.talk("Blackwater", {"What do you need from us?"})
 T.step("the depot", function()
-    T.check("briefing: the depot line", T.msg():find("The Concord has provisioned a forward depot in preparation for their invasion of Blackwater", 1, true) ~= nil, T.msg())
+    T.check("briefing: the depot line", T.msg():find("The Concord has provisioned a forward depot in preparation for a full-scale invasion and occupation of Blackwater.", 1, true) ~= nil, T.msg())
 end)
 T.talk("Blackwater", {"What do you need from us?", "We'll take the depot."})
 T.step("raid on", function()
@@ -115,6 +140,56 @@ T.step("raid on", function()
     T.check("raid: depot out", RT.valid(T.st().depot))
     T.eq("raid: two guards", T.alive(T.st().defenders), 2)
     T.eq("raid: two escorts", T.alive(T.st().escorts), 2)
+    -- Blackwater's mine ring (the universe's, before the arc adds any) has a west gap: the
+    -- escorts' straight run from where they start to the depot passes no mine.
+    local closest = math.huge
+    for _, e in ipairs(T.alive(T.st().escorts) > 0 and T.st().escorts or {}) do
+        local sx, sy = e:getPosition()
+        local tx, ty = DEPOT_X + 3000, DEPOT_Y
+        local dx, dy = tx - sx, ty - sy
+        local len2 = dx * dx + dy * dy
+        for _, o in ipairs(getObjectsInRadius(55000, 99000, 12000)) do
+            if isObjectType(o, "Mine") then
+                local mx, my = o:getPosition()
+                local t = math.max(0, math.min(1, ((mx - sx) * dx + (my - sy) * dy) / len2))
+                local px, py = sx + t * dx - mx, sy + t * dy - my
+                closest = math.min(closest, math.sqrt(px * px + py * py))
+            end
+        end
+    end
+    T.check("raid: the escorts' way to the depot clears every mine by 2U", closest > 2000, string.format("%.0f", closest))
+    local north, west, ring = 0, 0, 0
+    for _, o in ipairs(getObjectsInRadius(55000, 99000, 10000)) do
+        if isObjectType(o, "Mine") then
+            local mx, my = o:getPosition()
+            local b = math.deg(math.atan(mx - 55000, -(my - 99000))) % 360
+            ring = ring + 1
+            if b < 25 or b > 335 then north = north + 1 end
+            if b > 245 and b < 295 then west = west + 1 end
+        end
+    end
+    T.check("raid: the ring is there", ring > 15, ring)
+    T.eq("raid: the north gap is open", north, 0)
+    T.eq("raid: the west gap is open", west, 0)
+    -- Tougher than a stock Phobos T3, so one mine does not destroy an escort.
+    local e = T.st().escorts[1]
+    T.eq("raid: escort hull 120", e:getHullMax(), 120)
+    T.eq("raid: escort shields 100/100", string.format("%d/%d", e:getShieldMax(0), e:getShieldMax(1)), "100/100")
+end)
+local mine_test
+T.step("a mine goes off on an escort", function()
+    mine_test = T.st().escorts[2]
+    local x, y = mine_test:getPosition()
+    Mine():setPosition(x, y)   -- right on top of it: the full 160
+end)
+T.wait(3)
+T.step("it survives one mine", function()
+    T.check("mine: the escort is still flying", RT.valid(mine_test))
+    T.check("mine: but it took the hit", RT.valid(mine_test) and mine_test:getHull() + mine_test:getShieldLevel(0) + mine_test:getShieldLevel(1) < 320,
+        RT.valid(mine_test) and string.format("hull %.0f shields %.0f/%.0f", mine_test:getHull(), mine_test:getShieldLevel(0), mine_test:getShieldLevel(1)) or "gone")
+    if RT.valid(mine_test) then
+        mine_test:setHull(120):setShields(100, 100)   -- the rest of the test starts from a whole ship
+    end
 end)
 T.closeComms()
 
@@ -430,6 +505,24 @@ end)
 T.closeComms()
 
 -- ── GM states ────────────────────────────────────────────────────────────────
+-- ── Long Memory lost on the way: the crew finds Blackwater on its own ────────
+T.step("escort again, then the guide dies", function()
+    T.moveTo(GAUNTLET_X, GAUNTLET_Y)   -- undocked, away from Blackwater
+    T.jump("escort")
+end)
+T.wait(0.5)
+T.step("lose the guide", function()
+    T.check("lost: the guide is out", RT.valid(guide()))
+    guide():destroy()
+end)
+T.waitFor("lost: the crew is told", function() return T.st().guide_lost end, 3)
+T.step("on their own", function()
+    T.eq("lost: objective", RT.objectives.corsair, "Dock at Blackwater")
+    T.eq("lost: still the escort", T.phase(), "escort")
+end)
+T.dock("Blackwater")
+T.waitFor("lost: docking still moves on", function() return T.phase() == "briefing" end, 3)
+
 T.gmWalk({
     {key = "hook",     phase = "hook", check = function()
         T.eq("GM hook: Blackwater hostile", hostileAt("Blackwater"), "Corsairs")
