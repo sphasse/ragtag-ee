@@ -194,8 +194,11 @@ archive's Phase II reversal was never a broadcast: it is a modulated EM pulse
 delivered *into* the rift, which the collective then carries to every subject
 at once. Concord shelved it because nothing they sent into the Maw came back.
 The crew has the schematic (Boneyard), the proof of who did this (Ledger), and
-the only fleet in the Drift willing to fly cover (Corsairs). Dustmote builds
-one warhead. The crew gets one shot.
+the only fleet in the Drift willing to fly cover (Corsairs). The Hob Works at
+Hob's Landing (the Drift's independent science and engineering yard) builds one
+warhead from the schematic, with Thresh brokering and paying for it. The crew
+gets one shot. (Decided 2026-11-19: the Works, not Dustmote, builds it; Thresh
+keeps Rezkov's network in the finale.)
 
 **Shape of the run** — a Death-Star trench run, every station busy:
 - **Science** finds the rift (it is hidden in the Maw nebula; three EM
@@ -219,8 +222,8 @@ one warhead. The crew gets one shot.
   `RT.restockMenu` only lists Homing/HVLI already. Flag → `"spent"`.
 - The shot only counts if it hits the rift while the anchor field is down (see
   `run`). A spent warhead with no hit is the fail state: the arc restarts from
-  `staging`, and Thresh can build a second one for 500cr ("the schematic was
-  the easy part") — GM button to re-grant for free.
+  `staging`, and the Hob Works can build a second one for 500cr, ordered through
+  Thresh ("the schematic was the easy part") — GM button to re-grant for free.
 - Hit detection — **the rift is an entity** (verified against the engine
   source, EE commit b492ea94): a stationary `CpuShip` ("Defense platform"
   template, Hollow, `setCanBeDestroyed(false)`, shields 0, beams zeroed,
@@ -265,8 +268,8 @@ one warhead. The crew gets one shot.
    `CORSAIR_DONE` rumors already in place): Lastchance is calling for any ship
    that has been to Ashgrave. Advance when the player docks at Lastchance:
    Sauvola's briefing, objective set.
-2. `staging` — at Lastchance: Kael/Thresh brief; a Dustmote freighter arrives
-   with the warhead (comms "Transfer warhead" → `maw_warhead = "fitted"`,
+2. `staging` — at Lastchance: Kael/Thresh brief; a freighter from the Hob Works
+   (Hob's Landing, ~54U away) arrives with the warhead (comms "Transfer warhead" → `maw_warhead = "fitted"`,
    EMP rack appears); Corsair wing arrives if allied. Advance when the player
    undocks with the warhead fitted and enters the Maw boundary (39U from
    156,109). Restart point for every fail.
@@ -621,6 +624,9 @@ If an arc module is lost, rebuild against these rails:
 - Fail restarts from the last station, with no penalty.
 
 ## Open questions / tuning
+
+- Should the crew carry the Boneyard schematic to the Hob Works themselves (a beat at Hob's Landing
+  before the finale), or does Thresh send it? Today's plan: Thresh brokers it, nothing to fly.
 
 - ~~Arc 6, 1: Kael dead~~ — decided 2026-11-12: Arc 6 does not happen (no deputy).
 - ~~Arc 6, 2: no Corsair ally~~ — decided 2026-11-12: Arc 6 requires both fleets destroyed,

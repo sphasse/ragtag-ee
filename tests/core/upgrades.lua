@@ -29,10 +29,20 @@ T.step("the catalogue", function()
     T.eq("side tubes: 1350", cost("side_tubes"), 1350)
     T.eq("missiles 2: 450", cost("missile_racks_2"), 450)
     T.eq("engines 2: 1400", cost("engine_tune_2"), 1400)
+    T.eq("turn 1: 200", cost("maneuver_thrusters"), 200)
+    T.eq("turn 2: 800", cost("maneuver_thrusters_2"), 800)
+    T.eq("turn 3: 2000", cost("maneuver_thrusters_3"), 2000)
+    T.eq("acceleration 1: 300", cost("impulse_accel"), 300)
+    T.eq("acceleration 2: 1000", cost("impulse_accel_2"), 1000)
+    T.eq("acceleration 3: 2500", cost("impulse_accel_3"), 2500)
+    T.eq("turn levels are thruster upgrades", ids.maneuver_thrusters and ids.maneuver_thrusters.line, "thrusters")
+    T.eq("acceleration levels are engine upgrades", ids.impulse_accel and ids.impulse_accel.line, "engines")
     T.check("superconducting coils exist", ids.beam_coils_2 ~= nil)
     for id, req in pairs({sensor_suite_2 = "sensor_suite", sensor_suite_3 = "sensor_suite_2", hull_plating_3 = "hull_plating_2",
                           shield_mk4 = "shield_mk3", beam_coils_2 = "beam_coils", side_tubes = "front_tube",
-                          missile_racks_2 = "missile_racks", engine_tune_2 = "engine_tune"}) do
+                          missile_racks_2 = "missile_racks", engine_tune_2 = "engine_tune",
+                          maneuver_thrusters_2 = "maneuver_thrusters", maneuver_thrusters_3 = "maneuver_thrusters_2",
+                          impulse_accel_2 = "impulse_accel", impulse_accel_3 = "impulse_accel_2"}) do
         T.eq("requires: " .. id, ids[id] and ids[id].requires, req)
     end
 end)
@@ -42,11 +52,34 @@ T.step("bases sell whole lines", function()
         RT.stocks(station("Calder's Reach"), "hull_plating") and RT.stocks(station("Calder's Reach"), "hull_plating_3"))
     T.check("Ostia Highport (shield base) fits Shield IV", RT.stocks(station("Ostia Highport"), "shield_mk4"))
     T.check("Greywater Depot (tube base) fits the side tubes", RT.stocks(station("Greywater Depot"), "side_tubes"))
-    T.check("Hob's Landing (beam base) fits superconducting coils", RT.stocks(station("Hob's Landing"), "beam_coils_2"))
+    T.check("Calder's Reach (beam base) fits superconducting coils", RT.stocks(station("Calder's Reach"), "beam_coils_2"))
+    -- Hob's Landing: the independent science and engineering port, everything Ostia Highport fits.
+    for _, id in ipairs({"sensor_suite_3", "engine_tune_2", "impulse_accel_3", "maneuver_thrusters_3", "combat_thrusters",
+                         "reactor_overhaul", "shield_mk4", "ludicrous_probes"}) do
+        T.check("Hob's Landing (the Hob Works) fits " .. id, RT.stocks(station("Hob's Landing"), id))
+    end
+    T.check("Hob's Landing no longer sells beams", not RT.stocks(station("Hob's Landing"), "forward_beams"))
+    local concord_only = {}
+    for _, u in ipairs(RT.UPGRADES) do
+        local indep = false
+        for cs, info in pairs(RT.stations) do
+            local e = info.entity
+            if info.shop and RT.valid(e) and e:getFaction() ~= "Concord" and RT.stocks(info, u.id) then indep = true end
+        end
+        if not indep then concord_only[#concord_only + 1] = u.id end
+    end
+    T.eq("no upgrade is Concord-only", table.concat(concord_only, ", "), "")
     T.check("Halcyon Rest (sensor base) fits all sensor levels", RT.stocks(station("Halcyon Rest"), "sensor_suite_3"))
     T.check("Port Vesper (engine base) fits the second engine tune", RT.stocks(station("Port Vesper"), "engine_tune_2"))
     T.check("Tamsin Hollow (missile base) fits the second racks", RT.stocks(station("Tamsin Hollow"), "missile_racks_2"))
     T.check("Tamsin Hollow is no hull base", not RT.stocks(station("Tamsin Hollow"), "hull_plating"))
+    for _, cs in ipairs({"Ostia Highport", "Hob's Landing"}) do
+        T.check(cs .. " (thruster base) fits all turn levels", RT.stocks(station(cs), "maneuver_thrusters") and RT.stocks(station(cs), "maneuver_thrusters_3"))
+    end
+    for _, cs in ipairs({"Ostia Highport", "Port Vesper", "Hob's Landing"}) do
+        T.check(cs .. " (engine base) fits all acceleration levels", RT.stocks(station(cs), "impulse_accel") and RT.stocks(station(cs), "impulse_accel_3"))
+    end
+    T.check("Calder's Reach sells neither", not RT.stocks(station("Calder's Reach"), "maneuver_thrusters") and not RT.stocks(station("Calder's Reach"), "impulse_accel"))
     local sold = {}
     for _, info in pairs(RT.stations) do
         if info.shop then
@@ -86,4 +119,17 @@ T.step("the levels add up", function()
     local fwd, rev = B:getImpulseMaxSpeed()
     T.eq("impulse: 90", fwd, 90)
     T.eq("reverse: 45", rev, 45)
+    T.eq("stock turn rate: 10", B:getRotationMaxSpeed(), 10)
+    T.eq("stock acceleration: 10", B:getAcceleration(), 10)
+    local turn = {}
+    for _, id in ipairs({"maneuver_thrusters", "maneuver_thrusters_2", "maneuver_thrusters_3"}) do
+        RT.grantUpgrade(id, "test", B); turn[#turn + 1] = math.floor(B:getRotationMaxSpeed() + 0.5)
+    end
+    T.eq("turn rate: 13, 16, then 20 (double)", table.concat(turn, ", "), "13, 16, 20")
+    local acc = {}
+    for _, id in ipairs({"impulse_accel", "impulse_accel_2", "impulse_accel_3"}) do
+        RT.grantUpgrade(id, "test", B); acc[#acc + 1] = math.floor(B:getAcceleration() + 0.5)
+    end
+    T.eq("acceleration: 13, 16, then 20 (double)", table.concat(acc, ", "), "13, 16, 20")
+    T.eq("reverse acceleration doubles too", math.floor(B.components.impulse_engine.acceleration_reverse + 0.5), 20)
 end)

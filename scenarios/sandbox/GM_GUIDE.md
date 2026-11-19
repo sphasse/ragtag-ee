@@ -51,12 +51,30 @@ them back. A lost Magpie is rebuilt by picking "Light Freighter: Magpie". Detail
 - Salvage supplements missions rather than replacing them
 
 ### Upgrade
-- **26 upgrades** in 11 component lines (hull, shields, beams, missiles, tubes, engines,
-  thrusters, reactor, repair crew, sensors, probes), from 150 to 2,000 credits; the top levels
-  escalate (sensors 500 / 1,000 / 2,000, Shield IV 1,800, Armour III 1,100). Full list:
-  `ee/ragtag/core/upgrades.lua`.
+- **32 upgrades** in 11 component lines (hull, shields, beams, missiles, tubes, engines,
+  thrusters, reactor, repair crew, sensors, probes), from 150 to 2,500 credits; the top levels
+  escalate (sensors 500 / 1,000 / 2,000, turn 200 / 800 / 2,000, acceleration 300 / 1,000 / 2,500,
+  Shield IV 1,800, Armour III 1,100). Full list: `ee/ragtag/core/upgrades.lua`.
+- **Handling** (each level needs the one before; the stock Light Freighter turns at 10°/s and
+  accelerates at 10, forward and reverse; the top level doubles both):
+
+  | Upgrade | Line | Cost | Effect | Where |
+  |---|---|---|---|---|
+  | Re-bored maneuvering jets (Turn I) | thrusters | 200 | turn 10 → 13°/s | Ostia Highport, Hob's Landing |
+  | Twin-nozzle thruster clusters (Turn II) | thrusters | 800 | turn 13 → 16°/s | Ostia Highport, Hob's Landing |
+  | Vectored thruster array (Turn III) | thrusters | 2,000 | turn 16 → 20°/s | Ostia Highport, Hob's Landing |
+  | Rewound impulse coils (Accel I) | engines | 300 | acceleration 10 → 13 | Ostia Highport, Port Vesper, Hob's Landing |
+  | High-flow plasma injectors (Accel II) | engines | 1,000 | acceleration 13 → 16 | Ostia Highport, Port Vesper, Hob's Landing |
+  | Courier-grade impulse drive (Accel III) | engines | 2,500 | acceleration 16 → 20 | Ostia Highport, Port Vesper, Hob's Landing |
+
+  They sit in the existing thruster and engine lines, so they are sold where those lines already
+  are (a shipwright sells every level of its lines). Combat thrusters (boost and strafe, 300) and the
+  two engine tunes (top impulse) are separate chains in the same lines.
 - Each shipwright is a **base for some lines** ("base for hull, reactor and beam upgrades", shown in
   the Science DB's Ports entries) and fits every level of them.
+- **Hob's Landing (the Hob Works)** is the independent science and engineering port: sensors,
+  engines, thrusters, reactor, shields and probes, everything Ostia Highport's yard fits, with no
+  Concord papers. No upgrade is sold only at Concord ports. (It also builds the Maw finale's warhead.)
 - There is no warp upgrade (removed 2026-11-18).
 - Upgrades belong to the ship that bought them: a second player ship has its own credits,
   standing, upgrades and job tier

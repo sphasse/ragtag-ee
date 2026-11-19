@@ -55,6 +55,17 @@ RT.UPGRADES = {
     {id = "engine_tune_2", line = "engines", name = "Redline injector bypass", gm_name = "Eng tune 2", cost = 1400, requires = "engine_tune",
      desc = "Impulse 75 -> 90, reverse 45. The warranty was void two owners ago.",
      apply = function(p) p:setImpulseMaxSpeed(90, 45) end},
+    -- Impulse acceleration (forward and reverse), stock 10 on the Light Freighter: three levels to
+    -- double it. Absolute values, like the engine tunes.
+    {id = "impulse_accel", line = "engines", name = "Rewound impulse coils", gm_name = "Accel I", cost = 300,
+     desc = "Impulse acceleration 10 -> 13, forward and reverse.",
+     apply = function(p) p:setAcceleration(13, 13) end},
+    {id = "impulse_accel_2", line = "engines", name = "High-flow plasma injectors", gm_name = "Accel II", cost = 1000, requires = "impulse_accel",
+     desc = "Impulse acceleration 13 -> 16, forward and reverse.",
+     apply = function(p) p:setAcceleration(16, 16) end},
+    {id = "impulse_accel_3", line = "engines", name = "Courier-grade impulse drive", gm_name = "Accel III", cost = 2500, requires = "impulse_accel_2",
+     desc = "Impulse acceleration 16 -> 20: twice the stock freighter's. Built for ships that are paid to arrive first.",
+     apply = function(p) p:setAcceleration(20, 20) end},
     {id = "missile_racks", line = "missiles", name = "Extra missile racks", gm_name = "Missiles", cost = 150,
      desc = "+4 homing, +6 HVLI capacity.",
      apply = function(p)
@@ -122,6 +133,17 @@ RT.UPGRADES = {
     {id = "combat_thrusters", line = "thrusters", name = "Combat thrusters", gm_name = "Thrusters", cost = 300,
      desc = "Much stronger combat boost and strafe. Gets you out of trouble.",
      apply = function(p) p:setCombatManeuver(450, 300) end},
+    -- Maneuvering thrusters: the turn rate, stock 10 degrees/s on the Light Freighter; three levels
+    -- to double it. Absolute values.
+    {id = "maneuver_thrusters", line = "thrusters", name = "Re-bored maneuvering jets", gm_name = "Turn I", cost = 200,
+     desc = "Turn rate 10 -> 13 degrees a second.",
+     apply = function(p) p:setRotationMaxSpeed(13) end},
+    {id = "maneuver_thrusters_2", line = "thrusters", name = "Twin-nozzle thruster clusters", gm_name = "Turn II", cost = 800, requires = "maneuver_thrusters",
+     desc = "Turn rate 13 -> 16 degrees a second.",
+     apply = function(p) p:setRotationMaxSpeed(16) end},
+    {id = "maneuver_thrusters_3", line = "thrusters", name = "Vectored thruster array", gm_name = "Turn III", cost = 2000, requires = "maneuver_thrusters_2",
+     desc = "Turn rate 16 -> 20 degrees a second: twice the stock freighter's. She turns like a fighter now.",
+     apply = function(p) p:setRotationMaxSpeed(20) end},
     {id = "hull_plating_2", line = "hull", name = "Armoured hull", gm_name = "Armor II", cost = 450, requires = "hull_plating",
      desc = "+100 hull.",
      apply = function(p) p:setHullMax(p:getHullMax() + 100); p:setHull(p:getHullMax()) end},

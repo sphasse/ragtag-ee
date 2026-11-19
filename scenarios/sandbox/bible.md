@@ -11,6 +11,9 @@ Space-western sandbox. Wry humour, real stakes, never grimdark. The crew are ind
 - Port Vesper Dockmaster: neutral, professional, knows everyone's business
 - Calder's Reach Foreman: gruff miner, suspicious of outsiders
 - Hob's Landing Sheriff: tired lawman, slow to act but doesn't forget
+- The Hob Works (Hob's Landing): the Drift's independent science and engineering yard; engineers who
+  would not work for the Concord. Fits sensors, engines, thrusters, reactors, shields and probes, and
+  builds the Ashgrave warhead for the finale
 - Various freighter captains: sources of rumours and trade gossip
 - Corsair raiders: opportunistic pirates, avoid fair fights
 - Concord patrols: by-the-book, can be reasoned with if you're respectful
