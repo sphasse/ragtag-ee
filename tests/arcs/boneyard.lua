@@ -173,6 +173,7 @@ T.waitFor("control: with the Concord gone, the drones guard the Annex", function
     return true
 end, 4)
 T.step("no more replacements once the Concord is gone", function()
+    T.check("control: the crew is told the battle group is destroyed", T.st().concord_beaten)
     T.eq("control: still 24 drones", T.alive(T.st().rein_drones), 24)
 end)
 T.closeComms()

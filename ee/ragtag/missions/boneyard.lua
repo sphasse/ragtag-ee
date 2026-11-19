@@ -50,6 +50,7 @@ function M.init_state()
         annex            = nil,    -- SpaceStation "Ashgrave Annex"
         idle_drones      = {},     -- Relic ships set Derelict when hack completes
         annex_battle     = nil,    -- BATTLE.annex: the Concord group, the drones, the Annex's lasers
+        concord_beaten   = false,  -- the crew was told the battle group is destroyed
         concord_group    = {},     -- Concord Hostile battle group ships
         concord_cmd      = nil,    -- command ship reference
         rein_drones      = {},     -- Relic Active drones (every one spawned, replacements too)
@@ -138,7 +139,21 @@ local function _spawnConcordGroup(st)
 end
 
 local function _tickBattle(st, now)
-    if st.annex_battle then st.annex_battle:tick(now) end
+    local A = st.annex_battle
+    if not A then return end
+    A:tick(now)
+    -- Tell the crew the fight is won (once): the last Concord ship is gone. The Annex hails; if
+    -- comms are busy (Relay is often in its menu), the line goes to the ship's log instead.
+    if not st.concord_beaten and #A.concord > 0 and A:concordAlive() == 0 then
+        st.concord_beaten = true
+        local msg = "All Concord battle group ships destroyed. Perimeter clear. You can leave the Boneyard when ready."
+        if not st.download_done then
+            msg = msg .. " The research archive is not downloaded yet: leaving now loses it."
+        end
+        if not ARC.hail(st.annex, msg, "Ashgrave Annex") then
+            ARC.log("[Ashgrave Annex] " .. msg, "#00FF88")
+        end
+    end
 end
 
 local function _reprogramDrones(st)
