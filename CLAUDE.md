@@ -25,7 +25,8 @@ Contributors add **universe extensions** and **scenarios** independently.
     that joins under or is renamed to the campaign's ship name becomes the primary again: `RT.promotePrimary`), and declare
     their saved flags in `M.flags` / `M.reads` (`check.py` rejects undeclared flag names).
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
-- `scenarios/battlelab/scenario_63_battlelab.lua` — Battle Lab: the Boneyard's Annex fight (Concord vs Relic drones at
+- `scenarios/_battlelab/` — **parked** (the leading `_` keeps it out of installs and releases; `check.py` still checks it).
+  Rename the folder back to `battlelab` and re-run `tools/install.py` to bring both labs back. `scenario_63_battlelab.lua` — Battle Lab: the Boneyard's Annex fight (Concord vs Relic drones at
   Ashgrave) and an open-space Concord vs Corsairs battle (+ the crew), triggered and tuned from the GM screen; for
   balancing set-piece battles (see its README); `scenario_64_auditlab.lua` — Audit Lab: the Ledger arc's carry and
   Concord Audit Service attack from the last fragment, replayable from the GM screen
@@ -35,7 +36,8 @@ Contributors add **universe extensions** and **scenarios** independently.
   and `jobs/credits.lua`, `world/<plugin>.lua` (one per world plugin) plus `world/engine.lua`, and `core/records.lua`
   (per-ship ownership), `core/events.lua` (event bus, beats, the director's mailbox and its observation-only guard),
   `core/gm_console.lua` (the GM menus act on the ship picked), `core/primary.lua` (losing and restoring the primary ship),
-  `core/ship_list.lua` (the sandbox's "Create player ship" list: one Light Freighter entry per named ship)
+  `core/ship_list.lua` (the sandbox's "Create player ship" list: one Light Freighter entry per named ship),
+  `core/save_version.lua` (save format versions and migrations)
   and `core/stations.lua` (ports are indestructible; a lost station is reported), `core/upgrades.lua` (the upgrade catalogue and line bases)
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
 - `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse), `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements) and `ee/ragtag/battle.lua` (`BATTLE`: set-piece battles over combat points, shared by the Battle Lab, the Corsair arc and, as `BATTLE.annex`, the Boneyard arc), all loaded by `core.lua`
@@ -83,6 +85,11 @@ Contributors add **universe extensions** and **scenarios** independently.
     and never find it again by callsign; `RT.find` is for universe places and names a person typed. An entity reaches Lua as
     a light userdata of its id, so every handle to one ship is `==` and the same table key: keying a table by ship is fine
     (a destroyed ship's id is never reused for another).
+11. **Saves move forward with migrations.** `campaign.version` is the save format (`RT.SAVE_VERSION`, `core.lua`). A change that
+    would make an older save load wrongly (a save field, upgrade id or flag renamed or removed, a value whose meaning
+    changes) bumps `RT.SAVE_VERSION` and adds `RT.MIGRATIONS[n] = function(c, say)` turning a version n-1 save into n; loading
+    runs the missing steps in order and saves. Adding a field needs nothing (`defaultCampaign()` fills it). A save from a newer
+    framework is loaded read-only. Pattern and test: `tests/core/save_version.lua`.
 
 ## Engine gotchas that have bitten this project
 (Details in the skill's `references/api_notes.md`.)

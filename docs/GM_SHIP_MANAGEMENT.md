@@ -113,6 +113,7 @@ In the server's `scriptstorage.json`, key `ragtag.campaign.sandbox`:
 | `extra_ships` | One record per other ship: `name`, `credits`, `reputation`, `upgrades` |
 | `flags` | Story flags (arc progress, stations visited) |
 | `stats`, `achievements`, `sessions`, `notes`, `discovered` | Campaign-wide history |
+| `version` | The save format. A newer ragtag updates an older save when it loads it; an older ragtag loads a newer save but does not write to it |
 
 Upgrades are stored as a list of ids in purchase order and re-applied to a fresh ship at the
 start of every session, so hull damage, missiles spent and crew lost do **not** carry over, but

@@ -86,7 +86,7 @@ voice, rumors, `ledger` objective, `ledger_*` flags) and replay earlier phases v
 ## Tuning (top of `_audit.lua`)
 
 The carry (drain, AI hello, Engineering's eject button, the audit fleet and its stop) is `AUDIT` in
-`ee/ragtag/missions/_audit.lua`, shared with the Audit Lab (scenario 64, `scenarios/battlelab`), so
+`ee/ragtag/missions/_audit.lua`, shared with the Audit Lab (scenario 64, parked in `scenarios/_battlelab`), so
 it can be replayed and tuned on its own: `AUDIT.DRAIN_PER_S` 3, `FLEET_DELAY` 60 s, `FLEET_DIST` 7U,
 `TRI_R` 0.6U, `TIMEOUT` 60 s, `MAX_STALLS` 2, `FLEET_IMPULSE` 1.5, `FLEET_SPREAD` 35°,
 `LOSE_FLEET_R` 25U, `EJECT_CONFIRM` 10 s. The arc keeps its endings (flags, phase change) and passes

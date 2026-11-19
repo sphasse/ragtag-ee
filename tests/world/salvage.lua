@@ -50,6 +50,28 @@ local function pods_near(x, y, r)
     return n
 end
 -- A pod that pays credits ("Cargo pod"), from the cluster with the most pods.
+-- Every credit pickup since the last reset_pickups(): a ship flying into one pod can sweep up a
+-- neighbour from the same cluster on the way, so pay is checked per pod, not as one total.
+-- (A data chip swept up too pays double its value and is only counted in the total.)
+local pickups, paid = {}, 0
+RT.on(function(ev)
+    if ev.type ~= "pickup" then return end
+    if ev.data.kind == "credits" then
+        pickups[#pickups + 1] = ev.data.value
+        paid = paid + ev.data.value
+    elseif ev.data.kind == "data" then
+        paid = paid + ev.data.value * 2
+    end
+end)
+local function reset_pickups() pickups, paid = {}, 0 end
+local function each_pod_pays(lo, hi)
+    local ok = #pickups > 0
+    for _, v in ipairs(pickups) do
+        if v < lo or v > hi then ok = false end
+    end
+    return ok, paid, table.concat(pickups, "+")
+end
+
 local function cargo_pod()
     for _, cl in ipairs(clusters()) do
         for _, a in ipairs(cl.pods) do
@@ -90,13 +112,16 @@ T.step("a second ship flies into a cargo pod", function()
     B = T.secondShip()
     pod = cargo_pod()
     a0, b0 = T.credits(A), T.credits(B)
+    reset_pickups()
 end)
 T.actAs(function() return B end)
 T.step("B on the pod", function() T.moveTo(pod:getPosition()) end)
 T.waitFor("pickup: the pod is collected", function() return not RT.valid(pod) end, 8)
 T.step("B is paid", function()
     local gain = T.credits(B) - b0
-    T.check("pickup: B gains the pod's value", gain >= 5 and gain <= 20, gain)
+    local ok, sum, list = each_pod_pays(5, 20)
+    T.check("pickup: each cargo pod B collected pays 5 to 20", ok, list)
+    T.eq("pickup: B gains what its pods paid", gain, sum)
     T.eq("pickup: A gains nothing", T.credits(A), a0)
 end)
 T.actAs(nil)
@@ -147,6 +172,7 @@ T.step("with richer pods", function()
     B:setPosition(0, 0)
     pod = cargo_pod()
     b0 = T.credits(B)
+    reset_pickups()
     SALV.setReward(9)
     T.eq("reward: never above High", SALV.getReward(), 3)
 end)
@@ -155,7 +181,9 @@ T.step("B on a rich pod", function() T.moveTo(pod:getPosition()) end)
 T.waitFor("reward: collected", function() return not RT.valid(pod) end, 8)
 T.step("double pay", function()
     local gain = T.credits(B) - b0
-    T.check("reward: a High pod pays 10 to 40", gain >= 10 and gain <= 40, gain)
+    local ok, sum, list = each_pod_pays(10, 40)
+    T.check("reward: each High cargo pod pays 10 to 40", ok, list)
+    T.eq("reward: B gains what its pods paid", gain, sum)
 end)
 T.actAs(nil)
 

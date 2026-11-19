@@ -9,8 +9,10 @@ The zip holds what tools/install.py copies, laid out from the EmptyEpsilon folde
   scripts/scenario_*.lua           scenarios/*/ (not folders starting with "_")
   resources/radar/*.png            assets/radar/ (only with --radar-icons; replaces stock icons)
   RAGTAG_README.txt                how to install
-Regenerates the generated files first (check.py --fix), then runs check.py; refuses to build if
-it reports errors. Tests, the template scenario and the Python director are not included.
+Regenerates the generated files first (check.py --fix; --no-fix leaves the tree untouched and only
+checks), then runs check.py; refuses to build if it reports errors. Only files tracked by git go
+in. Tests, the template scenario, the developer scenarios (DEV_SCENARIOS: the Battle and Audit
+Labs) and the Python director are not included.
 """
 from __future__ import annotations
 
@@ -50,6 +52,23 @@ same names; leave that folder out if you prefer the stock art.
 """
 
 
+# Scenario folders for developers (balancing test beds), installed by install.py but not released.
+# (The Battle and Audit Labs are parked in scenarios/_battlelab, skipped anyway; this keeps them
+# out of a release if the folder is renamed back to battlelab.)
+DEV_SCENARIOS = {"battlelab"}
+
+
+def release_scenarios() -> list[Path]:
+    return [f for f in scenario_files(None) if f.parent.name not in DEV_SCENARIOS]
+
+
+def tracked(folder: Path) -> list[Path]:
+    """Files under folder that git tracks (a stray untracked file never ships)."""
+    out = subprocess.run(["git", "ls-files", "-z", "--", str(folder.relative_to(ROOT))], cwd=ROOT,
+                         capture_output=True, text=True, check=True).stdout
+    return sorted(ROOT / f for f in out.split("\0") if f)
+
+
 def scenario_titles(files: list[Path]) -> str:
     titles = []
     for f in files:
@@ -67,22 +86,26 @@ def main() -> int:
     ap.add_argument("--version", required=True, help="release version, e.g. 0.1.0 (goes in the file name)")
     ap.add_argument("--radar-icons", action="store_true", help="include assets/radar/*.png as resources/radar/")
     ap.add_argument("--out", default=str(ROOT / "dist"), help="output folder (default dist/)")
+    ap.add_argument("--no-fix", action="store_true",
+                    help="do not regenerate the generated files (change nothing in the tree); only check")
     args = ap.parse_args()
 
-    for cmd in ([sys.executable, str(ROOT / "tools" / "check.py"), "--fix"],
-                [sys.executable, str(ROOT / "tools" / "check.py")]):
+    cmds = [[sys.executable, str(ROOT / "tools" / "check.py")]]
+    if not args.no_fix:
+        cmds.insert(0, [sys.executable, str(ROOT / "tools" / "check.py"), "--fix"])
+    for cmd in cmds:
         if subprocess.run(cmd, cwd=ROOT).returncode != 0:
             print("check.py failed: fix the errors before packaging.")
             return 1
 
-    scenarios = scenario_files(None)
+    scenarios = release_scenarios()
     out = Path(args.out).expanduser()
     out.mkdir(parents=True, exist_ok=True)
     zpath = out / f"ragtag-{args.version}.zip"
     count = 0
     with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as z:
-        for f in sorted((ROOT / "ee" / "ragtag").rglob("*")):
-            if f.is_file() and f.name != ".DS_Store":
+        for f in tracked(ROOT / "ee" / "ragtag"):
+            if f.is_file():
                 z.write(f, Path("scripts/ragtag") / f.relative_to(ROOT / "ee" / "ragtag"))
                 count += 1
         for f in scenarios:

@@ -768,6 +768,9 @@ function M.resolve(st)
             if cur.battle then cur.battle:clear(); cur.battle = nil end
             ARC.kill(cur.fleet); ARC.kill(cur.allies); ARC.kill(cur.escorts); ARC.kill(cur.tender); _clearTrap(cur)
         end
+        -- Blackwater was made indestructible for the battle only.
+        local bw = _blackwater()
+        if RT.valid(bw) then pcall(function() bw:setCanBeDestroyed(true) end) end
     end, "corsair_cleanup")
 end
 

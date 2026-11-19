@@ -1,3 +1,9 @@
+> **Parked.** This folder is named `_battlelab` so `tools/install.py` and `tools/package.py` skip it
+> (folders starting with `_` are not installed or released); `tools/check.py` still checks the two
+> scenarios, so they keep up with the framework. To bring the labs back: rename the folder to
+> `battlelab` and run `python3 tools/install.py --ee <EmptyEpsilon>`. Scenario numbers 63 and 64
+> stay reserved for them.
+
 # Battle Lab (scenario 63)
 
 A test bed for the campaign's set-piece battles, in two modes (switched from the GM screen). Its own

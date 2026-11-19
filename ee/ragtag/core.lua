@@ -244,9 +244,45 @@ end
 -- Campaign persistence
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+-- Save format version and migrations
+--------------------------------------------------------------------------------
+-- campaign.version is the save FORMAT version. When a change would make an older save load
+-- wrongly (a field renamed or removed, an upgrade id or flag renamed or removed, a value whose
+-- meaning changes), bump RT.SAVE_VERSION and add RT.MIGRATIONS[new version] = function(c, log)
+-- that turns a save of the version before into this one, in place. Loading runs every missing
+-- step in order, then saves. A field that is only ADDED needs no migration: defaultCampaign()
+-- fills it in. tests/core/save_version.lua shows the pattern.
+--
+-- A save written by a NEWER framework is loaded but never written back (saving is frozen for the
+-- session), so playing an old install against it cannot destroy what it does not understand.
+RT.SAVE_VERSION = 1
+RT.MIGRATIONS   = {}   -- [n] = function(c, log) migrates a version n-1 save to version n
+
+-- Bring a loaded save up to RT.SAVE_VERSION. Returns "current", "migrated" or "newer".
+function RT.migrateCampaign(c)
+    local v = tonumber(c.version) or 1
+    if v > RT.SAVE_VERSION then
+        log(string.format("[RT] WARNING: this campaign save is format %d; this framework knows up to %d. "
+            .. "It is loaded, but nothing will be saved this session: update ragtag.", v, RT.SAVE_VERSION))
+        RT._saves_frozen = true
+        return "newer"
+    end
+    if v == RT.SAVE_VERSION then return "current" end
+    for n = v + 1, RT.SAVE_VERSION do
+        local step = RT.MIGRATIONS[n]
+        if step then
+            step(c, function(msg) log("[RT] save migration " .. (n - 1) .. " -> " .. n .. ": " .. msg) end)
+        end
+        c.version = n
+    end
+    log("[RT] Campaign save migrated from format " .. v .. " to " .. RT.SAVE_VERSION .. ".")
+    return "migrated"
+end
+
 local function defaultCampaign()
     return {
-        version = 1,
+        version = RT.SAVE_VERSION,   -- the save format (see "Save format version and migrations")
         ship_name = "Magpie",
         -- The primary ship's record (see "Per-ship records"): credits, upgrades, reputation.
         credits = 150,
@@ -309,7 +345,31 @@ function RT.loadCampaign(fresh)
         if type(c.achievements) ~= "table" then c.achievements = {} end
     end
     RT.campaign = c
+    if RT.migrateCampaign(c) == "migrated" then RT.saveCampaign() end
+    RT.warnUnknownUpgrades(c)
     return c
+end
+
+-- An upgrade id in a record that the catalogue does not know does nothing (RT.applyUpgrade skips
+-- it). It means a catalogue change shipped without a save migration: say so in the log, once per
+-- load, so it is noticed. The save is left as it is.
+function RT.warnUnknownUpgrades(c)
+    if not RT.upgradeById then return end
+    local records = {{name = c.ship_name or "the primary ship", rec = c}}
+    for _, e in ipairs(type(c.extra_ships) == "table" and c.extra_ships or {}) do
+        if type(e) == "table" then records[#records + 1] = {name = e.name or "?", rec = e} end
+    end
+    local unknown = {}
+    for _, r in ipairs(records) do
+        for _, id in ipairs(type(r.rec.upgrades) == "table" and r.rec.upgrades or {}) do
+            if not RT.upgradeById(id) then unknown[#unknown + 1] = r.name .. ": " .. tostring(id) end
+        end
+    end
+    if #unknown > 0 then
+        log("[RT] WARNING: the campaign save has upgrades this version does not know (they do nothing; add a save "
+            .. "migration, RT.MIGRATIONS): " .. table.concat(unknown, ", "))
+    end
+    return unknown
 end
 
 function RT.saveCampaign()

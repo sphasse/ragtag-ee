@@ -96,6 +96,9 @@ lines, and run it from both the arc and the Battle Lab, so balancing done in the
 
 ## Battle Lab and testing
 
+The labs are parked in `scenarios/_battlelab/` (not installed). Rename the folder to `battlelab` and run
+`tools/install.py` to use them again.
+
 - The Battle Lab (scenario 63) has an open-space mode (Concord vs Corsairs) and the Annex mode. Its GM
   buttons spawn each side separately, change counts and impulse multipliers, and report who targets
   which point. New battles should get a mode or buttons there.

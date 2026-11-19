@@ -369,6 +369,15 @@ T.step("Blackwater's thanks", function()
     T.check("defended: it names the crew's ship", T.msg():find("Safe flying and see you around, " .. T.P():getCallSign() .. "!", 1, true) ~= nil, T.msg())
 end)
 T.closeComms()
+T.step("five minutes later", function()
+    T.check("cleanup: Blackwater is indestructible until then", not RT.find("Blackwater"):getCanBeDestroyed())
+    for _, tm in ipairs(RT.timers) do if tm.name:find("cleanup", 1, true) then tm.at = T.now() end end   -- the arc's cleanup timer
+end)
+T.wait(1)
+T.step("the battle is cleared away", function()
+    T.eq("cleanup: the Corsair line is gone", T.alive(T.st().allies), 0)
+    T.check("cleanup: Blackwater can be destroyed again", RT.find("Blackwater"):getCanBeDestroyed())
+end)
 
 -- ── Ending: declining the battle counts as failed ───────────────────────────
 T.step("back to the debrief", function()

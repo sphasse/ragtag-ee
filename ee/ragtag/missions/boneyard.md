@@ -52,7 +52,7 @@ The phase ends, finished or not, when the crew leaves the Boneyard (29.5U from i
 - The objective is cleared; outcome rumors seeded for the Maw arc
 
 ## The Annex fight
-`BATTLE.annex` in `ee/ragtag/battle.lua`, tuned by `BATTLE.ANNEX`; the Battle Lab's Annex mode (`scenarios/battlelab`) runs the same code. All positions are relative to the Annex.
+`BATTLE.annex` in `ee/ragtag/battle.lua`, tuned by `BATTLE.ANNEX`; the Battle Lab's Annex mode (`scenarios/_battlelab`, parked) runs the same code. All positions are relative to the Annex.
 
 - **Concord battle group** (`Concord Hostile`, targetable): seven ships, Atlantis X23 and Phobos T3 alternating, with `CNS Vanguard` (Phobos T3, an ordinary ship: it can be destroyed like the rest, which sets `boneyard_battlegroup_destroyed`) in the middle. They spawn active on a line 15U north-west of the Annex running north-east / south-west, 2U apart. No warp, no nukes; the Battle Lab's normalized speeds (Phobos 104, Atlantis 80 impulse). They defend five combat points 1.5U apart on a parallel line 3U north-west of the Annex and fight whoever is there; they do not chase the crew.
 - **Drones** (reprogram only; `Relic Active`): 24 MT52 Hornets, 18-damage lasers (3x a stock drone's 6), impulse 156 (1.5x the fastest Concord ship), turn 30, acceleration 35, no warp. Half come out of the Boneyard nebula north-east of the Annex (12.5U), half out of the one south-west (11.5U, clear of Ashgrave). A drone that dies is replaced from its own nebula within a second while any Concord ship is left. With the Concord gone they defend the Annex.

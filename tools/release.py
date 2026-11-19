@@ -12,8 +12,9 @@ lists everything); --notes adds a file's text at the top.
 
 Before anything is tagged it checks: a clean working tree, on main, main pushed (HEAD is
 origin/main), the GitHub CLI (gh) installed and signed in. Tagging and publishing are separate
-steps: if publishing fails after the tag was pushed, run it again; a tag that already points at
-HEAD is reused.
+steps: if publishing fails after the tag was pushed, run it again: when the highest numbered tag
+already points at HEAD, that release is finished instead of a new number being made. --dry-run
+changes nothing in the working tree (it does not regenerate the generated files).
 """
 from __future__ import annotations
 
@@ -86,7 +87,15 @@ def main() -> int:
     args = ap.parse_args()
 
     tags = numbered_tags()
-    number = args.number or ((tags[-1] + 1) if tags else 1)
+    # Default: one more than the highest tag; but when that tag is already on this commit, a run
+    # before failed to publish it, and this run finishes that release instead of making the next.
+    if args.number:
+        number = args.number
+    elif tags and git("rev-parse", "--verify", "--quiet", f"refs/tags/{tags[-1]}^{{commit}}", check=False) \
+            == git("rev-parse", "HEAD"):
+        number = tags[-1]
+    else:
+        number = (tags[-1] + 1) if tags else 1
     previous = max((t for t in tags if t < number), default=None)
     tag = str(number)
 
@@ -111,6 +120,8 @@ def main() -> int:
 
     # ── Build ──
     pkg = [sys.executable, str(ROOT / "tools" / "package.py"), "--version", tag, "--out", str(DIST)]
+    if args.dry_run:
+        pkg.append("--no-fix")   # a dry run changes nothing in the tree
     if args.radar_icons:
         pkg.append("--radar-icons")
     if subprocess.run(pkg, cwd=ROOT).returncode != 0:

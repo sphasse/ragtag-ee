@@ -145,7 +145,10 @@ T.waitFor("control: a dead drone is replaced", function() return T.alive(T.st().
 T.step("from the same nebula", function()
     local d = T.st().rein_drones
     T.eq("control: the replacement came from the dead drone's nebula", gateOf(d[#d]), victim_gate)
+    T.eq("control: the dead drone is forgotten (the list does not grow)", #d, 24)
+    T.eq("control: and so is its battle record", #T.st().annex_battle.b.sides.b, 24)
 end)
+local annex_hit = false
 T.talk(annex, {"3) Enable station defense lasers"})
 T.step("lasers booting", function()
     T.check("control: laser boot running", T.st().lasers_start ~= nil)
@@ -158,10 +161,18 @@ T.step("the Annex is armed", function()
     -- A Concord ship in laser range of the Annex draws its fire.
     local s = T.st().concord_group[2]
     s:setPosition(ANNEX_X - 2000, ANNEX_Y - 2000)
+    local function hit(_, instigator) if instigator == annex() then annex_hit = true end end
+    s:onTakingDamage(hit)
+    s:onTakingShieldDamage(hit)
 end)
 T.waitFor("control: the Annex's lasers pick the Concord ship in range", function()
     return T.st().annex_battle.laser_target == T.st().concord_group[2]
 end, 3)
+T.step("the engine has the target", function()
+    local ok, wt = pcall(function() return annex().components.weapons_target end)
+    T.check("control: the Annex's weapons target is that ship", ok and wt and wt.entity == T.st().concord_group[2])
+end)
+T.waitFor("control: the Annex's lasers hit it", function() return annex_hit end, 10)
 T.step("annex lasers hit hard; the Concord group dies", function()
     T.eq("control: Annex lasers hit for 32", annex():getBeamWeaponDamage(0), 32)
     for _, s in ipairs(T.st().concord_group) do if s:isValid() then s:destroy() end end

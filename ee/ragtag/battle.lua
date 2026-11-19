@@ -461,6 +461,15 @@ function Annex:tick(now)
     self.b:tick(now)
     if now < self.next_at then return end
     self.next_at = now + 1
+    -- Forget dead drones (in place: the arc's st.rein_drones is this same list), so a long fight
+    -- with a steady stream of replacements does not grow every per-tick loop without end.
+    for _, list in ipairs({self.b.sides.b, self.drones}) do
+        for i = #list, 1, -1 do
+            local e = list[i]
+            local ship = e.ship or e
+            if not ship:isValid() then table.remove(list, i) end
+        end
+    end
     if self.b:alive("a") > 0 then
         local alive = {0, 0}
         for _, r in ipairs(self.b.sides.b) do
