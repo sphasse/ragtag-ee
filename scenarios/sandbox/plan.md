@@ -105,8 +105,8 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   download, 60s drone IFF reprogram, 60s station defense lasers, while a 7-ship Concord
   Hostile battle group closes on impulse from 15U; the flip launches 24 fast drones from
   two nebulae; the order decides the fight, the long download keeps the crew there;
-  no warp jammer, the crew keeps warp) → extract (fly out past the Boneyard
-  boundary) → done.
+  no warp jammer, the crew keeps warp; CNS Vanguard fights like any other ship) → done
+  when the crew leaves the Boneyard, finished or not.
 - **Exports**:
   - `boneyard_arc_done`; `boneyard_hack_done` (archive downloaded);
     `boneyard_drone_flip` (drones now `Relic Active`, hostile to Concord);

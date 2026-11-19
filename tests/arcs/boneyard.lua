@@ -1,4 +1,4 @@
--- Boneyard arc: hook -> annex_hack -> annex_control (download, drone IFF flip, Annex lasers) -> extract -> done
+-- Boneyard arc: hook -> annex_hack -> annex_control (download, drone IFF flip, Annex lasers) -> done
 -- (full), then the GM states and "-> Inactive". Not covered: the lifeboat rescue job (the other
 -- way to reveal the Annex), a real Relay hack (the GM helper sets the level), how the fight plays
 -- out (the Battle Lab's Annex mode is for that); covered: who spawns where, how fast, with what
@@ -177,17 +177,17 @@ T.step("no more replacements once the Concord is gone", function()
 end)
 T.closeComms()
 
--- ── Extract and resolve ──────────────────────────────────────────────────────
-T.step("pull back 11U (still inside the Boneyard)", function() T.moveTo(ANNEX_X, ANNEX_Y - 11000) end)
-T.waitFor("extract: leaving the Annex starts the run out", function() return T.phase() == "extract" end, 3)
-T.step("note credits and standing, then leave the Boneyard", function()
-    T.eq("extract: objective cleared", RT.objectives.boneyard, nil)
+-- ── Leave the Boneyard: resolve ───────────────────────────────────────────────
+T.step("pull back 15U from the Annex (still inside the Boneyard)", function() T.moveTo(ANNEX_X, ANNEX_Y - 15000) end)
+T.step("no extract phase: still at the Annex fight", function()
+    T.eq("control: 15U out is still the fight", T.phase(), "annex_control")
     c0, concord0, corsairs0 = T.credits(), T.rep("Concord"), T.rep("Corsairs")
     T.moveTo(36000, -96000 + 31000)
 end)
 T.waitFor("done: clearing the Boneyard resolves the arc", function() return T.status() == "done" end, 3)
 T.step("resolved", function()
     T.eq("done: boneyard_arc_done", T.flag("boneyard_arc_done"), true)
+    T.eq("done: objective cleared", RT.objectives.boneyard, nil)
     T.eq("done: 800 cr (data 600 + drones 200)", T.credits() - c0, 800)
     T.eq("done: Concord -500", T.rep("Concord") - concord0, -500)
     T.eq("done: Corsairs +150", T.rep("Corsairs") - corsairs0, 150)
@@ -198,8 +198,8 @@ end)
 
 -- ── GM states ────────────────────────────────────────────────────────────────
 local paid
--- Parked 7.6U from the Annex: inside the Boneyard and within 10U of the Annex (so annex_control
--- and extract do not move on by themselves), but over 8U from Ashgrave (so the hook stays put).
+-- Parked 7.6U from the Annex: inside the Boneyard (so annex_control does not end by itself), but
+-- over 8U from Ashgrave (so the hook stays put).
 T.step("park the ship near the Annex", function() T.moveTo(ANNEX_X + 7000, ANNEX_Y - 3000) end)
 T.gmWalk({
     {key = "hook",    phase = "hook", check = function()
@@ -214,9 +214,6 @@ T.gmWalk({
     {key = "control", phase = "annex_control", check = function()
         T.eq("GM control: seven Concord ships", T.alive(T.st().concord_group), 7)
         T.check("GM control: zone suspended", PROX._suspended_zones["the Boneyard"])
-    end},
-    {key = "extract", phase = "extract", check = function()
-        T.check("GM extract: Annex out", RT.valid(annex()))
     end},
     {key = "done_full", done = true, check = function()
         T.check("GM done_full: both objectives", T.flag("boneyard_hack_done") and T.flag("boneyard_drone_flip"))

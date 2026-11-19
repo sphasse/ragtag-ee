@@ -2,7 +2,7 @@
 -- Boneyard Arc: breach the Ashgrave Annex before a Concord battle group arrives.
 --
 -- Trigger: Rezkov arc finished (or declined) AND upgrade investment >= 800cr AND not completed
--- Structure: hook → annex_hack → annex_control → extract → done
+-- Structure: hook → annex_hack → annex_control → done (leaving the Boneyard wraps it up)
 --
 -- RT.flag keys used (prefix "boneyard_"):
 --   arc_done                  arc complete (blocks re-trigger)
@@ -28,7 +28,7 @@ M.triggers = {
 }
 
 M.phase_order = {
-    "hook", "annex_hack", "annex_control", "extract",
+    "hook", "annex_hack", "annex_control",
 }
 
 -- ── Coordinates ──────────────────────────────────────────────────────────────
@@ -64,7 +64,6 @@ function M.init_state()
         lasers_start     = nil,
         lasers_done      = false,
 
-        cmd_vulnerable   = false,
     }
 end
 
@@ -132,10 +131,7 @@ local function _spawnConcordGroup(st)
     st.annex_battle = st.annex_battle or BATTLE.annex(st.annex)
     st.concord_group = st.annex_battle:spawnConcord()
     st.concord_cmd = st.annex_battle.cmd
-    if RT.valid(st.concord_cmd) then
-        st.concord_cmd:setCanBeDestroyed(false)
-        RT.register(st.concord_cmd)
-    end
+    if RT.valid(st.concord_cmd) then RT.register(st.concord_cmd) end
     ARC.log(
         "[Comms] [CNS Vanguard] All vessels in Boneyard sector: restricted military zone. " ..
         "Stand down and prepare for boarding. Non-compliance will be treated as hostility.", "#FF6666")
@@ -278,16 +274,6 @@ local function _trackCmdShip(st)
         st.concord_cmd = nil
         RT.flag("boneyard_battlegroup_destroyed", true)
         ARC.log("[Science] CNS Vanguard destroyed. Battle group leaderless.", "#FF4444")
-        return
-    end
-    if not st.cmd_vulnerable then
-        local ok,  hull    = pcall(function() return st.concord_cmd:getHull()    end)
-        local ok2, max_hul = pcall(function() return st.concord_cmd:getHullMax() end)
-        if ok and ok2 and max_hul and max_hul > 0 and hull / max_hul < 0.2 then
-            st.cmd_vulnerable = true
-            st.concord_cmd:setCanBeDestroyed(true)
-            ARC.log("[Science] CNS Vanguard hull critical — command ship attempting withdrawal.", "#FFCC00")
-        end
     end
 end
 
@@ -601,31 +587,7 @@ M.phases = {
             _trackCmdShip(st)
             _tickBattle(st, now)
 
-            -- Advance to extract when player moves >10U from Annex
-            local player = ARC.player()
-            if not player then return end
-            local px, py = player:getPosition()
-            local ax, ay
-            if RT.valid(st.annex) then
-                ax, ay = st.annex:getPosition()
-            else
-                ax, ay = _ANNEX_X, _ANNEX_Y
-            end
-            if ARC.dist(px, py, ax, ay) > 10 * U then
-                MISSIONS.phase("boneyard", "extract")
-            end
-        end,
-    },
-
-    extract = {
-        enter = function(st)
-            RT.clearObjective("boneyard")   -- the Annex fight is over
-            ARC.log("[Nav] Exit the Boneyard. Warp is available.", "#FFAA44")
-        end,
-        update = function(st, delta, now)
-            _trackCmdShip(st)
-            _tickBattle(st, now)
-
+            -- Leaving the Boneyard wraps it all up, finished or not (warp is available).
             local player = ARC.player()
             if not player then return end
             local px, py = player:getPosition()
@@ -634,12 +596,14 @@ M.phases = {
             end
         end,
     },
+
 }
 
 -- ── Resolve ───────────────────────────────────────────────────────────────────
 
 function M.resolve(st)
     RT.flag("boneyard_arc_done", true)
+    RT.clearObjective("boneyard")   -- the Annex fight is over
 
     -- Reputation and credits are paid once. A GM jump to another end state (or back to done)
     -- does not pay again: "boneyard_rewarded" survives a jump to "done" and is cleared by any
@@ -777,7 +741,6 @@ M.gm_states = {
     {key = "hook",     label = "→ Hook",          fn = _jump("hook")},
     {key = "hack",     label = "→ Annex hack",    fn = _jump("annex_hack")},
     {key = "control",  label = "→ Annex control", fn = _jump("annex_control")},
-    {key = "extract",  label = "→ Extract",       fn = _jump("extract")},
     -- End states: which of the two objectives (Annex data, drone flip) were achieved.
     {key = "done_full",    label = "→ Done: Full",    fn = _done(true,  true)},
     {key = "done_data",    label = "→ Done: Data",    fn = _done(true,  false)},
@@ -790,8 +753,7 @@ M.gm_actions = {
     -- Finish the Relay hack: sets the Annex frontshield to fully hacked, so the annex_hack
     -- update runs its normal completion next frame (idle drones, suspend the zone, Concord
     -- battle group) and moves to annex_control. A ship more than 5U out is moved to 2U south
-    -- of the Annex first, where a real hack would have left it (annex_control ends the fight
-    -- as soon as the ship is 10U away).
+    -- of the Annex first, where a real hack would have left it.
     {label = "Complete hack", phases = {"annex_hack"}, fn = function(st)
         if not RT.valid(st.annex) then return end
         local ax, ay = st.annex:getPosition()
