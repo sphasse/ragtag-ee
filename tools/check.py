@@ -9,7 +9,7 @@ Checks:
   * the extension index matches verse/extensions/*.lua
   * scenarios: header fields, unique scenario numbers, every place they depend on exists,
     no stock factions (Human Navy / Exuari / Ghosts) in campaign content
-  * generated files are up to date (director/generated/world.md, docs/verse_map.svg)
+  * generated files are up to date (director/generated/world.md, docs/verse_map.svg, docs/verse_control_map.svg)
   * every missions/jobs/world module file is required by its loader (unloaded files go in attic/)
   * every story arc (missions/<arc>.lua) has a regression test (tests/arcs/<arc>.lua)
   * jobs: every job type has tests/jobs/<type>.lua; job modules address the job's owning ship
@@ -150,16 +150,18 @@ def check_generated(data: dict, fix: bool) -> None:
             print("regenerated", gen_world.OUT.relative_to(ROOT))
         else:
             errors.append("director/generated/world.md is out of date: run python tools/check.py --fix")
-    svg = ROOT / "docs" / "verse_map.svg"
-    r = subprocess.run([sys.executable, str(ROOT / "tools" / "make_map.py"), "--stdout"], capture_output=True, text=True)
-    if r.returncode != 0:
-        errors.append(f"make_map failed: {r.stderr.strip()[-300:]}")
-    elif not svg.exists() or svg.read_text() != r.stdout:
-        if fix:
-            svg.write_text(r.stdout)
-            print("regenerated docs/verse_map.svg")
-        else:
-            errors.append("docs/verse_map.svg is out of date: run python tools/check.py --fix")
+    for name, args in (("verse_map.svg", []), ("verse_control_map.svg", ["--control"])):
+        svg = ROOT / "docs" / name
+        r = subprocess.run([sys.executable, str(ROOT / "tools" / "make_map.py"), "--stdout", *args],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            errors.append(f"make_map {' '.join(args)} failed: {r.stderr.strip()[-300:]}")
+        elif not svg.exists() or svg.read_text() != r.stdout:
+            if fix:
+                svg.write_text(r.stdout)
+                print(f"regenerated docs/{name}")
+            else:
+                errors.append(f"docs/{name} is out of date: run python tools/check.py --fix")
 
 
 # Module directories whose files must be required by their loader. A file that

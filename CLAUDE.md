@@ -66,7 +66,8 @@ Contributors add **universe extensions** and **scenarios** independently.
    the GM sent it (`DIR._h.fromGM(cmd)`). Beats are scripted (`RT.defineBeat` / `RT.fireBeat`); there is no `ai = true`.
 5. **Each campaign has its own save** via `RT.useCampaign("<folder name>")` and its own `scenarios/<campaign>/bible.md`.
 6. Scenario numbers must not collide with stock EmptyEpsilon or each other (`check.py` enforces; ranges in CONTRIBUTING.md).
-7. Generated files (`extensions/index.lua`, `director/actions/index.lua`, `director/generated/world.md`, `docs/verse_map.svg`)
+7. Generated files (`extensions/index.lua`, `director/actions/index.lua`, `director/generated/world.md`, `docs/verse_map.svg`,
+   `docs/verse_control_map.svg`)
    come from `check.py --fix`; never hand-edit.
 8. **Game code never names `DIR`.** Core, jobs, world plugins and arcs report with `RT.emit(type, data, priority)`
    (`core/events.lua`); the director's mailbox is one listener (`RT.on`). Only `director.lua`, `director/`, `gm_console.lua`

@@ -1,11 +1,15 @@
 """Draw docs/verse_map.svg from the universe data (drift.lua + extensions).
 
-    python tools/make_map.py
+    python tools/make_map.py             # docs/verse_map.svg: the GM's map
+    python tools/make_map.py --control   # docs/verse_control_map.svg: who patrols where
 
-Re-run after editing the verse so the GM's map matches the game.
+The control map draws the ambient patrol zones (PROX.zones in ee/ragtag/world/proximity.lua: where
+Concord inspections, Corsair raiders, Relic drones and the Hollow spawn), Concord space hatched.
+Both are kept up to date by tools/check.py --fix.
 """
 import math
 import random
+import re
 import sys
 from pathlib import Path
 
@@ -14,6 +18,22 @@ import verse_data  # noqa: E402
 
 ROOT = verse_data.ROOT
 D = verse_data.load()
+CONTROL = "--control" in sys.argv
+
+
+def patrol_zones():
+    """PROX.zones from proximity.lua: [(region name, faction, cooldown s or None, comms or None)]."""
+    src = (ROOT / "ee" / "ragtag" / "world" / "proximity.lua").read_text(encoding="utf-8")
+    block = src[src.index("PROX.zones = {"):]
+    block = block[:block.index("\n}")]
+    out = []
+    for m in re.finditer(r'\["([^"]+)"\]\s*=\s*\{([^}]*)\}', block):
+        body = m.group(2)
+        fac = re.search(r'faction\s*=\s*"([^"]+)"', body)
+        cd = re.search(r'cooldown\s*=\s*(\d+)', body)
+        comms = re.search(r'comms\s*=\s*"([^"]+)"', body)
+        out.append((m.group(1), fac and fac.group(1), cd and int(cd.group(1)), comms and comms.group(1)))
+    return out
 
 # Far-margin placeholder regions are at ±400 — skip them when computing bounds.
 _FAR_MARGIN_NAMES = {"the Outer Dark", "the Far Reach", "the Deep Black", "the Long Dark"}
@@ -120,6 +140,7 @@ for e in entries("asteroid_fields"):
             )
 
 # ── Danger regions (fill + border) ────────────────────────────────────────────
+_faint = ' stroke-opacity="0.35"' if CONTROL else ""   # the control map keeps danger in the background
 for e in entries("regions"):
     if strv(e, "name") in _FAR_MARGIN_NAMES:
         continue
@@ -127,9 +148,36 @@ for e in entries("regions"):
     if d > 0:
         svg.append(
             f'<circle cx="{px(num(e,"x")):.1f}" cy="{py(num(e,"y")):.1f}"'
-            f' r="{num(e,"r") * S:.1f}" fill="{DANGER[d]}" opacity="0.12"'
-            f' stroke="{DANGER[d]}" stroke-width="2"/>'
+            f' r="{num(e,"r") * S:.1f}" fill="{DANGER[d]}" opacity="{0.04 if CONTROL else 0.12}"'
+            f' stroke="{DANGER[d]}" stroke-width="{1 if CONTROL else 2}"' + _faint + '/>'
         )
+
+# ── Patrol zones (control map) ────────────────────────────────────────────────
+ZONE_FAC = {"Concord": "#6fa8ff", "Corsairs": "#ff8c3c", "Relic": "#d2c85a", "Hollow": "#e03030"}
+ZONE_WHAT = {"Concord": "inspections", "Corsairs": "raiders", "Relic": "war drones", "Hollow": "hunters"}
+if CONTROL:
+    svg.append(
+        '<defs><pattern id="concord" width="14" height="14" patternUnits="userSpaceOnUse"'
+        ' patternTransform="rotate(45)"><rect width="14" height="14" fill="#6fa8ff" opacity="0.10"/>'
+        '<line x1="0" y1="0" x2="0" y2="14" stroke="#6fa8ff" stroke-width="4" opacity="0.35"/></pattern></defs>'
+    )
+    regs = {strv(e, "name"): e for e in entries("regions")}
+    for name, fac, cd, comms in patrol_zones():
+        e = regs.get(name)
+        if not e:
+            continue
+        c = ZONE_FAC.get(fac, "#ccc")
+        cx, cy, r = px(num(e, "x")), py(num(e, "y")), num(e, "r") * S
+        if fac == "Concord":
+            svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="url(#concord)"'
+                       f' stroke="{c}" stroke-width="4"/>')
+        else:
+            svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="{c}" opacity="0.08"/>')
+            svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="none"'
+                       f' stroke="{c}" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>')
+        every = f"every {cd // 60} min" if cd and cd % 60 == 0 else (f"every {cd} s" if cd else "")
+        svg.append(f'<text x="{cx:.1f}" y="{cy + r - 10:.1f}" fill="{c}" font-size="12" text-anchor="middle"'
+                   f' font-weight="600">{fac.upper()} {ZONE_WHAT.get(fac, "patrols")} · r {num(e, "r"):.0f}u · {every}</text>')
 
 # ── Stars ─────────────────────────────────────────────────────────────────────
 for e in entries("stars"):
@@ -212,6 +260,14 @@ for e in entries("hazards"):
 
 # ── Legend ────────────────────────────────────────────────────────────────────
 lg = [
+    ("#6fa8ff",   "Concord patrol zone (inspections, hatched)"),
+    ("#ff8c3c",   "Corsair raider zone"),
+    ("#d2c85a",   "Relic drone zone"),
+    ("#e03030",   "Hollow zone"),
+    ("#6fa8ff",   "Concord station"),
+    ("#d9d4c7",   "Independent station ($ = shipwright)"),
+    ("#ff8c3c",   "Corsair base"),
+] if CONTROL else [
     ("#6fa8ff",   "Concord station"),
     ("#d9d4c7",   "Independent station ($ = shipwright)"),
     ("#ff8c3c",   "Corsair base"),
@@ -230,8 +286,22 @@ for i, (c, t) in enumerate(lg):
     )
 svg.append(
     f'<text x="{W - 16}" y="{H - 36}" fill="#d9d4c7"'
-    f' font-size="20" font-weight="700" text-anchor="end">The Drift</text>'
+    f' font-size="20" font-weight="700" text-anchor="end">{"The Drift: who patrols where" if CONTROL else "The Drift"}</text>'
 )
+if CONTROL:
+    # Zone table, top right: what the ambient patrol system uses (PROX.zones).
+    rows = [(n, f, cd) for n, f, cd, _ in patrol_zones()]
+    regs = {strv(e, "name"): e for e in entries("regions")}
+    bx, by = W - 386, 16
+    svg.append(f'<rect x="{bx}" y="{by}" width="370" height="{36 + 17 * len(rows)}" fill="#0d1520" opacity="0.85"'
+               f' stroke="#2a3a4d"/>')
+    svg.append(f'<text x="{bx + 10}" y="{by + 20}" fill="#d9d4c7" font-size="13" font-weight="700">'
+               f'Patrol zones (world/proximity.lua)</text>')
+    for i, (n, f, cd) in enumerate(rows):
+        e = regs.get(n)
+        r = f"{num(e, 'r'):.0f}u" if e else "?"
+        svg.append(f'<text x="{bx + 10}" y="{by + 40 + 17 * i}" fill="{ZONE_FAC.get(f, "#ccc")}" font-size="12">'
+                   f'{n} · {f} · r {r} · cooldown {cd or "?"} s</text>')
 svg.append(
     f'<text x="{W - 16}" y="{H - 18}" fill="#93a1ab"'
     f' font-size="12" text-anchor="end">'
@@ -242,6 +312,6 @@ svg.append("</svg>")
 if "--stdout" in sys.argv:
     sys.stdout.write("\n".join(svg))
 else:
-    out = ROOT / "docs" / "verse_map.svg"
+    out = ROOT / "docs" / ("verse_control_map.svg" if CONTROL else "verse_map.svg")
     out.write_text("\n".join(svg))
     print("wrote", out)
