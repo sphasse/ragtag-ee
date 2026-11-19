@@ -69,7 +69,7 @@ Every arc is **one phase path**. From any phase the arc goes to exactly one of:
 A crew decision either **ends** the arc with an outcome or **continues** down the path; it never
 picks between two different continuations. Variation lives *inside* a phase as flags: dialogue
 variants (Ledger's `rezkov_ai_planted` briefing), optional objectives that shape the outcome
-(Boneyard's archive download and drone flip; Arc 6's rally wings), and outcome modifiers read in
+(Boneyard's drone flip and Annex lasers; Arc 6's rally wings), and outcome modifiers read in
 `resolve`. If a design needs two genuinely different missions, make them two arcs.
 
 This keeps state management simple: `M.completed` can replay any prefix of `phase_order`, and
@@ -422,8 +422,8 @@ This makes arcs easy to disable, restart, skip, or test independently.
 | id | Name | locks_jobs | Trigger | Phases |
 |---|---|---|---|---|
 | `rezkov`   | Rezkov Arc    | no  | upgrades_min + not_flagged    | hook, m1_navigate, m2_active, m2_deliver, m3_active, m3_deliver |
-| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, annex_hack, annex_control |
-| `ledger`   | Ledger Arc    | no  | upgrades_min + not_flagged + requires (Rezkov) + custom (3 board jobs after Rezkov) | hook, meet, relay_run, carry |
+| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, annex_hack, annex_control, report |
+| `ledger`   | Ledger Arc    | no  | upgrades_min + not_flagged + requires (Rezkov) + custom (2 board jobs after Rezkov) | hook, meet, relay_run, carry |
 | `corsair`  | Corsair Arc   | no  | upgrades_min + not_flagged + requires (Rezkov) (hook on entering the Gauntlet) | hook, escort, briefing, raid, return, battle |
 
 Retired arcs (Witness, Whistleblower) live in `ee/ragtag/missions/attic/` — kept for

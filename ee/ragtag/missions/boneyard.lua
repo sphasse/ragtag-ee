@@ -1,14 +1,13 @@
 -- ee/ragtag/missions/boneyard.lua
--- Boneyard Arc: breach the Ashgrave Annex before a Concord battle group arrives.
+-- Boneyard Arc: breach the Ashgrave Annex, download its archive while a Concord battle fleet
+-- tries to stop it, and bring the news back to the lifeboat survivors.
 --
 -- Trigger: Rezkov arc finished (or declined) AND upgrade investment >= 800cr AND not completed
--- Structure: hook → annex_hack → annex_control → done (leaving the Boneyard wraps it up)
+-- Structure: hook → annex_hack (Relay hacks it, by probe) → annex_control (dock: the operations,
+-- the Concord fleet jumps in) → report (talk with the survivors where they were dropped off) → done.
+-- A crew that found the Annex without rescuing the survivors is done when the fight is.
 --
--- RT.flag keys used (prefix "boneyard_"):
---   arc_done                  arc complete (blocks re-trigger)
---   hack_done                 research archive downloaded
---   drone_flip                drone IFF override completed
---   battlegroup_destroyed     CNS Vanguard destroyed
+-- Saved flags: M.flags, below.
 
 local M = {}
 M.id          = "boneyard"
@@ -28,7 +27,7 @@ M.triggers = {
 }
 
 M.phase_order = {
-    "hook", "annex_hack", "annex_control",
+    "hook", "annex_hack", "annex_control", "report",
 }
 
 -- ── Coordinates ──────────────────────────────────────────────────────────────
@@ -39,9 +38,8 @@ local _ASHGRAVE_X   =  39000   -- Ashgrave dead world (hook scan target)
 local _ASHGRAVE_Y   = -96000
 local _ANNEX_X      =  43000   -- Ashgrave Annex deep in the debris field
 local _ANNEX_Y      = -104000
-local _BONEYARD_CX  =  36000   -- Boneyard center (for the exit check)
+local _BONEYARD_CX  =  36000   -- Boneyard center (the drones the hack idles)
 local _BONEYARD_CY  = -96000
-local _BONEYARD_R   =  29500   -- Boneyard radius in world units (29U + small buffer)
 
 -- ── State ─────────────────────────────────────────────────────────────────────
 
@@ -50,7 +48,9 @@ function M.init_state()
         annex            = nil,    -- SpaceStation "Ashgrave Annex"
         idle_drones      = {},     -- Relic ships set Derelict when hack completes
         annex_battle     = nil,    -- BATTLE.annex: the Concord group, the drones, the Annex's lasers
-        concord_beaten   = false,  -- the crew was told the battle group is destroyed
+        concord_beaten   = false,  -- the last Concord ship is gone (the Annex said so)
+        fleet_arrived    = false,  -- the crew docked at the Annex and the Concord fleet jumped in
+        idle_next        = 0,      -- next check for Relic drones to idle (new arrivals too)
         concord_group    = {},     -- Concord Hostile battle group ships
         concord_cmd      = nil,    -- command ship reference
         rein_drones      = {},     -- Relic Active drones (every one spawned, replacements too)
@@ -103,24 +103,44 @@ local function _annexSignal(st, quiet)
     ARC.log("[Nav] Waypoint set: Ashgrave Annex.", "#AAAAFF")
 end
 
+-- Every Relic drone in the Boneyard goes Derelict and idle (the hack took their IFF offline). Kept
+-- in st.idle_drones, so a reset gives them back to the Relic. Called again every 2 s after the
+-- hack (_keepDronesIdle), so drones that arrive later are docile too.
 local function _idleDrones(st)
-    local found = {}
-    local objs = getObjectsInRadius(_BONEYARD_CX, _BONEYARD_CY, 32000)
-    for _, obj in ipairs(objs) do
+    st.idle_drones = st.idle_drones or {}
+    local n = 0
+    for _, obj in ipairs(getObjectsInRadius(_BONEYARD_CX, _BONEYARD_CY, 32000)) do
         if isObjectType(obj, "CpuShip") then
             local ok, fac = pcall(function() return obj:getFaction() end)
             if ok and fac == "Relic" then
                 pcall(function() obj:setFaction("Derelict"); obj:orderIdle() end)
-                found[#found + 1] = obj
+                st.idle_drones[#st.idle_drones + 1] = obj
+                n = n + 1
             end
         end
     end
-    st.idle_drones = found
-    log("[BONEYARD] idled " .. #found .. " Relic drones")
+    if n > 0 then log("[BONEYARD] idled " .. n .. " Relic drones") end
+end
+
+local function _keepDronesIdle(st, now)
+    if now < (st.idle_next or 0) then return end
+    st.idle_next = now + 2
+    _idleDrones(st)
+end
+
+-- A message on every console of the arc ship (a pop-up each station dismisses).
+local _CONSOLES = {"Helms", "Weapons", "Engineering", "Engineering+", "Science", "Relay", "Tactical",
+                   "Operations", "SinglePilot", "AltRelay"}
+local function _alertCrew(id, text)
+    ARC.withPlayer(function(p)
+        for _, pos in ipairs(_CONSOLES) do
+            pcall(function() p:addCustomMessage(pos, id .. "_" .. pos, text) end)
+        end
+    end)
 end
 
 -- The Annex fight is BATTLE.annex (ragtag/battle.lua; the Battle Lab's Annex mode runs the same
--- code): when the hack lands, a seven-ship Concord battle group spawns active on a line 15U
+-- code): when the crew first docks, a seven-ship Concord battle group jumps in on a line 15U
 -- north-west of the Annex (no warp, the Battle Lab's speeds) and heads for five combat points 3U
 -- north-west of it, engaging the crew there. The drone flip launches 24 small, fast Relic drones
 -- (lasers 3x a stock drone's) from the nebulae north-east and south-west of the Annex, each
@@ -138,6 +158,15 @@ local function _spawnConcordGroup(st)
         "Stand down and prepare for boarding. Non-compliance will be treated as hostility.", "#FF6666")
 end
 
+-- The crew docks for the first time: the Concord fleet jumps in, and every console hears it.
+local _FLEET_ALERT = "Incoming jump detected. A Concord battle fleet has arrived."
+local function _fleetArrives(st)
+    st.fleet_arrived = true
+    _alertCrew("boneyard_fleet", _FLEET_ALERT)
+    ARC.log("[Science] " .. _FLEET_ALERT, "#FF6666")
+    _spawnConcordGroup(st)
+end
+
 local function _tickBattle(st, now)
     local A = st.annex_battle
     if not A then return end
@@ -146,10 +175,7 @@ local function _tickBattle(st, now)
     -- comms are busy (Relay is often in its menu), the line goes to the ship's log instead.
     if not st.concord_beaten and #A.concord > 0 and A:concordAlive() == 0 then
         st.concord_beaten = true
-        local msg = "All Concord battle group ships destroyed. Perimeter clear. You can leave the Boneyard when ready."
-        if not st.download_done then
-            msg = msg .. " The research archive is not downloaded yet: leaving now loses it."
-        end
+        local msg = "All Concord forces in proximity have been eliminated."
         if not ARC.hail(st.annex, msg, "Ashgrave Annex") then
             ARC.log("[Ashgrave Annex] " .. msg, "#00FF88")
         end
@@ -160,7 +186,7 @@ local function _reprogramDrones(st)
     if not st.annex_battle then return end
     st.annex_battle:spawnDrones()
     st.rein_drones = st.annex_battle.drones   -- the battle appends replacements to this list
-    ARC.log("[Relay] IFF override complete. Drones retargeting Concord transponders.", "#FF8800")
+    ARC.log("[Relay] Drone reprogram complete. The drones are hostile to the Concord.", "#FF8800")
     ARC.log("[Science] Relic drone swarms launching from the nebulae north-east and south-west of us. " ..
         "Fast movers, and they are on our side.", "#00FF88")
 end
@@ -176,22 +202,21 @@ local function _indexAshgraveResearch()
     ARC.log("[Science] Ashgrave research files indexed. Database updated.", "#00CCAA")
 end
 
--- The two Annex operations (archive download, drone IFF reprogram) run one at a time: while
--- one is in progress the other cannot be started. `which` is the operation being requested.
--- The Annex's admin operations, one at a time. The order matters: the Concord group is already
--- on its way when the menu opens, the drones only launch when their override finishes, and the
--- long download keeps the crew at the Annex for most of the fight.
+-- The Annex's admin operations, one at a time, offered only to a ship docked at the Annex. The
+-- Concord fleet jumps in on the first docking, the drones and the lasers only help once their
+-- operation finishes, and the download needs the docking clamp the whole time (undocking stops
+-- it; it starts again from the beginning). `needs_dock`: the operation stops when the crew undocks.
 local _OPS = {
-    {key = "download",  label = "Download research archive",      time = 240,
+    {key = "download",  label = "Download research archive",      time = 120, needs_dock = true,
      running = "Downloading archive", done = "Archive download", color = "#00AAFF",
-     started = "[Relay] Archive download initiated. Four minutes to complete.",
-     busy_msg = "Transfer in progress. Hold position.",
+     started = "[Relay] Archive download initiated. Two minutes; stay docked until it finishes.",
+     busy_msg = "Transfer in progress. Stay docked: the link runs through the docking clamp.",
      done_msg = "Transfer complete. Research files indexed in Science database."},
-    {key = "reprogram", label = "Reprogram drone IFF targets",     time = 60,
-     running = "IFF reprogram", done = "Drone IFF override", color = "#FF8800",
-     started = "[Relay] Drone IFF override sequence initiated. 60 seconds.",
-     busy_msg = "Override sequence running. Stand by.",
-     done_msg = "Targeting override active. Drones are retargeting Concord."},
+    {key = "reprogram", label = "Reprogram the drones to be hostile to the Concord", time = 60,
+     running = "Reprogramming drones", done = "Drones reprogrammed", color = "#FF8800",
+     started = "[Relay] Drone reprogram initiated. 60 seconds.",
+     busy_msg = "Reprogram running. Stand by.",
+     done_msg = "The drones are hostile to the Concord."},
     {key = "lasers",    label = "Enable station defense lasers",   time = 60,
      running = "Defense grid boot", done = "Station defense lasers", color = "#FF4444",
      started = "[Relay] Annex defense grid boot sequence initiated. 60 seconds.",
@@ -206,13 +231,18 @@ local function _runningOp(st)
     end
 end
 
+local _ONE_AT_A_TIME = "The Annex runs one operation at a time. Wait for the current one to finish."
+local _DOCK_FIRST    = "[Ashgrave Annex]\n\nStation security has been reset. Dock for more options."
+
 local function _setAnnexControlComms(st)
     if not RT.valid(st.annex) then return end
     st.annex:setCommsFunction(ARC.comms(function(src, tgt)
+        if not ARC.docked(src, tgt, _DOCK_FIRST) then return end
         local now = getScenarioTime()
+        local fleet = (st.fleet_arrived and not st.concord_beaten) and "Concord battle fleet in proximity.\n\n" or ""
         setCommsMessage(
-            "[Ashgrave Annex — Admin Access Granted]\n\n" ..
-            "Concord battle group inbound. Time is critical.\n\n" ..
+            "[Ashgrave Annex — Admin Access Granted]\n\n" .. fleet ..
+            "The archive link runs through the docking clamp: undocking stops a download.\n\n" ..
             "The Annex runs one operation at a time. Select operation:"
         )
         for i, op in ipairs(_OPS) do
@@ -225,16 +255,12 @@ local function _setAnnexControlComms(st)
                     setCommsMessage(op.busy_msg)
                 end)
             elseif running then
-                addCommsReply("[LOCKED] " .. op.label, function()
-                    setCommsMessage("The Annex runs one operation at a time. Wait for the current one to finish.")
-                end)
+                addCommsReply("[LOCKED] " .. op.label, function() setCommsMessage(_ONE_AT_A_TIME) end)
             else
                 local secs = op.time >= 120 and (op.time // 60 .. " min") or (op.time .. "s")
-                addCommsReply(i .. ") " .. op.label .. " (" .. secs .. ")", function()
-                    if _runningOp(st) then
-                        setCommsMessage("The Annex runs one operation at a time. Wait for the current one to finish.")
-                        return
-                    end
+                addCommsReply(i .. ") " .. op.label .. " (" .. secs .. ")", function(s2, t2)
+                    if not ARC.docked(s2, t2, _DOCK_FIRST) then return end
+                    if _runningOp(st) then setCommsMessage(_ONE_AT_A_TIME); return end
                     st[op.key .. "_start"] = getScenarioTime()
                     ARC.log(op.started, op.color)
                     setCommsMessage("Operation started. Stand by for " .. secs .. ".")
@@ -245,6 +271,14 @@ local function _setAnnexControlComms(st)
             setCommsMessage("Channel closed.")
         end)
     end, "[Ashgrave Annex]\n\nAdmin session in use by another vessel."))
+end
+
+-- The hack landed: the Annex stops being an enemy (Relic Active: hostile to the Concord only), so
+-- the crew can dock, and its comms say so.
+local function _secureAnnex(st)
+    if not RT.valid(st.annex) then return end
+    st.annex:setFaction("Relic Active")
+    _setAnnexControlComms(st)
 end
 
 local function _cleanupCombat(st)
@@ -369,24 +403,18 @@ local function _addSurvivorRecords()
     SCIDB._entries["boneyard_survivors"] = e
 end
 
--- The survivors hail the ship through an RT.voice (a position-less Artifact: never on radar,
--- see ee/ragtag/voice.lua). Falls back to the ship log if comms are busy. Answering the hail
--- opens a short conversation.
+-- The survivors hail the ship through an RT.voice (an Artifact with no position: never on radar,
+-- see ee/ragtag/voice.lua). Falls back to the ship log if comms are busy. A statement, not a
+-- conversation: they ask the crew to come back for the Annex, and nothing needs an answer.
 local _SURVIVOR_MSG = '"Thank you. We saw a lot of strange activity in the Boneyard while we were stranded, '
-    .. 'and we don\'t want those records to be lost, so we\'re uploading them to your database now. Please read them. Ashgrave is where it starts."'
+    .. 'and we don\'t want those records to be lost, so we\'re uploading them to your database now. Ashgrave is where it starts."\n\n'
+    .. '"Please get us out of here, but somebody needs to take a look at our records and come back and investigate. '
+    .. 'If the Annex could be hacked and all the research extracted, someone might actually be held accountable."'
 
 local function _survivorHail()
     RT.voice.create("boneyard_survivors", {
         name = "Lifeboat Survivors", ttl = 300,
-        tree = {
-            text = _SURVIVOR_MSG,
-            replies = {
-                {label = "What did you see out there?", next = {
-                    text = '"We kept the catalogue desk at the Annex. Then the lockdown came and Concord sealed it from the outside, with us locked out. '
-                        .. 'The drones never touched our lifeboat. We think the Annex was keeping them off us. It is all in the records."'}},
-                {label = "Rest. We'll get you home.", say = '"Thank you. Please, read the records."'},
-            },
-        },
+        tree = {text = _SURVIVOR_MSG},
     })
     if not ARC.hail(RT.voice.get("boneyard_survivors"), _SURVIVOR_MSG, "Lifeboat Survivors") then
         ARC.log("[Lifeboat Survivors] " .. _SURVIVOR_MSG, "#C0E0FF")   -- comms busy: never lose it
@@ -395,6 +423,29 @@ local function _survivorHail()
         _addSurvivorRecords()
         ARC.log("[Science] Survivor records received. Science database updated: Lore, Boneyard Survivor Records.", "#00CCAA")
     end, "boneyard_survivor_records")
+end
+
+-- The report: back where the survivors were dropped off (the rescue job's station), docked, the
+-- crew can talk with them. That ends the arc.
+local _SURVIVOR_STATIONS = {"Port Vesper", "Halcyon Rest", "Saint Brennan's Mission"}
+local function _survivorsAt()
+    local at = RT.flag("boneyard_survivors_at")
+    return type(at) == "string" and at or "Port Vesper"
+end
+
+local function _survivorsThanks(ship)
+    return '"You got the archive out, and the Concord fleet is gone? Thank you. All of us, thank you."\n\n'
+        .. '"We were working to reverse the abomination, and we got close. We just needed better engineering than what we had. '
+        .. 'Hopefully the ' .. ship .. ' can carry the mission forward."'
+end
+
+local function _survivorsHook(src, tgt)
+    if MISSIONS._status["boneyard"] ~= "active" or MISSIONS._cur_phase["boneyard"] ~= "report" then return end
+    if tgt:getCallSign() ~= _survivorsAt() or not ARC.docked(src, tgt) then return end
+    addCommsReply("Talk with the lifeboat survivors", function(s2)
+        setCommsMessage(_survivorsThanks(s2:getCallSign()))
+        MISSIONS.phase("boneyard", "done")
+    end)
 end
 
 -- Hook job (priority 5): an urgent rescue. A lifeboat of survivors is pinging from the
@@ -436,6 +487,7 @@ local function _injectHookJob()
                     JOBS.gridRef(_BUOY_X, _BUOY_Y)),
                 on_found = function(m)
                     RT.flag("boneyard_buoy_found", true)
+                    RT.flag("boneyard_survivors_at", m.origin)   -- where the crew reports back
                     ARC.log("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
                     ARC.log(string.format("[Science] Survivor lifeboat telemetry: launched from the Annex, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ANNEX_X, _ANNEX_Y)), "#00CCAA")
                     _survivorHail()
@@ -476,7 +528,11 @@ M.phases = {
             _injectHookJob()
             -- Survivors recovered in an earlier session: the objective line comes back (the
             -- objective display is rebuilt each run).
-            if RT.flag("boneyard_buoy_found") then RT.setObjective("Hack the Annex", true, "boneyard") end
+            -- The Annex comes back with it: the survivors' telemetry already named its grid.
+            if RT.flag("boneyard_buoy_found") then
+                RT.setObjective("Hack the Annex", true, "boneyard")
+                _annexSignal(st, true)
+            end
             -- Hooks: few, and nearly actionable. Priority 5 = same tier as other arcs'
             -- hooks, so a crew with several leads hears all of them.
             RUMORS.add({
@@ -493,17 +549,11 @@ M.phases = {
             })
         end,
         update = function(st, delta, now)
-            local player = ARC.player()
-            if not player then return end
-            local px, py = player:getPosition()
+            -- The Annex is out (survivors recovered, or the crew came by Ashgrave): the hack
+            -- starts at once. Relay does it from range, through a probe.
             if RT.valid(st.annex) then
-                -- The Annex is out (survivors recovered, or the crew came by Ashgrave): closing
-                -- to 2.5U starts the hack.
-                local ax, ay = st.annex:getPosition()
-                if ARC.dist(px, py, ax, ay) < 2.5 * U then
-                    MISSIONS.phase("boneyard", "annex_hack")
-                end
-            elseif ARC.dist(px, py, _ASHGRAVE_X, _ASHGRAVE_Y) < 8 * U then
+                MISSIONS.phase("boneyard", "annex_hack")
+            elseif ARC.playerNear(_ASHGRAVE_X, _ASHGRAVE_Y, 8 * U) then
                 -- No survivors yet: a crew following the rumors finds it at Ashgrave. 8U clears
                 -- the planet (radius 3.4U) comfortably.
                 _annexSignal(st)
@@ -527,7 +577,10 @@ M.phases = {
                 end)
             end
             RT.setObjective("Hack the Annex", true, "boneyard")
-            ARC.log("[Science] Ashgrave Annex: encrypted lockdown. Relay, that is a hacking job: breach any system.", "#FFAA44")
+            ARC.log("[Mission] OBJECTIVE: hack the Ashgrave Annex, grid " .. JOBS.gridRef(_ANNEX_X, _ANNEX_Y) .. ".", "#FFCC00")
+            ARC.log("[Science] The Annex is under an encrypted lockdown. Relay, that is a hacking job: get a probe near it and breach any system. It can be done from range.", "#FFAA44")
+            _alertCrew("boneyard_hack", "NEW OBJECTIVE: Hack the Ashgrave Annex (grid " .. JOBS.gridRef(_ANNEX_X, _ANNEX_Y) .. ").\n"
+                .. "Relay: launch a probe near the Annex and hack any of its systems. No need to close in.")
             -- Diagnostics (EmptyEpsilon.log): is the Annex a valid hack target?
             if RT.valid(st.annex) then
                 local okf, fac = pcall(function() return st.annex:getFaction() end)
@@ -562,13 +615,10 @@ M.phases = {
             -- EE decays hacked_level by 1/180 per second before scripts run, so a hack that lands
             -- at 100% already reads just under 1.0 here; 0.99 leaves a ~2 s window.
             if hack_lvl >= 0.99 then
-                -- Silence the drones and lock the zone
+                -- Silence the drones, lock the zone, open the Annex to docking
                 _idleDrones(st)
                 PROX.suspendZone("the Boneyard")
-
-                -- Concord battle group: spawns 15U out, no warp
-                _spawnConcordGroup(st)
-
+                _secureAnnex(st)
                 MISSIONS.phase("boneyard", "annex_control")
             end
         end,
@@ -576,20 +626,29 @@ M.phases = {
 
     annex_control = {
         enter = function(st)
-            RT.setObjective("Defend the Annex", true, "boneyard")   -- replaces "Hack the Annex"
-            ARC.log("[Relay] Ashgrave Annex: access granted. Concord battle group inbound.", "#00FF88")
-            ARC.log("[Science] All Relic drones idle. That won't last.", "#FFCC00")
-            _setAnnexControlComms(st)
+            RT.setObjective("Download Annex data", true, "boneyard")   -- replaces "Hack the Annex"
+            ARC.log("[Relay] Ashgrave Annex: station security has been reset. Dock for more options.", "#00FF88")
+            ARC.log("[Science] All Relic drones idle.", "#FFCC00")
+            _secureAnnex(st)
         end,
         update = function(st, delta, now)
-            -- Operation timers (one runs at a time; see _OPS)
+            _keepDronesIdle(st, now)
+            local p = ARC.player()
+            local docked = p ~= nil and RT.valid(st.annex) and p:isDocked(st.annex)
+            if docked and not st.fleet_arrived then _fleetArrives(st) end
+
+            -- Operation timers (one runs at a time; see _OPS). The download needs the clamp.
             local op = _runningOp(st)
-            if op and now - st[op.key .. "_start"] >= op.time then
+            if op and op.needs_dock and not docked then
+                st[op.key .. "_start"] = nil
+                ARC.log("[Relay] Archive download interrupted: the link dropped when we undocked. Dock again to restart it.", "#FFAA44")
+            elseif op and now - st[op.key .. "_start"] >= op.time then
                 st[op.key .. "_done"] = true
                 if op.key == "download" then
                     RT.flag("boneyard_hack_done", true)
                     ARC.log("[Relay] Research archive download complete. Data secured.", "#00AAFF")
                     _indexAshgraveResearch()
+                    if not st.concord_beaten then RT.setObjective("Defeat the Concord fleet", true, "boneyard") end
                 elseif op.key == "reprogram" then
                     RT.flag("boneyard_drone_flip", true)
                     _reprogramDrones(st)
@@ -602,13 +661,23 @@ M.phases = {
             _trackCmdShip(st)
             _tickBattle(st, now)
 
-            -- Leaving the Boneyard wraps it all up, finished or not (warp is available).
-            local player = ARC.player()
-            if not player then return end
-            local px, py = player:getPosition()
-            if ARC.dist(px, py, _BONEYARD_CX, _BONEYARD_CY) > _BONEYARD_R then
-                MISSIONS.phase("boneyard", "done")
+            -- Both done (the archive and the fleet): report to the survivors, or, for a crew that
+            -- never picked them up, that is the end.
+            if st.download_done and st.concord_beaten then
+                MISSIONS.phase("boneyard", RT.flag("boneyard_buoy_found") and "report" or "done")
             end
+        end,
+    },
+
+    report = {
+        enter = function(st)
+            RT.setObjective("Report the success", true, "boneyard")
+            ARC.log("[Mission] Report the mission's success to the lifeboat survivors at " .. _survivorsAt() .. ".", "#80FF80")
+            for _, cs in ipairs(_SURVIVOR_STATIONS) do ARC.stationHook(cs, _survivorsHook) end
+        end,
+        update = function(st, delta, now)
+            _keepDronesIdle(st, now)
+            _tickBattle(st, now)   -- the drones keep guarding the Annex
         end,
     },
 
@@ -685,10 +754,11 @@ M.gm_flag_prefixes = {"boneyard_"}
 -- reject any flag that is not declared here. See missions_api.md, "Flags".
 M.flags = {
     boneyard_buoy_found            = "the lifeboat survivors were recovered (their records are in the Science DB)",
+    boneyard_survivors_at          = "the station the survivors were taken to (a callsign): the crew reports there",
     boneyard_hack_done             = "the Ashgrave research archive was downloaded",
     boneyard_drone_flip            = "the Relic drones were reprogrammed against the Concord",
     boneyard_battlegroup_destroyed = "the battle group's command ship (CNS Vanguard) was destroyed",
-    boneyard_arc_done              = "true once the crew has left the Boneyard after the Annex fight",
+    boneyard_arc_done              = "true once the crew has reported to the survivors (or, without them, won the Annex fight)",
     boneyard_rewarded              = "reputation and credits were paid (an end state pays once)",
 }
 M.reads = {"rezkov_arc_done", "rezkov_declined"}
@@ -719,12 +789,14 @@ end
 -- earlier phase, then enter the target. Reset removes the Annex, the Concord group, every drone
 -- spawned or re-flagged, pending timers, rumors/jobs, the zone suspension, and restores the
 -- state table. It clears boneyard_* flags (the lifeboat's "buoy_found" only when jumping to the
--- start, so its job is offered again) and cannot undo reputation, credits or Science DB unlocks.
+-- start, so its job is offered again; the same for where they were taken) and cannot undo reputation, credits or Science DB unlocks.
 M.gm_reset = function(st, target)
     _clearState(st)
     ARC.resetState(M, st)
     MISSIONS.gmClearFlags("boneyard", function(name)
-        if name == "boneyard_buoy_found" then return target ~= nil and target ~= "hook" end
+        if name == "boneyard_buoy_found" or name == "boneyard_survivors_at" then
+            return target ~= nil and target ~= "hook"
+        end
         if name == "boneyard_rewarded"   then return target == "done" end
         return false
     end)
@@ -737,7 +809,12 @@ M.completed = {
         st.hack_mid_logged = true
         _idleDrones(st)
         PROX.suspendZone("the Boneyard")
-        _spawnConcordGroup(st)
+        _secureAnnex(st)
+    end,
+    -- The archive is downloaded and the fleet is gone (it never jumps in on a GM jump past it).
+    annex_control = function(st)
+        st.download_done, st.fleet_arrived, st.concord_beaten = true, true, true
+        RT.flag("boneyard_hack_done", true)
     end,
 }
 
@@ -756,31 +833,33 @@ M.gm_states = {
     {key = "hook",     label = "→ Hook",          fn = _jump("hook")},
     {key = "hack",     label = "→ Annex hack",    fn = _jump("annex_hack")},
     {key = "control",  label = "→ Annex control", fn = _jump("annex_control")},
-    -- End states: which of the two objectives (Annex data, drone flip) were achieved.
+    {key = "report",   label = "→ Report",        fn = _jump("report", function()
+        if not RT.flag("boneyard_buoy_found") then RT.flag("boneyard_buoy_found", true) end
+    end)},
+    -- End states: the archive is always downloaded; were the drones reprogrammed too?
     {key = "done_full",    label = "→ Done: Full",    fn = _done(true,  true)},
     {key = "done_data",    label = "→ Done: Data",    fn = _done(true,  false)},
-    {key = "done_drones",  label = "→ Done: Drones",  fn = _done(false, true)},
-    {key = "done_minimal", label = "→ Done: Minimal", fn = _done(false, false)},
 }
 
 -- State-specific helpers: only shown in the phase they apply to.
 M.gm_actions = {
     -- Finish the Relay hack: sets the Annex frontshield to fully hacked, so the annex_hack
-    -- update runs its normal completion next frame (idle drones, suspend the zone, Concord
-    -- battle group) and moves to annex_control. A ship more than 5U out is moved to 2U south
-    -- of the Annex first, where a real hack would have left it.
+    -- update runs its normal completion next frame (idle drones, suspend the zone, the Annex opens
+    -- to docking) and moves to annex_control.
     {label = "Complete hack", phases = {"annex_hack"}, fn = function(st)
         if not RT.valid(st.annex) then return end
-        local ax, ay = st.annex:getPosition()
-        local p = ARC.player()
-        if RT.valid(p) then
-            local px, py = p:getPosition()
-            if ARC.dist(px, py, ax, ay) > 5 * U then
-                p:setPosition(ax, ay + 2 * U)
-                pcall(function() p:commandImpulse(0) end)
-            end
-        end
         pcall(function() st.annex:setSystemHackedLevel("frontshield", 1.0) end)
+    end},
+    -- Destroy every Concord ship left (a crew that cannot win the fight; a playtest shortcut).
+    -- The Annex's "eliminated" hail and the rest follow as in a won fight.
+    {label = "Destroy Concord", phases = {"annex_control"}, fn = function(st)
+        if not st.fleet_arrived then
+            globalMessage("The Concord fleet has not jumped in yet: it arrives when the crew docks at the Annex.")
+            return
+        end
+        for _, s in ipairs(st.concord_group or {}) do
+            if RT.valid(s) then s:destroy() end
+        end
     end},
 }
 

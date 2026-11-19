@@ -61,11 +61,17 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       20-minute clock): the survivors' hail and the Science DB "Boneyard Survivor Records".
       *(This path is not in any test.)*
 - [ ] And once the other way: the 8U proximity to Ashgrave
-- [ ] A **real Relay hack** of the Annex front shields to 100% (two successes; it decays over 180 s)
-- [ ] The Concord battle group: two hunters plus four on posts. Survivable?
-- [ ] Download (60 s) vs drone override (30 s): is the choice interesting? Drone stream limits
-      (20 alive, 40 replacements) too strong or too weak?
-- [ ] Each ending (Full / Data / Drones / Minimal) is reachable and reads clearly
+- [ ] The survivors' hail asks for the Annex to be hacked; the "NEW OBJECTIVE" pop-up makes the hack clear
+- [ ] A **real Relay hack** of the Annex front shields to 100% **from range, through a probe**
+      (two successes; it decays over 180 s). Do the drones stay docile, including new ones?
+- [ ] Hailing the Annex undocked says "Station security has been reset. Dock for more options."; the
+      **dock button** works on the Annex
+- [ ] First docking: the "Incoming jump detected" pop-up on every console, the Concord fleet appears
+- [ ] Download (2 min, stops on undocking) vs drone reprogram (60 s) vs lasers (60 s): is the order an
+      interesting choice? Does the crew get out into the fight?
+- [ ] "All Concord forces in proximity have been eliminated." hail; then "Report the success"
+- [ ] Back at the rescue job's station: "Talk with the lifeboat survivors" reads well and ends the arc
+- [ ] Each ending (Full / Data) is reachable and reads clearly
 
 ## 5. Corsair Arc (1000 cr of upgrades)
 

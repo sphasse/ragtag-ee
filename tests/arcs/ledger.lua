@@ -5,9 +5,9 @@ T.arc("ledger")
 
 local c0, concord0, indep0
 
--- ── The gate: three board jobs after the Rezkov arc ──────────────────────────
+-- ── The gate: two board jobs after the Rezkov arc ────────────────────────────
 -- The Rezkov arc ends at Dustmote, where this hook lives: the arc waits until the primary ship has
--- finished three board jobs since then (story contracts do not count).
+-- finished two board jobs since then (story contracts do not count).
 local gate = MISSIONS._registry.ledger.triggers.custom
 local function finishJob(story)
     local m = T.makeJob("delivery", "Port Vesper")
@@ -20,14 +20,14 @@ T.step("the gate", function()
     RT.flag("rezkov_arc_done", "data_delivered")
     T.check("gate: closed right after Rezkov", not gate())
     T.check("gate: the job count is noted", RT.flag("ledger_jobs_base") ~= nil)
-    finishJob(); finishJob()
-    T.check("gate: two jobs are not enough", not gate())
+    finishJob()
+    T.check("gate: one job is not enough", not gate())
     finishJob(true)
     T.check("gate: a story contract does not count", not gate())
     finishJob()
-    T.check("gate: open after the third board job", gate())
+    T.check("gate: open after the second board job", gate())
     T.check("gate: listed in the criteria",
-        MISSIONS._criteriaText("ledger"):find("3 board jobs done by the primary ship", 1, true) ~= nil)
+        MISSIONS._criteriaText("ledger"):find("2 board jobs done by the primary ship", 1, true) ~= nil)
     RT.clearFlag("rezkov_arc_done")
     T.check("gate: closed again if Rezkov is rewound", not gate())
     T.check("gate: and the count is forgotten", RT.flag("ledger_jobs_base") == nil)

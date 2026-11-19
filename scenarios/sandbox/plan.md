@@ -80,7 +80,7 @@ Built 2026-11-13; full design in `ee/ragtag/missions/ledger.md`. Summary:
 - **Premise.** The Galen hack planted an AI in the Concord books. It found the twenty-year
   black budget ("Maw containment", "Ashgrave remediation"), split itself into three fragments
   inside Concord space, and needs a pickup.
-- **Trigger.** Upgrades ≥ 800, Rezkov arc finished or declined, then 3 board jobs by the primary ship, `ledger_arc_done` unset.
+- **Trigger.** Upgrades ≥ 800, Rezkov arc finished or declined, then 2 board jobs by the primary ship, `ledger_arc_done` unset.
   Briefing variant on `rezkov_ai_planted` ("you planted it" vs "I had a crew plant it").
 - **Flow.** Vague rumors → Thresh at Dustmote → Rezkov's station (briefing) → fly into three
   data cores near Valcourt, Ostia and Waypoint Galen → the assembled AI drains 3 energy/s and
@@ -101,12 +101,13 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   Rezkov is the gate for every Phase II arc (Ledger, Boneyard, Corsair).
 - **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are recovered, or at 8U from Ashgrave) →
   annex_hack (Relay hacks frontshield to
-  100%; drones go idle) → annex_control (one operation at a time: 4 min archive
-  download, 60s drone IFF reprogram, 60s station defense lasers, while a 7-ship Concord
-  Hostile battle group closes on impulse from 15U; the flip launches 24 fast drones from
-  two nebulae; the order decides the fight, the long download keeps the crew there;
-  no warp jammer, the crew keeps warp; CNS Vanguard fights like any other ship) → done
-  when the crew leaves the Boneyard, finished or not.
+  100%, from range by probe; drones go idle, later ones too; the Annex becomes dockable) →
+  annex_control (docked only, one operation at a time: 2 min archive download that stops on
+  undocking, 60s drone reprogram, 60s station defense lasers; the first docking brings a
+  7-ship Concord Hostile battle group 15U out; the reprogram launches 24 fast drones from
+  two nebulae; no warp jammer; CNS Vanguard fights like any other ship) → report (archive
+  in and fleet gone: talk with the lifeboat survivors, docked at the rescue job's station) → done.
+  Without the survivors, the won fight with the archive is the end.
 - **Exports**:
   - `boneyard_arc_done`; `boneyard_hack_done` (archive downloaded);
     `boneyard_drone_flip` (drones now `Relic Active`, hostile to Concord);

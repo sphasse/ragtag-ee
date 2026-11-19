@@ -1,9 +1,12 @@
--- Boneyard arc: hook -> annex_hack -> annex_control (download, drone IFF flip, Annex lasers) -> done
--- (full), then the GM states and "-> Inactive". Not covered: the lifeboat rescue job (the other
--- way to reveal the Annex), a real Relay hack (the GM helper sets the level), how the fight plays
--- out (the Battle Lab's Annex mode is for that); covered: who spawns where, how fast, with what
--- lasers, drone replacement from the same nebula, and the Annex's lasers picking a Concord ship.
--- The 4 min download and the 60 s reprogram and laser timers are shortened by moving their start times back.
+-- Boneyard arc: hook -> annex_hack (from range) -> annex_control (dock: the fleet jumps in; download,
+-- drone reprogram, Annex lasers; the download stops on undocking) -> report (the survivors, docked at
+-- their station) -> done (full); then the other ending (no survivors: Ashgrave reveals the Annex, the fight ends it), the GM
+-- states and "-> Inactive". Not covered: the lifeboat rescue flight (the test calls the pickup's on_found),
+-- a real Relay hack by probe (the GM helper sets the level), how the fight plays out (the Battle Lab's
+-- Annex mode is for that), the pop-ups on the consoles as the crew sees them; covered: who spawns
+-- where, how fast, with what lasers, drone replacement from the same nebula, and the Annex's lasers
+-- picking a Concord ship. The 2 min download and the 60 s reprogram and laser timers are shortened
+-- by moving their start times back.
 
 T.arc("boneyard")
 
@@ -28,7 +31,19 @@ local function census()
 end
 local census0
 
--- ── Hook: rumors and the rescue job; flying to Ashgrave reveals the Annex ────
+-- Pop-ups on the arc ship's consoles whose text has `text`.
+local function popups(text)
+    local n = 0
+    pcall(function()
+        local f = T.P().components.custom_ship_functions   -- the component is the array
+        for i = 1, #f do
+            if tostring(f[i].caption):find(text, 1, true) then n = n + 1 end
+        end
+    end)
+    return n
+end
+
+-- ── Hook: rumors and the rescue job; picking up the survivors reveals the Annex ──
 T.step("hook", function()
     census0 = census()
     T.jump("hook")
@@ -36,16 +51,40 @@ T.step("hook", function()
     T.eq("hook: three hook rumors", T.rumors("BONEYARD_HOOK"), 3)
     T.eq("hook: the rescue job is on offer", T.jobs("BONEYARD_SPECIAL"), 1)
     T.check("hook: no Annex yet", not RT.valid(annex()))
-    T.moveTo(39000, -102500)   -- 6.5U from Ashgrave (clear of the planet), 4U from the Annex
+    -- The rescue job taken at Halcyon Rest; the flight out is not played: the pod is picked up
+    -- through the job's own on_found.
+    local m
+    for _, e in ipairs(JOBS._injected) do
+        if e.category == "BONEYARD_SPECIAL" then m = e.record("Halcyon Rest") end
+    end
+    m.on_found(m)
 end)
-T.waitFor("hook: the Annex shows up near Ashgrave", function() return RT.valid(annex()) end, 3)
+T.talk(nil, {}, {answer = true, name = "the lifeboat survivors"})
+T.step("the survivors ask for the Annex", function()
+    T.check("survivors: get us out", T.msg():find("Please get us out of here", 1, true) ~= nil, T.msg())
+    T.check("survivors: hack the Annex and extract the research", T.msg():find("If the Annex could be hacked and all the research extracted", 1, true) ~= nil, T.msg())
+    T.eq("survivors: nothing to answer", #T.replies(), 0)
+    T.eq("survivors: where they are taken", T.flag("boneyard_survivors_at"), "Halcyon Rest")
+    T.check("survivors: the Annex is out", RT.valid(annex()))
+    -- The voice that hailed is nowhere: no position, no radar blip (it once sat over Port Vesper).
+    local v = RT.voice.get("boneyard_survivors")
+    T.check("survivors: the voice has no position", RT.valid(v) and v.components.transform == nil)
+    T.check("survivors: and no radar blip", RT.valid(v) and v.components.radar_trace == nil)
+    local near = 0
+    for _, o in ipairs(getObjectsInRadius(0, 0, 3000)) do
+        if o == v then near = near + 1 end
+    end
+    T.eq("survivors: nothing of theirs at Port Vesper", near, 0)
+end)
+T.closeComms()
+T.waitFor("annex_hack: the hack starts at once (Relay works from range)", function() return T.phase() == "annex_hack" end, 3)
 T.step("lead paid off", function()
     T.eq("hook: rumors removed once found", T.rumors("BONEYARD_HOOK"), 0)
     T.eq("hook: rescue job withdrawn", T.jobs("BONEYARD_SPECIAL"), 0)
-    T.eq("hook: still the hook at 4U", T.phase(), "hook")
-    T.moveTo(ANNEX_X, ANNEX_Y + 2000)
+    T.check("annex_hack: the Annex is an enemy (no docking)", T.P():isEnemy(annex()))
+    T.eq("annex_hack: every console is given the objective", popups("NEW OBJECTIVE: Hack the Ashgrave Annex"), 10)
+    T.moveTo(39000, -102500)   -- near the Annex for the rest
 end)
-T.waitFor("annex_hack: closing to 2.5U starts the hack", function() return T.phase() == "annex_hack" end, 3)
 
 -- ── Hack ─────────────────────────────────────────────────────────────────────
 T.talk(annex, {})
@@ -55,42 +94,70 @@ T.step("locked down", function()
     T.action("Complete hack")
 end)
 T.waitFor("annex_control: a finished hack opens the Annex", function() return T.phase() == "annex_control" end, 3)
+T.closeComms()
 local function dist(s, x, y) local sx, sy = s:getPosition(); return math.sqrt((sx - x) ^ 2 + (sy - y) ^ 2) end
-T.step("battle group inbound", function()
-    local g = T.st().concord_group
-    T.eq("annex_control: seven Concord ships", T.alive(g), 7)
-    T.eq("annex_control: battle group is hostile", g[1]:getFaction(), "Concord Hostile")
-    T.eq("annex_control: the middle ship is the command ship", g[4], T.st().concord_cmd)
-    T.eq("annex_control: CNS Vanguard", g[4]:getCallSign(), "CNS Vanguard")
-    -- A line 15U north-west of the Annex, running north-east / south-west (ends 12U apart).
-    local mx, my = g[4]:getPosition()
-    T.check("annex_control: line centre 15U north-west", math.abs(dist(g[4], ANNEX_X, ANNEX_Y) - 15000) < 300
-        and mx < ANNEX_X and my < ANNEX_Y, string.format("%.0f, %.0f", mx, my))
-    local x1, y1 = g[1]:getPosition()
-    local x7, y7 = g[7]:getPosition()
-    T.check("annex_control: the line runs at 45 degrees", math.abs(math.abs(x7 - x1) - math.abs(y7 - y1)) < 300
-        and math.abs(dist(g[1], x7, y7) - 12000) < 300, string.format("(%.0f,%.0f) (%.0f,%.0f)", x1, y1, x7, y7))
-    T.check("annex_control: no warp", not g[1]:hasWarpDrive() and not g[4]:hasWarpDrive())
-    T.eq("annex_control: Phobos T3 at the lab's 104 impulse", math.floor(g[4]:getImpulseMaxSpeed() + 0.5), 104)
-    T.eq("annex_control: Atlantis X23 at the lab's 80 impulse", math.floor(g[1]:getImpulseMaxSpeed() + 0.5), 80)
-    local p = T.st().annex_battle.b.points
-    T.check("annex_control: combat points 3U north-west of the Annex",
-        math.abs(math.sqrt((p[3][1] - ANNEX_X) ^ 2 + (p[3][2] - ANNEX_Y) ^ 2) - 3000) < 50 and p[3][1] < ANNEX_X and p[3][2] < ANNEX_Y)
-    T.check("annex_control: the Annex is not armed yet", annex():getBeamWeaponRange(0) == 0)
-    T.check("annex_control: Boneyard patrols suspended", PROX._suspended_zones["the Boneyard"])
-    T.eq("annex_control: objective", RT.objectives.boneyard, "Defend the Annex")
+local function relicDrones()
     local relic = 0
     for _, o in ipairs(getObjectsInRadius(36000, -96000, 32000)) do
         if isObjectType(o, "CpuShip") and o:getFaction() == "Relic" then relic = relic + 1 end
     end
-    T.eq("annex_control: no active Relic drones left in the Boneyard", relic, 0)
+    return relic
+end
+local late
+T.step("security reset", function()
+    T.eq("annex_control: objective", RT.objectives.boneyard, "Download Annex data")
+    T.eq("annex_control: the Annex is Relic Active", annex():getFaction(), "Relic Active")
+    T.check("annex_control: no longer an enemy (the crew can dock)", not T.P():isEnemy(annex()))
+    T.check("annex_control: the Annex has a docking bay", annex().components.docking_bay ~= nil)
+    T.eq("annex_control: no Concord until the crew docks", T.alive(T.st().concord_group), 0)
+    T.check("annex_control: Boneyard patrols suspended", PROX._suspended_zones["the Boneyard"])
+    T.eq("annex_control: no active Relic drones left in the Boneyard", relicDrones(), 0)
+    -- A drone that turns up after the hack goes docile too.
+    late = CpuShip():setTemplate("MT52 Hornet"):setFaction("Relic"):setPosition(30000, -90000)
+end)
+T.waitFor("annex_control: a drone arriving later goes idle too", function()
+    return RT.valid(late) and late:getFaction() == "Derelict"
+end, 4)
+T.talk(annex, {})
+T.step("not docked: dock for more options", function()
+    late:destroy()
+    T.check("annex_control: dock first", T.msg():find("Station security has been reset. Dock for more options.", 1, true) ~= nil, T.msg())
+    T.check("annex_control: no operations at a distance", not T.hasReply("Download"), table.concat(T.replies(), " | "))
+    T.eq("annex_control: still no fleet", T.alive(T.st().concord_group), 0)
 end)
 
--- ── Control: one operation at a time ─────────────────────────────────────────
+-- ── Docking: the fleet jumps in ──────────────────────────────────────────────
+T.dock(annex)
+T.waitFor("annex_control: docking brings the Concord fleet", function() return T.st().fleet_arrived end, 3)
+T.step("battle group arrives", function()
+    T.eq("fleet: every console is told", popups("Incoming jump detected. A Concord battle fleet has arrived."), 10)
+    local g = T.st().concord_group
+    T.eq("fleet: seven Concord ships", T.alive(g), 7)
+    T.eq("fleet: battle group is hostile", g[1]:getFaction(), "Concord Hostile")
+    T.eq("fleet: the middle ship is the command ship", g[4], T.st().concord_cmd)
+    T.eq("fleet: CNS Vanguard", g[4]:getCallSign(), "CNS Vanguard")
+    -- A line 15U north-west of the Annex, running north-east / south-west (ends 12U apart).
+    local mx, my = g[4]:getPosition()
+    T.check("fleet: line centre 15U north-west", math.abs(dist(g[4], ANNEX_X, ANNEX_Y) - 15000) < 300
+        and mx < ANNEX_X and my < ANNEX_Y, string.format("%.0f, %.0f", mx, my))
+    local x1, y1 = g[1]:getPosition()
+    local x7, y7 = g[7]:getPosition()
+    T.check("fleet: the line runs at 45 degrees", math.abs(math.abs(x7 - x1) - math.abs(y7 - y1)) < 300
+        and math.abs(dist(g[1], x7, y7) - 12000) < 300, string.format("(%.0f,%.0f) (%.0f,%.0f)", x1, y1, x7, y7))
+    T.check("fleet: no warp", not g[1]:hasWarpDrive() and not g[4]:hasWarpDrive())
+    T.eq("fleet: Phobos T3 at the lab's 104 impulse", math.floor(g[4]:getImpulseMaxSpeed() + 0.5), 104)
+    T.eq("fleet: Atlantis X23 at the lab's 80 impulse", math.floor(g[1]:getImpulseMaxSpeed() + 0.5), 80)
+    local p = T.st().annex_battle.b.points
+    T.check("fleet: combat points 3U north-west of the Annex",
+        math.abs(math.sqrt((p[3][1] - ANNEX_X) ^ 2 + (p[3][2] - ANNEX_Y) ^ 2) - 3000) < 50 and p[3][1] < ANNEX_X and p[3][2] < ANNEX_Y)
+    T.check("fleet: the Annex is not armed yet", annex():getBeamWeaponRange(0) == 0)
+end)
+
+-- ── Control: one operation at a time, docked ─────────────────────────────────
 T.talk(annex, {})
 T.step("three operations on offer", function()
-    T.check("control: download, 4 min", T.hasReply("1) Download research archive (4 min)"), table.concat(T.replies(), " | "))
-    T.check("control: reprogram, 60 s", T.hasReply("2) Reprogram drone IFF targets (60s)"), table.concat(T.replies(), " | "))
+    T.check("control: download, 2 min", T.hasReply("1) Download research archive (2 min)"), table.concat(T.replies(), " | "))
+    T.check("control: reprogram, 60 s", T.hasReply("2) Reprogram the drones to be hostile to the Concord (60s)"), table.concat(T.replies(), " | "))
     T.check("control: lasers, 60 s", T.hasReply("3) Enable station defense lasers (60s)"), table.concat(T.replies(), " | "))
 end)
 T.talk(annex, {"1) Download research archive"})
@@ -98,22 +165,40 @@ T.step("download running", function() T.check("control: downloading", T.st().dow
 T.talk(annex, {})
 T.step("the others are locked meanwhile", function()
     T.check("control: download shown in progress", T.hasReply("[IN PROGRESS] Downloading archive"), table.concat(T.replies(), " | "))
-    T.check("control: reprogram locked during download", T.hasReply("[LOCKED] Reprogram drone IFF"), table.concat(T.replies(), " | "))
+    T.check("control: reprogram locked during download", T.hasReply("[LOCKED] Reprogram the drones"), table.concat(T.replies(), " | "))
     T.check("control: lasers locked during download", T.hasReply("[LOCKED] Enable station defense lasers"), table.concat(T.replies(), " | "))
     T.check("control: not done early", not T.flag("boneyard_hack_done"))
-    T.st().download_start = T.st().download_start - 238
+end)
+T.closeComms()
+T.undock()
+T.waitFor("control: undocking stops the download", function() return T.st().download_start == nil end, 3)
+T.step("interrupted", function()
+    T.check("control: no archive", not T.flag("boneyard_hack_done") and not T.st().download_done)
+end)
+T.dock(annex)
+T.talk(annex, {"1) Download research archive"})
+T.step("download restarted", function()
+    T.check("control: downloading again", T.st().download_start ~= nil)
+    T.st().download_start = T.st().download_start - 118
 end)
 T.waitFor("control: download completes", function() return T.flag("boneyard_hack_done") end, 5)
 T.step("research indexed", function()
     T.check("control: Ashgrave research readable", SCIDB._locked.ashgrave_research and SCIDB._locked.ashgrave_research.unlocked)
+    T.eq("control: the fleet is the objective now", RT.objectives.boneyard, "Defeat the Concord fleet")
+    T.eq("control: still at the Annex (the fleet is not beaten)", T.phase(), "annex_control")
 end)
-T.talk(annex, {"2) Reprogram drone IFF targets"})
+T.talk(annex, {"2) Reprogram the drones"})
 T.step("reprogram running", function()
     T.check("control: reprogramming", T.st().reprogram_start ~= nil)
-    T.check("control: no drones before the override finishes", #T.st().rein_drones == 0)
+    T.check("control: no drones before the reprogram finishes", #T.st().rein_drones == 0)
+end)
+T.closeComms()
+T.undock()
+T.step("the reprogram does not need the clamp", function()
+    T.check("control: still reprogramming after undocking", T.st().reprogram_start ~= nil)
     T.st().reprogram_start = T.st().reprogram_start - 58
 end)
-T.waitFor("control: IFF override completes", function() return T.flag("boneyard_drone_flip") end, 5)
+T.waitFor("control: reprogram completes", function() return T.flag("boneyard_drone_flip") end, 5)
 local G = BATTLE.ANNEX.gates
 local function gateOf(s)
     for k, g in ipairs(G) do
@@ -134,8 +219,7 @@ T.step("drones on our side", function()
     T.eq("control: 12 out of the north-east nebula, 12 out of the south-west one", at[1] .. "/" .. at[2], "12/12")
     local ax, ay = ANNEX_X + G[2][1] * 1000, ANNEX_Y + G[2][2] * 1000
     T.check("control: the south-west gate is clear of Ashgrave", math.sqrt((ax - 39000) ^ 2 + (ay + 96000) ^ 2) > 5000)
-    T.check("control: the drone override does not arm the Annex", annex():getBeamWeaponRange(0) == 0)
-    T.eq("control: still at the Annex", T.phase(), "annex_control")
+    T.check("control: the reprogram does not arm the Annex", annex():getBeamWeaponRange(0) == 0)
     -- A drone dies: a new one comes out of the same nebula.
     victim = d[2]
     victim_gate = gateOf(victim)
@@ -148,7 +232,12 @@ T.step("from the same nebula", function()
     T.eq("control: the dead drone is forgotten (the list does not grow)", #d, 24)
     T.eq("control: and so is its battle record", #T.st().annex_battle.b.sides.b, 24)
 end)
+T.talk(annex, {})
+T.step("undocked: no operations", function()
+    T.check("control: undocked, dock first", T.msg():find("Dock for more options", 1, true) ~= nil, T.msg())
+end)
 local annex_hit = false
+T.dock(annex)
 T.talk(annex, {"3) Enable station defense lasers"})
 T.step("lasers booting", function()
     T.check("control: laser boot running", T.st().lasers_start ~= nil)
@@ -183,20 +272,37 @@ T.waitFor("control: with the Concord gone, the drones guard the Annex", function
     for _, s in ipairs(d) do if s:getOrderTarget() ~= annex() then return false end end
     return true
 end, 4)
-T.step("no more replacements once the Concord is gone", function()
-    T.check("control: the crew is told the battle group is destroyed", T.st().concord_beaten)
-    T.eq("control: still 24 drones", T.alive(T.st().rein_drones), 24)
+T.step("fleet eliminated", function()
+    T.check("report: the Annex reports the fleet eliminated", T.st().concord_beaten)
+    T.eq("report: still 24 drones (no more replacements)", T.alive(T.st().rein_drones), 24)
+    T.eq("report: archive and fleet done: report to the survivors", T.phase(), "report")
+    T.eq("report: objective", RT.objectives.boneyard, "Report the success")
+    T.check("report: patrols still suspended", PROX._suspended_zones["the Boneyard"])
 end)
-T.closeComms()
 
--- ── Leave the Boneyard: resolve ───────────────────────────────────────────────
-T.step("pull back 15U from the Annex (still inside the Boneyard)", function() T.moveTo(ANNEX_X, ANNEX_Y - 15000) end)
-T.step("no extract phase: still at the Annex fight", function()
-    T.eq("control: 15U out is still the fight", T.phase(), "annex_control")
-    c0, concord0, corsairs0 = T.credits(), T.rep("Concord"), T.rep("Corsairs")
-    T.moveTo(36000, -96000 + 31000)
+-- ── Report to the survivors ──────────────────────────────────────────────────
+T.dock("Port Vesper")
+T.talk("Port Vesper", {})
+T.step("not where the survivors are", function()
+    T.check("report: no survivors at Port Vesper", not T.hasReply("Talk with the lifeboat survivors"), table.concat(T.replies(), " | "))
 end)
-T.waitFor("done: clearing the Boneyard resolves the arc", function() return T.status() == "done" end, 3)
+T.step("fly off", function() T.moveTo(0, 0) end)
+T.talk("Halcyon Rest", {})
+T.step("not docked", function()
+    T.check("report: only docked", not T.hasReply("Talk with the lifeboat survivors"), table.concat(T.replies(), " | "))
+end)
+T.dock("Halcyon Rest")
+T.wait(2.5)   -- flying into a new region pays survey credits (checked every 2 s): let that land first
+T.step("before the talk", function()
+    T.eq("report: not done before the talk", T.status(), "active")
+    c0, concord0, corsairs0 = T.credits(), T.rep("Concord"), T.rep("Corsairs")
+end)
+T.talk("Halcyon Rest", {"Talk with the lifeboat survivors"})
+T.step("their thanks", function()
+    T.check("report: they were close to reversing it", T.msg():find("reverse the abomination", 1, true) ~= nil, T.msg())
+    T.check("report: the ship carries it forward", T.msg():find("Hopefully the " .. T.P():getCallSign() .. " can carry the mission forward.", 1, true) ~= nil, T.msg())
+end)
+T.waitFor("done: the talk ends the arc", function() return T.status() == "done" end, 3)
 T.step("resolved", function()
     T.eq("done: boneyard_arc_done", T.flag("boneyard_arc_done"), true)
     T.eq("done: objective cleared", RT.objectives.boneyard, nil)
@@ -206,6 +312,35 @@ T.step("resolved", function()
     T.check("done: Boneyard patrols resumed", not PROX._suspended_zones["the Boneyard"])
     T.eq("done: two aftermath rumors", T.rumors("BONEYARD_DONE"), 2)
     T.check("done: the arc's achievement is defined and earned", ACH.defs.boneyard_breach and ACH.defs.boneyard_breach.check(STATS.ensure()))
+end)
+T.closeComms()
+
+-- ── The other ending: no survivors picked up, so the fight is the end ────────
+T.step("no survivors: back to the hook", function()
+    T.moveTo(ANNEX_X + 7000, ANNEX_Y - 3000)   -- over 8U from Ashgrave
+    T.jump("hook")
+    T.check("no survivors: no Annex", not RT.valid(annex()) and not T.flag("boneyard_buoy_found"))
+    T.moveTo(39000, -102500)   -- 6.5U from Ashgrave (clear of the planet)
+end)
+T.waitFor("no survivors: flying to Ashgrave reveals the Annex", function() return RT.valid(annex()) end, 3)
+T.waitFor("no survivors: and the hack starts", function() return T.phase() == "annex_hack" end, 3)
+T.step("park the ship near the Annex", function() T.moveTo(ANNEX_X + 7000, ANNEX_Y - 3000) end)
+T.step("back to the Annex, no survivors", function()
+    T.jump("control")
+    RT.clearFlag("boneyard_buoy_found")
+    RT.clearFlag("boneyard_survivors_at")
+end)
+T.dock(annex)
+T.waitFor("no survivors: the fleet jumps in", function() return T.st().fleet_arrived end, 3)
+T.step("archive and fleet", function()
+    T.st().download_start = T.now() - 200
+    T.st().download_done = true
+    RT.flag("boneyard_hack_done", true)
+    T.action("Destroy Concord")
+end)
+T.waitFor("no survivors: the fight ends the arc", function() return T.status() == "done" end, 4)
+T.step("no report", function()
+    T.check("no survivors: the arc is done", T.flag("boneyard_arc_done"))
 end)
 
 -- ── GM states ────────────────────────────────────────────────────────────────
@@ -224,8 +359,14 @@ T.gmWalk({
         T.eq("GM hack: still hacking a second later", T.phase(), "annex_hack")
     end},
     {key = "control", phase = "annex_control", check = function()
-        T.eq("GM control: seven Concord ships", T.alive(T.st().concord_group), 7)
+        T.eq("GM control: no fleet until the crew docks", T.alive(T.st().concord_group), 0)
+        T.eq("GM control: the Annex can be docked", annex():getFaction(), "Relic Active")
         T.check("GM control: zone suspended", PROX._suspended_zones["the Boneyard"])
+    end},
+    {key = "report",  phase = "report", check = function()
+        T.eq("GM report: objective", RT.objectives.boneyard, "Report the success")
+        T.check("GM report: the archive is in", T.flag("boneyard_hack_done"))
+        T.eq("GM report: no fleet", T.alive(T.st().concord_group), 0)
     end},
     {key = "done_full", done = true, check = function()
         T.check("GM done_full: both objectives", T.flag("boneyard_hack_done") and T.flag("boneyard_drone_flip"))
@@ -235,13 +376,6 @@ T.gmWalk({
     {key = "done_data", done = true, check = function()
         T.check("GM done_data: data only", T.flag("boneyard_hack_done") and not T.flag("boneyard_drone_flip"))
         T.eq("GM done_data: an end state does not pay twice", T.credits(), paid)
-    end},
-    {key = "done_drones", done = true, check = function()
-        T.check("GM done_drones: drones only", not T.flag("boneyard_hack_done") and T.flag("boneyard_drone_flip"))
-        T.check("GM done_drones: research locked again", not SCIDB._locked.ashgrave_research.unlocked)
-    end},
-    {key = "done_minimal", done = true, check = function()
-        T.check("GM done_minimal: neither", not T.flag("boneyard_hack_done") and not T.flag("boneyard_drone_flip"))
     end},
 })
 

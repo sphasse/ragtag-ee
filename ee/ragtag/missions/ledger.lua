@@ -33,7 +33,7 @@ M.no_auto_cancel = true
 
 -- Board jobs the primary ship must finish after the Rezkov arc ends before Thresh comes looking
 -- (playtest: the Rezkov arc ends at Dustmote, and the hook was on offer right there).
-M.JOBS_AFTER_REZKOV = 3
+M.JOBS_AFTER_REZKOV = 2
 
 local function _rezkovOver() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end
 local function _jobsDone()
@@ -60,7 +60,7 @@ M.triggers = {
         if base == nil then base = _jobsDone(); RT.flag("ledger_jobs_base", base) end
         return _jobsDone() - base >= M.JOBS_AFTER_REZKOV
     end,
-    custom_label = "3 board jobs done by the primary ship since the Rezkov arc ended",
+    custom_label = M.JOBS_AFTER_REZKOV .. " board jobs done by the primary ship since the Rezkov arc ended",
 }
 
 M.phase_order = {"init", "hook", "meet", "relay_run", "carry"}
@@ -478,7 +478,7 @@ M.flags = {
     ledger_lost_reason = '"power" (reactor hit zero) | "surrender" (data transmitted to the auditors) | "destroyed" (the ship died carrying it) | "ejected" (Engineering ejected the core)',
     ledger_evidence    = "Rezkov holds the Containment Ledger (set on full; unlocks the Science DB entry)",
     ledger_rewarded    = "reputation and credits were paid (an end state pays once)",
-    ledger_jobs_base   = "board jobs the primary ship had done when the Rezkov arc was first seen over (the hook waits for 3 more)",
+    ledger_jobs_base   = "board jobs the primary ship had done when the Rezkov arc was first seen over (the hook waits for M.JOBS_AFTER_REZKOV more)",
     ["ledger_met_*"]   = "Science DB profile met in this arc (thresh, rezkov), set by ARC.meet",
 }
 M.reads = {"rezkov_ai_planted", "rezkov_m2_done", "rezkov_arc_done", "rezkov_declined"}

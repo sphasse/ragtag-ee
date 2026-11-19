@@ -1,7 +1,8 @@
 -- ee/ragtag/voice.lua
 -- RT.voice: invisible NPC voices that can hail the crew and hold a branching conversation.
 --
--- A voice is a position-less Artifact: it has no transform, so it never appears on radar, yet it
+-- A voice is an Artifact stripped of its position, radar blip, model and body (RT.voice.create),
+-- so it never appears on radar or the main screen, yet it
 -- can hail a player ship (verified headless; the stock Omicron scenario does the same). Use it
 -- for a voice with no ship: survivors, Concord command, a beacon broadcast, a ghost signal,
 -- Rezkov or Kael reaching the crew anywhere in the verse.
@@ -100,6 +101,11 @@ function RT.voice.create(id, def)
     local e = Artifact():setCallSign(name):setCommsScript(""):setCommsFunction(function()
         _render(tree)
     end)
+    -- Artifact() gives the entity a position (0, 0: Port Vesper), a radar blip, a 3D model and a
+    -- collision body. A voice is nowhere: strip them, or its name sits on the radar over Vesper.
+    for _, c in ipairs({"radar_trace", "mesh_render", "physics", "transform"}) do
+        pcall(function() e.components[c] = nil end)
+    end
     RT._voices[id] = {entity = e, name = name}
     if def.ttl then
         RT.after(def.ttl, function() RT.voice.destroy(id) end, "voice_ttl_" .. id)
