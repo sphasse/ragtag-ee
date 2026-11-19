@@ -395,7 +395,7 @@ Hostile / Corsair Friendly / Relic Active):
 **Seeding (before it triggers).** Arc 5's resolve injects ~10 vague seed rumors (`REPUBLIC_SEED`,
 priority 3: "the Concord senate hasn't sat in weeks", "Sentinel Fleet Yard is taking orders
 from nobody the Magistrate knows") so the world already feels split. Kael's hook is an
-`RT.voice` hail from nobody-in-particular (a position-less artifact), not a rumor.
+`RT.voice` hail from nobody-in-particular (an artifact with no position: never on radar), not a rumor.
 
 **Structure** (phases; each has a GM skip button, ≤ 18 chars):
 1. `hook` — Kael hails the crew by voice from Concord Waypoint Galen: the Imperials sealed her
@@ -564,7 +564,8 @@ If an arc module is lost, rebuild against these rails:
   operations; `RT.flag`/`RT.clearFlag` for cross-session state; GM skip action
   per phase, each calling `_clearState` first.
 - **Factions available**: `Concord Hostile` (targetable law), `Corsair
-  Friendly` (allied pirates), `Relic Active` (reprogrammed drones, anti-Concord)
+  Friendly` (allied pirates), `Relic Active` (reprogrammed drones, anti-Concord), `Concord
+  Surrendered` (a Concord post that gave up: nobody's enemy, so allies can board it)
   — all defined in `VERSE.setupFactions()`.
 - **One-shot story weapons**: a flag read at player spawn, not an `RT.UPGRADES`
   entry (upgrades re-apply every session and show in the shipwright). Fit with

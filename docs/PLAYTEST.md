@@ -2,7 +2,7 @@
 
 Covers what the headless tests (`tools/game_tests.py`) cannot play: real fights and hacks, several
 clients, and the numbers left for a playtest. Tick items off, and note what felt wrong and *where*
-(grid, phase, which station). Last updated 2026-11-17, after `b47beb3`.
+(grid, phase, which station). Last updated 2026-11-19, after the round of arc fixes from the RC1 playtest (RC2).
 
 GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a phase; the helper buttons
 (e.g. **Kill fleet**) skip a fight. Use them to get to a section, then play the section for real.
@@ -49,11 +49,19 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 
 ## 3. Ledger Arc (after Rezkov; 800 cr of upgrades)
 
+- [ ] The hook comes after **2 board jobs** by the Magpie once Rezkov is over (jobs done before reaching
+      800 cr of upgrades count now; that was the RC1 bug). It is quiet: rumors and Thresh at Dustmote.
+      Noticeable enough? (GM: Missions → Ledger → Mission criteria shows the count.)
 - [ ] Hook at Dustmote → Rezkov's station in the nebula → three data cores (Valcourt, Ostia, Galen)
+- [ ] Rezkov's fragment directions end "Bring the assembled AI to me here." on screen, not cut off by
+      the bottom of the comms window
+- [ ] The AI's "Unidentified Signal" is **not** on the radar at Port Vesper
 - [ ] Carrying the AI: the **3 energy/s drain** (eased from 5) — tense or just annoying? Does Engineering cope?
 - [ ] The **60 s** before the Concord Audit Service fleet arrives: enough time?
 - [ ] Energy at zero is an **instant loss**: fair, or should there be a warning or grace period?
 - [ ] "Transmit the data" surrender ending reads clearly
+- [ ] GM "+100 energy" helper (fragment hunt and carry) for a crew in trouble
+- [ ] At Rezkov's: "You were right, this thing runs hot." reads naturally
 
 ## 4. Boneyard Arc (after Rezkov; 800 cr of upgrades)
 
@@ -79,6 +87,10 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 - [ ] Escort: the guide **paces the crew** (holds past 5.5U behind, leads on within 4.5U). Stop for a
       while (a shake-down, a fight), then follow again: does it pick the crew back up? Do the short hops
       read as leading, or as stop-and-go? *(The test moves the crew; real flight is not tested.)*
+- [ ] The escorts leave through Blackwater's new **west gap** in the mine ring, and survive a stray
+      mine (100/100 shields, 120 hull)
+- [ ] The surrendered depot shows as **Concord Surrendered**; the escorts dock and nobody keeps firing
+      at it; the "we hit the jackpot" hail as they start loading
 - [ ] Raid on Forward Depot Anvil: the **escorts vs the two guards, for real** (headless it was still
       going after 45 s). Too long? Do the order buttons unlock at the right time?
 - [ ] An escort lost → Reva names it and sends a replacement
@@ -90,7 +102,22 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       too long under fire? Does the Concord ever get to it?
 - [ ] Losing your ship in the battle ends the arc as failed; losing Corsairs does not
 
-## 6. Jobs (all seven types, at least once each)
+## 6. Ship handling upgrades and the Hob Works
+
+- [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does
+      each level feel like a step? Is double the stock turn and acceleration too much?
+- [ ] Hob's Landing's shipwright (the Hob Works) sells sensors, engines, thrusters, reactor, shields
+      and probes; its Science DB Ports entry has the new lore
+
+## 7. The world
+
+- [ ] The Concord lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) walk a
+      slow beat round their posts and read as pickets ("Concord lane picket…"), not lost defenders
+- [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …")
+- [ ] An empty job board says "check back in a while / a few / a bit"
+- [ ] GM **Enable arc / Disable arc** on a finished arc resets it (its done flag too)
+
+## 8. Jobs (all seven types, at least once each)
 
 - [ ] Delivery · Salvage · Hacking (75% threshold, beam windows) · Destroy · Boarding · Escort · Tailing
 - [ ] Rewards feel right for the risk (boarding pays ~1.8× a delivery)

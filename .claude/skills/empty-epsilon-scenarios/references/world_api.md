@@ -95,7 +95,7 @@ handled automatically by `WORLD.update()`.
 
 | id | Name | Notes |
 |---|---|---|
-| `defenders` | Station Defenders | One MT52 Hornet per Concord/Independent station; respawns on death |
+| `defenders` | Station Defenders | One MT52 Hornet per Concord/Independent station; respawns on death. Also walks the lane pickets (garrisons with `beat_u`) round their posts |
 | `proximity` | Proximity Spawns | Ambient faction patrols; zone-based; GM-controllable spawn mode |
 
 ---
@@ -116,7 +116,19 @@ a new one spawns after a 120s cooldown.
 | `order_radius_u` | `20000` | Meters searched when ordered to attack a target |
 | `factions` | `{"Concord","Independent"}` | Which station factions get defenders |
 
+| `picket_dwell_secs` | `45` | How long a lane picket holds each corner of its beat |
+| `picket_arrive_u` | `600` | Meters: this close to a corner counts as there |
+
 Override at runtime: `WORLD.set("defenders", "respawn_secs", 60)`
+
+### Lane pickets
+
+Universe garrisons with a `beat_u` in the verse data (`VERSE.PICKETS`, built by `verse.lua`: today the
+three Concord lane pickets, not tied to a port) walk a square of that radius round their post. The
+lead flies to a corner (`orderFlyTowards`, so it still engages enemies on the way), holds it for
+`picket_dwell_secs` (`orderDefendLocation`), then goes on; the rest of the group keeps formation on
+the lead (700 m apart), and a new lead takes over if it dies. Plugin off: they hold their post.
+A garrison can name every ship with `callsigns = {...}` (or the first with `callsign`).
 
 ### Name pools
 

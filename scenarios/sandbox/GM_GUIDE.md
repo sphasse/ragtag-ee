@@ -127,7 +127,9 @@ The GM screen's buttons, top to bottom:
 - **Ship Upgrades...**: pick a ship, then grant or revoke upgrades on **that ship** and view its
   status sheet (see `docs/GM_SHIP_MANAGEMENT.md`)
 - **Missions...**: the story arcs (Rezkov, Boneyard, Ledger, Corsair): trigger conditions, state,
-  and "→" buttons to jump an arc to any phase
+  "→" buttons to jump an arc to any phase, and phase helpers (e.g. the Ledger's "+100 energy").
+  **Enable arc / Disable arc** (on any arc not running, finished ones included) first resets the
+  arc to "never happened": every flag of the arc, its done flag included, and its state
 - **Backup campaign / Restore campaign**: six numbered save slots (see Saving, below)
 - **Sounds...**: sound cues on or off, with test buttons
 
