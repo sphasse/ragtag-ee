@@ -93,7 +93,12 @@ lines are outside the ring. (Playtest: ships flying to a point inside the ring h
 | `corsair_battlegroup_destroyed` | true on defended (Arc 6 trigger) |
 | `corsair_met_reva` | Reva's Science DB profile |
 
-Rewards (once): defended → Corsairs +400, Concord −300. Failed/declined → nothing; Corsair
+Victory: Blackwater hails "The Concord battle group is destroyed! Victory is ours, but at a great cost.
+The pirate families of Blackwater owe you our thanks. Safe flying and see you around, <ship>!" and
+the arc ends; the surviving Corsairs head for the Blackwater approach and, with everything else the
+battle left, are removed 5 minutes later.
+
+Rewards (once): defended → Corsair standing to +500 if it was 0 or below, else +500 on top; Concord −300. Failed/declined → nothing; Corsair
 territory reverts to hostile. `CORSAIR_DONE` rumors either way.
 
 ## GM console

@@ -328,7 +328,11 @@ end)
 T.talk(function() return T.st().tender end, {}, {name = "Magazine"})
 T.step("the tender says so", function()
     T.check("tender: 'the haul is gone'", T.msg():find("haul is gone", 1, true) ~= nil, T.msg())
-    corsairs0, concord0 = T.rep("Corsairs"), T.rep("Concord")
+end)
+T.closeComms()
+T.step("the last Concord ships go down (Corsair standing below zero)", function()
+    RT.addReputation("Corsairs", -100 - T.rep("Corsairs"), "test")
+    concord0 = T.rep("Concord")
     T.action("Kill fleet")
 end)
 T.waitFor("done: the last Concord ship ends the battle", function() return T.status() == "done" end, 3)
@@ -336,10 +340,23 @@ T.step("defended", function()
     T.eq("defended: outcome", T.flag("corsair_arc_done"), "defended")
     T.check("defended: no rearm objective left", RT.objectives["corsair_rearm"] == nil)
     T.check("defended: corsair_ally and battlegroup flags", T.flag("corsair_ally") and T.flag("corsair_battlegroup_destroyed"))
-    T.eq("defended: Corsairs +400", T.rep("Corsairs") - corsairs0, 400)
+    T.eq("defended: Corsair standing up to +500 from below zero", T.rep("Corsairs"), 500)
     T.eq("defended: Concord -300", T.rep("Concord") - concord0, -300)
     T.eq("defended: Blackwater stays friendly", hostileAt("Blackwater"), "Corsair Friendly")
     T.eq("defended: one aftermath rumor", T.rumors("CORSAIR_DONE"), 1)
+    local home = 0
+    for _, r in ipairs(T.st().routes or {}) do
+        if not r.dock and math.abs(r.steps[1][1] - 55000) < 1 and math.abs(r.steps[1][2] - 87000) < 1 then home = home + 1 end
+    end
+    T.eq("defended: the surviving Corsairs head for Blackwater", home, T.alive(T.st().allies))
+    local cleanup
+    for _, tm in ipairs(RT.timers) do if tm.name:find("cleanup", 1, true) then cleanup = tm.at - T.now() end end   -- the arc's cleanup timer
+    T.check("defended: they are removed after 5 minutes", cleanup and cleanup > 290 and cleanup <= 300, tostring(cleanup))
+end)
+T.talk("Blackwater", {}, {answer = true, name = "Blackwater's victory hail"})
+T.step("Blackwater's thanks", function()
+    T.check("defended: the victory hail", T.msg():find("The Concord battle group is destroyed! Victory is ours, but at a great cost.", 1, true) ~= nil, T.msg())
+    T.check("defended: it names the crew's ship", T.msg():find("Safe flying and see you around, " .. T.P():getCallSign() .. "!", 1, true) ~= nil, T.msg())
 end)
 T.closeComms()
 
@@ -376,6 +393,18 @@ T.step("lost", function()
     T.eq("crew lost: outcome failed", T.flag("corsair_arc_done"), "failed")
     T.check("crew lost: no ally flag", not T.flag("corsair_ally"))
 end)
+
+-- ── Victory again, the Corsairs already friendly: +500 on top ─────────────────
+T.step("back to the battle, Corsair standing +200", function()
+    T.jump("battle")
+    RT.addReputation("Corsairs", 200 - T.rep("Corsairs"), "test")
+    T.action("Kill fleet")
+end)
+T.waitFor("again: defended", function() return T.status() == "done" end, 3)
+T.step("+500 on top", function()
+    T.eq("again: Corsair standing +200 -> +700", T.rep("Corsairs"), 700)
+end)
+T.closeComms()
 
 -- ── GM states ────────────────────────────────────────────────────────────────
 T.gmWalk({

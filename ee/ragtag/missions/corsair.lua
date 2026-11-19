@@ -736,7 +736,9 @@ function M.resolve(st)
     end
     ARC.once("corsair_rewarded", function()
         if outcome == "defended" then
-            RT.addReputation("Corsairs", 400, "Corsair Arc: stood with Blackwater")
+            -- Corsair standing: up to +500 from zero or below; +500 more if it was already positive.
+            local corsairs = RT.getReputation("Corsairs") or 0
+            RT.addReputation("Corsairs", corsairs > 0 and 500 or (500 - corsairs), "Corsair Arc: stood with Blackwater")
             RT.addReputation("Concord", -300, "Corsair Arc: destroyed Concord Battle Group Two")
         end
         ARC.log("[Corsair Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "defended" and "#80FF80" or "#FF8080")
@@ -749,7 +751,8 @@ function M.resolve(st)
     end
     -- The fleet's remains, the allies and the haul's mines leave the board a little later.
     ARC.kill(st.guide); st.guide = nil
-    RT.after(180, function()
+    -- 5 minutes: time for the surviving Corsairs to fly home out of sight.
+    RT.after(300, function()
         local cur = MISSIONS._state["corsair"]
         if cur then
             if cur.battle then cur.battle:clear(); cur.battle = nil end
@@ -961,10 +964,16 @@ M.phases.battle = {
         _tickRoutes(st)
         _tickBattle(st, now)
         _tickTender(st, now)
-        -- Victory: all of Battle Group Two destroyed, however that happens.
+        -- Victory: all of Battle Group Two destroyed, however that happens. Blackwater hails, the
+        -- arc ends, and the surviving Corsairs head home (removed with the rest in M.resolve).
         if st.battle and #ARC.alive(st.fleet) == 0 then
             RT.flag("corsair_arc_done", "defended")
-            ARC.log("[Reva Okonkwo] That's the last of them. Battle Group Two is gone. Blackwater stands!", "#80FF80")
+            local p = ARC.player()
+            local name = (p and p:getCallSign()) or (RT.campaign and RT.campaign.ship_name) or "Magpie"
+            local line = '"The Concord battle group is destroyed! Victory is ours, but at a great cost. '
+                .. 'The pirate families of Blackwater owe you our thanks. Safe flying and see you around, ' .. name .. '!"'
+            if not ARC.hail(_blackwater(), line, "Blackwater") then ARC.log("[Blackwater] " .. line, "#80FF80") end
+            for _, s in ipairs(ARC.alive(st.allies)) do _sendHome(st, s) end
             MISSIONS.phase("corsair", "done")
         end
     end,
