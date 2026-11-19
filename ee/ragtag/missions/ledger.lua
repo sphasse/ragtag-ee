@@ -35,10 +35,27 @@ M.no_auto_cancel = true
 -- (playtest: the Rezkov arc ends at Dustmote, and the hook was on offer right there).
 M.JOBS_AFTER_REZKOV = 2
 
-local function _rezkovOver() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end
 local function _jobsDone()
     local rec = RT.shipRecord()
     return rec and rec.jobs_done or 0
+end
+
+-- Is the Rezkov arc over? Also keeps the job count's starting point (ledger_jobs_base): noted the
+-- first time Rezkov is seen over, forgotten if the GM rewinds it. Done here because the engine
+-- checks `requires` every frame (MISSIONS update), whatever the other triggers say; the custom
+-- trigger below only runs once upgrades_min and not_flagged hold, so noting the count there
+-- started it only when the crew reached 800 cr of upgrades (playtest: jobs done before that
+-- did not count, and the hook did not come).
+local function _rezkovOver()
+    local over = (RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined")) and true or false
+    if not RT.campaign then return over end
+    local base = RT.flag("ledger_jobs_base")
+    if over and base == nil then
+        RT.flag("ledger_jobs_base", _jobsDone())
+    elseif not over and base ~= nil then
+        RT.clearFlag("ledger_jobs_base")
+    end
+    return over
 end
 
 M.triggers = {
@@ -48,17 +65,11 @@ M.triggers = {
     -- someone else planted it.
     requires       = _rezkovOver,
     requires_label = "Rezkov arc finished or declined",
-    -- Then some breathing room: M.JOBS_AFTER_REZKOV board jobs by the primary ship. The count is
-    -- taken the first time the Rezkov arc is seen finished (ledger_jobs_base), and forgotten if
-    -- the GM rewinds Rezkov.
+    -- Then some breathing room: M.JOBS_AFTER_REZKOV board jobs by the primary ship since the
+    -- Rezkov arc ended (counted from ledger_jobs_base, see _rezkovOver).
     custom = function()
-        if not _rezkovOver() then
-            if RT.flag("ledger_jobs_base") ~= nil then RT.clearFlag("ledger_jobs_base") end
-            return false
-        end
-        local base = RT.flag("ledger_jobs_base")
-        if base == nil then base = _jobsDone(); RT.flag("ledger_jobs_base", base) end
-        return _jobsDone() - base >= M.JOBS_AFTER_REZKOV
+        if not _rezkovOver() then return false end
+        return _jobsDone() - (RT.flag("ledger_jobs_base") or _jobsDone()) >= M.JOBS_AFTER_REZKOV
     end,
     custom_label = M.JOBS_AFTER_REZKOV .. " board jobs done by the primary ship since the Rezkov arc ended",
 }
@@ -264,7 +275,7 @@ local function _briefingText()
     else
         opener = '"Sit. Some months ago I had a crew put a program into the Concord accounting system at Waypoint Galen. Quiet work. It has spent months reading their books.'
     end
-    return opener .. '\n\nIt has finished. It found an account that has not closed in twenty years: \'Maw containment\', \'Ashgrave remediation\'. '
+    return opener .. '\n\nIt has finished. It found a large and suspicious account that has not closed in twenty years: \'Maw containment\', \'Ashgrave remediation\'. '
         .. 'Maintenance for drones that officially do not exist. Upkeep for an archive that officially does not exist. Every transfer signed, by people whose names you would know.\n\n'
         .. 'Now it needs a pickup. It cannot leave over Concord comms; they would see it. So it split itself into three fragments and went dark inside Concord space."'
 end
@@ -284,10 +295,12 @@ _stationComms = function(src, tgt)
         addCommsReply("Where are the fragments?", function()
             setCommsMessage('"Here.\n\n' .. _fragList() .. '\n\nSmall cold cores. Science will have to pick them out; they look like nothing. '
                 .. 'Fly into one and it comes aboard. Once all three are together, it wakes up.\n\n'
-                .. 'The Concord will not wave you through their space. Watch your scopes and stay off the patrol lanes. Bring it to me, here."')
+                .. 'The Concord will not wave you through their space. Watch your scopes and stay off the patrol lanes. '
+                .. 'The Concord accounting unit has a notorious strike force that you really don\'t want to run across. '
+                .. 'Bring the assembled AI to me here."\n')   -- the trailing line keeps the last line clear of the dialog's bottom edge
             addCommsReply("We'll bring it home.", function()
                 _accept()
-                setCommsMessage('"Good. Do not linger in Concord space."')
+                setCommsMessage('"Good. You will want full energy when the AI is assembled. It runs hot.\n\nDo not linger in Concord space."\n')
             end)
             addCommsReply("Not yet.", function()
                 setCommsMessage('"It will keep. Not forever."')
@@ -301,7 +314,8 @@ _stationComms = function(src, tgt)
     elseif phase == "carry" then
         if not ARC.docked(src, tgt, '"Is it with you? Dock."') then return end
         setCommsMessage('"Rezkov watches the transfer finish, then sits back.\n\nTwenty years of it. Names, dates, signatures."')
-        addCommsReply("Hand over the AI.", function()
+        -- He is already looking at it: no "hand it over", just the crew's reply.
+        addCommsReply("You were right, this thing runs hot.", function()
             local st = MISSIONS._state["ledger"]
             if st then AUDIT.drainOff(st) end
             RT.flag("ledger_arc_done", "full")
@@ -552,6 +566,12 @@ M.gm_actions = {
     end},
     {label = "Refill energy", phases = {"carry"}, fn = function(st)
         ARC.withPlayer(function(p) if RT.valid(p) then p:setEnergyLevel(p:getMaxEnergy()) end end)
+    end},
+    -- A smaller nudge than a refill: 100 more energy (up to the ship's maximum).
+    {label = "+100 energy", phases = {"relay_run", "carry"}, fn = function(st)
+        ARC.withPlayer(function(p)
+            if RT.valid(p) then p:setEnergyLevel(math.min(p:getMaxEnergy(), p:getEnergy() + 100)) end
+        end)
     end},
 }
 
