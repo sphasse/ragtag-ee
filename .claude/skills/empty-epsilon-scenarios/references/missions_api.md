@@ -421,7 +421,7 @@ This makes arcs easy to disable, restart, skip, or test independently.
 | id | Name | locks_jobs | Trigger | Phases |
 |---|---|---|---|---|
 | `rezkov`   | Rezkov Arc    | no  | upgrades_min + not_flagged    | hook, m1_navigate, m2_active, m2_deliver, m3_active, m3_deliver |
-| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, annex_hack, annex_control, extract |
+| `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, annex_hack, annex_control |
 | `ledger`   | Ledger Arc    | no  | upgrades_min + not_flagged + requires (Rezkov) + custom (3 board jobs after Rezkov) | hook, meet, relay_run, carry |
 | `corsair`  | Corsair Arc   | no  | upgrades_min + not_flagged + requires (Rezkov) (hook on entering the Gauntlet) | hook, escort, briefing, raid, return, battle |
 
