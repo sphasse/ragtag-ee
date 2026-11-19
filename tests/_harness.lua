@@ -349,6 +349,12 @@ function T.talk(target, labels, opts)
         end)
     end
     T.waitFor("channel open to " .. who, function() return _commsState() == "open" end, 10)
+    T.reply(labels)
+end
+
+-- Pick replies in the conversation already open (after T.talk), without opening a new channel:
+-- for checking a dialog page by page.
+function T.reply(labels)
     for _, lbl in ipairs(labels or {}) do
         -- A label may be a function, for text only known when the step runs (a job's name).
         T.step("reply: " .. (type(lbl) == "string" and lbl or "(computed)"), function()

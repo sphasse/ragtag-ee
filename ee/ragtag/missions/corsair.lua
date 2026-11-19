@@ -618,7 +618,12 @@ local function _returnDialog(src)
         addCommsReply("We'll stand with you.", function()
             RT.flag("corsair_joined", true)
             MISSIONS.phase("corsair", "battle")
-            setCommsMessage('"Then let\'s show them what a pirate nest can do. Our line is forming west of the ring, at grid ' .. _grid(_BATTLE_X + _LINE_U, _BATTLE_Y) .. '. Join them."')
+            setCommsMessage('"I\'ve heard your hackers are second to none. If you can hack their big ships, that gives us a much better shot at winning this thing.\n\n'
+                .. 'Also, since we took out their supply depot, they have a limited supply of missiles, so once they run out they\'ll be sitting ducks. '
+                .. 'Any distraction you can provide improves our odds."')
+            addCommsReply("Understood. We're on our way.", function()
+                setCommsMessage('"Then let\'s show them what a pirate nest can do. Our line is forming west of the ring, at grid ' .. _grid(_BATTLE_X + _LINE_U, _BATTLE_Y) .. '. Join them."')
+            end)
         end)
         addCommsReply("This isn't our fight.", function()
             RT.flag("corsair_arc_done", "failed")
