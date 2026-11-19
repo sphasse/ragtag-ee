@@ -22,6 +22,14 @@ function ARC.player()
     if RT.valid(p) then return p end
 end
 
+-- Register an arc's ship by name (RT.register) without the kill penalty: a fight the story sets
+-- up settles its own consequences (Rezkov's Meridian, the Boneyard battle, ...).
+function ARC.register(ship, callsign)
+    RT.register(ship, callsign)
+    RT.cancelKillTracking(ship)
+    return ship
+end
+
 -- Run fn(ship) on the arc ship when it is alive (instead of RT.forEachPlayer).
 function ARC.withPlayer(fn)
     local p = ARC.player()

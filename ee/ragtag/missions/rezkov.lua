@@ -137,7 +137,7 @@ local function _spawnWaypoint(st)
             setCommsMessage("[Rezkov's station] No response on this frequency.")
         end
     end, "[Rezkov's station] No response on this frequency."))
-    RT.register(wp)
+    ARC.register(wp)
     st.waypoint = wp
 end
 
@@ -212,7 +212,7 @@ local function _spawnMeridian(st)
     meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
         setCommsMessage('"CWS Meridian. This is a restricted Concord vessel. Stand clear."')
     end))
-    RT.register(meridian)
+    ARC.register(meridian)
     st.meridian = meridian
     st.m3_hostile = false
     ARC.log("[Intel] CWS Meridian spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", headed toward Concord Station Arbiter. Disable and board before she gets there.", "#FFAA00")

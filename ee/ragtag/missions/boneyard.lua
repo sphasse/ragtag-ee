@@ -132,7 +132,7 @@ local function _spawnConcordGroup(st)
     st.annex_battle = st.annex_battle or BATTLE.annex(st.annex)
     st.concord_group = st.annex_battle:spawnConcord()
     st.concord_cmd = st.annex_battle.cmd
-    if RT.valid(st.concord_cmd) then RT.register(st.concord_cmd) end
+    if RT.valid(st.concord_cmd) then ARC.register(st.concord_cmd) end
     ARC.log(
         "[Comms] [CNS Vanguard] All vessels in Boneyard sector: restricted military zone. " ..
         "Stand down and prepare for boarding. Non-compliance will be treated as hostility.", "#FF6666")

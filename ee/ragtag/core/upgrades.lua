@@ -218,6 +218,17 @@ end
 
 -- Take an upgrade off a ship (GM). The hull is rebuilt from its template and the remaining
 -- upgrades re-applied, since an upgrade's effect cannot be undone piecemeal. Saves.
+-- Rebuild a ship from its template, keeping its name, faction, position and heading: the only
+-- way to take upgrades off (an upgrade's effect cannot be undone piece by piece). Hull, shields,
+-- energy and missiles go back to the template's; the caller re-applies the upgrades it keeps.
+function RT.rebuildHull(p)
+    if not RT.valid(p) then return end
+    local x, y = p:getPosition()
+    local rot, cs, fac, tmpl = p:getRotation(), p:getCallSign(), p:getFaction(), p:getTypeName()
+    p:setTemplate(tmpl or RT.PLAYER_TEMPLATE)
+    p:setCallSign(cs):setFaction(fac):setPosition(x, y):setRotation(rot)
+end
+
 function RT.revokeUpgrade(id, ship)
     local rec = RT.shipRecord(ship)
     local p = RT.playerShip(ship) or RT.player
@@ -228,10 +239,7 @@ function RT.revokeUpgrade(id, ship)
     end
     rec.upgrades = kept
     if RT.valid(p) then
-        local x, y = p:getPosition()
-        local rot, cs, fac, tmpl = p:getRotation(), p:getCallSign(), p:getFaction(), p:getTypeName()
-        p:setTemplate(tmpl or RT.PLAYER_TEMPLATE)
-        p:setCallSign(cs):setFaction(fac):setPosition(x, y):setRotation(rot)
+        RT.rebuildHull(p)
         for _, uid in ipairs(kept) do RT.applyUpgrade(p, uid) end
         local u = RT.upgradeById(id)
         if u then p:addToShipLog("Upgrade removed: " .. u.name, "#FF8080") end

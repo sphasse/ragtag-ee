@@ -49,7 +49,7 @@ Every reputation change logs three lines to the Relay console:
 |---|---|---|
 | Complete a job | Origin station's faction | +(job reward in cr) |
 | Job expires or is failed | Origin station's faction | −(job reward in cr) |
-| Destroy any ship | That ship's faction | −200 |
+| Destroy a ship (not in a story-arc fight) | That ship's faction when it died: Independent, Concord or Corsairs (hostile Concord → Concord, friendly Corsair → Corsairs; Relic and Hollow: none) | −200 (`RT.KILL_PENALTY`) |
 | Board and disable a ship | Corsairs | −100 |
 | Concord fine paid (shake-down) | Concord | +100 |
 | Evade Concord inspection (flee 10U) | Concord | −100 |

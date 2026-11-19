@@ -9,14 +9,15 @@
 local _pf = __ship_templates["Flavia P.Falcon"]
 
 -- ── Independent Freighter ─────────────────────────────────────────────────────
--- Generic Flavia-class transport for the Drift campaign.  The scenario assigns
--- one of the named sister ships (Magpie, Raven, Jackdaw …) at spawn time.
+-- Generic Flavia-class transport for the Drift campaign. Every named sister ship (Magpie, Raven,
+-- Jackdaw ...) is this one type; the sandbox lists one "Light Freighter: <name>" entry per ship
+-- on the "Create player ship" screen (its getSpawnablePlayerShips), so the type name stays
+-- generic and the ship list reads "Independent Light Freighter Raven".
 local freighter = _pf:copy("Light Freighter")
 freighter:setLocaleName("Light Freighter")
 freighter:setDescription(
     "A Flavia-class transport running independent colors. " ..
-    "One of the Drift's sister ships—Magpie, Raven, Jackdaw and the rest—" ..
-    "will be assigned at spawn. Solid, unglamorous, and surprisingly hard to kill."
+    "Solid, unglamorous, and surprisingly hard to kill."
 )
 -- First in the ship-creation list (EmptyEpsilon lists player ships in registration order,
 -- getSpawnablePlayerShips), ahead of the stock ships.

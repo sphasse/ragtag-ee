@@ -150,7 +150,7 @@ local function _spawnStation(st)
     wp:setRotationMaxSpeed(0):setSpin(6)
     wp:setCommsScript(""):setCommsFunction(ARC.comms(function(src, tgt) _stationComms(src, tgt) end,
         "[Rezkov's station] No response on this frequency."))
-    RT.register(wp)
+    ARC.register(wp)
     st.station = wp
 end
 
@@ -205,9 +205,11 @@ local function _despawnFrags(st)
     st.frags = {}
 end
 
--- The other two ways to lose the AI while carrying it; both end in the "lost" state.
+-- The other ways to lose the AI while carrying it (power, eject, the ship destroyed); all end in
+-- the "lost" state. The audit has nothing left to collect: it stands down at once.
 local function _loseAI(st, reason, ...)
     AUDIT.drainOff(st)
+    AUDIT.standDown(st)
     RT.flag("ledger_lost_reason", reason)
     RT.flag("ledger_arc_done", "lost")
     for _, line in ipairs({...}) do ARC.log(line, "#FF8080") end

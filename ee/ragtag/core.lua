@@ -74,20 +74,11 @@ function RT.register(entity, callsign)
     if callsign then entity:setCallSign(callsign) end
     RT.named[entity:getCallSign()] = entity
 
-    -- Automatically track CpuShips for reputation on kill
-    -- Check if getTypeName exists and is actually a function before calling
-    -- KNOWN GAP: getTypeName() returns the ship's TEMPLATE name ("MT52 Hornet"), never
-    -- "CpuShip", so this test has never matched and the "destroy any ship: -200" penalty
-    -- (docs/REPUTATION.md) does not fire. isObjectType(entity, "CpuShip") would switch it on;
-    -- that changes the balance of every fight and arc battle, so it is left for a deliberate
-    -- decision. RT.trackShipForReputation itself works and charges the ship that made the kill
-    -- (tests/core/records.lua).
-    if entity.getTypeName and type(entity.getTypeName) == "function" then
-        local ok, typename = pcall(function() return entity:getTypeName() end)
-        if ok and typename == "CpuShip" then
-            RT.trackShipForReputation(entity)
-        end
-    end
+    -- AI ships are tracked for the kill penalty (RT.trackShipForReputation). getTypeName() is the
+    -- TEMPLATE name, so the type is tested with isObjectType. Story arcs register their ships
+    -- with ARC.register, which takes them out again: arc fights settle their own consequences.
+    local ok, is_cpu = pcall(isObjectType, entity, "CpuShip")
+    if ok and is_cpu then RT.trackShipForReputation(entity) end
 
     return entity
 end
@@ -328,7 +319,10 @@ function RT.saveCampaign()
     -- found by needs refreshing, in case a ship was renamed. Ships not in this session keep
     -- their saved record.
     for _, st in ipairs(RT._ship_state) do
-        if st.rec and st.campaign == RT.campaign and st.ship ~= RT.player and RT.valid(st.ship) then
+        -- (Not to the campaign's ship name: a ship renamed to it is about to become the primary,
+        -- RT.promotePrimary, and its own record stays saved under its old name.)
+        if st.rec and st.campaign == RT.campaign and st.ship ~= RT.player and RT.valid(st.ship)
+           and st.ship:getCallSign() ~= RT.campaign.ship_name then
             st.rec.name = st.ship:getCallSign()
         end
     end
@@ -586,8 +580,10 @@ function RT.promotePrimary()
             table.remove(RT.players, i)
             RT.players[1] = p            -- replaces the dead primary
             RT.player = p
-            -- Forget any record this ship was given as a second ship; drop it from the save when
-            -- nothing was put in it. The ship now reads the campaign record and gets its upgrades.
+            -- Forget any record this ship was given as a second ship. An empty one is dropped from
+            -- the save; one with something in it stays saved under the old name, for when a ship
+            -- of that name flies again. The ship now reads the campaign record and gets its upgrades.
+            local refit, kept_note = false, nil
             for _, st in ipairs(RT._ship_state) do
                 if st.ship == p then
                     local rec = st.rec
@@ -596,13 +592,20 @@ function RT.promotePrimary()
                         for k = #c.extra_ships, 1, -1 do
                             if c.extra_ships[k] == rec then table.remove(c.extra_ships, k) end
                         end
+                    elseif rec then
+                        kept_note = string.format("%s's own record (%d credits, %d upgrades) stays saved under that name.",
+                            rec.name or "The ship", rec.credits or 0, #(rec.upgrades or {}))
                     end
+                    -- Its own upgrades are fitted: strip them, or the campaign's would stack on top.
+                    if st.outfitted and rec and #(rec.upgrades or {}) > 0 then refit = true end
                     st.rec, st.campaign, st.outfitted, st.shown = nil, nil, false, nil
                 end
             end
+            if refit then RT.rebuildHull(p) end
             RT.outfit(p)
             log("[RT] " .. c.ship_name .. " is back: it is the primary ship again.")
             p:addToShipLog("Registry: " .. c.ship_name .. " is back on the books. The crew's accounts and contracts are yours.", "#E0C060")
+            if kept_note then p:addToShipLog(kept_note, "#E0C060") end
             RT.emit("primary_restored", {ship = c.ship_name}, "normal")
             return
         end

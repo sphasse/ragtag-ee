@@ -35,6 +35,103 @@ local _SHIP_ROSTER = {
     "Kestrel", "Harrier", "Merlin", "Osprey", "Swift",
 }
 
+--------------------------------------------------------------------------------
+-- The "Create player ship" list: one Light Freighter entry per named ship
+--------------------------------------------------------------------------------
+-- EmptyEpsilon builds that list by calling getSpawnablePlayerShips() when the screen opens, so
+-- the scenario replaces it. Every bird is the same "Light Freighter" ship type; the entry picks
+-- the name, and with it the ship's saved record (credits, standing, upgrades). The GM chooses
+-- which crews fly this session; a lost Magpie is rebuilt by picking its entry. Stock ships stay
+-- in the list after the birds (the generic, auto-named Light Freighter does not).
+
+local _pick_name = nil   -- the name chosen on the list while its ship is being made
+
+local function _liveShipNamed(name)
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) and p:getCallSign() == name then return p end
+    end
+    return nil
+end
+
+-- The campaign ship's name first (normally Magpie), then the rest of the roster.
+local function _rosterNames()
+    local names, seen = {}, {}
+    local primary = (RT.campaign and RT.campaign.ship_name) or _SHIP_ROSTER[1]
+    for _, n in ipairs({primary, table.unpack(_SHIP_ROSTER)}) do
+        if not seen[n] then seen[n] = true; names[#names + 1] = n end
+    end
+    return names
+end
+
+local function _savedRecord(name)
+    for _, e in ipairs((RT.campaign and RT.campaign.extra_ships) or {}) do
+        if type(e) == "table" and e.name == name then return e end
+    end
+    return nil
+end
+
+-- What the entry's description says about the ship: its role, then what its record holds.
+local function _shipBlurb(name, is_primary)
+    local primary = (RT.campaign and RT.campaign.ship_name) or _SHIP_ROSTER[1]
+    local rec = is_primary and RT.campaign or _savedRecord(name)
+    local out = {}
+    if is_primary then
+        out[#out + 1] = name .. ": the campaign ship. The story arcs follow it. It starts every session at Port Vesper; "
+            .. "pick it here only to rebuild it after it has been lost."
+    else
+        out[#out + 1] = name .. ": a sister ship of the " .. primary .. ". Works the job boards; takes no part in the story arcs."
+    end
+    if _liveShipNamed(name) then out[#out + 1] = "Flying now: picking it again does nothing." end
+    if rec then
+        local ups = {}
+        for _, id in ipairs(rec.upgrades or {}) do
+            local u = RT.upgradeById(id)
+            ups[#ups + 1] = u and (u.gm_name or u.name) or id
+        end
+        out[#out + 1] = string.format("Saved: %d credits; upgrades: %s.", rec.credits or 0,
+            #ups > 0 and table.concat(ups, ", ") or "none")
+    else
+        out[#out + 1] = "No saved record: a stock ship with 0 credits. What it earns is saved under this name."
+    end
+    out[#out + 1] = "Flavia-class light freighter running independent colours."
+    return table.concat(out, "\n\n")
+end
+
+local function _createNamed(name)
+    return function()
+        if _liveShipNamed(name) then
+            pcall(addGMMessage, name .. " is already flying: no ship was made.")
+            return nil
+        end
+        _pick_name = name
+        local ok, s = pcall(function()
+            return PlayerSpaceship():setTemplate("Light Freighter"):setRotation(random(0, 360))
+        end)
+        _pick_name = nil
+        if not ok then error(s) end
+        return s
+    end
+end
+
+function getSpawnablePlayerShips()
+    local result = {}
+    if not __allow_new_player_ships then return result end   -- allowNewPlayerShips(false)
+    local icon
+    for _, v in ipairs(__player_ship_templates) do
+        if v.typename.type_name == "Light Freighter" then icon = v.radar_trace.icon end
+    end
+    local primary = (RT.campaign and RT.campaign.ship_name) or _SHIP_ROSTER[1]
+    for _, name in ipairs(_rosterNames()) do
+        result[#result + 1] = {_createNamed(name), "Light Freighter: " .. name, _shipBlurb(name, name == primary), icon}
+    end
+    for _, v in ipairs(__player_ship_templates) do
+        if not v.__hidden and v.typename.type_name ~= "Light Freighter" then
+            result[#result + 1] = {__spawnPlayerShipFunc(v.typename.type_name), v.typename.localized, v.__description, v.radar_trace.icon}
+        end
+    end
+    return result
+end
+
 -- Session state
 local S = {
     phase = "start",           -- start, exploring, docked, ending
@@ -163,7 +260,10 @@ function init()
         -- The campaign's own ship name comes first: it is free only when the primary ship has
         -- been lost, and a freighter that takes it becomes the primary again (RT.promotePrimary).
         -- Only live ships hold a name; a destroyed one is skipped (and never asked for its name).
-        if tmpl == "Light Freighter" then
+        -- A ship picked by name on the "Create player ship" list gets that name.
+        if tmpl == "Light Freighter" and _pick_name then
+            ship:setCallSign(_pick_name)
+        elseif tmpl == "Light Freighter" then
             local used = {}
             for _, p in ipairs(RT.players) do
                 if RT.valid(p) and p ~= ship then used[p:getCallSign()] = true end

@@ -30,8 +30,6 @@ end
 
 T.step("the primary ship's record", function()
     A = T.P()
-    local list = getSpawnablePlayerShips()
-    T.eq("list: the Light Freighter is first in the ship-creation list", list[1] and list[1][2], "Light Freighter")
     NAME = RT.campaign.ship_name
     T.eq("setup: the primary ship carries the campaign's name", A:getCallSign(), NAME)
     RT.setCredits(1234, A)
@@ -114,7 +112,14 @@ T.step("it has the lost ship's record", function()
 end)
 
 -- ── A ship renamed to the lost primary's name takes its place ────────────────
-T.step("the primary ship is lost again", function() N:destroy() end)
+local C_NAME
+T.step("the remaining ship has its own credits and upgrade; the primary ship is lost again", function()
+    C_NAME = C:getCallSign()
+    RT.setCredits(77, C)
+    RT.grantUpgrade("hull_plating", "test", C)
+    T.eq("own: its upgrade is fitted", C:getHullMax(), hull0)
+    N:destroy()
+end)
 T.wait(1)
 T.step("no arc ship", function() T.check("again: no arc ship", ARC.player() == nil) end)
 T.step("the GM renames the remaining ship", function() C:setCallSign(NAME) end)
@@ -124,4 +129,10 @@ T.step("it is the primary ship", function()
     T.check("rename: the arcs have their ship", ARC.player() == C)
     T.eq("rename: the campaign's credits, halved again", T.credits(C), 309)
     T.check("rename: the campaign's upgrades", RT.hasUpgrade("hull_plating", C))
+    T.eq("rename: its own upgrades are taken off, not stacked under the campaign's", C:getHullMax(), hull0)
+    local own
+    for _, e in ipairs(RT.campaign.extra_ships or {}) do if e.name == C_NAME then own = e end end
+    T.check("rename: its own record stays saved under its old name", own ~= nil)
+    T.eq("rename: with its credits", own and own.credits, 77)
+    T.check("rename: and its upgrade", own and own.upgrades[1] == "hull_plating")
 end)

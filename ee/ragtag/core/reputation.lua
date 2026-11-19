@@ -127,21 +127,27 @@ function RT.cancelKillTracking(ship)
     if ship ~= nil then RT._rep_cancelled[ship] = true end
 end
 
--- Register a ship for a reputation penalty when a PLAYER destroys it: the ship that made the
--- kill loses the standing. NPC-vs-NPC kills and scripted despawns cost nothing.
+-- The kill penalty: a player ship that destroys a ship loses RT.KILL_PENALTY standing with that
+-- ship's faction, judged when it dies (a job target that turned Corsair counts as Corsairs).
+-- Presentation-only factions count as the faction they stand for; only the factions with
+-- standing (RT.KILL_PENALTY_FACTIONS) are charged. NPC-vs-NPC kills, scripted despawns and
+-- ships an arc or job took out of tracking (RT.cancelKillTracking, ARC.register) cost nothing.
+RT.KILL_PENALTY = 200
+RT.KILL_PENALTY_FACTIONS = {Independent = true, Concord = true, Corsairs = true}
+local _REAL_FACTION = {["Concord Hostile"] = "Concord", ["Corsair Friendly"] = "Corsairs"}
+
 function RT.trackShipForReputation(ship)
     if not ship or not RT.valid(ship) then return end
-    local faction = ship:getFaction()
-    -- Skip player ships, inert factions, and presentation-only pseudo-factions.
-    local skip = {
-        [RT.PLAYER_FACTION] = true, Derelict = true, Unknown = true,
-        ["Concord Hostile"] = true, ["Corsair Friendly"] = true, ["Relic Active"] = true,
-    }
-    if skip[faction] then return end
-    local callsign = ship:getCallSign()   -- capture before entity is destroyed
     RT.onKill(ship, function(s, instigator)
         if RT._rep_cancelled[s] then return end
-        if not RT.isPlayer(instigator) then return end
-        RT.addReputation(faction, -200, "destroyed " .. callsign, RT.playerShip(instigator))
+        local killer = RT.playerShip(instigator)
+        if not killer then return end
+        local ok, fac = pcall(function() return s:getFaction() end)
+        if not ok or fac == nil then return end
+        fac = _REAL_FACTION[fac] or fac
+        if not RT.KILL_PENALTY_FACTIONS[fac] then return end
+        local cs = "a ship"
+        pcall(function() cs = s:getCallSign() end)
+        RT.addReputation(fac, -RT.KILL_PENALTY, "destroyed " .. cs, killer)
     end)
 end

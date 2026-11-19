@@ -24,6 +24,15 @@
   observes and keeps notes for you; it does not change the game.
 - **Off**: nothing is reported. The game plays exactly the same.
 
+## Which Ships Fly
+
+The Magpie starts at Port Vesper and is the only ship in the story arcs. On the ship selection
+screen, **Create player ship** lists one entry per named freighter ("Light Freighter: Raven",
+"Light Freighter: Jackdaw", ...): pick the ships of the crews playing tonight. Each entry's
+description shows that ship's saved credits and upgrades; the same entry next session brings
+them back. A lost Magpie is rebuilt by picking "Light Freighter: Magpie". Details:
+`docs/GM_SHIP_MANAGEMENT.md`.
+
 ## What Players Can Do
 
 ### Explore
@@ -82,7 +91,7 @@ Time limits scale with distance. Failing or letting a mission expire costs the c
 - **Relic drones** guard the Boneyard (war machines, hostile to all)
 - **Hollow ships** in the Maw (deadly — avoid early game)
 - **Concord patrols** do inspections when rep ≥ −200; below that threshold they spawn as hostile and attack on sight
-- **Killing any faction ship costs −200 rep with that faction**
+- **Destroying a ship costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a hostile Concord ship counts as Concord, a friendly Corsair as Corsairs), charged to the ship that made the kill. Ships in a story-arc fight cost nothing, nor do Relic and Hollow ships**
 
 ## GM Tools (Buttons)
 

@@ -11,7 +11,7 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 
 - [ ] Install into the play build: `python3 tools/install.py --ee <EmptyEpsilon>/_build/EmptyEpsilon.app/Contents/Resources`
 - [ ] **Backup campaign** (GM main screen) so a bad session can be undone with **Restore campaign**
-- [ ] Two player ships: the Magpie plus one made on "Create player ship" (it gets the next bird name)
+- [ ] Two player ships: the Magpie plus one picked by name on "Create player ship" (e.g. "Light Freighter: Raven")
 - [ ] GM screen open on a separate machine or window; the director is optional
 
 ## 1. Two ships
@@ -28,9 +28,12 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 - [ ] GM **Reputation...** lists both ships; **Jobs...** has a credits pair per ship
 - [ ] A wreck scanned by the second ship gives up salvage near the second ship
 - [ ] Freighters never pop in or teleport next to either ship
-- [ ] **Lose the Magpie** with the second ship still flying: the session goes on. Make a new freighter
-      on "Create player ship": it should be named Magpie and log "Registry: Magpie is back on the
-      books", with the Magpie's credits, upgrades and any active arc. *(Only tested from script.)*
+- [ ] The "Create player ship" list: ten "Light Freighter: <name>" entries, the Magpie first; each
+      description shows that ship's saved credits and upgrades; the ship list reads
+      "Independent Light Freighter Raven"; picking a ship that is already flying makes nothing
+- [ ] **Lose the Magpie** with the second ship still flying: the session goes on. Pick
+      "Light Freighter: Magpie" on "Create player ship": it should log "Registry: Magpie is back on
+      the books", with the Magpie's credits, upgrades and any active arc. *(Only tested from script.)*
 - [ ] Note: does anything look wrong on a second client (screens, custom info lines, comms)?
 
 ## 2. Rezkov Arc (needs Independent ≥ 500 and 600 cr of upgrades, or GM jump)
@@ -72,8 +75,8 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       going after 45 s). Too long? Do the order buttons unlock at the right time?
 - [ ] An escort lost → Reva names it and sends a replacement
 - [ ] Return: the thickened mine ring round Blackwater; are the three lanes (north, ESE, WSW) findable?
-- [ ] The **battle, for real** (7 Concord vs 12 Corsairs, frozen until you are within 5U of the
-      Corsair line): does it stay spread out? How long does it take? Does the crew matter?
+- [ ] The **battle, for real** (7 Concord vs 12 Corsairs, frozen until you are within 5U of
+      either line): does it stay spread out? How long does it take? Does the crew matter?
 - [ ] **Magazine** (new): runs low → it hails with its grid and a "Rearm" objective appears;
       8 s alongside refills the racks. Is it reachable mid-battle? Is **3 loads** right? Is **8 s**
       too long under fire? Does the Concord ever get to it?

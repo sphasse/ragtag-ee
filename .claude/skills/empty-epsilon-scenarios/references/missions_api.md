@@ -280,6 +280,7 @@ add it to `_helpers.lua`, not to `core.lua` and not to both arcs.
 | `ARC.dist(x1, y1, x2, y2)` | Distance between two points. (`RT.dist(a, b)` is entity to entity.) |
 | `ARC.near(ent, x, y, r)` | True when a valid entity is within `r` of the point. |
 | `ARC.playerNear(x, y, r)` | The player ship when within `r` of the point, else nil. |
+| `ARC.register(ship, callsign)` | `RT.register` without the kill penalty: use it for every ship an arc registers (an arc fight settles its own consequences). Ships an arc spawns without registering are not tracked either. |
 | `ARC.alive(list)` | New list of the valid entities (`#ARC.alive(st.fleet) == 0`: all dead). |
 | `ARC.kill(x)` | Remove one entity or every entity in a table, indestructible ones too; nil-safe. |
 | `ARC.docked(src, tgt, msg)` | Dialog gate: true when `src` is the arc ship and docked; else sets `msg` (if given) and returns false. |

@@ -17,6 +17,7 @@
 --   AUDIT.eject(st, hooks)          Engineering's "Eject the AI" button (press twice to confirm)
 --   AUDIT.spawnFleet(st, hooks)    the fleet now (GM)
 --   AUDIT.drainOff(st)  AUDIT.resumeDrain(st)  AUDIT.despawnFleet(st)
+--   AUDIT.standDown(st)            the audit is over: jammers gone, the fleet goes home
 
 AUDIT = AUDIT or {}
 
@@ -181,20 +182,32 @@ local _HOSTILE_LINES = {
     fled    = '"Leaving an audit in progress is an admission. Commencing collections."',
 }
 
--- The crew transmitted the data: the stop is over (the crew can warp again), the fleet stands
--- down and heads for Lumen Exchange, then the caller ends it.
-local function _surrender(st, hooks)
-    ARC.kill(st.audit and st.audit.jams)
+-- The audit is over (the data was transmitted, or the AI is gone): the jammer triangle and every
+-- combat jammer go, so the crew can warp again, and the fleet stands down and heads for Lumen
+-- Exchange. Safe to call more than once, and with no fleet out.
+function AUDIT.standDown(st)
+    if st.audit then
+        ARC.kill(st.audit.jams)
+        st.audit.jams = {}
+        st.audit.state = "closed"
+    end
+    if PROX and PROX.clearCombatJammers then PROX.clearCombatJammers(st.jammers or {}) end
+    st.jammers = {}
     for _, s in ipairs(st.fleet or {}) do
         if RT.valid(s) then s:setFaction("Concord"):orderFlyTowards(-133000, -75000) end
     end
+end
+
+-- The crew transmitted the data: the audit stands down, then the caller ends it.
+local function _surrender(st, hooks)
+    AUDIT.standDown(st)
     hooks.surrender()
 end
 
 -- The stop is over: every auditor turns hostile and attacks. `why` picks the line.
 function AUDIT.hostile(st, hooks, why)
     local a = st.audit
-    if not a or a.state == "hostile" then return end
+    if not a or a.state == "hostile" or a.state == "closed" then return end
     a.state = "hostile"
     local p = ARC.player()
     -- Each auditor's combat-jammer cooldown starts now (the crew was just boxed in): no ship drops
@@ -237,7 +250,7 @@ end
 
 local function _fleetComms(st, hooks)
     return function(src, tgt)
-        if not st.audit or not hooks.active() then
+        if not st.audit or st.audit.state == "closed" or not hooks.active() then
             setCommsMessage('"This audit is closed."')
             return
         end

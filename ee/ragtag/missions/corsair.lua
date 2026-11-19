@@ -59,7 +59,7 @@ local _DEPOT_X, _DEPOT_Y = -60 * U, 62 * U          -- Concord forward depot, be
 -- the Corsair line _LINE_U east of them (x 40U, ~6U outside the ring), the Concord line _LINE_U west.
 local _BATTLE_X, _BATTLE_Y = 30 * U, _BW_Y
 local _LINE_U   = 10 * U       -- each line's distance from the combat points
-local _START_U  = 5 * U        -- the frozen battle starts when the crew is this close to a Corsair ship
+local _START_U  = 5 * U        -- the frozen battle starts when the crew is this close to any battle ship
 local _CONCORD_HULLS = {"Atlantis X23", "Phobos T3", "Phobos T3", "Atlantis X23", "Phobos T3", "Atlantis X23", "Phobos T3"}
 local _CONCORD_NAMES = {"CNS Retribution", "CNS Writ", "CNS Summons", "CNS Remand", "CNS Levy", "CNS Injunction", "CNS Distraint"}
 local _CORSAIR_HULLS = {"Adder MK5", "Adder MK5", "Piranha F12"}
@@ -479,7 +479,7 @@ local function _spawnBattle(st)
     end
 end
 
--- The crew comes within _START_U of the Corsair line: the battle begins.
+-- The crew comes within _START_U of a battle ship (either side): the battle begins.
 local function _startBattle(st)
     if not st.battle or st.battle.started then return end
     st.battle:start()
@@ -489,17 +489,25 @@ local function _startBattle(st)
     RT.setObjective("Destroy Battle Group Two", true, "corsair")
 end
 
+-- True when the arc ship is within _START_U of any ship of the battle, on either side: coming in
+-- from the west reaches the Concord line first, and frozen ships do not fight back, so the
+-- battle has to start before the crew can pick them off. (Other player ships do not start it:
+-- arcs belong to the arc ship.)
+local function _crewNear(b)
+    local p = ARC.player()
+    if not p then return false end
+    for _, side in ipairs({"a", "b"}) do
+        for _, s in ipairs(b:ships(side)) do
+            if RT.dist(p, s) < _START_U then return true end
+        end
+    end
+    return false
+end
+
 local function _tickBattle(st, now)
     local b = st.battle
     if not b then return end
-    if not b.started then
-        local p = ARC.player()
-        if p then
-            for _, s in ipairs(b:ships("b")) do
-                if RT.dist(p, s) < _START_U then _startBattle(st); break end
-            end
-        end
-    end
+    if not b.started and _crewNear(b) then _startBattle(st) end
     b:tick(now)
 end
 

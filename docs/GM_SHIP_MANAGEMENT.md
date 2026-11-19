@@ -10,7 +10,7 @@ Every player ship has its own record: **credits**, **standing** with each factio
 
 - The **primary ship** (the first one, normally the *Magpie*) is the ship the story arcs follow.
   Its record is the top level of the campaign save.
-- **Every other ship** (joined from the "Create player ship" screen, or spawned by a scenario)
+- **Every other ship** (picked by name on the "Create player ship" list, or spawned by a scenario)
   has a record saved under its callsign. A crew that rejoins next session under the same ship
   name gets its credits, standing and upgrades back; a name never seen before starts at zero
   with a stock ship.
@@ -18,6 +18,30 @@ Every player ship has its own record: **credits**, **standing** with each factio
   tier (which contract types it is offered) follows its own upgrade spend: under 500 cr tier 0,
   500–999 cr tier 1, 1000 cr and up tier 2.
 - Renaming a ship in mid-session does not lose its record; it is saved under the new name.
+
+## Choosing which ships fly
+
+The *Magpie* starts every session at Port Vesper. Every other ship is made on the ship selection
+screen's **Create player ship** list (on the server), which has one entry per named freighter:
+**Light Freighter: Magpie**, **Light Freighter: Raven**, **Light Freighter: Jackdaw** and the rest
+(ten in all), followed by the other player ships. All of them are the same Light Freighter; the
+entry decides the name, and the name decides the record. Each entry's description says what that
+ship's record holds (credits and upgrades), or that it has none yet.
+
+- Pick the ships of the crews playing this session. A crew that comes back next time picks the
+  same entry and has its credits, standing and upgrades again, so a ship can be built up over
+  many sessions.
+- Only the Magpie takes part in the story arcs; the other ships work the job boards.
+- An entry for a ship that is already flying makes nothing (the GM screen says so).
+- The list is built when the selection screen opens: go back to it to see up-to-date records.
+- The new ship appears at Port Vesper.
+
+### Rebuilding the Magpie
+When the Magpie is destroyed, the session goes on with the other ships and the story arcs wait.
+Pick **Light Freighter: Magpie** on the Create player ship list: the new ship becomes the
+campaign ship again, with the campaign's credits (less the loss), standing, upgrades and any arc
+in progress, and its log says "Registry: Magpie is back on the books". Renaming another ship to
+"Magpie" does the same.
 
 ## Looking
 

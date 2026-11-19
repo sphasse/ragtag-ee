@@ -325,6 +325,35 @@ T.step("lost with the ship", function()
     T.P():setEnergyLevel(T.P():getMaxEnergy())
 end)
 
+-- ── Losing the AI ends the audit at once: no jammers, no attack ──────────────
+local held
+freshStop("audit, then eject")
+T.talk(function() return T.st().fleet[1] end, {"Not today."}, {name = "CAS Double Entry"})
+T.closeComms()
+T.step("hostile and boxed in; Engineering ejects the AI", function()
+    local st = T.st()
+    T.eq("stand down: the auditors attack", st.audit.state, "hostile")
+    held = {fleet = {}, jams = {}}
+    for i, s in ipairs(st.fleet) do held.fleet[i] = s end
+    for i, j in ipairs(st.audit.jams) do held.jams[i] = j end
+    T.check("stand down: the jammer triangle is out", #held.jams > 0 and RT.valid(held.jams[1]))
+    M_ledger.ejectPressed(); M_ledger.ejectPressed()
+end)
+T.step("the audit stands down", function()
+    T.eq("stand down: the arc ends", T.status(), "done")
+    T.eq("stand down: reason", T.flag("ledger_lost_reason"), "ejected")
+    local jams, hostile = 0, 0
+    for _, j in ipairs(held.jams) do if RT.valid(j) then jams = jams + 1 end end
+    for _, s in ipairs(held.fleet) do
+        if RT.valid(s) and s:getFaction() ~= "Concord" then hostile = hostile + 1 end
+    end
+    T.eq("stand down: the jammer triangle is gone", jams, 0)
+    T.eq("stand down: no auditor still hostile", hostile, 0)
+    T.eq("stand down: no combat jammers held", #(T.st().jammers or {}), 0)
+    local ok, ord = pcall(function() return held.fleet[1]:getOrder() end)
+    T.check("stand down: flying home, not attacking", ok and ord ~= "Attack", ord)
+end)
+
 -- ── GM states ────────────────────────────────────────────────────────────────
 T.gmWalk({
     {key = "hook",      phase = "hook"},

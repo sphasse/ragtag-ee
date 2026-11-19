@@ -2,9 +2,8 @@
 -- record, and nothing a second ship does lands on the primary ship. A = the primary ship,
 -- B = a second freighter. Credits themselves: tests/jobs/credits.lua. Jobs: tests/jobs/multiship.lua.
 --
--- Not covered: a real kill by weapons fire (the kill callbacks are called directly with the
--- killer as instigator), whether RT.register switches kill tracking on for a ship (the test
--- calls RT.trackShipForReputation itself), and a real restart of the game (a JSON round trip of
+-- Not covered: a kill by actual weapons fire (the test applies damage with the killer as
+-- instigator, applyDamageToEntity), and a real restart of the game (a JSON round trip of
 -- the save stands in).
 
 T.suite("core")
@@ -106,6 +105,71 @@ T.step("B destroys a Concord ship", function()
     for _, cb in ipairs(cbs or {}) do cb(victim, victim) end
     T.check("kill: an NPC's kill costs nobody", T.rep("Concord", A) == a1 and T.rep("Concord", B) == b1)
     victim:destroy()
+end)
+
+-- ── The kill penalty, from a registered ship's death by damage ───────────────
+-- RT.register tracks every AI ship; a death the player ship caused costs that ship 200 standing
+-- with the dead ship's faction at the time it died. Arc ships (ARC.register) are spared.
+local kills = {}
+local function spawnAt(dx, faction, name, register)
+    local x, y = B:getPosition()
+    local s = CpuShip():setTemplate("MT52 Hornet"):setFaction(faction):setPosition(x + 30000 + dx, y + 20000)
+    s:orderIdle()
+    register(s, name)
+    return s
+end
+local function kill(s, by)
+    for _ = 1, 3 do
+        if RT.valid(s) then
+            local x, y = s:getPosition()
+            applyDamageToEntity(s, 1000, {instigator = by, type = "kinetic", x = x + 100, y = y})
+        end
+    end
+end
+local before
+T.step("ships to destroy", function()
+    kills.concord  = spawnAt(0,     "Concord",          "Kill Concord",  RT.register)
+    kills.indep    = spawnAt(3000,  "Independent",      "Kill Indep",    RT.register)
+    kills.flipped  = spawnAt(6000,  "Independent",      "Kill Flipped",  RT.register)
+    kills.friendly = spawnAt(9000,  "Corsair Friendly", "Kill Friendly", RT.register)
+    kills.relic    = spawnAt(12000, "Relic",            "Kill Relic",    RT.register)
+    kills.arc      = spawnAt(15000, "Concord",          "Kill Arc",      ARC.register)
+    kills.npc      = spawnAt(18000, "Concord",          "Kill NPC",      RT.register)
+    kills.flipped:setFaction("Corsairs")   -- a job target that turned on the crew
+    before = {}
+    for _, f in ipairs({"Concord", "Independent", "Corsairs"}) do before[f] = {A = T.rep(f, A), B = T.rep(f, B)} end
+    kill(kills.concord, B)
+end)
+T.wait(1)
+T.step("a Concord ship", function()
+    T.check("penalty: destroyed", not RT.valid(kills.concord))
+    T.eq("penalty: B -200 Concord", T.rep("Concord", B) - before.Concord.B, -200)
+    T.eq("penalty: A untouched", T.rep("Concord", A) - before.Concord.A, 0)
+    kill(kills.indep, B)
+    kill(kills.flipped, B)
+end)
+T.wait(1)
+T.step("an Independent ship, and one that had turned Corsair", function()
+    T.eq("penalty: B -200 Independent (the flipped one is not counted here)", T.rep("Independent", B) - before.Independent.B, -200)
+    T.eq("penalty: B -200 Corsairs for the flipped one", T.rep("Corsairs", B) - before.Corsairs.B, -200)
+    kill(kills.friendly, A)
+end)
+T.wait(1)
+T.step("a friendly Corsair counts as Corsairs", function()
+    T.eq("penalty: A -200 Corsairs", T.rep("Corsairs", A) - before.Corsairs.A, -200)
+    before.now = {}
+    for _, f in ipairs({"Concord", "Independent", "Corsairs"}) do before.now[f] = {A = T.rep(f, A), B = T.rep(f, B)} end
+    kill(kills.relic, B)
+    kill(kills.arc, B)
+    kill(kills.npc, nil)
+end)
+T.wait(1)
+T.step("no penalty for a Relic ship, an arc ship or an NPC's kill", function()
+    T.check("none: all three destroyed", not RT.valid(kills.relic) and not RT.valid(kills.arc) and not RT.valid(kills.npc))
+    for _, f in ipairs({"Concord", "Independent", "Corsairs"}) do
+        T.eq("none: A's " .. f .. " unchanged", T.rep(f, A), before.now[f].A)
+        T.eq("none: B's " .. f .. " unchanged", T.rep(f, B), before.now[f].B)
+    end
 end)
 
 -- ── A donation is credited to the ship that gave ─────────────────────────────

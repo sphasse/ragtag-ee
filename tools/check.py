@@ -386,6 +386,8 @@ ARC_DUPLICATES = [
     (re.compile(r'MISSIONS\.gmJump\('), "ARC.jumper(arc_id)"),
     (re.compile(r'pairs\(M\.init_state\(\)\)'), "ARC.resetState(M, st)"),
     # Arcs belong to the primary ship only; these address every player ship.
+    # Arc fights settle their own consequences: no kill penalty for ships an arc registers.
+    (re.compile(r'RT\.register\('), "ARC.register(ship, callsign) (no kill penalty for an arc's ships)"),
     (re.compile(r'RT\.players\b'), "ARC.player() (arcs act on the arc ship only)"),
     (re.compile(r'RT\.forEachPlayer\('), "ARC.withPlayer(fn) (arcs act on the arc ship only)"),
     (re.compile(r'RT\.shipLog\('), "ARC.log(msg, color) (arc logs go to the arc ship only)"),
