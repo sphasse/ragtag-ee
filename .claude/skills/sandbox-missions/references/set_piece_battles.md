@@ -99,6 +99,8 @@ lines, and run it from both the arc and the Battle Lab, so balancing done in the
 - The Battle Lab (scenario 63) has an open-space mode (Concord vs Corsairs) and the Annex mode. Its GM
   buttons spawn each side separately, change counts and impulse multipliers, and report who targets
   which point. New battles should get a mode or buttons there.
+- The Audit Lab (scenario 64) replays the Ledger arc's audit stop from the last fragment (`AUDIT` in
+  `missions/_audit.lua`): the same pattern for a smaller encounter with a script (stop, hail, stalls).
 - Balance by playtesting in the lab: headless runs are long and their outcomes vary from run to run.
 - The arc's test checks what is deterministic: who spawns where (line, angle, distance), speeds,
   beam damage, no warp, factions, replacement from the same gate, a station picking a target, the

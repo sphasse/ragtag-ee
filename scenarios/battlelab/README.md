@@ -88,3 +88,28 @@ carries over.
 First version (six points in a ring 3U out, no retargeting), headless: the sides met after about a
 minute; after 7 minutes 1 Concord ship of 5 against 4 Corsairs of 12, with a long tail as the last
 survivors sat at different points. Retargeting is meant to remove that tail.
+
+# Audit Lab (scenario 64)
+
+The Ledger arc's last leg on its own: carrying Rezkov's AI home and the Concord Audit Service stop
+that comes for it. Its own save (`auditlab`); no universe, just open space at fragment 3's real place
+(near Waypoint Galen, (-80, -62)). The carry is `AUDIT` in `ee/ragtag/missions/_audit.lua`, the same
+code the arc runs, so tuning carries over (`AUDIT.*` at the top of that file).
+
+- The crew's Light Freighter starts 6U west of the **data core**, facing it. Fly into it (or GM
+  **Pick up the core now**) and everything runs as in the campaign:
+  - the AI hails, and the **power drain** starts (3 energy/s; Engineering shows "Unknown process" and
+    the **Eject the AI** button, press twice);
+  - **60 s later** the audit fleet (CAS Double Entry, Phobos T3; CAS Debit and CAS Credit, Adder MK5)
+    appears 7U ahead as plain Concord; Double Entry's jammer brakes the ship, the other two box it in
+    with two more, and Double Entry hails;
+  - **60 s** after the hail (or after each of up to two stalls) without an answer they attack; so do
+    refusing, shooting a jammer or an auditor, or flying 3U off. "Transmit the data." ends it.
+- A round ends when the crew transmits the data, the reactor hits zero, the AI is ejected, or the ship
+  is destroyed with it aboard: the time and the reason go to the GM and the crew. The GM is also told
+  when the fleet is gone (destroyed or outrun) with the AI still aboard.
+
+GM console: **Status** (time carrying, energy, time to the fleet, the audit's state, stalls and clock,
+jammers, each auditor's hull and range), **Reset the round** (core back, fleet gone, crew back at the
+start with full energy, hull and shields), **Pick up the core now**, **Fleet now**, **Auditors hostile
+now**, **Pause / resume drain**, **Refill energy**.

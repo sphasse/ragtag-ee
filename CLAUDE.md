@@ -18,7 +18,8 @@ Contributors add **universe extensions** and **scenarios** independently.
     `director/actions/*.lua` (the action whitelist; `index.lua` is generated)
   - `jobs/` — the job board: `_engine.lua` (`JOBS.board` decides the offers, a renderer shows them), one file per job type
   - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
-  - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs), one file per arc.
+  - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs),
+    `_audit.lua` (`AUDIT`: the Ledger arc's carry and audit stop, shared with the Audit Lab), one file per arc.
     Core never depends on this folder; shared arc code goes in `_helpers.lua`, not `core.lua`.
     Arcs belong to the primary ship only (`ARC.player()`; other player ships just work the job board; if it is lost, a ship
     that joins under or is renamed to the campaign's ship name becomes the primary again: `RT.promotePrimary`), and declare
@@ -26,7 +27,8 @@ Contributors add **universe extensions** and **scenarios** independently.
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `scenarios/battlelab/scenario_63_battlelab.lua` — Battle Lab: the Boneyard's Annex fight (Concord vs Relic drones at
   Ashgrave) and an open-space Concord vs Corsairs battle (+ the crew), triggered and tuned from the GM screen; for
-  balancing set-piece battles (see its README)
+  balancing set-piece battles (see its README); `scenario_64_auditlab.lua` — Audit Lab: the Ledger arc's carry and
+  Concord Audit Service attack from the last fragment, replayable from the GM screen
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tests/` — in-game regression tests run by `tools/game_tests.py` (never installed into a played game): `_harness.lua`,
   `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua`, `jobs/multiship.lua`
