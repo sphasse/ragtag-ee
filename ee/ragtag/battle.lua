@@ -95,7 +95,8 @@ local function speeds(self, r)
     r.ship:setAcceleration(r.accel, r.accel)
 end
 
--- Spawn one ship of a side; frozen until start() if the battle has not started.
+-- Spawn one ship of a side; frozen until start() if the battle has not started. Frozen, not idle:
+-- an idle ship can turn away from the enemy and then take a long time to swing back (playtest).
 function Battle:spawn(side, hull, faction, name, x, y, heading)
     if not self.stock.hulls[hull] then measure(self.stock, {hull}) end   -- not listed up front: add it
     local s = CpuShip():setTemplate(hull):setFaction(faction):setCallSign(name)
