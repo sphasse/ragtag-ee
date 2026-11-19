@@ -122,9 +122,9 @@ end
 -- code): when the hack lands, a seven-ship Concord battle group spawns active on a line 15U
 -- north-west of the Annex (no warp, the Battle Lab's speeds) and heads for five combat points 3U
 -- north-west of it, engaging the crew there. The drone flip launches 24 small, fast Relic drones
--- (twice a stock drone's laser) from the nebulae north-east and south-west of the Annex, each
+-- (lasers 3x a stock drone's) from the nebulae north-east and south-west of the Annex, each
 -- replaced from its own nebula when it dies while any Concord ship is left, and turns the
--- Annex's own lasers on the Concord: a rout.
+-- Annex's own lasers on the Concord: a rout. With the Concord gone, the drones guard the Annex.
 local function _spawnConcordGroup(st)
     if not RT.valid(st.annex) then return end
     st.annex_battle = st.annex_battle or BATTLE.annex(st.annex)

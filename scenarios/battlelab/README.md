@@ -14,13 +14,14 @@ the Boneyard arc runs, tuned by `BATTLE.ANNEX`:
   alternating; the middle one is CNS Vanguard (Phobos T3). No warp, no nukes, the open-space mode's
   speeds (normalized over `BATTLE.REF_HULLS`: Atlantis 80, Phobos 104 impulse).
 - **Combat points**: five, 1.5U apart, on a line 3U north-west of the Annex running the same way.
-- **Drones** (`Relic Active`: enemies of the Concord only, default 24): MT52 Hornets with 12-damage
-  lasers (twice a stock drone's 6), impulse 156 (1.5x the fastest Concord ship), turn 30, acceleration
+- **Drones** (`Relic Active`: enemies of the Concord only, default 24): MT52 Hornets with 18-damage
+  lasers (3x a stock drone's 6), impulse 156 (1.5x the fastest Concord ship), turn 30, acceleration
   35, no warp. Half come out of the nebula north-east of the Annex (12.5U), half out of the one
   south-west (11.5U, clear of Ashgrave). Every drone that dies is replaced from its own nebula
-  (checked every second) while any Concord ship is left.
+  (checked every second) while any Concord ship is left. When the last Concord ship dies, the drones
+  fall back to defend the Annex (spawning more Concord sends them back to the points).
 - **The Annex's lasers** arm with the drones: the Annex turns `Relic Active` and its three beams
-  (360°, 4.5U, 8 damage every 3 s) fire on the nearest Concord ship in range.
+  (360°, 4.5U, 32 damage every 3 s) fire on the nearest Concord ship in range.
 
 GM console: **Battle status** (survivors, drones per nebula, replacements, what the Annex is firing at,
 ships per point), **Start (Concord + drones)**, **Spawn Concord (n)** and **Spawn drones (n)** separately

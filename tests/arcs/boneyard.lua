@@ -118,7 +118,7 @@ T.step("drones on our side", function()
     T.eq("control: 24 drones", T.alive(d), 24)
     T.eq("control: drones are Relic Active", d[1]:getFaction(), "Relic Active")
     T.eq("control: small ships (MT52 Hornet)", d[1]:getTypeName(), "MT52 Hornet")
-    T.eq("control: lasers twice a stock drone's (12)", d[1]:getBeamWeaponDamage(0), 12)
+    T.eq("control: drone lasers hit for 18 (1.5x the first 12)", d[1]:getBeamWeaponDamage(0), 18)
     T.eq("control: 1.5x the fastest Concord impulse (156)", math.floor(d[1]:getImpulseMaxSpeed() + 0.5), 156)
     T.check("control: drones have no warp", not d[1]:hasWarpDrive())
     local at = {0, 0}
@@ -145,6 +145,19 @@ end)
 T.waitFor("control: the Annex's lasers pick the Concord ship in range", function()
     return T.st().annex_battle.laser_target == T.st().concord_group[2]
 end, 3)
+T.step("annex lasers hit hard; the Concord group dies", function()
+    T.eq("control: Annex lasers hit for 32", annex():getBeamWeaponDamage(0), 32)
+    for _, s in ipairs(T.st().concord_group) do if s:isValid() then s:destroy() end end
+end)
+T.waitFor("control: with the Concord gone, the drones guard the Annex", function()
+    local d = T.st().annex_battle.b:ships("b")
+    if #d == 0 then return false end
+    for _, s in ipairs(d) do if s:getOrderTarget() ~= annex() then return false end end
+    return true
+end, 4)
+T.step("no more replacements once the Concord is gone", function()
+    T.eq("control: still 24 drones", T.alive(T.st().rein_drones), 24)
+end)
 T.closeComms()
 
 -- ── Extract and resolve ──────────────────────────────────────────────────────

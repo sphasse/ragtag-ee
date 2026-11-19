@@ -307,7 +307,8 @@ end
 -- north-west of it. Side b: small, fast Relic drones (Relic Active: enemies of the Concord only)
 -- come out of the two Boneyard nebulae north-east and south-west of the Annex; every drone that
 -- dies is replaced from the nebula it came from while any Concord ship is left. Once armed, the
--- Annex's own lasers fire on the nearest Concord ship in range. All positions are relative to the
+-- Annex's own lasers fire on the nearest Concord ship in range. Once the last Concord ship is gone,
+-- the drones fall back to defend the Annex (until more Concord spawn). All positions are relative to the
 -- Annex, in U; bearings in degrees (0 = north).
 
 BATTLE.ANNEX = {
@@ -332,11 +333,11 @@ BATTLE.ANNEX = {
     gates         = {{7.2, -10.2}, {-10.1, 5.6}},
     gate_scatter_u = 1.2,
     drone_hull    = "MT52 Hornet",   -- a small fighter, yellow like the Relic's other drones
-    drone_beam    = 12,              -- twice the 6 of a stock drone's laser (Ktlitan Drone, Stalker)
+    drone_beam    = 18,              -- 3x a stock drone's 6 (Ktlitan Drone, Stalker); 12 could not break an Atlantis X23
     drone_speed   = 1.5,             -- x the fastest Concord ship's impulse (no warp)
     drone_turn    = 30,
     drone_accel   = 35,
-    lasers        = {count = 3, range = 4500, cycle = 3, damage = 8},   -- the Annex's, once armed
+    lasers        = {count = 3, range = 4500, cycle = 3, damage = 32},  -- the Annex's, once armed (8 was too weak)
 }
 
 local Annex = {}
@@ -386,6 +387,10 @@ function Annex:spawnConcord(n)
         out[#out + 1] = s
     end
     self.b:assign("a")
+    if self.home then   -- the drones were guarding the Annex: back to the points
+        self.home = false
+        self.b:assign("b")
+    end
     return out
 end
 
@@ -413,6 +418,13 @@ function Annex:spawnDrones(n)
         self:spawnDrone(k)
     end
     self.b:assign("b")
+    if self.home then self:goHome() end
+end
+
+-- No Concord left: every drone defends the Annex.
+function Annex:goHome()
+    self.home = true
+    for _, s in ipairs(self.b:ships("b")) do s:orderDefendTarget(self.annex) end
 end
 
 -- The Annex's lasers: the station takes the drones' side (Relic Active: enemies of the Concord
@@ -460,6 +472,8 @@ function Annex:tick(now)
                 self.replaced = self.replaced + 1
             end
         end
+    elseif #self.concord > 0 and not self.home and self.annex:isValid() then
+        self:goHome()
     end
     self:aimLasers()
 end
@@ -467,7 +481,7 @@ end
 -- Remove every ship of the battle and disarm the Annex (back to Relic).
 function Annex:clear()
     self.b:clear()
-    self.concord, self.drones, self.quota, self.cmd = {}, {}, {0, 0}, nil
+    self.concord, self.drones, self.quota, self.cmd, self.home = {}, {}, {0, 0}, nil, false
     if self.armed and self.annex:isValid() then
         pcall(function()
             self.annex.components.weapons_target = nil
