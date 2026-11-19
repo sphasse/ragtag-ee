@@ -308,11 +308,13 @@ local function _buildPorts()
     for _, d in ipairs(ports) do
         local grid = getSectorName(d.x * _PORT_U, d.y * _PORT_U)
         local area = _cap(_portArea(d))
+        -- The shipwright is a base for upgrade lines: "Base for hull, reactor and beam upgrades".
         local shop = {}
         for _, id in ipairs(d.shop or {}) do
             local u = RT and RT.upgradeById and RT.upgradeById(id)
-            shop[#shop + 1] = u and u.name or id
+            shop[#shop + 1] = u and u.name or (RT and RT.upgradeLineName and RT.upgradeLineName(id)) or id
         end
+        local base = #shop > 1 and (table.concat(shop, ", ", 1, #shop - 1) .. " and " .. shop[#shop]) or shop[1]
         local services = {"Job board", "Repairs and resupply"}
         if #shop > 0 then services[#services + 1] = "Shipwright" end
         if d.concord then services[#services + 1] = "Concord customs" end
@@ -324,14 +326,14 @@ local function _buildPorts()
             "SERVICES\n" .. table.concat(services, ", ") .. "."}) do lines[#lines + 1] = l end
         if #shop > 0 then
             lines[#lines + 1] = ""
-            lines[#lines + 1] = "SHIPWRIGHT\n" .. table.concat(shop, "\n")
+            lines[#lines + 1] = "SHIPWRIGHT\nBase for " .. base .. " upgrades. Every level of those is fitted here."
         end
         if d.concord then
             lines[#lines + 1] = ""
             lines[#lines + 1] = "STANDING\nA Concord port. Work here dries up as your Concord standing falls: few jobs below -200, none below -400."
         end
         local kv = {["Grid"] = grid, ["Area"] = area, ["Authority"] = d.fac,
-                    ["Shipwright"] = #shop > 0 and (#shop .. " upgrades") or "None"}
+                    ["Shipwright"] = #shop > 0 and ("base for " .. base .. " upgrades") or "None"}
         SCIDB._entries["port_" .. d.cs] = _entry(root, d.cs, table.concat(lines, "\n"), kv)
     end
 end

@@ -11,7 +11,8 @@
 --       title = "What this adds",
 --       stations = { {cs = "New Station", tmpl = "Small Station", fac = "Independent", x = 10, y = 20, ...} },
 --                  -- optional: desc (one line, the station's scan text), lore (paragraphs for the
---                  -- Science database's Ports section; "\n\n" between paragraphs), shop, flavor
+--                  -- Science database's Ports section; "\n\n" between paragraphs), shop (the upgrade lines its
+--                  -- shipwright is a base for: "hull", "shields", "beams", ... see RT.UPGRADE_LINES), flavor
 --       regions = { ... }, planets = { ... }, stars = { ... },
 --       nebula_fields = { ... }, asteroid_fields = { ... }, garrisons = { ... },
 --       minefields = { ... }, hazards = { ... }, wreck_fields = { ... },

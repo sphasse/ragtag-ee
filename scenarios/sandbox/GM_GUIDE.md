@@ -42,9 +42,13 @@
 - Salvage supplements missions rather than replacing them
 
 ### Upgrade
-- **15 upgrades** available across different stations
-- Costs: 150–450 credits each; each station sells a different selection
-- Warp coil overhaul (250cr) is the key mobility upgrade
+- **26 upgrades** in 11 component lines (hull, shields, beams, missiles, tubes, engines,
+  thrusters, reactor, repair crew, sensors, probes), from 150 to 2,000 credits; the top levels
+  escalate (sensors 500 / 1,000 / 2,000, Shield IV 1,800, Armour III 1,100). Full list:
+  `ee/ragtag/core/upgrades.lua`.
+- Each shipwright is a **base for some lines** ("base for hull, reactor and beam upgrades", shown in
+  the Science DB's Ports entries) and fits every level of them.
+- There is no warp upgrade (removed 2026-11-18).
 - Upgrades belong to the ship that bought them: a second player ship has its own credits,
   standing, upgrades and job tier
 - **Mission tiers are gated by a ship's total upgrade investment**, not upgrade count:

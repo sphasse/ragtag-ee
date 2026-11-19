@@ -248,16 +248,16 @@ function GMCONSOLE.add(opts)
 
     -- Upgrades submenu
     local _UPGRADE_GROUPS = {
-        {label = "Hull",      ids = {"hull_plating", "hull_plating_2"}},
-        {label = "Shields",   ids = {"shield_mk2", "shield_mk3"}},
-        {label = "Beams",     ids = {"forward_beams", "beam_coils", "heavy_beams"}},
-        {label = "Weapons",   ids = {"missile_racks", "front_tube"}},
-        {label = "Impulse",   ids = {"engine_tune"}},
+        {label = "Hull",      ids = {"hull_plating", "hull_plating_2", "hull_plating_3"}},
+        {label = "Shields",   ids = {"shield_mk2", "shield_mk3", "shield_mk4"}},
+        {label = "Beams",     ids = {"forward_beams", "beam_coils", "beam_coils_2", "heavy_beams"}},
+        {label = "Missiles",  ids = {"missile_racks", "missile_racks_2"}},
+        {label = "Tubes",     ids = {"front_tube", "side_tubes"}},
+        {label = "Impulse",   ids = {"engine_tune", "engine_tune_2"}},
         {label = "Thrusters", ids = {"combat_thrusters"}},
-        {label = "Warp",      ids = {"warp_overhaul"}},
         {label = "Reactor",   ids = {"reactor_overhaul"}},
         {label = "Repair",    ids = {"repair_crew", "repair_crew_2", "repair_crew_3"}},
-        {label = "Sensors",   ids = {"sensor_suite"}},
+        {label = "Sensors",   ids = {"sensor_suite", "sensor_suite_2", "sensor_suite_3"}},
         {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
     }
 
@@ -300,11 +300,11 @@ function GMCONSOLE.add(opts)
         add(string.format("Invested: %dcr  |  Job tier: %d\n", total_invested, JOBS.maxTier(p)))
 
         sec("HULL")
-        add(uline("hull_plating")); add(uline("hull_plating_2"))
+        add(uline("hull_plating")); add(uline("hull_plating_2")); add(uline("hull_plating_3"))
         add(string.format("  hp: %d / %d", math.floor(p:getHull()), math.floor(p:getHullMax())))
 
         sec("SHIELDS")
-        add(uline("shield_mk2")); add(uline("shield_mk3"))
+        add(uline("shield_mk2")); add(uline("shield_mk3")); add(uline("shield_mk4"))
         local sc = p:getShieldCount()
         if sc >= 2 then
             add(string.format("  front %d/%d  rear %d/%d",
@@ -315,7 +315,7 @@ function GMCONSOLE.add(opts)
         end
 
         sec("BEAMS")
-        add(uline("forward_beams")); add(uline("beam_coils")); add(uline("heavy_beams"))
+        add(uline("forward_beams")); add(uline("beam_coils")); add(uline("beam_coils_2")); add(uline("heavy_beams"))
         for i = 0, 7 do
             local range = p:getBeamWeaponRange(i)
             if range ~= nil and range > 0 then
@@ -326,24 +326,20 @@ function GMCONSOLE.add(opts)
         end
 
         sec("WEAPONS")
-        add(uline("missile_racks")); add(uline("front_tube"))
+        add(uline("missile_racks")); add(uline("missile_racks_2")); add(uline("front_tube")); add(uline("side_tubes"))
         add(string.format("  tubes: %d  homing: %d/%d  HVLI: %d/%d",
             p:getWeaponTubeCount(),
             p:getWeaponStorage("Homing"), p:getWeaponStorageMax("Homing"),
             p:getWeaponStorage("HVLI"), p:getWeaponStorageMax("HVLI")))
 
         sec("IMPULSE")
-        add(uline("engine_tune"))
+        add(uline("engine_tune")); add(uline("engine_tune_2"))
         local fwd, rev = p:getImpulseMaxSpeed()
         add(string.format("  fwd %.0f / rev %.0f u/s", fwd, rev))
 
         sec("THRUSTERS")
         add(uline("combat_thrusters"))
         add("  combat maneuver: " .. (RT.hasUpgrade("combat_thrusters", p) and "enhanced" or "default"))
-
-        sec("WARP")
-        add(uline("warp_overhaul"))
-        add(string.format("  speed: %.0f wu/s", p:getWarpSpeed()))
 
         sec("REACTOR")
         add(uline("reactor_overhaul"))
@@ -354,7 +350,7 @@ function GMCONSOLE.add(opts)
         add(string.format("  crew: %d / 8 max", p:getRepairCrewCount()))
 
         sec("SENSORS")
-        add(uline("sensor_suite"))
+        add(uline("sensor_suite")); add(uline("sensor_suite_2")); add(uline("sensor_suite_3"))
         add(string.format("  LR: %.0fu  SR: %.0fu",
             p:getLongRangeRadarRange() / 1000, p:getShortRangeRadarRange() / 1000))
 

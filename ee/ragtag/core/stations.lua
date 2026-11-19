@@ -85,12 +85,15 @@ function RT.stationComms(source, target)
     end)
 end
 
--- Does this station's shipwright sell the upgrade? shop = true sells everything.
+-- Does this station's shipwright sell the upgrade? shop = true sells everything; otherwise the
+-- station is a base for component lines ("hull", "beams", ...: RT.UPGRADE_LINES) and sells every
+-- level of them. A single upgrade id is still accepted (an extension may list one).
 function RT.stocks(info, id)
     if info.shop == true then return true end
     if type(info.shop) ~= "table" then return false end
+    local u = RT.upgradeById(id)
     for _, s in ipairs(info.shop) do
-        if s == id then return true end
+        if s == id or (u and s == u.line) then return true end
     end
     return false
 end
