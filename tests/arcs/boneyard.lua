@@ -1,11 +1,12 @@
 -- Boneyard arc: hook -> annex_hack (from range) -> annex_control (dock: the fleet jumps in; download,
 -- drone reprogram, Annex lasers; the download stops on undocking) -> report (the survivors, docked at
--- their station) -> done (full); then the other ending (no survivors: Ashgrave reveals the Annex, the fight ends it), the GM
--- states and "-> Inactive". Not covered: the lifeboat rescue flight (the test calls the pickup's on_found),
+-- their station) -> done (full); then the other ending (no survivors: Ashgrave reveals the Annex, the fight ends it,
+-- and the fleet's end compresses a running download to a minute), leaving the Boneyard (20U outside it) ends the
+-- arc, the GM states and "-> Inactive". Not covered: the lifeboat rescue flight (the test calls the pickup's on_found),
 -- a real Relay hack by probe (the GM helper sets the level), how the fight plays out (the Battle Lab's
 -- Annex mode is for that), the pop-ups on the consoles as the crew sees them; covered: who spawns
 -- where, how fast, with what lasers, drone replacement from the same nebula, and the Annex's lasers
--- picking a Concord ship. The 2 min download and the 60 s reprogram and laser timers are shortened
+-- picking a Concord ship. The 5 min download (1 min once compressed) and the 60 s reprogram and laser timers are shortened
 -- by moving their start times back.
 
 T.arc("boneyard")
@@ -160,7 +161,7 @@ end)
 -- ── Control: one operation at a time, docked ─────────────────────────────────
 T.talk(annex, {})
 T.step("three operations on offer", function()
-    T.check("control: download, 2 min", T.hasReply("1) Download research archive (2 min)"), table.concat(T.replies(), " | "))
+    T.check("control: download, 5 min while the fleet is out", T.hasReply("1) Download research archive (5 min)"), table.concat(T.replies(), " | "))
     T.check("control: reprogram, 60 s", T.hasReply("2) Reprogram the drones to be hostile to the Concord (60s)"), table.concat(T.replies(), " | "))
     T.check("control: lasers, 60 s", T.hasReply("3) Enable station defense lasers (60s)"), table.concat(T.replies(), " | "))
 end)
@@ -183,7 +184,7 @@ T.dock(annex)
 T.talk(annex, {"1) Download research archive"})
 T.step("download restarted", function()
     T.check("control: downloading again", T.st().download_start ~= nil)
-    T.st().download_start = T.st().download_start - 118
+    T.st().download_start = T.st().download_start - 298
 end)
 T.waitFor("control: download completes", function() return T.flag("boneyard_hack_done") end, 5)
 T.step("research indexed", function()
@@ -341,15 +342,57 @@ T.step("back to the Annex, no survivors", function()
 end)
 T.dock(annex)
 T.waitFor("no survivors: the fleet jumps in", function() return T.st().fleet_arrived end, 3)
-T.step("archive and fleet", function()
-    T.st().download_start = T.now() - 200
-    T.st().download_done = true
-    RT.flag("boneyard_hack_done", true)
+T.talk(annex, {"1) Download research archive"})
+T.step("download under way, then the fleet goes", function()
+    T.check("compress: downloading", T.st().download_start ~= nil)
+    T.check("compress: not compressed while the fleet is out", not T.st().archive_compressed)
+    T.st().download_start = T.now() - 30   -- 30 s into the 5 minutes
     T.action("Destroy Concord")
 end)
+T.waitFor("compress: the fleet gone compresses the archive", function() return T.st().archive_compressed end, 4)
+T.step("a running download finishes within a minute", function()
+    local t = T.st().download_time or 0
+    T.check("compress: its total is the time so far + 60 s", t >= 90 and t < 95, t)
+    T.check("compress: not done yet", not T.st().download_done)
+end)
+T.talk(annex, {})
+T.step("the menu shows the shorter time", function()
+    local left
+    for _, r in ipairs(T.replies()) do
+        local n = r:match("^%[IN PROGRESS%] Downloading archive: (%d+)s")
+        if n then left = tonumber(n) end
+    end
+    T.check("compress: about a minute left", left and left > 50 and left <= 61, table.concat(T.replies(), " | "))
+    T.st().download_start = T.st().download_start - 58
+end)
+T.closeComms()
 T.waitFor("no survivors: the fight ends the arc", function() return T.status() == "done" end, 4)
 T.step("no report", function()
     T.check("no survivors: the arc is done", T.flag("boneyard_arc_done"))
+    T.check("no survivors: the archive is in", T.flag("boneyard_hack_done"))
+end)
+
+-- ── Leaving the Boneyard ends the arc, with whatever the crew has ───────────
+T.step("leave: back at the Annex", function()
+    T.moveTo(ANNEX_X + 7000, ANNEX_Y - 3000)
+    T.jump("control")
+    RT.clearFlag("boneyard_hack_done")
+end)
+T.dock(annex)
+T.waitFor("leave: the fleet jumps in", function() return T.st().fleet_arrived end, 3)
+T.undock()
+T.step("leave: 45U out is not leaving yet", function()
+    T.moveTo(36000 + 45000, -96000)   -- 45U from the Boneyard's centre: 16U outside it
+end)
+T.wait(1)
+T.step("not yet", function()
+    T.eq("leave: 16U outside the Boneyard is not enough", T.phase(), "annex_control")
+    T.moveTo(36000 + 50000, -96000)   -- 50U: over 20U outside it
+end)
+T.waitFor("leave: 20U outside the Boneyard ends the arc", function() return T.status() == "done" end, 3)
+T.step("left without the archive", function()
+    T.check("leave: no archive", not T.flag("boneyard_hack_done"))
+    T.check("leave: the arc is done", T.flag("boneyard_arc_done"))
 end)
 
 -- ── GM states ────────────────────────────────────────────────────────────────

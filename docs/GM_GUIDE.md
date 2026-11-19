@@ -52,7 +52,7 @@ GM quits any time (the campaign autosaves; use **Backup campaign** for a restore
 
 See **[REPUTATION.md](REPUTATION.md)** for the full mechanics reference — reward formula, all thresholds, Concord inspection flow, and donation opportunities.
 
-**Quick summary:** Rep is unbounded. Changes log to Relay immediately with current standings. Destroying a ship costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a hostile Concord ship counts as Concord, a friendly Corsair as Corsairs), charged to the ship that made the kill. Ships in a story-arc fight cost nothing, nor do Relic and Hollow ships; failed or expired jobs cost −(reward amount).
+**Quick summary:** Rep is unbounded. Changes log to Relay immediately with current standings. Destroying a ship that was not your enemy costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a friendly Corsair counts as Corsairs), charged to the ship that made the kill. Enemies cost nothing (Corsair patrols and raiders, hostile Concord ships, job targets that turned on the crew), nor do ships in a story-arc fight, Relic or Hollow ships; failed or expired jobs cost −(reward amount).
 
 - **Concord:** inspections at rep ≥ −200; spawn hostile at rep < −200. Raise rep via Concord Waypoint Galen donations or Concord-faction jobs.
 - **Independent:** job board thins below 0, goes dark below −400. Raise via Saint Brennan's Mission donations or any job completion.

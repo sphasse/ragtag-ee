@@ -75,9 +75,12 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 - [ ] Hailing the Annex undocked says "Station security has been reset. Dock for more options."; the
       **dock button** works on the Annex
 - [ ] First docking: the "Incoming jump detected" pop-up on every console, the Concord fleet appears
-- [ ] Download (2 min, stops on undocking) vs drone reprogram (60 s) vs lasers (60 s): is the order an
-      interesting choice? Does the crew get out into the fight?
-- [ ] "All Concord forces in proximity have been eliminated." hail; then "Report the success"
+- [ ] Download (5 min docked while the fleet is out, stops on undocking) vs drone reprogram (60 s) vs
+      lasers (60 s): does the crew work out to reprogram the drones first? Does it get out into the fight?
+- [ ] "All Concord forces in proximity have been eliminated." hail, then "Archive compressed": the
+      download takes 1 min (a running one finishes within a minute); then "Report the success"
+- [ ] Leaving the Boneyard (20U outside it) ends the arc with whatever the crew has (with the archive:
+      report to the survivors)
 - [ ] Back at the rescue job's station: "Talk with the lifeboat survivors" reads well and ends the arc
 - [ ] Each ending (Full / Data) is reachable and reads clearly
 
@@ -95,8 +98,8 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       going after 45 s). Too long? Do the order buttons unlock at the right time?
 - [ ] An escort lost → Reva names it and sends a replacement
 - [ ] Return: the thickened mine ring round Blackwater; are the three lanes (north, ESE, WSW) findable?
-- [ ] The **battle, for real** (7 Concord vs 12 Corsairs, frozen until you are within 5U of
-      either line): does it stay spread out? How long does it take? Does the crew matter?
+- [ ] The **battle, for real** (7 Concord vs 12 Corsairs, frozen until any player ship is within
+      5U of either line): does it stay spread out? How long does it take? Does the crew matter?
 - [ ] **Magazine** (new): runs low → it hails with its grid and a "Rearm" objective appears;
       8 s alongside refills the racks. Is it reachable mid-battle? Is **3 loads** right? Is **8 s**
       too long under fire? Does the Concord ever get to it?

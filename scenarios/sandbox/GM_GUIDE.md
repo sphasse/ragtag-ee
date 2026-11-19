@@ -95,7 +95,7 @@ Types:
 | **Delivery** | 50–130 cr | +reward with origin faction on complete; −reward on fail/expire |
 | **Salvage** | 60–155 cr | Same; urgent salvage pays 1.5× |
 | **Hacking** | 85–215 cr | Rep-neutral (relay hack is undetected) |
-| **Destroy** | 100–250 cr | −200 Corsairs on kill; +reward with origin on complete |
+| **Destroy** | 100–250 cr | +reward with origin on complete (the target has turned Corsair and hostile by then: no kill penalty) |
 | **Boarding** | 115–285 cr | −100 Corsairs on disable; +reward with origin on complete |
 | **Escort** | 90–230 cr | +reward with origin on complete |
 | **Tailing** | tier 1+ | +reward with origin on complete; −2× reward if the target is lost to the clock |
@@ -109,7 +109,7 @@ Time limits scale with distance. Failing or letting a mission expire costs the c
 - **Relic drones** guard the Boneyard (war machines, hostile to all)
 - **Hollow ships** in the Maw (deadly — avoid early game)
 - **Concord patrols** do inspections when rep ≥ −200; below that threshold they spawn as hostile and attack on sight
-- **Destroying a ship costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a hostile Concord ship counts as Concord, a friendly Corsair as Corsairs), charged to the ship that made the kill. Ships in a story-arc fight cost nothing, nor do Relic and Hollow ships**
+- **Destroying a ship that was not your enemy costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a friendly Corsair counts as Corsairs), charged to the ship that made the kill. Enemies cost nothing (Corsair patrols and raiders, hostile Concord ships, job targets that turned on the crew), nor do ships in a story-arc fight, Relic or Hollow ships**
 
 ## GM Tools (Buttons)
 
@@ -219,7 +219,7 @@ Crew decides what to do: jobs from the station boards, salvage, exploration. Enc
 
 ### Concord turns hostile mid-session
 - Concord spawns hostile when reputation drops below −200
-- Rep drops from: failed inspections (−100 to −150), jammer destruction (−50), ship kills (−200)
+- Rep drops from: failed inspections (−100 to −150), jammer destruction (−50), killing a Concord ship that was not hostile (−200)
 - Raise rep via Concord Waypoint Galen donations (+50/100cr) or completing jobs with Concord-aligned stations
 - GM can manually adjust rep via the **Reputation...** button
 

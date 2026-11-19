@@ -40,15 +40,15 @@ Three operations, **one at a time** (while one is in progress the others show as
 
 | Operation | Time | Effect |
 |---|---|---|
-| 1) Download research archive | 2 min | Sets `boneyard_hack_done`; unlocks the Science DB lore. **Needs the dock the whole time**: undocking stops it, and it starts again from the beginning |
+| 1) Download research archive | 5 min; 1 min once the fleet is gone | Sets `boneyard_hack_done`; unlocks the Science DB lore. **Needs the dock the whole time**: undocking stops it, and it starts again from the beginning |
 | 2) Reprogram the drones to be hostile to the Concord | 60 s | Sets `boneyard_drone_flip`; 24 Relic drones launch from the two nebulae |
 | 3) Enable station defense lasers | 60 s | Arms the Annex's lasers against the Concord |
 
-The reprogram and the lasers keep running if the crew undocks. The download is short so the crew can get out and into the fight; it can be done before, during or after the battle.
+The reprogram and the lasers keep running if the crew undocks. The intended order is the drones first (the defence starts), then the lasers or the fight, then the archive: while the Concord fleet is out the download takes 5 minutes docked (`_DOWNLOAD_SLOW`). When the last Concord ship dies the Annex compresses the archive (log: "Archive compressed"): a download not yet started takes 1 minute (`_DOWNLOAD_FAST`), and one already running finishes within a minute of that moment.
 
 When the last Concord ship dies, the Annex hails the crew once, "All Concord forces in proximity have been eliminated." (ship-log fallback if comms are busy), and the drones fall back to defend the Annex. If the archive is in but the fleet is not beaten, the objective is "Defeat the Concord fleet".
 
-With the archive downloaded **and** the fleet gone, the arc moves to `report`, or, for a crew that found the Annex without rescuing the survivors, straight to `done`. Leaving the Boneyard no longer ends the arc; a crew that cannot win the fight can come back later (the GM has `Destroy Concord`).
+With the archive downloaded **and** the fleet gone, the arc moves to `report`, or, for a crew that found the Annex without rescuing the survivors, straight to `done`. **Leaving the Boneyard** (20U outside it: 49U from its centre, `_LEAVE_R`) also ends the phase with whatever the crew has: with the archive (and the survivors rescued earlier) it moves to `report`, otherwise to `done` (no archive: no 600 cr; the fleet left alive: the "Concord swept the Boneyard" rumor). The GM also has `Destroy Concord`.
 
 ### report
 The objective becomes "Report the success", and the log says to report to the lifeboat survivors at the station they were taken to (the rescue job's station, saved in `boneyard_survivors_at`; Port Vesper if unknown). Docked there, the station's menu offers "Talk with the lifeboat survivors": they thank the crew, say they were working to reverse the abomination and got close but needed better engineering than they had, and hope the crew's ship can carry the mission forward. That ends the arc. The drones keep guarding the Annex until the cleanup after resolve.

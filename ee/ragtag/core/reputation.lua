@@ -128,10 +128,13 @@ function RT.cancelKillTracking(ship)
 end
 
 -- The kill penalty: a player ship that destroys a ship loses RT.KILL_PENALTY standing with that
--- ship's faction, judged when it dies (a job target that turned Corsair counts as Corsairs).
--- Presentation-only factions count as the faction they stand for; only the factions with
--- standing (RT.KILL_PENALTY_FACTIONS) are charged. NPC-vs-NPC kills, scripted despawns and
--- ships an arc or job took out of tracking (RT.cancelKillTracking, ARC.register) cost nothing.
+-- ship's faction, judged when it dies. Only an unprovoked kill costs: a ship that was an enemy of
+-- the killer when it died (a Corsair patrol, a hostile Concord ship, an escort raider, a job
+-- target that turned on the crew) costs nothing, so fighting off attackers never feeds back into
+-- more attacks. Presentation-only factions count as the faction they stand for (a friendly
+-- Corsair counts as Corsairs); only the factions with standing (RT.KILL_PENALTY_FACTIONS) are
+-- charged. NPC-vs-NPC kills, scripted despawns and ships an arc or job took out of tracking
+-- (RT.cancelKillTracking, ARC.register) cost nothing.
 RT.KILL_PENALTY = 200
 RT.KILL_PENALTY_FACTIONS = {Independent = true, Concord = true, Corsairs = true}
 local _REAL_FACTION = {["Concord Hostile"] = "Concord", ["Corsair Friendly"] = "Corsairs"}
@@ -142,6 +145,8 @@ function RT.trackShipForReputation(ship)
         if RT._rep_cancelled[s] then return end
         local killer = RT.playerShip(instigator)
         if not killer then return end
+        local okh, hostile = pcall(function() return s:isEnemy(killer) end)
+        if okh and hostile then return end   -- it was fighting the crew: no penalty
         local ok, fac = pcall(function() return s:getFaction() end)
         if not ok or fac == nil then return end
         fac = _REAL_FACTION[fac] or fac

@@ -102,8 +102,9 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
 - **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are recovered, or at 8U from Ashgrave) →
   annex_hack (Relay hacks frontshield to
   100%, from range by probe; drones go idle, later ones too; the Annex becomes dockable) →
-  annex_control (docked only, one operation at a time: 2 min archive download that stops on
-  undocking, 60s drone reprogram, 60s station defense lasers; the first docking brings a
+  annex_control (docked only, one operation at a time: archive download that stops on undocking,
+  5 min while the fleet is out and 1 min once it is gone (compressed), 60s drone reprogram, 60s
+  station defense lasers; leaving the Boneyard, 20U outside it, ends it with whatever the crew has; the first docking brings a
   7-ship Concord Hostile battle group 15U out; the reprogram launches 24 fast drones from
   two nebulae; no warp jammer; CNS Vanguard fights like any other ship) → report (archive
   in and fleet gone: talk with the lifeboat survivors, docked at the rescue job's station) → done.
@@ -162,7 +163,7 @@ mines, then stands in the Corsair line when the fleet arrives. Linear: defend, o
    (-> `failed`: the defense started without them).
 6. `battle` — reworked 2026-11-18 after the Battle Lab: a set piece with its rules
    (`ee/ragtag/battle.lua`). 7 Concord ships and 12 Corsairs in two lines 25U west of Blackwater,
-   frozen until the crew comes within 5U of the Corsair line; then fought over five combat points.
+   frozen until any player ship comes within 5U of either line; then fought over five combat points.
    All 7 Concord destroyed -> `defended`; the crew's ship destroyed -> `failed` (the Corsairs may
    all be lost). Details: `ee/ragtag/missions/corsair.md`, "The battle" and "The mine ring".
 

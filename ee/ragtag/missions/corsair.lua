@@ -506,16 +506,15 @@ local function _startBattle(st)
     RT.setObjective("Destroy Battle Group Two", true, "corsair")
 end
 
--- True when the arc ship is within _START_U of any ship of the battle, on either side: coming in
--- from the west reaches the Concord line first, and frozen ships do not fight back, so the
--- battle has to start before the crew can pick them off. (Other player ships do not start it:
--- arcs belong to the arc ship.)
+-- True when ANY player ship is within _START_U of any ship of the battle, on either side: coming
+-- in from the west reaches the Concord line first, and frozen ships do not fight back, so the
+-- battle has to start before anyone can pick them off. (A sister ship flying with the crew
+-- starts it too, though the arc itself belongs to the arc ship.)
 local function _crewNear(b)
-    local p = ARC.player()
-    if not p then return false end
     for _, side in ipairs({"a", "b"}) do
         for _, s in ipairs(b:ships(side)) do
-            if RT.dist(p, s) < _START_U then return true end
+            local x, y = s:getPosition()
+            if ARC.anyPlayerNear(x, y, _START_U) then return true end
         end
     end
     return false

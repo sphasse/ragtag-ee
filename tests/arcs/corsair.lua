@@ -358,19 +358,17 @@ T.wait(1)
 T.step("frozen while the crew is away", function()
     T.check("battle: not started yet", not T.st().battle.started)
     T.check("battle: no Corsair lost to a mine", T.alive(T.st().allies) == 12, table.concat(killed_by, "; "))
-    -- Another ship coming up on the Concord line does not start the arc's battle.
+    -- A sister ship coming up on the Concord line from the west starts it too: frozen ships
+    -- don't fight back, so it must not get to pick them off.
     local k = T.secondShip()
     local fx, fy = T.st().fleet[1]:getPosition()
     k:setPosition(fx - 3000, fy)
 end)
-T.wait(1)
-T.step("not for another ship", function()
-    T.check("battle: another ship near the Concord line does not start it", not T.st().battle.started)
+T.waitFor("battle: starts once any player ship is within 5U of any battle ship (here a Concord one)", function() return T.st().battle.started end, 3)
+T.step("the crew joins", function()
     T.secondShip():setPosition(VERSE.at("Port Vesper", -3, -3))
-    -- The crew coming in from the west reaches the Concord line first.
     T.moveNear(T.st().fleet[1], 3000)
 end)
-T.waitFor("battle: starts once the crew is within 5U of any battle ship (here a Concord one)", function() return T.st().battle.started end, 3)
 T.step("the battle begins", function()
     local s = T.st()
     local adder, atlantis

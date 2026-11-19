@@ -38,8 +38,9 @@ local _ASHGRAVE_X   =  39000   -- Ashgrave dead world (hook scan target)
 local _ASHGRAVE_Y   = -96000
 local _ANNEX_X      =  43000   -- Ashgrave Annex deep in the debris field
 local _ANNEX_Y      = -104000
-local _BONEYARD_CX  =  36000   -- Boneyard center (the drones the hack idles)
+local _BONEYARD_CX  =  36000   -- Boneyard center (the drones the hack idles; the exit check)
 local _BONEYARD_CY  = -96000
+local _LEAVE_R      =  49000   -- the Boneyard's radius (29U) + 20U: past this the crew has left
 
 -- ── State ─────────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,8 @@ function M.init_state()
         annex_battle     = nil,    -- BATTLE.annex: the Concord group, the drones, the Annex's lasers
         concord_beaten   = false,  -- the last Concord ship is gone (the Annex said so)
         fleet_arrived    = false,  -- the crew docked at the Annex and the Concord fleet jumped in
+        archive_compressed = false,  -- the fleet is gone: the download takes _DOWNLOAD_FAST
+        download_time    = nil,    -- a download running at compression: its shortened total (s)
         idle_next        = 0,      -- next check for Relic drones to idle (new arrivals too)
         concord_group    = {},     -- Concord Hostile battle group ships
         concord_cmd      = nil,    -- command ship reference
@@ -206,10 +209,16 @@ end
 -- Concord fleet jumps in on the first docking, the drones and the lasers only help once their
 -- operation finishes, and the download needs the docking clamp the whole time (undocking stops
 -- it; it starts again from the beginning). `needs_dock`: the operation stops when the crew undocks.
+-- The download is long (_DOWNLOAD_SLOW) while the Concord fleet is out: the Annex's link is busy
+-- with its own defence. Once the fleet is gone the archive is compressed and it takes
+-- _DOWNLOAD_FAST, a running one included (_opTime). So the sensible order is the drones first,
+-- then the fight, then a short docked download.
+local _DOWNLOAD_SLOW = 300
+local _DOWNLOAD_FAST = 60
 local _OPS = {
-    {key = "download",  label = "Download research archive",      time = 120, needs_dock = true,
+    {key = "download",  label = "Download research archive",      time = _DOWNLOAD_SLOW, needs_dock = true,
      running = "Downloading archive", done = "Archive download", color = "#00AAFF",
-     started = "[Relay] Archive download initiated. Two minutes; stay docked until it finishes.",
+     started = "[Relay] Archive download initiated. Stay docked until it finishes.",
      busy_msg = "Transfer in progress. Stay docked: the link runs through the docking clamp.",
      done_msg = "Transfer complete. Research files indexed in Science database."},
     {key = "reprogram", label = "Reprogram the drones to be hostile to the Concord", time = 60,
@@ -231,6 +240,32 @@ local function _runningOp(st)
     end
 end
 
+-- How long an operation takes now: the download is short once the archive has been compressed
+-- (st.download_time: the total for a download that was already running then).
+local function _opTime(st, op)
+    if op.key == "download" and st.archive_compressed then return st.download_time or _DOWNLOAD_FAST end
+    return op.time
+end
+
+local function _fmtSecs(t)
+    return t >= 120 and (t // 60 .. " min") or (t .. "s")
+end
+
+-- The Concord fleet is gone: the Annex compresses the archive. Not started yet: it takes
+-- _DOWNLOAD_FAST. Running: it finishes within _DOWNLOAD_FAST of now (sooner if it was nearly done).
+local function _compressArchive(st)
+    if st.archive_compressed or st.download_done then return end
+    st.archive_compressed = true
+    local s = st.download_start
+    if s then
+        local elapsed = getScenarioTime() - s
+        st.download_time = elapsed + math.min(_DOWNLOAD_SLOW - elapsed, _DOWNLOAD_FAST)
+    end
+    local msg = "Concord forces gone. Archive compressed: the download now takes one minute."
+    if s then msg = "Concord forces gone. Archive compressed: the download finishes within a minute." end
+    ARC.log("[Ashgrave Annex] " .. msg, "#00AAFF")
+end
+
 local _ONE_AT_A_TIME = "The Annex runs one operation at a time. Wait for the current one to finish."
 local _DOCK_FIRST    = "[Ashgrave Annex]\n\nStation security has been reset. Dock for more options."
 
@@ -250,14 +285,14 @@ local function _setAnnexControlComms(st)
             if st[op.key .. "_done"] then
                 addCommsReply("[COMPLETE] " .. op.done, function() setCommsMessage(op.done_msg) end)
             elseif running == op then
-                local remaining = math.max(0, op.time - math.floor(now - st[op.key .. "_start"]))
+                local remaining = math.max(0, math.ceil(_opTime(st, op) - (now - st[op.key .. "_start"])))
                 addCommsReply("[IN PROGRESS] " .. op.running .. ": " .. remaining .. "s", function()
                     setCommsMessage(op.busy_msg)
                 end)
             elseif running then
                 addCommsReply("[LOCKED] " .. op.label, function() setCommsMessage(_ONE_AT_A_TIME) end)
             else
-                local secs = op.time >= 120 and (op.time // 60 .. " min") or (op.time .. "s")
+                local secs = _fmtSecs(_opTime(st, op))
                 addCommsReply(i .. ") " .. op.label .. " (" .. secs .. ")", function(s2, t2)
                     if not ARC.docked(s2, t2, _DOCK_FIRST) then return end
                     if _runningOp(st) then setCommsMessage(_ONE_AT_A_TIME); return end
@@ -434,7 +469,11 @@ local function _survivorsAt()
 end
 
 local function _survivorsThanks(ship)
-    return '"You got the archive out, and the Concord fleet is gone? Thank you. All of us, thank you."\n\n'
+    local st = MISSIONS._state["boneyard"] or {}
+    local opener = st.concord_beaten
+        and '"You got the archive out, and the Concord fleet is gone? Thank you. All of us, thank you."\n\n'
+        or '"You got the archive out, right under the Concord fleet? Thank you. All of us, thank you."\n\n'
+    return opener
         .. '"We were working to reverse the abomination, and we got close. We just needed better engineering than what we had. '
         .. 'Hopefully the ' .. ship .. ' can carry the mission forward."'
 end
@@ -641,8 +680,9 @@ M.phases = {
             local op = _runningOp(st)
             if op and op.needs_dock and not docked then
                 st[op.key .. "_start"] = nil
+                if op.key == "download" then st.download_time = nil end   -- a restart takes the full time
                 ARC.log("[Relay] Archive download interrupted: the link dropped when we undocked. Dock again to restart it.", "#FFAA44")
-            elseif op and now - st[op.key .. "_start"] >= op.time then
+            elseif op and now - st[op.key .. "_start"] >= _opTime(st, op) then
                 st[op.key .. "_done"] = true
                 if op.key == "download" then
                     RT.flag("boneyard_hack_done", true)
@@ -660,11 +700,23 @@ M.phases = {
 
             _trackCmdShip(st)
             _tickBattle(st, now)
+            if st.concord_beaten then _compressArchive(st) end
 
-            -- Both done (the archive and the fleet): report to the survivors, or, for a crew that
-            -- never picked them up, that is the end.
-            if st.download_done and st.concord_beaten then
-                MISSIONS.phase("boneyard", RT.flag("boneyard_buoy_found") and "report" or "done")
+            -- Both done (the archive and the fleet), or the crew has left (_LEAVE_R from the
+            -- Boneyard's centre: 20U outside it) with whatever it has. With the archive and the
+            -- survivors aboard earlier, it reports to them; otherwise that is the end.
+            local left = false
+            if p then
+                local px, py = p:getPosition()
+                left = ARC.dist(px, py, _BONEYARD_CX, _BONEYARD_CY) > _LEAVE_R
+            end
+            if (st.download_done and st.concord_beaten) or left then
+                if left then
+                    ARC.log("[Mission] We've left the Boneyard. " .. (st.download_done
+                        and "The archive is aboard." or "The Annex archive stays behind."), "#80FF80")
+                end
+                local report = st.download_done and RT.flag("boneyard_buoy_found")
+                MISSIONS.phase("boneyard", report and "report" or "done")
             end
         end,
     },
@@ -708,9 +760,15 @@ function M.resolve(st)
         _indexAshgraveResearch()   -- normally already done when the download finished
     end
 
-    if RT.flag("boneyard_drone_flip") then
+    -- (The crew can leave with the fleet still there: then the Concord "swept" the Boneyard.)
+    if st.concord_beaten and RT.flag("boneyard_drone_flip") then
         RUMORS.add({
             text     = "Word's out — a Concord battle group got torn apart in the Boneyard. Something woke those drones up. Official Concord statement: none.",
+            priority = 4, category = "BONEYARD_DONE",
+        })
+    elseif st.concord_beaten then
+        RUMORS.add({
+            text     = "A Concord battle group went into the Boneyard and didn't come out. Official Concord statement: none.",
             priority = 4, category = "BONEYARD_DONE",
         })
     else

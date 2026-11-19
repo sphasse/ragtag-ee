@@ -78,6 +78,15 @@ function ARC.playerNear(x, y, r)
     if p and ARC.near(p, x, y, r) then return p end
 end
 
+-- ANY player ship within r of the point (the arc ship or a sister ship), else nil. Only for
+-- physical events in the world that any ship can set off (a frozen battle starting), never for
+-- story progress, which belongs to the arc ship.
+function ARC.anyPlayerNear(x, y, r)
+    for _, p in ipairs(RT.players or {}) do
+        if ARC.near(p, x, y, r) then return p end
+    end
+end
+
 -- ── Spawned objects ──────────────────────────────────────────────────────────
 
 -- The valid entities of a list, as a new list (order kept).
