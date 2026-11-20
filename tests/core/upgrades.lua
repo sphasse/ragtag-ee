@@ -45,6 +45,15 @@ T.step("the catalogue", function()
         seen[u.name] = true
     end
     T.eq("catalogue: no two upgrades share a name", table.concat(dup, ", "), "")
+    -- Probe speed: stock 1000 world units/s (60 a minute), then 90 and 120.
+    local function probeSpeed(id)
+        local launch, speed
+        ids[id].apply({onProbeLaunch = function(_, fn) launch = fn end})
+        if launch then launch(nil, {setSpeed = function(_, v) speed = v end}) end
+        return speed
+    end
+    T.eq("probes 1: 90 (1500 units/s)", probeSpeed("fast_probes"), 1500)
+    T.eq("probes 2: 120 (2000 units/s)", probeSpeed("ludicrous_probes"), 2000)
     for _, id in ipairs({"repair_crew", "repair_crew_2", "repair_crew_3"}) do
         T.check("crew: " .. id .. " is hired engineering crew", ids[id] and ids[id].crew and ids[id].desc:find("Hire 2 more engineering crew", 1, true) ~= nil)
         T.check("crew: " .. id .. " never says three", ids[id] and not ids[id].name:lower():find("three", 1, true))

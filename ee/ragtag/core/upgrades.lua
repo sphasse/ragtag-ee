@@ -121,11 +121,12 @@ RT.UPGRADES = {
      desc = "Long-range radar 40u -> 45u. Built for mapping the Drift; you'll use it to see trouble first.",
      apply = function(p) p:setLongRangeRadarRange(45000) end},
     {id = "fast_probes", line = "probes", name = "Overcharged probe capacitors", gm_name = "Fast probes", cost = 200,
-     desc = "Scan probes fly at 2× speed.",
-     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(2000) end) end},
+     -- EE's stock probe speed is 1000 world units/s (shown as 60 a minute).
+     desc = "Scan probe speed 60 -> 90.",
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(1500) end) end},
     {id = "ludicrous_probes", line = "probes", name = "Ludicrous-speed probe mod", gm_name = "Ludicrous", cost = 250, requires = "fast_probes",
-     desc = "Scan probes fly at 4× speed. They've hit the plaid.",
-     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(4000) end) end},
+     desc = "Scan probe speed 90 -> 120: twice stock. They've hit the plaid.",
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(2000) end) end},
     -- Second tier: what it takes to survive Blackwater, the Boneyard and, eventually, the Maw.
     {id = "reactor_overhaul", line = "reactor", name = "Reactor overhaul", gm_name = "Reactor", cost = 200,
      desc = "+50% energy capacity.",
