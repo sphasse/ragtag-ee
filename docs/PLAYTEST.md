@@ -69,7 +69,10 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       20-minute clock): the survivors' hail and the Science DB "Boneyard Survivor Records".
       *(This path is not in any test.)*
 - [ ] And once the other way: the 8U proximity to Ashgrave
-- [ ] The survivors' hail asks for the Annex to be hacked; the "NEW OBJECTIVE" pop-up makes the hack clear
+- [ ] The survivors' hail asks for the Annex to be hacked; nothing more happens (no Annex, no hack
+      objective, not even at Ashgrave) until they are handed in at the station the job came from
+- [ ] Then just the "Hack the Annex" objective, no pop-up or instructions: does the crew work out
+      the probe hack from the survivors' request alone?
 - [ ] A **real Relay hack** of the Annex front shields to 100% **from range, through a probe**
       (two successes; it decays over 180 s). Do the drones stay docile, including new ones?
 - [ ] Hailing the Annex undocked says "Station security has been reset. Dock for more options."; the

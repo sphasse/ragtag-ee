@@ -44,7 +44,8 @@ local function popups(text)
     return n
 end
 
--- ── Hook: rumors and the rescue job; picking up the survivors reveals the Annex ──
+-- ── Hook: rumors and the rescue job; bringing the survivors home reveals the Annex ──
+local m
 T.step("hook", function()
     census0 = census()
     T.jump("hook")
@@ -53,11 +54,11 @@ T.step("hook", function()
     T.eq("hook: the rescue job is on offer", T.jobs("BONEYARD_SPECIAL"), 1)
     T.check("hook: no Annex yet", not RT.valid(annex()))
     -- The rescue job taken at Halcyon Rest; the flight out is not played: the pod is picked up
-    -- through the job's own on_found.
-    local m
+    -- through the job's own on_found, the return through its on_complete.
     for _, e in ipairs(JOBS._injected) do
         if e.category == "BONEYARD_SPECIAL" then m = e.record("Halcyon Rest") end
     end
+    m._expires_at = T.now() + 1200   -- as if taken: the 20 minute air clock
     m.on_found(m)
 end)
 T.talk(nil, {}, {answer = true, name = "the lifeboat survivors"})
@@ -66,7 +67,8 @@ T.step("the survivors ask for the Annex", function()
     T.check("survivors: hack the Annex and extract the research", T.msg():find("If the Annex could be hacked and all the research extracted", 1, true) ~= nil, T.msg())
     T.eq("survivors: nothing to answer", #T.replies(), 0)
     T.eq("survivors: where they are taken", T.flag("boneyard_survivors_at"), "Halcyon Rest")
-    T.check("survivors: the Annex is out", RT.valid(annex()))
+    T.check("survivors: no Annex while they are aboard", not RT.valid(annex()))
+    T.check("survivors: the air clock stops once they are aboard", m._expires_at == nil)
     -- The voice that hailed is nowhere: no position, no radar blip (it once sat over Port Vesper).
     local v = RT.voice.get("boneyard_survivors")
     T.check("survivors: the voice has no position", RT.valid(v) and v.components.transform == nil)
@@ -82,19 +84,31 @@ T.waitFor("survivors: their records are announced with where they are", function
     local l = SCIDB.announced[#SCIDB.announced]
     return l == "[Science] Database entry added: Lore > Boneyard Survivor Records."
 end, 7)
-T.waitFor("annex_hack: the hack starts at once (Relay works from range)", function() return T.phase() == "annex_hack" end, 3)
+T.step("survivors aboard: fly past Ashgrave", function()
+    T.moveTo(39000, -102500)   -- 6.5U from Ashgrave: would reveal the Annex without survivors aboard
+end)
+T.wait(2)
+T.step("nothing starts until they are home", function()
+    T.eq("survivors: still the hook", T.phase(), "hook")
+    T.check("survivors: still no Annex", not RT.valid(annex()))
+    T.check("survivors: no hack objective yet", RT.objectives.boneyard ~= "Hack the Annex")
+    m.on_complete(m)   -- docked back at Halcyon Rest, job handed in
+end)
+T.waitFor("annex_hack: the hack starts once the survivors are home", function() return T.phase() == "annex_hack" end, 3)
 T.step("lead paid off", function()
+    T.eq("survivors: home", T.flag("boneyard_survivors_home"), true)
     T.eq("hook: rumors removed once found", T.rumors("BONEYARD_HOOK"), 0)
     T.eq("hook: rescue job withdrawn", T.jobs("BONEYARD_SPECIAL"), 0)
     T.check("annex_hack: the Annex is an enemy (no docking)", T.P():isEnemy(annex()))
-    T.eq("annex_hack: every console is given the objective", popups("NEW OBJECTIVE: Hack the Ashgrave Annex"), 10)
-    T.moveTo(39000, -102500)   -- near the Annex for the rest
+    T.eq("annex_hack: no pop-up telling the crew how", popups("Hack the Ashgrave Annex"), 0)
+    T.eq("annex_hack: just the objective", RT.objectives.boneyard, "Hack the Annex")
 end)
 
 -- ── Hack ─────────────────────────────────────────────────────────────────────
 T.talk(annex, {})
 T.step("locked down", function()
-    T.check("annex_hack: comms say to hack", T.msg():find("hack any system", 1, true) ~= nil, T.msg())
+    T.check("annex_hack: comms say it is locked down", T.msg():find("lockdown", 1, true) ~= nil, T.msg())
+    T.check("annex_hack: and do not say how to get in", T.msg():find("hack", 1, true) == nil, T.msg())
     T.eq("annex_hack: objective", RT.objectives.boneyard, "Hack the Annex")
     T.action("Complete hack")
 end)

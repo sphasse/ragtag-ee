@@ -524,17 +524,24 @@ local function _injectHookJob()
                 complete_msg = '"They\'re breathing. They\'re talking. Whatever they\'re saying, I think Concord wants it kept quiet. Thank you."',
                 accept_log = string.format("URGENT rescue: lifeboat survivors, grid %s on the Boneyard south rim. Air is failing; 20 minutes. Danger: drones.",
                     JOBS.gridRef(_BUOY_X, _BUOY_Y)),
+                -- Picked up: they ask for the Annex to be hacked (the only prompt the crew gets).
+                -- Aboard and breathing, so the air clock stops: the job cannot fail on the way home.
                 on_found = function(m)
+                    m._expires_at = nil
                     RT.flag("boneyard_buoy_found", true)
                     RT.flag("boneyard_survivors_at", m.origin)   -- where the crew reports back
                     ARC.log("[Medical] Four survivors, dehydrated, stable.", "#FFAA44")
                     ARC.log(string.format("[Science] Survivor lifeboat telemetry: launched from the Annex, grid %s. Concord Level-5 archive hold.", JOBS.gridRef(_ANNEX_X, _ANNEX_Y)), "#00CCAA")
                     _survivorHail()
-                    RT.setObjective("Hack the Annex", true, "boneyard")   -- a second objective line
+                end,
+                -- Home at the rescue job's station: now the Annex can be found and hacked.
+                on_complete = function(m)
+                    RT.flag("boneyard_survivors_home", true)
                     local bst = MISSIONS._state["boneyard"]
                     if bst and MISSIONS._status["boneyard"] == "active"
                        and MISSIONS._cur_phase["boneyard"] == "hook" then
-                        _annexSignal(bst, true)   -- the telemetry line above already named its grid
+                        RT.setObjective("Hack the Annex", true, "boneyard")
+                        _annexSignal(bst, true)   -- the telemetry already named its grid
                     end
                 end,
             })
@@ -565,10 +572,11 @@ M.phases = {
             -- GM re-entry of this phase doesn't duplicate them.
             RUMORS.removeCategory("BONEYARD_HOOK")
             _injectHookJob()
-            -- Survivors recovered in an earlier session: the objective line comes back (the
-            -- objective display is rebuilt each run).
-            -- The Annex comes back with it: the survivors' telemetry already named its grid.
+            -- Survivors recovered in an earlier session: they were taken home between sessions
+            -- (the job does not outlive the session), and the objective line and the Annex come
+            -- back (the objective display is rebuilt each run; their telemetry named its grid).
             if RT.flag("boneyard_buoy_found") then
+                if not RT.flag("boneyard_survivors_home") then RT.flag("boneyard_survivors_home", true) end
                 RT.setObjective("Hack the Annex", true, "boneyard")
                 _annexSignal(st, true)
             end
@@ -588,8 +596,11 @@ M.phases = {
             })
         end,
         update = function(st, delta, now)
-            -- The Annex is out (survivors recovered, or the crew came by Ashgrave): the hack
-            -- starts at once. Relay does it from range, through a probe.
+            -- Survivors aboard but not home yet: nothing starts until they are back at the
+            -- rescue job's station (not even by flying past Ashgrave).
+            if RT.flag("boneyard_buoy_found") and not RT.flag("boneyard_survivors_home") then return end
+            -- The Annex is out (the survivors are home, or the crew came by Ashgrave): the hack
+            -- phase starts. How to hack it is for the crew to work out.
             if RT.valid(st.annex) then
                 MISSIONS.phase("boneyard", "annex_hack")
             elseif ARC.playerNear(_ASHGRAVE_X, _ASHGRAVE_Y, 8 * U) then
@@ -610,16 +621,13 @@ M.phases = {
                 st.annex:setCommsFunction(function(src, tgt)
                     setCommsMessage(
                         "[Ashgrave Annex]\n\n" ..
-                        "Encrypted — military-grade lockdown on all channels.\n\n" ..
-                        "Relay: hack any system to gain access."
+                        "Encrypted — military-grade lockdown on all channels."
                     )
                 end)
             end
+            -- Just the objective line: the survivors asked for the hack, and how to do it (Relay,
+            -- from range by probe) is for the crew to work out. No pop-up, no instructions.
             RT.setObjective("Hack the Annex", true, "boneyard")
-            ARC.log("[Mission] OBJECTIVE: hack the Ashgrave Annex, grid " .. JOBS.gridRef(_ANNEX_X, _ANNEX_Y) .. ".", "#FFCC00")
-            ARC.log("[Science] The Annex is under an encrypted lockdown. Relay, that is a hacking job: get a probe near it and breach any system. It can be done from range.", "#FFAA44")
-            _alertCrew("boneyard_hack", "NEW OBJECTIVE: Hack the Ashgrave Annex (grid " .. JOBS.gridRef(_ANNEX_X, _ANNEX_Y) .. ").\n"
-                .. "Relay: launch a probe near the Annex and hack any of its systems. No need to close in.")
             -- Diagnostics (EmptyEpsilon.log): is the Annex a valid hack target?
             if RT.valid(st.annex) then
                 local okf, fac = pcall(function() return st.annex:getFaction() end)
@@ -813,6 +821,7 @@ M.gm_flag_prefixes = {"boneyard_"}
 M.flags = {
     boneyard_buoy_found            = "the lifeboat survivors were recovered (their records are in the Science DB)",
     boneyard_survivors_at          = "the station the survivors were taken to (a callsign): the crew reports there",
+    boneyard_survivors_home        = "the survivors were brought back to the rescue job's station (the Annex and its hack wait for this)",
     boneyard_hack_done             = "the Ashgrave research archive was downloaded",
     boneyard_drone_flip            = "the Relic drones were reprogrammed against the Concord",
     boneyard_battlegroup_destroyed = "the battle group's command ship (CNS Vanguard) was destroyed",
@@ -852,7 +861,7 @@ M.gm_reset = function(st, target)
     _clearState(st)
     ARC.resetState(M, st)
     MISSIONS.gmClearFlags("boneyard", function(name)
-        if name == "boneyard_buoy_found" or name == "boneyard_survivors_at" then
+        if name == "boneyard_buoy_found" or name == "boneyard_survivors_at" or name == "boneyard_survivors_home" then
             return target ~= nil and target ~= "hook"
         end
         if name == "boneyard_rewarded"   then return target == "done" end

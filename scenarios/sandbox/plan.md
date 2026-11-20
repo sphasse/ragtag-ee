@@ -99,7 +99,7 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
 
 - **Trigger**: upgrade spend ≥ 800cr, Rezkov arc finished or declined (`requires`), not done.
   Rezkov is the gate for every Phase II arc (Ledger, Boneyard, Corsair).
-- **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are recovered, or at 8U from Ashgrave) →
+- **Structure**: hook (battle-group rumors; the Annex spawns when the survivors are brought home to the rescue job's station, or at 8U from Ashgrave without them) →
   annex_hack (Relay hacks frontshield to
   100%, from range by probe; drones go idle, later ones too; the Annex becomes dockable) →
   annex_control (docked only, one operation at a time: archive download that stops on undocking,
