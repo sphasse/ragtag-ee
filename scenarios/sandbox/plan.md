@@ -154,8 +154,8 @@ mines, then stands in the Corsair line when the fleet arrives. Linear: defend, o
 4. `raid` — the two Corsair ships are commanded through comms like escort-job ships, with the
    orders unlocking in sequence: "Form up on me" -> (within ~5U of the depot) "Attack the Concord
    defenders" -> (defenders dead) "Board the depot and take the weapons". The crew does not
-   board: the Corsairs dock, load (~30 s) and hail: "We're loading up the haul. Meet you back at
-   Blackwater." Defenders are `Concord Hostile` (no auto rep penalty; the arc applies its own).
+   board: the Corsairs dock, dwell 15 s loading, then hail: "...we hit the jackpot. Mines, missiles,
+   the lot, all aboard. Heading back to Blackwater. Meet you there." Defenders are `Concord Hostile` (no auto rep penalty; the arc applies its own).
 5. `return` — dock at Blackwater. Reva thanks the crew: every mine from the haul is going into
    Blackwater's mine ring, thick enough that only a few lanes are open (no jammers, no mines for
    the crew). Then: "And just in time too. News is the Concord attack fleet was just detected at

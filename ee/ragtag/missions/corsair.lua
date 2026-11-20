@@ -75,9 +75,12 @@ local _RING_R     = 9 * U
 local _RING_LANES = {{0, 25}, {103.85, 6.9}, {256.15, 6.9}}   -- {centre, half-width} in degrees
 
 -- ── Tuning ───────────────────────────────────────────────────────────────────
-local _LOAD_TIME      = 30          -- seconds the raid escorts spend loading the haul
+local _LOAD_TIME      = 15          -- seconds the raid escorts dwell, docked at the depot, loading the haul
+local _DOCK_GRACE     = 30          -- alongside this long without docking: load anyway
 -- What the escort says as it starts loading.
-local _JACKPOT = '"Gao yang jong duh goo yang... we hit the jackpot. Mines, missiles, the lot. Loading it all now."'
+-- What the escort says when the haul is aboard, before they start back to Blackwater.
+local _HAUL_ABOARD = '"Gao yang jong duh goo yang... we hit the jackpot. Mines, missiles, the lot, all aboard. '
+    .. 'Heading back to Blackwater. Meet you there."'
 -- The guide paces the crew: it holds (defending itself) once the crew is more than _GUIDE_HOLD_D
 -- behind and flies on once they are back within _GUIDE_GO_D. It has no warp and a top speed of
 -- _GUIDE_IMPULSE (30 u/s), slower than the crew, so it leads steadily. Past _GUIDE_WAIT_D it tells
@@ -102,7 +105,7 @@ function M.init_state()
         guide = nil, hook_hailed = false, guide_waiting = false, guide_lost = false,
         guide_leg = nil,   -- "approach" (north of the ring), then "dock" (in to Blackwater)
         depot = nil, defenders = {}, escorts = {}, attacking = false, boarding = false,
-        defenders_down = false, load_t0 = nil,
+        defenders_down = false, load_t0 = nil, near_t0 = nil,
         mines = {}, trap_built = false,
         battle = nil, fleet = {}, allies = {},   -- the BATTLE, its Concord (side a) and Corsair (b) ships
         escort_cs = {},   -- names of st.escorts, by index
@@ -962,7 +965,7 @@ M.phases.briefing = {
 M.phases.raid = {
     enter = function(st)
         _befriend()
-        st.attacking, st.boarding, st.defenders_down, st.load_t0 = false, false, false, nil
+        st.attacking, st.boarding, st.defenders_down, st.load_t0, st.near_t0 = false, false, false, nil, nil
         st.depot_surrendered = false
         _spawnDepot(st)
         _spawnDefenders(st)
@@ -987,20 +990,26 @@ M.phases.raid = {
         end
         if st.boarding then
             if not st.load_t0 then
+                -- The dwell starts when an escort has really docked (EE docks on contact, a few
+                -- seconds after it closes in). Fallback: alongside (1.8U) for _DOCK_GRACE without
+                -- docking still counts, so a docking that never lands cannot stall the raid.
                 for _, s in ipairs(escorts) do
                     local docked = false
                     pcall(function() docked = RT.valid(st.depot) and s:getDockedWith() == st.depot end)
-                    if docked or ARC.near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then
+                    if not st.near_t0 and ARC.near(s, _DEPOT_X, _DEPOT_Y, 1.8 * U) then st.near_t0 = now end
+                    if docked or (st.near_t0 and now - st.near_t0 >= _DOCK_GRACE) then
                         st.load_t0 = now
-                        ARC.log("[" .. s:getCallSign() .. "] Docked at the depot. Loading the cargo bays.", "#FFCC80")
-                        if not ARC.hail(s, _JACKPOT, s:getCallSign()) then
-                            ARC.log("[" .. s:getCallSign() .. "] " .. _JACKPOT, "#FFCC80")
-                        end
+                        ARC.log("[" .. s:getCallSign() .. "] " .. (docked and "Docked at" or "Alongside")
+                            .. " the depot. Loading the cargo bays.", "#FFCC80")
                         break
                     end
                 end
             elseif now - st.load_t0 >= _LOAD_TIME then
-                ARC.hail(escorts[1], '"Haul\'s aboard: mines, missiles, the lot. Meet you back at Blackwater."', escorts[1]:getCallSign())
+                -- One message once they have dwelt there: the jackpot, aboard, heading home.
+                local s = escorts[1]
+                if not ARC.hail(s, _HAUL_ABOARD, s:getCallSign()) then
+                    ARC.log("[" .. s:getCallSign() .. "] " .. _HAUL_ABOARD, "#FFCC80")
+                end
                 RT.flag("corsair_raid_done", true)
                 MISSIONS.phase("corsair", "return")
             end

@@ -280,18 +280,25 @@ T.step("alongside", function()
     T.check("raid: loading has not started at 4U", not T.st().load_t0)
     for i, s in ipairs(T.st().escorts) do s:setPosition(DEPOT_X + i * 500, DEPOT_Y + 800) end
 end)
-T.waitFor("raid: loading starts alongside the depot", function() return T.st().load_t0 end, 3)
-T.talk(nil, {}, {answer = true, name = "the loading escort"})
-T.step("we hit the jackpot", function()
-    T.check("raid: the escort calls the jackpot as it loads",
-        T.msg():find("Gao yang jong duh goo yang... we hit the jackpot.", 1, true) ~= nil, T.msg())
-end)
-T.closeComms()
-T.step("finish loading", function()
-    T.eq("raid: not done until loaded", T.phase(), "raid")
+T.waitFor("raid: an escort really docks at the depot", function()
+    for _, s in ipairs(T.st().escorts) do
+        local ok, d = pcall(function() return s:getDockedWith() end)
+        if ok and d and d == T.st().depot then return true end
+    end
+    return false
+end, 25)
+T.waitFor("raid: the 15 s dwell starts on docking", function() return T.st().load_t0 end, 3)
+T.step("loading", function()
+    T.eq("raid: not done until loaded (15 s docked)", T.phase(), "raid")
     T.action("Finish loading")
 end)
 T.waitFor("return: the haul is loaded", function() return T.phase() == "return" end, 3)
+T.talk(nil, {}, {answer = true, name = "the loaded escort"})
+T.step("the jackpot, aboard, heading home", function()
+    T.check("return: one message: the jackpot, aboard, heading back",
+        T.msg():find("we hit the jackpot. Mines, missiles, the lot, all aboard. Heading back to Blackwater.", 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
 T.step("haul loaded", function()
     T.check("return: corsair_raid_done set", T.flag("corsair_raid_done"))
     T.eq("return: no trap before the debrief", #T.st().mines, 0)

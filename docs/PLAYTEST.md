@@ -98,7 +98,7 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 - [ ] The escorts leave through Blackwater's new **west gap** in the mine ring, and survive a stray
       mine (100/100 shields, 120 hull)
 - [ ] The surrendered depot shows as **Concord Surrendered**; the escorts dock and nobody keeps firing
-      at it; the "we hit the jackpot" hail as they start loading
+      at it; they dock, dwell 15 s, then one hail: the jackpot, all aboard, heading back to Blackwater
 - [ ] Raid on Forward Depot Anvil: the **escorts vs the two guards, for real** (headless it was still
       going after 45 s). Too long? Do the order buttons unlock at the right time?
 - [ ] An escort lost → Reva names it and sends a replacement
