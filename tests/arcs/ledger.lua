@@ -508,6 +508,82 @@ T.step("Thresh does not introduce himself again", function()
 end)
 T.closeComms()
 
+-- ── GM Enable/Disable on a finished arc (playtest: the job count started over, and the audit
+-- fleet turned up in what should have been the hook) ─────────────────────────────────────────
+local toggle = {}
+T.step("a finished carry, the fleet standing down", function()
+    RT.flag("rezkov_arc_done", "data_delivered")
+    RT.campaign.upgrades = {"hull_plating", "shield_mk2", "forward_beams", "beam_coils"}   -- 1000 cr
+    T.jump("carry")
+    T.P():setEnergyLevel(T.P():getMaxEnergy())
+    T.action("Fleet now")
+    toggle.fleet = {}
+    for i, s in ipairs(T.st().fleet) do toggle.fleet[i] = s end
+    M_ledger.ejectPressed(); M_ledger.ejectPressed()
+end)
+T.step("done, then jobs since Rezkov", function()
+    T.eq("toggle: the arc is done", T.status(), "done")
+    T.check("toggle: the fleet was out", #toggle.fleet == 3)
+    RT.flag("ledger_jobs_base", (RT.shipRecord().jobs_done or 0))
+    finishJob(); finishJob()
+    toggle.base = RT.flag("ledger_jobs_base")
+    T.check("toggle: two jobs since Rezkov", gate())
+    MISSIONS.gmToggleEnabled("ledger")   -- GM: Disable arc
+end)
+T.step("disabled", function()
+    T.eq("toggle: the job count's start is kept", RT.flag("ledger_jobs_base"), toggle.base)
+    local alive = 0
+    for _, s in ipairs(toggle.fleet) do if RT.valid(s) then alive = alive + 1 end end
+    T.eq("toggle: the audit fleet is gone", alive, 0)
+    MISSIONS.gmToggleEnabled("ledger")   -- GM: Enable arc
+end)
+T.waitFor("toggle: re-enabled, the gate still met, the arc starts again", function() return T.status() == "active" end, 3)
+T.step("in the hook, clean", function()
+    T.eq("toggle: in the hook", T.phase(), "hook")
+    T.check("toggle: two jobs still count", gate())
+    T.check("toggle: the criteria show 2+", MISSIONS._criteriaText("ledger"):find("(now: 2+)", 1, true) ~= nil)
+    T.check("toggle: no fragments", not T.flag("ledger_frag_1") and not T.flag("ledger_frag_3"))
+    T.check("toggle: no fleet due", T.st().fleet_due == nil and not T.st().fleet_spawned)
+    T.check("toggle: no drain", not T.st().drain_on)
+end)
+T.wait(3)
+T.step("still no auditors", function()
+    T.eq("toggle: still the hook", T.phase(), "hook")
+    T.check("toggle: no audit ship anywhere", T.find("CAS Double Entry") == nil and T.find("CAS Debit") == nil)
+end)
+-- Every GM way back to the hook from a carry whose fleet is due: the fleet must never come.
+local saved_delay = AUDIT.FLEET_DELAY
+local function backToHook(label, how)
+    T.step(label .. ": carry, the fleet due in 2 s", function()
+        AUDIT.FLEET_DELAY = 2
+        T.jump("carry")
+        T.P():setEnergyLevel(T.P():getMaxEnergy())
+        T.check(label .. ": fleet due", T.st().fleet_due ~= nil)
+        how()
+    end)
+    T.wait(4)
+    T.step(label .. ": no fleet", function()
+        T.check(label .. ": not in the carry", T.phase() ~= "carry", T.phase())
+        T.check(label .. ": no audit ship anywhere", T.find("CAS Double Entry") == nil, tostring(T.phase()))
+        T.check(label .. ": no fleet due", T.st().fleet_due == nil)
+    end)
+end
+backToHook("jump to the hook", function() T.jump("hook") end)
+backToHook("-> Inactive then Enable", function() MISSIONS.gmDeactivate("ledger"); MISSIONS.gmToggleEnabled("ledger") end)
+T.step("restore the fleet delay", function() AUDIT.FLEET_DELAY = saved_delay end)
+-- The GM's "Satisfy done jobs": the gate's job count is met at once.
+T.step("GM: back to waiting, jobs not done", function()
+    MISSIONS.gmToggleEnabled("ledger")   -- disable (resets)
+    RT.flag("ledger_jobs_base", (RT.shipRecord().jobs_done or 0))
+    T.check("satisfy: the gate is closed", not gate())
+    T.action("Satisfy done jobs")
+    T.check("satisfy: the gate is open", gate())
+    T.check("satisfy: the criteria show 2+", MISSIONS._criteriaText("ledger"):find("(now: 2+)", 1, true) ~= nil)
+    RT.campaign.upgrades = {}
+    RT.clearFlag("rezkov_arc_done")
+    MISSIONS.setEnabled("ledger", true)
+end)
+
 T.deactivate({
     gone = {"Rezkov's station", "CAS Double Entry", "CAS Debit", "Data core"},
     check = function()

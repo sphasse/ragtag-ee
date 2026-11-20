@@ -83,7 +83,10 @@ Council's Standing Committee on Security.
 `→ Hook`, `→ Meet Rezkov`, `→ Relay run`, `→ Carry AI`, `→ Done: Full`, `→ Done: Lost`
 (plus the engine's `→ Inactive`). Jumps reset the world (station, nebula, cores, fleet, drain,
 voice, rumors, `ledger` objective, `ledger_*` flags) and replay earlier phases via
-`M.completed`. Helpers: `Give fragment` (relay_run); `Fleet now`, `Pause/Resume drain`,
+`M.completed`. `ledger_jobs_base` (where the job count since Rezkov starts) is in `M.keep_flags`:
+no reset clears it, so Enable/Disable or a jump does not start the count over; only rewinding
+Rezkov does. Helpers: `Satisfy done jobs` (while waiting: the gate's job count is met at once; the
+Rezkov and upgrade conditions still apply); `Give fragment` (relay_run); `Fleet now`, `Pause/Resume drain`,
 `Refill energy` (carry); `+100 energy` (relay_run and carry: 100 more, never past the maximum).
 
 ## Tuning (top of `_audit.lua`)

@@ -146,7 +146,8 @@ M.gm_states = {
 -- "never happened" (world, timers, flags, Science DB), then cancel + disable so criteria cannot
 -- re-trigger it) unless an entry has key = "inactive", which then replaces it.
 
--- State-specific helpers: shown only while the arc is in one of the listed phases.
+-- State-specific helpers: shown only while the arc is in one of the listed phases ("done" and
+-- "inactive", waiting for its triggers, count as phases here).
 M.gm_actions = {
     {label = "Complete hack", phases = {"hack"}, fn = function(st) ... end},
 }
@@ -247,6 +248,7 @@ earlier outcomes. They are plain strings, so every arc **declares** the ones it 
 
 ```lua
 M.gm_flag_prefixes = {"myarc_"}          -- GM resets clear everything with these prefixes
+M.keep_flags = {"myarc_jobs_base"}       -- ...except these: campaign records, not arc progress
 M.flags = {
     myarc_accepted    = "took the job from the contact",
     myarc_arc_done    = 'outcome: "won" | "lost"',

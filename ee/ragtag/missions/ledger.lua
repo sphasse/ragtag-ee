@@ -504,6 +504,10 @@ M.flags = {
     ["ledger_met_*"]   = "Science DB profile met in this arc (thresh, rezkov), set by ARC.meet",
 }
 M.reads = {"rezkov_ai_planted", "rezkov_m2_done", "rezkov_arc_done", "rezkov_declined"}
+-- The job count's starting point records the campaign, not this arc's progress: no GM reset
+-- (Enable/Disable, a jump, -> Inactive) clears it, so the jobs done since Rezkov still count.
+-- It is forgotten only when the Rezkov arc is rewound (_rezkovOver).
+M.keep_flags = {"ledger_jobs_base"}
 
 M.gm_state_fn = function()
     local ph = MISSIONS._cur_phase["ledger"]
@@ -556,6 +560,15 @@ M.gm_states = {
 }
 
 M.gm_actions = {
+    -- While waiting: count the board jobs as done, so the gate's job condition is met at once
+    -- (the other triggers still apply: Rezkov over, 800 cr of upgrades).
+    {label = "Satisfy done jobs", phases = {"inactive"}, fn = function(st)
+        if not (RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined")) then
+            addGMMessage("The Rezkov arc is not over yet: the job count starts when it ends.")
+            return
+        end
+        RT.flag("ledger_jobs_base", _jobsDone() - M.JOBS_AFTER_REZKOV)
+    end},
     {label = "Give fragment", phases = {"relay_run"}, fn = function(st)
         for _, f in ipairs(_FRAGS) do
             if not RT.flag("ledger_frag_" .. f.n) then

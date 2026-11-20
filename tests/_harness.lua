@@ -134,10 +134,13 @@ end
 function T.arcFlags()
     local M = MISSIONS._registry[_arc]
     local prefixes = (M and M.gm_flag_prefixes) or {_arc .. "_"}
+    -- The arc's flags a reset clears: M.keep_flags (campaign records, not progress) are left out.
+    local kept = {}
+    for _, n in ipairs((M and M.keep_flags) or {}) do kept[n] = true end
     local out = {}
     for name, v in pairs((RT.campaign and RT.campaign.flags) or {}) do
         for _, pre in ipairs(prefixes) do
-            if v ~= nil and name:sub(1, #pre) == pre then out[#out + 1] = name; break end
+            if v ~= nil and not kept[name] and name:sub(1, #pre) == pre then out[#out + 1] = name; break end
         end
     end
     table.sort(out)
@@ -221,7 +224,9 @@ function T.action(label)
         local l = type(a.label) == "function" and a.label(T.st()) or a.label
         if l == label then
             local shown = not a.phases
-            for _, ph in ipairs(a.phases or {}) do if ph == T.phase() then shown = true end end
+            local status = MISSIONS._status[_arc]
+            local cur = status == "done" and "done" or (T.phase() or status)   -- as the GM screen does
+            for _, ph in ipairs(a.phases or {}) do if ph == cur then shown = true end end
             if not shown then error("GM action '" .. label .. "' is not offered in phase " .. tostring(T.phase())) end
             a.fn(T.st())
             return

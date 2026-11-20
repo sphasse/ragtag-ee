@@ -554,6 +554,10 @@ end
 function MISSIONS.gmClearFlags(id, keep)
     local M = MISSIONS._registry[id]
     local prefixes = (M and M.gm_flag_prefixes) or {id .. "_"}
+    -- M.keep_flags: flags that record the campaign rather than the arc's progress (the Ledger's
+    -- job count since Rezkov). No reset clears them; the arc manages them itself.
+    local always = {}
+    for _, n in ipairs((M and M.keep_flags) or {}) do always[n] = true end
     local names = {}
     for name in pairs((RT.campaign and RT.campaign.flags) or {}) do
         for _, pre in ipairs(prefixes) do
@@ -561,7 +565,7 @@ function MISSIONS.gmClearFlags(id, keep)
         end
     end
     for _, name in ipairs(names) do
-        if not (keep and keep(name)) then
+        if not always[name] and not (keep and keep(name)) then
             RT.clearFlag(name)
         end
     end
@@ -752,8 +756,10 @@ function MISSIONS._showDetail(id, backToMainFn)
             local a = action
             local show = false
             if a.phases then
+                -- "done" and "inactive" (waiting for its triggers) count as phases here
+                local cur = status == "done" and "done" or (phase or status)
                 for _, p in ipairs(a.phases) do
-                    if p == (status == "done" and "done" or phase) then show = true; break end
+                    if p == cur then show = true; break end
                 end
             elseif not M.gm_states and status == "active" then
                 show = true   -- legacy arcs: unscoped actions show while active
