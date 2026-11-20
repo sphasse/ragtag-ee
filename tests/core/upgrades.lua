@@ -38,6 +38,17 @@ T.step("the catalogue", function()
     T.eq("turn levels are thruster upgrades", ids.maneuver_thrusters and ids.maneuver_thrusters.line, "thrusters")
     T.eq("acceleration levels are engine upgrades", ids.impulse_accel and ids.impulse_accel.line, "engines")
     T.check("superconducting coils exist", ids.beam_coils_2 ~= nil)
+    -- Every level has its own name, and engineering crew are hired (each level adds two).
+    local seen, dup = {}, {}
+    for _, u in ipairs(RT.UPGRADES) do
+        if seen[u.name] then dup[#dup + 1] = u.name end
+        seen[u.name] = true
+    end
+    T.eq("catalogue: no two upgrades share a name", table.concat(dup, ", "), "")
+    for _, id in ipairs({"repair_crew", "repair_crew_2", "repair_crew_3"}) do
+        T.check("crew: " .. id .. " is hired engineering crew", ids[id] and ids[id].crew and ids[id].desc:find("Hire 2 more engineering crew", 1, true) ~= nil)
+        T.check("crew: " .. id .. " never says three", ids[id] and not ids[id].name:lower():find("three", 1, true))
+    end
     for id, req in pairs({sensor_suite_2 = "sensor_suite", sensor_suite_3 = "sensor_suite_2", hull_plating_3 = "hull_plating_2",
                           shield_mk4 = "shield_mk3", beam_coils_2 = "beam_coils", side_tubes = "front_tube",
                           missile_racks_2 = "missile_racks", engine_tune_2 = "engine_tune",

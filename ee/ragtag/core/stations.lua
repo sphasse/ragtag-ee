@@ -107,13 +107,18 @@ function RT.shipwrightMenu(source, target)
            and (u.available == nil or u.available(source)) then
             any = true
             table.insert(lines, string.format("%s (%d cr): %s", u.name, u.cost, u.desc))
-            addCommsReply(string.format("Buy %s (%d)", u.name, u.cost), function(s, t)
+            -- Engineering crew (u.crew) are hired, not bought, and not "installed".
+            local label = u.crew and string.format("Hire more engineering crew (%d)", u.cost)
+                or string.format("Buy %s (%d)", u.name, u.cost)
+            addCommsReply(label, function(s, t)
                 if RT.credits(s) < u.cost then
-                    setCommsMessage("\"Come back when you can pay for it.\"")
+                    setCommsMessage(u.crew and "\"Nobody signs on without their first month's pay up front.\""
+                        or "\"Come back when you can pay for it.\"")
                 else
-                    RT.addCredits(-u.cost, "bought " .. u.name, s)
+                    RT.addCredits(-u.cost, (u.crew and "hired " or "bought ") .. u.name, s)
                     RT.installUpgrade(u.id, s)   -- on the buying ship, and in its record only
-                    setCommsMessage("Installed: " .. u.name .. ". Try not to scratch it.")
+                    setCommsMessage(u.crew and ("Hired: two more engineering crew. They'll report to Engineering this shift.")
+                        or ("Installed: " .. u.name .. ". Try not to scratch it."))
                     RT.emit("upgrade", {id = u.id, how = "bought", station = t:getCallSign(), ship = s:getCallSign()})
                 end
                 addCommsReply("Back to shipwright", function(s2, t2) RT.shipwrightMenu(s2, t2) end)

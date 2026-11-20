@@ -100,15 +100,15 @@ RT.UPGRADES = {
         p:setWeaponTubeDirection(3, 90)
      end},
     {id = "repair_crew", line = "repair", name = "Two more hands", gm_name = "Repair crew", gm_label = "Repair 4 crew", cost = 150, crew = true,
-     desc = "+2 repair crew (max 8).",
+     desc = "Hire 2 more engineering crew (max 8).",
      available = function(p) return p:getRepairCrewCount() < 8 end,
      apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
-    {id = "repair_crew_2", line = "repair", name = "Three more hands", gm_name = "Repair crew 2", gm_label = "Repair 6 crew", cost = 150, crew = true,
-     requires = "repair_crew", desc = "+2 repair crew (max 8).",
+    {id = "repair_crew_2", line = "repair", name = "Another two hands", gm_name = "Repair crew 2", gm_label = "Repair 6 crew", cost = 150, crew = true,
+     requires = "repair_crew", desc = "Hire 2 more engineering crew (max 8).",
      available = function(p) return p:getRepairCrewCount() < 8 end,
      apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
     {id = "repair_crew_3", line = "repair", name = "Full crew complement", gm_name = "Repair crew 3", gm_label = "Repair 8 crew", cost = 150, crew = true,
-     requires = "repair_crew_2", desc = "+2 repair crew (max 8).",
+     requires = "repair_crew_2", desc = "Hire 2 more engineering crew (max 8).",
      available = function(p) return p:getRepairCrewCount() < 8 end,
      apply = function(p) p:setRepairCrewCount(math.min(p:getRepairCrewCount() + 2, 8)) end},
     {id = "sensor_suite", line = "sensors", name = "Long-range sensor suite", gm_name = "Sensors", cost = 500,
@@ -232,7 +232,8 @@ function RT.grantUpgrade(id, reason, ship)
     local p = RT.playerShip(ship) or RT.player
     if not RT.installUpgrade(id, p) then return false end
     if RT.valid(p) then
-        p:addToShipLog("Upgrade installed: " .. RT.upgradeById(id).name .. (reason and (" (" .. reason .. ")") or ""), "#80FF80")
+        local u = RT.upgradeById(id)
+        p:addToShipLog((u.crew and "Crew hired: " or "Upgrade installed: ") .. u.name .. (reason and (" (" .. reason .. ")") or ""), "#80FF80")
     end
     RT.emit("upgrade", {id = id, how = "granted", reason = reason, ship = RT.valid(p) and p:getCallSign() or nil})
     return true
