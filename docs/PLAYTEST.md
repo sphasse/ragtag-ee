@@ -92,8 +92,9 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 
 - [ ] Hook: Greywater barkeep message, or entering the Gauntlet; "Not right now" re-offers after 10 min
 - [ ] Escort: the guide **paces the crew** (holds past 5.5U behind, leads on within 4.5U). Stop for a
-      while (a shake-down, a fight), then follow again: does it pick the crew back up? Do the short hops
-      read as leading, or as stop-and-go? *(The test moves the crew; real flight is not tested.)*
+      while (a shake-down, a fight), then follow again: does it pick the crew back up? No warp now, top
+      speed 30: easy to follow? Does it take the crew through the north gap of the mine ring and dock at
+      Blackwater? *(The test moves the ships; the real flight through the gap is not tested.)*
 - [ ] The escorts leave through Blackwater's new **west gap** in the mine ring, and survive a stray
       mine (100/100 shields, 120 hull)
 - [ ] The surrendered depot shows as **Concord Surrendered**; the escorts dock and nobody keeps firing

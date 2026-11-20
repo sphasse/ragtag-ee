@@ -79,8 +79,11 @@ local _LOAD_TIME      = 30          -- seconds the raid escorts spend loading th
 -- What the escort says as it starts loading.
 local _JACKPOT = '"Gao yang jong duh goo yang... we hit the jackpot. Mines, missiles, the lot. Loading it all now."'
 -- The guide paces the crew: it holds (defending itself) once the crew is more than _GUIDE_HOLD_D
--- behind and flies on once they are back within _GUIDE_GO_D. It warps and the crew is slower, so
--- it leads in short hops. Past _GUIDE_WAIT_D it tells them to keep up (once a minute at most).
+-- behind and flies on once they are back within _GUIDE_GO_D. It has no warp and a top speed of
+-- _GUIDE_IMPULSE (30 u/s), slower than the crew, so it leads steadily. Past _GUIDE_WAIT_D it tells
+-- them to keep up (once a minute at most). It leads to the Blackwater approach (north of the mine
+-- ring), then in through the north gap and docks at Blackwater.
+local _GUIDE_IMPULSE  = 30
 local _GUIDE_HOLD_D   = 5.5 * U
 local _GUIDE_GO_D     = 4.5 * U
 local _GUIDE_WAIT_D   = 8 * U
@@ -97,6 +100,7 @@ local _MISSILES      = {"Homing", "HVLI", "Mine", "EMP"}
 function M.init_state()
     return {
         guide = nil, hook_hailed = false, guide_waiting = false, guide_lost = false,
+        guide_leg = nil,   -- "approach" (north of the ring), then "dock" (in to Blackwater)
         depot = nil, defenders = {}, escorts = {}, attacking = false, boarding = false,
         defenders_down = false, load_t0 = nil,
         mines = {}, trap_built = false,
@@ -198,7 +202,7 @@ local function _deferHook(st)
     _guideLeaves(st, _BW_APPROACH_X, _BW_APPROACH_Y)
 end
 
-local _HOOK_TEXT = '"Easy. If we wanted you dead you\'d have noticed.\n\nWe watch things in the Drift, and we know you are someone who is not intimidated by the Concord. '
+local _HOOK_TEXT = '"Easy there. If we wanted you dead you\'d have noticed.\n\nWe watch things in the Drift, and we know you are someone who is not intimidated by the Concord. '
     .. 'Somebody at Blackwater wants to talk to you. Follow us in, and nobody out here will touch you."'
 
 local function _guideComms(src, tgt)
@@ -231,7 +235,11 @@ local function _spawnGuide(st, x, y)
     if RT.valid(st.guide) then return st.guide end
     local g = CpuShip():setTemplate("Adder MK5"):setFaction("Corsair Friendly")
     g:setCallSign("Long Memory"):setPosition(x, y)
-    g:setWarpDrive(true)
+    -- A steady lead the crew can follow: no warp, impulse capped at _GUIDE_IMPULSE (playtest: warp
+    -- hops and a fast Adder made following awkward).
+    g:setWarpDrive(false)
+    local _, rev = g:getImpulseMaxSpeed()
+    g:setImpulseMaxSpeed(_GUIDE_IMPULSE, math.min(rev or _GUIDE_IMPULSE, _GUIDE_IMPULSE))
     g:setDescriptions("Corsair raider.", "Corsair raider Long Memory, running friendly colours. Weapons cold.")
     g:setScanningParameters(1, 1)
     g:setCommsScript(""):setCommsFunction(ARC.comms(_guideComms, '"Long Memory. Not looking for you."'))
@@ -864,6 +872,17 @@ M.phases.hook = {
     end,
 }
 
+-- Long Memory's lead: to the Blackwater approach first, then (st.guide_leg == "dock") in through
+-- the north gap of the mine ring to dock at Blackwater, so the crew is taken all the way to the port.
+local function _guideLead(st, g)
+    local bw = _blackwater()
+    if st.guide_leg == "dock" and RT.valid(bw) then
+        g:orderDock(bw)
+    else
+        g:orderFlyTowards(_BW_APPROACH_X, _BW_APPROACH_Y)
+    end
+end
+
 M.phases.escort = {
     enter = function(st)
         _befriend()
@@ -876,7 +895,8 @@ M.phases.escort = {
             end
             _spawnGuide(st, x, y)
         end
-        st.guide:orderFlyTowards(_BW_APPROACH_X, _BW_APPROACH_Y)
+        st.guide_leg = "approach"
+        _guideLead(st, st.guide)
         st.guide_waiting = false
         RT.setObjective("Follow Long Memory to Blackwater", true, "corsair")
     end,
@@ -907,14 +927,20 @@ M.phases.escort = {
             local line = '"I got you here safe. Dock with Blackwater to meet Reva and she\'ll fill you in."'
             if not ARC.hail(g, line, "Long Memory") then ARC.log("[Long Memory] " .. line, "#FFCC80") end
         end
+        -- At the approach point: on in through the ring's north gap, to dock.
+        if st.guide_leg ~= "dock" and ARC.near(g, _BW_APPROACH_X, _BW_APPROACH_Y, 1.5 * U) then
+            st.guide_leg = "dock"
+            if not st.guide_waiting then _guideLead(st, g) end
+        end
         local d = RT.dist(p, g)
-        if not st.guide_waiting and d > _GUIDE_HOLD_D and not ARC.near(g, _BW_X, _BW_Y, 5 * U) then
+        local docked = RT.valid(bw) and g:isDocked(bw)
+        if not st.guide_waiting and not docked and d > _GUIDE_HOLD_D then
             st.guide_waiting = true
             local gx, gy = g:getPosition()
             g:orderDefendLocation(gx, gy)   -- hold here, and fight back if anything comes at it
         elseif st.guide_waiting and d < _GUIDE_GO_D then
             st.guide_waiting = false
-            g:orderFlyTowards(_BW_APPROACH_X, _BW_APPROACH_Y)
+            _guideLead(st, g)
         end
         if st.guide_waiting and d > _GUIDE_WAIT_D and now >= (st.keep_up_at or 0) then
             st.keep_up_at = now + 60
