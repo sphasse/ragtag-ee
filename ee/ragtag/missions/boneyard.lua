@@ -3,7 +3,7 @@
 -- tries to stop it, and bring the news back to the lifeboat survivors.
 --
 -- Trigger: Rezkov arc finished (or declined) AND upgrade investment >= 800cr AND not completed
--- Structure: hook → annex_hack (Relay hacks it, by probe) → annex_control (dock: the operations,
+-- Structure: hook (the survivors brought home) → annex_hack (Relay hacks it) → annex_control (dock: the operations,
 -- the Concord fleet jumps in) → report (talk with the survivors where they were dropped off) → done.
 -- A crew that found the Annex without rescuing the survivors is done when the fight is.
 --
@@ -625,8 +625,8 @@ M.phases = {
                     )
                 end)
             end
-            -- Just the objective line: the survivors asked for the hack, and how to do it (Relay,
-            -- from range by probe) is for the crew to work out. No pop-up, no instructions.
+            -- Just the objective line: the survivors asked for the hack, and how to do it is for
+            -- the crew to work out. No pop-up, no instructions.
             RT.setObjective("Hack the Annex", true, "boneyard")
             -- Diagnostics (EmptyEpsilon.log): is the Annex a valid hack target?
             if RT.valid(st.annex) then

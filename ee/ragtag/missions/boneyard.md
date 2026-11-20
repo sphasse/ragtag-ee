@@ -21,10 +21,10 @@ hook → annex_hack → annex_control → report → done
 ```
 
 ### hook
-Rumor injection: Concord is mobilising a heavy response group, destination unknown. Rumors are re-injected each session while the arc is unfinished and removed on phase exit. The Ashgrave Annex spawns at (43, -104) verse coords (grid zz7), deeper in the debris field than the visible battle damage, in either of two ways: when the lifeboat survivors are brought home (their telemetry, logged at pickup, names the grid; in a later session it comes back at once), or, for a crew following the rumors instead, when they fly within 8U of Ashgrave (planet radius 3.4U). Spawning removes the hook rumors and the lifeboat job (the lead has paid off), and the arc moves straight to `annex_hack`: the hack is done from range.
+Rumor injection: Concord is mobilising a heavy response group, destination unknown. Rumors are re-injected each session while the arc is unfinished and removed on phase exit. The Ashgrave Annex spawns at (43, -104) verse coords (grid zz7), deeper in the debris field than the visible battle damage, in either of two ways: when the lifeboat survivors are brought home (their telemetry, logged at pickup, names the grid; in a later session it comes back at once), or, for a crew following the rumors instead, when they fly within 8U of Ashgrave (planet radius 3.4U). Spawning removes the hook rumors and the lifeboat job (the lead has paid off), and the arc moves straight to `annex_hack`.
 
 ### annex_hack
-Entering the phase sets the objective "Hack the Annex" and nothing else: **no pop-up, no instructions**. The survivors' request is the prompt; working out how (Relay, from range through a probe) is the crew's puzzle. Hailing the Annex only says it is under an encrypted lockdown. Relay must hack the `frontshield` system to 100%, realistically through a probe parked near the Annex (hacking is a Relay-screen function; each success adds 50% and it decays over 180 s, so two successes in a row). At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When the hack completes:
+Entering the phase sets the objective "Hack the Annex" and nothing else: **no pop-up, no instructions**. The survivors' request is the prompt; working out how is the crew's puzzle. Hailing the Annex only says it is under an encrypted lockdown. Relay must hack the `frontshield` system to 100% (hacking is a Relay-screen function; each success adds 50% and it decays over 180 s, so two successes in a row). A probe parked near the Annex does not last (playtest: the drones kill probes), so in practice the crew has to get close, under the drones' fire, until the hack lands. At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When the hack completes:
 - Every Relic drone in the Boneyard goes Derelict and idle (the IFF is offline). They stay idle for the rest of the arc, and so does any Relic drone that turns up later (checked every 2 s until the arc ends)
 - Proximity spawns for the Boneyard are suspended
 - The Annex turns `Relic Active` (no longer an enemy of the crew, so it can be docked; enemy of the Concord). Its comms say "Station security has been reset. Dock for more options."
@@ -99,7 +99,7 @@ If the archive is downloaded, Science gains three locked database entries:
 
 ## Testing
 - `tools/game_tests.py --ee <EE dir> arcs/boneyard` plays the arc headless (`tests/arcs/boneyard.lua`): hook, hack,
-  the hack from range, late drones idled, no operations undocked, the fleet arriving on the first dock (the pop-ups),
+  nothing until the survivors are home, no hack hints, late drones idled, no operations undocked, the fleet arriving on the first dock (its pop-up),
   the three operations and their locks, the download stopping on undocking, where and how fast everything spawns,
   drone replacement from the same nebula, the Annex's lasers picking a target, the victory, the report at the right
   station only, rewards, the no-survivors ending, and every GM state.
@@ -107,11 +107,11 @@ If the archive is downloaded, Science gains three locked database entries:
 
 ## GM jumps
 
-Every `→` button goes through `MISSIONS.gmJump`: `M.gm_reset` destroys the Annex, the Concord group and the drones, restores flagged drones, cancels timers, removes rumors/jobs, resumes the zone, resets the state table and clears `boneyard_*` flags (`boneyard_buoy_found` and `boneyard_survivors_at` only when jumping to Hook, so the lifeboat job is offered again); then `M.completed` replays earlier phases (hook: Annex spawned; annex_hack: drones idled, zone suspended, Annex dockable; annex_control: archive downloaded, fleet beaten, never spawned); then the target enters. `→ Annex control` lands before the first docking: the fleet arrives when the crew docks. `→ Report` marks the survivors as recovered if they were not. End states: Full (archive + drones) and Data (archive only); the archive is required now, so there are no Drones or Minimal endings. End states skip the replay so the world ends clean. `resolve` pays reputation and credits once (`boneyard_rewarded`), so jumping between end states does not pay twice. Reputation, credits and Science DB unlocks already given cannot be undone.
+Every `→` button goes through `MISSIONS.gmJump`: `M.gm_reset` destroys the Annex, the Concord group and the drones, restores flagged drones, cancels timers, removes rumors/jobs, resumes the zone, resets the state table and clears `boneyard_*` flags (`boneyard_buoy_found`, `boneyard_survivors_at` and `boneyard_survivors_home` only when jumping to Hook, so the lifeboat job is offered again); then `M.completed` replays earlier phases (hook: Annex spawned; annex_hack: drones idled, zone suspended, Annex dockable; annex_control: archive downloaded, fleet beaten, never spawned); then the target enters. `→ Annex control` lands before the first docking: the fleet arrives when the crew docks. `→ Report` marks the survivors as recovered if they were not. End states: Full (archive + drones) and Data (archive only); the archive is required now, so there are no Drones or Minimal endings. End states skip the replay so the world ends clean. `resolve` pays reputation and credits once (`boneyard_rewarded`), so jumping between end states does not pay twice. Reputation, credits and Science DB unlocks already given cannot be undone.
 
 **Helper (Annex hack state): `Complete hack`.** Sets the Annex frontshield fully hacked, so the
 phase completes normally on the next frame (drones idle, zone suspended, the Annex opens to docking)
-and moves to Annex control. The ship is not moved (a real hack is done from range).
+and moves to Annex control. The ship is not moved.
 
 **Helper (Annex control state): `Destroy Concord`.** Destroys every Concord ship left, once the
 fleet has jumped in; the Annex's hail and the rest follow as in a won fight.

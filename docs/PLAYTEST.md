@@ -72,8 +72,9 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 - [ ] The survivors' hail asks for the Annex to be hacked; nothing more happens (no Annex, no hack
       objective, not even at Ashgrave) until they are handed in at the station the job came from
 - [ ] Then just the "Hack the Annex" objective, no pop-up or instructions: does the crew work out
-      the probe hack from the survivors' request alone?
-- [ ] A **real Relay hack** of the Annex front shields to 100% **from range, through a probe**
+      how to hack it from the survivors' request alone?
+- [ ] A **real Relay hack** of the Annex front shields to 100% (probes don't survive the drones, so
+      the crew has to get close under fire)
       (two successes; it decays over 180 s). Do the drones stay docile, including new ones?
 - [ ] Hailing the Annex undocked says "Station security has been reset. Dock for more options."; the
       **dock button** works on the Annex

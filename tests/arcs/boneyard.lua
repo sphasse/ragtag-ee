@@ -1,9 +1,9 @@
--- Boneyard arc: hook -> annex_hack (from range) -> annex_control (dock: the fleet jumps in; download,
+-- Boneyard arc: hook (survivors home) -> annex_hack (no hints) -> annex_control (dock: the fleet jumps in; download,
 -- drone reprogram, Annex lasers; the download stops on undocking) -> report (the survivors, docked at
 -- their station) -> done (full); then the other ending (no survivors: Ashgrave reveals the Annex, the fight ends it,
 -- and the fleet's end compresses a running download to a minute), leaving the Boneyard (20U outside it) ends the
 -- arc, the GM states and "-> Inactive". Not covered: the lifeboat rescue flight (the test calls the pickup's on_found),
--- a real Relay hack by probe (the GM helper sets the level), how the fight plays out (the Battle Lab's
+-- a real Relay hack (the GM helper sets the level), how the fight plays out (the Battle Lab's
 -- Annex mode is for that), the pop-ups on the consoles as the crew sees them; covered: who spawns
 -- where, how fast, with what lasers, drone replacement from the same nebula, and the Annex's lasers
 -- picking a Concord ship. The 5 min download (1 min once compressed) and the 60 s reprogram and laser timers are shortened
