@@ -390,8 +390,13 @@ function MISSIONS._criteriaText(id)
     if t.custom then
         local ok, result = pcall(t.custom, MISSIONS._state[id] or {})
         local met = ok and result
-        lines[#lines+1] = string.format("  %s %s", met and "[MET]" or "[ ? ]",
-            t.custom_label or "Custom condition")
+        -- custom_label: a string, or a function returning one (e.g. with a live count)
+        local label = t.custom_label or "Custom condition"
+        if type(label) == "function" then
+            local okl, s = pcall(label)
+            label = (okl and s) and tostring(s) or "Custom condition"
+        end
+        lines[#lines+1] = string.format("  %s %s", met and "[MET]" or "[ ? ]", label)
     end
 
     if t.requires then

@@ -174,7 +174,7 @@ M.triggers = {
     upgrades_min = 200,                    -- total credits spent on upgrades >= value
     not_flagged  = {"witness_complete"},   -- RT.flag(name) must be falsy for each
     custom       = function(st) return ... end,  -- any extra condition
-    custom_label = "text for the GM criteria popup", -- optional, names the custom condition
+    custom_label = "text for the GM criteria popup", -- optional, names the custom condition; or a function returning it (live counts)
     requires       = function() return RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined") end,
     requires_label = "Rezkov arc finished or declined",  -- the arc's prerequisite (see below)
 }

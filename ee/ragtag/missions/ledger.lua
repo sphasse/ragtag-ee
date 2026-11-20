@@ -71,7 +71,13 @@ M.triggers = {
         if not _rezkovOver() then return false end
         return _jobsDone() - (RT.flag("ledger_jobs_base") or _jobsDone()) >= M.JOBS_AFTER_REZKOV
     end,
-    custom_label = M.JOBS_AFTER_REZKOV .. " board jobs done by the primary ship since the Rezkov arc ended",
+    -- With the count so far (0, 1, ... up to "N+"; 0 until the Rezkov arc is over).
+    custom_label = function()
+        local base = RT.flag("ledger_jobs_base")
+        local n = base ~= nil and math.max(0, _jobsDone() - base) or 0
+        local now = n >= M.JOBS_AFTER_REZKOV and (M.JOBS_AFTER_REZKOV .. "+") or tostring(n)
+        return M.JOBS_AFTER_REZKOV .. " board jobs done by the primary ship since the Rezkov arc ended  (now: " .. now .. ")"
+    end,
 }
 
 M.phase_order = {"init", "hook", "meet", "relay_run", "carry"}
