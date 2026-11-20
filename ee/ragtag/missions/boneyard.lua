@@ -842,6 +842,16 @@ if SCIDB and SCIDB.rule then
 end
 
 -- Short state label for the "Mission state" popup.
+-- The GM criteria page's "Mission outcome" (boneyard_arc_done is only true/false).
+M.outcome_fn = function()
+    if not RT.flag("boneyard_arc_done") then return nil end
+    local data, drones = RT.flag("boneyard_hack_done"), RT.flag("boneyard_drone_flip")
+    if data and drones then return "full (archive downloaded, drones reprogrammed)" end
+    if data then return "data (archive downloaded)" end
+    if drones then return "left without the archive (drones reprogrammed)" end
+    return "left without the archive"
+end
+
 M.gm_state_fn = function()
     local st = MISSIONS._status["boneyard"]
     local ph = MISSIONS._cur_phase["boneyard"]

@@ -403,11 +403,18 @@ function T.gmWalk(expect)
     for _, e in ipairs(expect) do
         T.step("GM -> " .. e.key, function()
             T.jump(e.key)
+            local crit = MISSIONS._criteriaText(_arc)
+            T.check("GM -> " .. e.key .. ": criteria never say 'not yet met'", not crit:find("not yet met", 1, true), crit)
             if e.done then
                 T.eq("GM -> " .. e.key .. ": status", T.status(), "done")
+                T.check("GM -> " .. e.key .. ": criteria say completed", crit:find("Mission completed: true", 1, true) ~= nil, crit)
+                local outcome = crit:match("Mission outcome: ([^\n]+)")
+                T.check("GM -> " .. e.key .. ": criteria give the outcome", outcome ~= nil and outcome ~= "(not recorded)", crit)
             elseif e.phase then
                 T.eq("GM -> " .. e.key .. ": status", T.status(), "active")
                 T.eq("GM -> " .. e.key .. ": phase", T.phase(), e.phase)
+                T.check("GM -> " .. e.key .. ": criteria say not completed", crit:find("Mission completed: false", 1, true) ~= nil, crit)
+                T.check("GM -> " .. e.key .. ": no outcome while running", not crit:find("Mission outcome:", 1, true), crit)
             end
         end)
         T.wait(1)

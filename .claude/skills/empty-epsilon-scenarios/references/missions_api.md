@@ -38,6 +38,7 @@ Add `require("ragtag/missions/<name>.lua")` to `ee/ragtag/missions.lua`.
 | `M.no_auto_cancel` | bool | Suppress the auto-generated "Cancel \<name\>" button |
 | `M.no_criteria_button` | bool | Suppress the "Mission criteria" popup button |
 | `M.gm_state_fn` | function | Called with no args; return string appended as `State: <value>` in the criteria popup |
+| `M.outcome_fn` | function | Called with no args; how the arc ended (string), nil while unfinished. Shown as `Mission outcome:` in the criteria popup (`MISSIONS.outcome`). Default: the `<id>_arc_done` flag's value |
 | `M.init_state()` | function | Returns fresh mutable state table for each run |
 | `M.resolve(st)` | function | Called when entering the terminal `"done"` phase |
 | `M.on_cancel(st)` | function | Called on `MISSIONS.cancel(id)`; clean up world objects here |
@@ -109,7 +110,8 @@ carry the log lines); the rules only correct the database after state changes.
 
 The engine builds the arc's GM screen. Buttons, in order:
 
-`← Missions` | `Mission criteria` (popup: each trigger condition, `[MET]` or `[ ? ]`) |
+`← Missions` | `Mission criteria` (popup: each trigger condition, `[MET]` or `[ ? ]`; `Result: ALL MET` or
+`do not start`; `Mission completed: true/false` and, when completed, `Mission outcome: ...`) |
 `Mission state` (popup: status, phase, `gm_state_fn` label, saved flags matching
 `gm_flag_prefixes`, and every variable in the arc's state table) | `Enable arc` / `Disable arc`
 (whenever the arc is not running; either way it first resets the arc to "never happened": `MISSIONS.gmResetArc`

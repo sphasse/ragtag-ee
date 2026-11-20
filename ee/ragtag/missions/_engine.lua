@@ -345,6 +345,21 @@ end
 -- ── GM interface ──────────────────────────────────────────────────────────────
 
 -- Build a human-readable criteria status string for the GM popup.
+-- How a finished arc ended, as text, or nil while it has not finished: M.outcome_fn() when the arc
+-- defines one, else the value of its "<id>_arc_done" flag.
+function MISSIONS.outcome(id)
+    local M = MISSIONS._registry[id]
+    if not M then return nil end
+    if M.outcome_fn then
+        local ok, v = pcall(M.outcome_fn)
+        if ok then return v end
+        return nil
+    end
+    local v = RT.flag and RT.flag(id .. "_arc_done")
+    if v == nil or v == false then return nil end
+    return tostring(v)
+end
+
 function MISSIONS._criteriaText(id)
     local M = MISSIONS._registry[id]
     local t = M and M.triggers
@@ -407,7 +422,15 @@ function MISSIONS._criteriaText(id)
     local overall = MISSIONS._checkTriggers(id)
     local status  = MISSIONS._status[id]
     lines[#lines+1] = string.format("\nResult: %s  |  Status: %s",
-        overall and "ALL MET" or "not yet met", status)
+        overall and "ALL MET" or "do not start", status)
+
+    -- Completed (this session, or in an earlier one: the arc's outcome is saved) and how it ended.
+    local outcome = MISSIONS.outcome(id)
+    local completed = status == "done" or outcome ~= nil
+    lines[#lines+1] = "Mission completed: " .. tostring(completed)
+    if completed then
+        lines[#lines+1] = "Mission outcome: " .. tostring(outcome or "(not recorded)")
+    end
 
     if M.gm_state_fn then
         local ok, lbl = pcall(M.gm_state_fn)

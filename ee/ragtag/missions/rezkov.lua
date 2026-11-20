@@ -476,6 +476,15 @@ end
 
 M.gm_state_fn = _gmStateLabel
 
+-- The GM criteria page's "Mission outcome": how it ended (rezkov_arc_done), or declined by the
+-- crew. Parked by the GM ("gm_inactivated") is not an ending: no outcome, not completed.
+M.outcome_fn = function()
+    local done = RT.flag("rezkov_arc_done")
+    if done then return tostring(done) end
+    if RT.flag("rezkov_declined") == "player_declined" then return "declined (the crew turned Thresh down)" end
+    return nil
+end
+
 M.gm_flag_prefixes = {"rezkov_", "kael_"}
 
 -- Saved flags this arc owns: every RT.flag name it sets, with what it means (a "*" suffix covers
