@@ -13,6 +13,7 @@ T.arc("boneyard")
 
 local ANNEX_X, ANNEX_Y = 43000, -104000
 local function annex() return T.st().annex end
+local function dist(s, x, y) local sx, sy = s:getPosition(); return math.sqrt((sx - x) ^ 2 + (sy - y) ^ 2) end
 local c0, concord0, corsairs0
 
 -- Ships in and around the Boneyard by faction, e.g. "Derelict=3 Relic=14".
@@ -64,7 +65,7 @@ end)
 T.talk(nil, {}, {answer = true, name = "the lifeboat survivors"})
 T.step("the survivors ask for the Annex", function()
     T.check("survivors: get us out", T.msg():find("Please get us out of here", 1, true) ~= nil, T.msg())
-    T.check("survivors: hack the Annex and extract the research", T.msg():find("If the Annex could be hacked and all the research extracted", 1, true) ~= nil, T.msg())
+    T.check("survivors: hack the Annex and extract the research", T.msg():find("Those drones are whacko, but if the Annex could be hacked and all the research extracted", 1, true) ~= nil, T.msg())
     T.eq("survivors: nothing to answer", #T.replies(), 0)
     T.eq("survivors: where they are taken", T.flag("boneyard_survivors_at"), "Halcyon Rest")
     T.check("survivors: no Annex while they are aboard", not RT.valid(annex()))
@@ -104,6 +105,31 @@ T.step("lead paid off", function()
     T.eq("annex_hack: just the objective", RT.objectives.boneyard, "Hack the Annex")
 end)
 
+-- ── Hailing a drone: base64, a threat while hostile, a welcome once idled ───
+local drone
+local function decodedIn(list)
+    for _, line in ipairs(list) do if T.msg() == VERSE.base64(line) then return true end end
+    return false
+end
+T.step("base64 and a hostile drone", function()
+    T.eq("base64: 'Man'", VERSE.base64("Man"), "TWFu")
+    T.eq("base64: 'Ma' (padding)", VERSE.base64("Ma"), "TWE=")
+    T.eq("base64: 'M' (padding)", VERSE.base64("M"), "TQ==")
+    local best
+    for _, o in ipairs(getObjectsInRadius(ANNEX_X, ANNEX_Y, 15000)) do
+        if isObjectType(o, "CpuShip") and o:getFaction() == "Relic" then
+            if not best or dist(o, ANNEX_X, ANNEX_Y) < dist(best, ANNEX_X, ANNEX_Y) then best = o end
+        end
+    end
+    drone = best
+    T.check("drone: a Relic drone near the Annex", RT.valid(drone))
+end)
+T.talk(function() return drone end, {}, {name = "a Relic drone"})
+T.step("it threatens, in base64", function()
+    T.check("drone: a hostile line, base64", decodedIn(VERSE.DRONE_HOSTILE), T.msg())
+end)
+T.closeComms()
+
 -- ── Hack ─────────────────────────────────────────────────────────────────────
 T.talk(annex, {})
 T.step("locked down", function()
@@ -114,7 +140,12 @@ T.step("locked down", function()
 end)
 T.waitFor("annex_control: a finished hack opens the Annex", function() return T.phase() == "annex_control" end, 3)
 T.closeComms()
-local function dist(s, x, y) local sx, sy = s:getPosition(); return math.sqrt((sx - x) ^ 2 + (sy - y) ^ 2) end
+T.talk(function() return drone end, {}, {name = "the idled drone"})
+T.step("idled, it welcomes the crew, in base64", function()
+    T.eq("drone: idled by the hack", drone:getFaction(), "Derelict")
+    T.check("drone: a welcome line, base64", decodedIn(VERSE.DRONE_NEUTRAL), T.msg())
+end)
+T.closeComms()
 local function relicDrones()
     local relic = 0
     for _, o in ipairs(getObjectsInRadius(36000, -96000, 32000)) do

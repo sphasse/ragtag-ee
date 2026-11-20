@@ -5,11 +5,11 @@ Phase II arc of the sandbox campaign (`ee/ragtag/missions/corsair.lua`). Campaig
 
 ## Premise
 
-The Concord's second battle group (the Boneyard rumors' "two groups left Lumen") is coming for
+A Concord battle fleet (one of the "two groups" that left Lumen in the Boneyard rumors; never numbered, since the crew may meet them in either order) is coming for
 Blackwater Reach. Many Corsairs are Settlement War Free Ship veterans and their children; most
 ships at Blackwater are families. A raider that has been watching the crew brings them in, the
 crew raids a Concord forward depot so the Corsairs can thicken Blackwater's mine ring with its
-mines, and then stands in the Corsair line when Battle Group Two arrives.
+mines, and then stands in the Corsair line when a Concord battle fleet arrives.
 
 ## Trigger
 
@@ -52,19 +52,19 @@ arc ends. Laid at the debrief (`return`), or on entering `battle`.
 - **Where:** five invisible combat points on a north-south line through (30, 99), 1.5U apart, 25U
   west of Blackwater. The Concord line 10U west of them (x 20), the Corsair line 10U east (x 40,
   ~6U outside the ring), both 2U apart.
-- **Who:** Battle Group Two, 7 ships: CNS Retribution, Remand, Injunction (Atlantis X23) and CNS
+- **Who:** a Concord battle fleet (never numbered: fleets can fall in any order), 7 ships: CNS Retribution, Remand, Injunction (Atlantis X23) and CNS
   Writ, Summons, Levy, Distraint (Phobos T3), no nukes. 12 fresh Corsairs: Adder MK5, Adder MK5,
   Piranha F12, … (Hearthstone, Second Chance, Long Odds, Short Fuse, Dead Weight, Hollis, Fair
   Warning, Low Tide, Tin Can, Hard Luck, Iron Will, Stray Dog).
 - **Frozen start:** everything spawns as the battle phase begins, but waits (no impulse, no
   turning) until any player ship comes within 5U of any battle ship (Concord or Corsair). Then the Concord broadcasts its
-  ultimatum, Reva calls "Here they come. Hold the line!" and the objective becomes "Destroy Battle
-  Group Two".
+  ultimatum, Reva calls "Here they come. Hold the line!" and the objective becomes "Destroy the
+  Concord battle fleet".
 - **Rules:** no warp; speeds normalized (Adder 120/28/25, Phobos 104/18.4/17.5, Piranha 88/21.2/21.5
   with its tweak, Atlantis 80/15/15); each side mapped north to south onto the points (Corsairs
   2/3/2/3/2, Concord 1/2/1/2/1 by position); a ship whose point has no enemies left moves to the
   nearest point that has some; Corsair missile top-ups at 25%.
-- GM: **Start battle** (start it now), **Kill fleet** (destroy Battle Group Two: `defended`).
+- GM: **Start battle** (start it now), **Kill fleet** (destroy the Concord battle fleet: `defended`).
 
 ### The tender
 

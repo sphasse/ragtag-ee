@@ -632,7 +632,9 @@ local function _spawnGroup(st, region_name, player, px, py)
             end
         end)
 
-        if zone.comms ~= "none" and not is_shakedown then
+        if zone.faction == "Relic" and VERSE.droneComms then
+            s:setCommsScript(""):setCommsFunction(VERSE.droneComms)   -- base64, threat or welcome
+        elseif zone.comms ~= "none" and not is_shakedown then
             local zfac = zone.faction
             s:setCommsScript(""):setCommsFunction(function(src, tgt)
                 if zfac == "Corsairs" then

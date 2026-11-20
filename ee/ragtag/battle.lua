@@ -405,6 +405,7 @@ function Annex:spawnDrone(k)
     local s, r = self.b:spawn("b", cfg.drone_hull, "Relic Active", "Relic drone " .. self.serial, x, y, heading,
         {impulse = self.drone_impulse, turn = cfg.drone_turn, accel = cfg.drone_accel, beam_damage = cfg.drone_beam})
     r.gate = k
+    if VERSE and VERSE.droneComms then s:setCommsScript(""):setCommsFunction(VERSE.droneComms) end   -- base64
     self.drones[#self.drones + 1] = s
     return s
 end

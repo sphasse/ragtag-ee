@@ -490,10 +490,10 @@ local function _spawnBattle(st)
         local s = b:spawn("a", hull, "Concord Hostile", _CONCORD_NAMES[i],
             _BATTLE_X - _LINE_U, _BATTLE_Y + (i - (#_CONCORD_HULLS + 1) / 2) * 2 * U, 90)
         s:setWeaponStorageMax("Nuke", 0):setWeaponStorage("Nuke", 0)
-        s:setDescriptions("Concord warship.", "Concord Battle Group Two. Assigned: Blackwater Reach.")
+        s:setDescriptions("Concord warship.", "Concord battle fleet. Assigned: Blackwater Reach.")
         s:setScanningParameters(2, 2)
         s:setCommsScript(""):setCommsFunction(function()
-            setCommsMessage('"Battle Group Two. You are standing between the Concord and a pirate nest. Move."')
+            setCommsMessage('"Concord battle fleet. You are standing between the Concord and a pirate nest. Move."')
         end)
         st.fleet[#st.fleet + 1] = s
     end
@@ -511,10 +511,10 @@ end
 local function _startBattle(st)
     if not st.battle or st.battle.started then return end
     st.battle:start()
-    ARC.log("[CNS Retribution] Blackwater Reach, this is Concord Battle Group Two. Your haven is declared a pirate installation under the Settlement Accords. Stand down and prepare to be boarded.", "#FF6666")
+    ARC.log("[CNS Retribution] Blackwater Reach, this is Concord battle fleet command. Your haven is declared a pirate installation under the Settlement Accords. Stand down and prepare to be boarded.", "#FF6666")
     local line = '"Here they come. Hold the line!"'
     if not ARC.hail(_blackwater(), line, "Reva Okonkwo") then ARC.log("[Reva Okonkwo] " .. line, "#FFCC80") end
-    RT.setObjective("Destroy Battle Group Two", true, "corsair")
+    RT.setObjective("Destroy the Concord battle fleet", true, "corsair")
 end
 
 -- True when ANY player ship is within _START_U of any ship of the battle, on either side: coming
@@ -722,7 +722,7 @@ end
 local _SEED_RUMORS = {
     "Concord's moving a lot of ordnance south of the Arbiter Line. Nobody says where it's headed.",
     "The Corsairs have gone quiet in the Gauntlet. Quiet Corsairs are watching for something.",
-    "A Concord battle group left Lumen with sealed orders. The second one, I mean. Everyone forgets the second one.",
+    "A Concord battle group left Lumen with sealed orders. Not the one everyone is talking about. The other one.",
     "There's a Corsair raider out of Blackwater that shadows freighters and never fires. Gives people the creeps.",
 }
 
@@ -776,7 +776,7 @@ function M.resolve(st)
             -- Corsair standing: up to +500 from zero or below; +500 more if it was already positive.
             local corsairs = RT.getReputation("Corsairs") or 0
             RT.addReputation("Corsairs", corsairs > 0 and 500 or (500 - corsairs), "Corsair Arc: stood with Blackwater")
-            RT.addReputation("Concord", -300, "Corsair Arc: destroyed Concord Battle Group Two")
+            RT.addReputation("Concord", -300, "Corsair Arc: destroyed a Concord battle fleet")
         end
         ARC.log("[Corsair Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "defended" and "#80FF80" or "#FF8080")
     end)
@@ -1042,7 +1042,7 @@ M.phases.battle = {
         _tickRoutes(st)
         _tickBattle(st, now)
         _tickTender(st, now)
-        -- Victory: all of Battle Group Two destroyed, however that happens. Blackwater hails, the
+        -- Victory: the whole Concord battle fleet destroyed, however that happens. Blackwater hails, the
         -- arc ends, and the surviving Corsairs head home (removed with the rest in M.resolve).
         if st.battle and #ARC.alive(st.fleet) == 0 then
             RT.flag("corsair_arc_done", "defended")
@@ -1082,7 +1082,7 @@ M.flags = {
     corsair_joined    = "agreed to stand with Blackwater in the battle",
     corsair_arc_done  = 'outcome: "defended" | "failed" | "declined"',
     corsair_ally      = "set on defended: Gauntlet and Blackwater Corsairs stay friendly, Blackwater is dockable",
-    corsair_battlegroup_destroyed = "set on defended: Concord Battle Group Two is gone",
+    corsair_battlegroup_destroyed = "set on defended: the Concord battle fleet is gone",
     corsair_rewarded  = "reputation was paid (an end state pays once)",
     ["corsair_met_*"] = "Science DB profile met in this arc (reva), set by ARC.meet",
 }

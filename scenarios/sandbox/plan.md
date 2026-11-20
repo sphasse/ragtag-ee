@@ -127,8 +127,8 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
 
 ## Arc 4 — Corsair Arc (redemption) — BUILT 2026-11-15 (details: `ee/ragtag/missions/corsair.md`)
 
-**Premise.** The Concord's second battle group (seeded by the Boneyard hook rumors: two groups
-left Lumen) is coming for Blackwater Reach, to settle the Corsair problem quietly while the Drift
+**Premise.** A Concord battle fleet (seeded by the Boneyard hook rumors: two groups left Lumen; never
+numbered, since the crew may meet them in either order) is coming for Blackwater Reach, to settle the Corsair problem quietly while the Drift
 is distracted. Many Corsairs are Settlement War Free Ship veterans and their children, pushed into
 raiding by the "transitional" tariffs. A raider who has been watching the crew brings them in;
 the crew raids a Concord forward depot so the Corsairs can thicken Blackwater's mine ring with its

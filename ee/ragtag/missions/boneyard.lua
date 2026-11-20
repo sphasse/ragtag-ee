@@ -444,7 +444,7 @@ end
 local _SURVIVOR_MSG = '"Thank you. We saw a lot of strange activity in the Boneyard while we were stranded, '
     .. 'and we don\'t want those records to be lost, so we\'re uploading them to your database now. Ashgrave is where it starts."\n\n'
     .. '"Please get us out of here, but somebody needs to take a look at our records and come back and investigate. '
-    .. 'If the Annex could be hacked and all the research extracted, someone might actually be held accountable."'
+    .. 'Those drones are whacko, but if the Annex could be hacked and all the research extracted, someone might actually be held accountable."'
 
 local function _survivorHail()
     RT.voice.create("boneyard_survivors", {

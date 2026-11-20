@@ -354,6 +354,45 @@ local function concordPatrolComms(source, target)
     setCommsMessage("\"Concord patrol " .. target:getCallSign() .. ". Lanes are clear. Keep it that way.\"")
 end
 
+-- ── Relic drones answer in base64 ────────────────────────────────────────────
+-- A hailed Relic drone replies with a line of base64 (a crew that decodes it gets the joke):
+-- a threat when it is hostile to the ship hailing it, a welcome when not (idled by the Boneyard
+-- hack, or reprogrammed against the Concord). Picked at random each time.
+local _B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+function VERSE.base64(s)
+    local out = {}
+    for i = 1, #s, 3 do
+        local a, b, c = s:byte(i, i + 2)
+        local n = a * 65536 + (b or 0) * 256 + (c or 0)
+        local q = {(n >> 18) & 63, (n >> 12) & 63, (n >> 6) & 63, n & 63}
+        out[#out + 1] = _B64:sub(q[1] + 1, q[1] + 1) .. _B64:sub(q[2] + 1, q[2] + 1)
+            .. (b and _B64:sub(q[3] + 1, q[3] + 1) or "=") .. (c and _B64:sub(q[4] + 1, q[4] + 1) or "=")
+    end
+    return table.concat(out)
+end
+
+VERSE.DRONE_HOSTILE = {
+    "PREPARE TO BE DESTROYED.",
+    "INTRUDER DETECTED. TERMINATION AUTHORIZED.",
+    "YOUR HULL WILL BE RECYCLED.",
+    "RESISTANCE IS INEFFICIENT.",
+    "TARGET ACQUIRED. HAVE A NICE DAY.",
+}
+VERSE.DRONE_NEUTRAL = {
+    "WELCOME. PROCEED.",
+    "IFF ACCEPTED. PROCEED.",
+    "GREETINGS, FRIEND. PLEASE PROCEED.",
+    "NO THREAT DETECTED. CARRY ON.",
+    "WELCOME TO THE BONEYARD. MIND THE WRECKS.",
+}
+
+function VERSE.droneComms(source, target)
+    local hostile = false
+    pcall(function() hostile = target:isEnemy(source) end)
+    local lines = hostile and VERSE.DRONE_HOSTILE or VERSE.DRONE_NEUTRAL
+    setCommsMessage(VERSE.base64(lines[math.random(#lines)]))
+end
+
 -- Garrisons with a beat (beat_u): {ships = {entity, ...}, x, y, r} in world units, for the
 -- defenders plugin to walk round their post. Rebuilt with the universe.
 VERSE.PICKETS = {}
@@ -378,6 +417,8 @@ local function buildGarrisons()
             if g.fac == "Unknown" then
                 s:setCommsFunction(function() setCommsMessage("A burst of compressed tone. Then nothing.") end)
                 s:setDescriptions("No transponder.", "Hull configuration matches no registry. Emissions are... rhythmic.")
+            elseif g.fac == "Relic" then
+                s:setCommsScript(""):setCommsFunction(VERSE.droneComms)
             elseif g.fac == "Concord" then
                 s:setCommsFunction(concordPatrolComms)
                 s:setDescriptions("CWS-registered warship.", "Concord lane picket. Holds this stretch of the lanes.")

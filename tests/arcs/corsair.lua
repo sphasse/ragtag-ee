@@ -401,7 +401,7 @@ T.step("the battle begins", function()
     local per = {0, 0, 0, 0, 0}
     for _, r in ipairs(s.battle.sides.b) do if r.pos then per[r.pos] = per[r.pos] + 1 end end
     T.eq("battle: Corsairs mapped onto the five points, north to south", table.concat(per, "/"), "2/3/2/3/2")
-    T.check("battle: objective", (RT.objectives.corsair or ""):find("Destroy Battle Group Two", 1, true) ~= nil, tostring(RT.objectives.corsair))
+    T.check("battle: objective", (RT.objectives.corsair or ""):find("Destroy the Concord battle fleet", 1, true) ~= nil, tostring(RT.objectives.corsair))
 end)
 
 -- ── Rearming from the tender ─────────────────────────────────────────────────
