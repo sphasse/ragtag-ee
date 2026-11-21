@@ -81,8 +81,8 @@ local function buildShell(e, owner, x, y, rotation, speed, range, damage)
         damage_at_center = damage, damage_at_edge = damage, blast_range = 20,
         owner = owner, explosion_sfx = "sfx/explosion.wav",
     }
-    -- The lifetime component's field: `lifetime` on EE-2026.09.22PR (what the campaign is played
-    -- on), `maximum` on EE 2026-10-31 (the headless test build). Try one, then the other.
+    -- The lifetime component's field: `lifetime` on EE-2026.09.22PR (what the campaign is played,
+    -- released and tested on), `maximum` on later development builds. Try one, then the other.
     local t = range / speed
     if not pcall(function() e.components.lifetime = {lifetime = t} end) then
         e.components.lifetime = {maximum = t}

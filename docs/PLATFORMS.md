@@ -76,8 +76,8 @@ Light Freighter.
   `fireShell()` builds the shell from components instead (`missile_flight`, `explode_on_touch`,
   `lifetime`, `physics`, `radar_trace`, `radar_signature`, `constant_particle_emitter`, `sfx`), the same
   set and values the engine uses for a tube-fired HVLI (`MissileSystem::spawnProjectile`).
-- The `lifetime` component's field is `lifetime` on EE-2026.09.22PR (what the campaign is played and released
-  on) and `maximum` on the EE-2026-10-31 development build (the headless tests). The shell tries `lifetime`,
+- The `lifetime` component's field is `lifetime` on EE-2026.09.22PR (what the campaign is played, released and
+  tested on) and `maximum` on later development builds (2026-10-31). The shell tries `lifetime`,
   then `maximum`, so it works on both. (A fix that set only `maximum` broke every shot on EE-2026.09.22PR:
   the platforms looked as if they weren't hostile.) A shot that still fails is logged once
   (`PLATFORMS._fire_error`) and its half-built shell removed, instead of raising every time.
@@ -89,6 +89,6 @@ Light Freighter.
   sector garrisons) were specific to that scenario and aren't carried over; pass `faction`
   and tune `interval`/`barrels` per platform instead.
 
-Tested on EE-2026.09.22PR, headless (Kuri148), and on EE-2026-10-31 by `tests/core/platforms.lua`. Fires from point blank out to 100% of range and holds
+Tested on EE-2026.09.22PR, headless (Kuri148, and `tests/core/platforms.lua`), and on a 2026-10-31 development build. Fires from point blank out to 100% of range and holds
 beyond it (7.9u fires and 8.1u holds for an 8u lance). Doesn't fire until aimed. Sweep stays within ±10°
 of the target bearing. Shells damage the player ship. No LUA-Errors in the log.
