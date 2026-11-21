@@ -160,3 +160,22 @@ T.step("a rule on a locked entry", function()
     SCIDB._rules["maw_full"] = nil
     SCIDB._rules["test_rule_entry"] = nil
 end)
+
+-- Every key/value fits the Science screen's narrow column (playtest: Rezkov's "Method" ran into
+-- the description): built entries (SCIDB.kv_set), locked ones' hidden values, every profile.
+T.step("key/values fit the Science screen", function()
+    local all = {}
+    for _, e in ipairs(SCIDB.kv_set) do all[#all + 1] = {e.path, e.key, e.value} end
+    for lk, L in pairs(SCIDB._locked) do
+        for k, v in pairs(L.kv or {}) do all[#all + 1] = {"locked " .. lk, k, tostring(v)} end
+    end
+    for pk, p in pairs(SCIDB.PROFILES) do
+        for k, v in pairs(p.kv or {}) do all[#all + 1] = {"profile " .. pk, k, tostring(v)} end
+    end
+    T.check("kv: there are key/values to check", #all > 20, #all)
+    for _, e in ipairs(all) do
+        if #e[3] > SCIDB.KV_VALUE_MAX or #e[2] > SCIDB.KV_KEY_MAX then
+            T.check(string.format("kv fits: %s: %s = %s (%d)", e[1], e[2], e[3], #e[3]), false)
+        end
+    end
+end)

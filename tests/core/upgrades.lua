@@ -112,7 +112,7 @@ T.step("bases sell whole lines", function()
     local entry = SCIDB._entries["port_Calder's Reach"]
     local text = entry and entry:getLongDescription() or ""
     T.check("science DB: 'Base for hull, reactor and beam upgrades'", text:find("Base for hull, reactor and beam upgrades", 1, true) ~= nil, text:sub(1, 300))
-    T.eq("science DB: the shipwright line", entry and entry:getKeyValue("Shipwright"), "base for hull, reactor and beam upgrades")
+    T.eq("science DB: the shipwright line", entry and entry:getKeyValue("Shipwright"), "hull, reactor, beam")
     B = T.secondShip()
 end)
 

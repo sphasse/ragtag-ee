@@ -434,7 +434,7 @@ local function _addSurvivorRecords()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["boneyard_survivors"] then return end
     local e = SCIDB.addEntry("lore", "Boneyard Survivor Records", _survivorRecordsText(),
         {["Source"] = "Ashgrave Annex archive staff", ["Reliability"] = "Unverified testimony",
-         ["Hazards"] = "Relic drones; Concord response group"})
+         ["Hazards"] = "Relic drones; Concord fleet"})
     SCIDB._entries["boneyard_survivors"] = e
 end
 

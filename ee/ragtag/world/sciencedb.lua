@@ -35,6 +35,23 @@ SCIDB._paths   = {}   -- entry handle → where it is, "Lore > Thresh" (for the 
 SCIDB._quiet   = 0    -- > 0: no announcements (building, sync)
 SCIDB.announced = {}  -- the last announcements, newest last (tests read it: the ship log can't be)
 
+-- The Science screen's key/value column is narrow (400 px, 37% key / 63% value): a value longer
+-- than about 30 characters runs into the description beside it (playtest: Rezkov's "Method").
+-- Every key/value goes through SCIDB.setKV, which records what was set (SCIDB.kv_set: tests
+-- check the lengths) and logs a value that is too long.
+SCIDB.KV_VALUE_MAX = 28
+SCIDB.KV_KEY_MAX   = 16
+SCIDB.kv_set = {}     -- {path, key, value} for every key/value set this session
+
+function SCIDB.setKV(entry, k, v)
+    v = tostring(v)
+    entry:setKeyValue(k, v)
+    SCIDB.kv_set[#SCIDB.kv_set + 1] = {path = SCIDB._paths and SCIDB._paths[entry] or "?", key = k, value = v}
+    if #v > SCIDB.KV_VALUE_MAX or #tostring(k) > SCIDB.KV_KEY_MAX then
+        log("[SCIDB] WARNING: key/value too long for the Science screen: " .. tostring(k) .. " = " .. v)
+    end
+end
+
 -- Remember where an entry sits: its parent's place, then its name.
 local function _place(entry, parent, name)
     local up = parent and SCIDB._paths[parent]
@@ -69,7 +86,7 @@ function SCIDB.unlock(key)
     L.unlocked = true
     if L.description then L.entry:setLongDescription(L.description) end
     if L.kv then
-        for k, v in pairs(L.kv) do L.entry:setKeyValue(k, v) end
+        for k, v in pairs(L.kv) do SCIDB.setKV(L.entry, k, v) end
     end
     if L.on_unlock then pcall(L.on_unlock, L.entry) end
     log("[SCIDB] unlocked: " .. key)
@@ -106,7 +123,7 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
         }
     else
         if kv then
-            for k, v in pairs(kv) do entry:setKeyValue(k, v) end
+            for k, v in pairs(kv) do SCIDB.setKV(entry, k, v) end
         end
     end
     entry:setLongDescription(display_desc)
@@ -146,7 +163,7 @@ SCIDB.PROFILES = {
                "Concord patrols have never been seen to trouble his people, and he is careful " ..
                "to keep it that way.",
         kv = {["Role"] = "Independent operator", ["Base"] = "Nebula station near Dustmote",
-              ["Method"] = "In person, never through go-betweens", ["Memory"] = "Total"},
+              ["Method"] = "In person, no go-betweens", ["Memory"] = "Total"},
     },
     reva_profile = {
         who  = "reva",
@@ -161,7 +178,7 @@ SCIDB.PROFILES = {
                "Her crews follow her because she has never once asked them to do something she " ..
                "would not do first.",
         kv = {["Role"] = "Quartermaster, Blackwater", ["War record"] = "Free Ship gunnery chief",
-              ["Manner"] = "Blunt, fair, wary", ["Known for"] = "Never asking first what she won't do herself"},
+              ["Manner"] = "Blunt, fair, wary", ["Known for"] = "Never asks what she won't do"},
     },
     kael_profile = {
         who  = "kael",
@@ -175,9 +192,9 @@ SCIDB.PROFILES = {
                "She commands CWS Meridian with a small, steady crew who are said to follow her " ..
                "without needing to be told twice, and she is considered one of Concord " ..
                "Intelligence's most capable field officers. She does not bluff.",
-        kv = {["Service"] = "Concord Intelligence", ["War record"] = "Fighter pilot, Settlement War",
-              ["Current post"] = "Special Operations Investigations", ["Vessel"] = "CWS Meridian",
-              ["Reputation"] = "Asks the questions nobody wants asked"},
+        kv = {["Service"] = "Concord Intelligence", ["War record"] = "Settlement War fighter pilot",
+              ["Current post"] = "Special Ops Investigations", ["Vessel"] = "CWS Meridian",
+              ["Reputation"] = "Asks what nobody else will"},
     },
 }
 
@@ -284,7 +301,7 @@ local function _entry(parent, name, desc, kv)
     -- parent == nil makes a top-level section (the Science screen's first column).
     local e = _place(parent and parent:addEntry(name) or ScienceDatabase():setName(name), parent, name)
     if desc then e:setLongDescription(desc) end
-    if kv then for k, v in pairs(kv) do e:setKeyValue(k, v) end end
+    if kv then for k, v in pairs(kv) do SCIDB.setKV(e, k, v) end end
     return e
 end
 
@@ -374,8 +391,12 @@ local function _buildPorts()
             lines[#lines + 1] = ""
             lines[#lines + 1] = "STANDING\nA Concord port. Work here dries up as your Concord standing falls: few jobs below -200, none below -400."
         end
-        local kv = {["Grid"] = grid, ["Area"] = area, ["Authority"] = d.fac,
-                    ["Shipwright"] = #shop > 0 and ("base for " .. base .. " upgrades") or "None"}
+        -- The key/value column fits about 28 characters (SCIDB.KV_VALUE_MAX): the lines themselves
+        -- when they fit ("hull, reactor, beam"), else how many (the description lists them).
+        local short = table.concat(shop, ", ")
+        local kv_shop = (#shop == 0 and "None") or (#short <= SCIDB.KV_VALUE_MAX and short)
+            or (#shop .. " upgrade lines")
+        local kv = {["Grid"] = grid, ["Area"] = area, ["Authority"] = d.fac, ["Shipwright"] = kv_shop}
         SCIDB._entries["port_" .. d.cs] = _entry(root, d.cs, table.concat(lines, "\n"), kv)
     end
 end
@@ -478,7 +499,7 @@ local function _build()
         "At good standing they wave you through. At bad standing, expect warp jammers " ..
         "and compliance timers. Below -200 reputation they treat your ship as hostile " ..
         "and attack on sight.",
-        { ["Attitude at rep ≥ 0"] = "Routine inspection, courteous", ["Attitude at rep < -200"] = "Shoot on sight", ["Warp jammer"] = "Comply within 60s or hostile" }
+        { ["At rep 0+"] = "Routine, courteous checks", ["At rep < -200"] = "Shoot on sight", ["Warp jammer"] = "Comply in 60s or hostile" }
     )
 
     SCIDB._entries["faction_corsairs"] = _entry(factions, "Corsairs",
@@ -518,7 +539,7 @@ local function _build()
         "Concord withdrew and sealed the sector. The Hollow are what remained. " ..
         "Phase II reversal protocols were developed but abandoned when Phase III " ..
         "subjects proved unresponsive. Protocol data exists in Ashgrave research archives.",
-        { ["Origin"] = "Human (Concord test subjects)", ["Status"] = "Ongoing — self-sustaining", ["Reversal"] = "Phase II protocol (theoretical)" },
+        { ["Origin"] = "Human: Concord test subjects", ["Status"] = "Ongoing — self-sustaining", ["Reversal"] = "Phase II protocol (theory)" },
         "hollow_true_nature"
     )
 
@@ -540,7 +561,7 @@ local function _build()
         "The peace treaty restored Concord authority with new 'transitional' tariffs " ..
         "that have not transitioned. Ashgrave was destroyed during the final campaign. " ..
         "The Relic drones were left running. Nobody has explained why.",
-        { ["Duration"] = "~4 years, ended 20 years ago", ["Outcome"] = "Concord victory", ["Unresolved"] = "Drones still active; Maw sealed" }
+        { ["Duration"] = "~4 years, ended 20 years ago", ["Outcome"] = "Concord victory", ["Unresolved"] = "Drones active; Maw sealed" }
     )
 
     SCIDB._entries["lore_ashgrave"] = _locked(lore, "Ashgrave Research",
@@ -560,7 +581,7 @@ local function _build()
         "Resolution: research station sealed, population quarantined, sector access " ..
         "restricted by emergency order. Phase II reversal protocols shelved — " ..
         "Phase III subjects unresponsive in initial trials. Data archived at Ashgrave Annex.",
-        { ["Classification"] = "Destroy on intercept", ["Status"] = "Research discontinued", ["Reversal protocol"] = "Archived — not destroyed" },
+        { ["Classification"] = "Destroy on intercept", ["Status"] = "Research discontinued", ["Reversal"] = "Archived, not destroyed" },
         "ashgrave_research"
     )
 
@@ -579,7 +600,7 @@ local function _build()
         "Phase III efficacy untested due to research termination. " ..
         "Broadcast source must be within range of the subject population. " ..
         "Duration: 90 seconds minimum for dormancy cascade to initiate.",
-        { ["Type"] = "Engineered biological compound", ["Reversible"] = "Phase II broadcast protocol", ["Broadcast frequency"] = "In Ashgrave archive, Phase II" },
+        { ["Type"] = "Engineered bio-compound", ["Reversible"] = "Phase II broadcast protocol", ["Broadcast freq."] = "Ashgrave archive, Phase II" },
         "synthesis_details"
     )
 

@@ -85,6 +85,16 @@ T.waitFor("survivors: their records are announced with where they are", function
     local l = SCIDB.announced[#SCIDB.announced]
     return l == "[Science] Database entry added: Lore > Boneyard Survivor Records."
 end, 7)
+T.step("their records fit the Science screen", function()
+    local n = 0
+    for _, e in ipairs(SCIDB.kv_set) do
+        if e.path:find("Boneyard Survivor Records", 1, true) then
+            n = n + 1
+            T.check("records: " .. e.key .. " = " .. e.value .. " fits", #e.value <= SCIDB.KV_VALUE_MAX and #e.key <= SCIDB.KV_KEY_MAX)
+        end
+    end
+    T.eq("records: three key/values", n, 3)
+end)
 T.step("survivors aboard: fly past Ashgrave", function()
     T.moveTo(39000, -102500)   -- 6.5U from Ashgrave: would reveal the Annex without survivors aboard
 end)
