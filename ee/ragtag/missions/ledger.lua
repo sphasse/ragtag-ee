@@ -110,6 +110,8 @@ function M.init_state()
         station   = nil,   -- Rezkov's station
         nebulas   = {},
         frags     = {},    -- n -> Artifact
+        cells     = {},    -- n -> SupplyDrop: the emergency power cell near each fragment
+        cells_taken = {},  -- n -> true once picked up (this session)
         fleet     = {},    -- audit fleet ships
         fleet_due = nil,   -- scenario time the fleet arrives
         audit     = nil,   -- the stop (see "Concord Audit Service fleet")
@@ -222,6 +224,38 @@ end
 local function _despawnFrags(st)
     ARC.kill(st.frags)
     st.frags = {}
+end
+
+-- An emergency power cell near each fragment (a SupplyDrop): flying into it refills the ship's
+-- energy to full. One per fragment, once per session; they stay out through the carry (the
+-- drain starts at the last fragment) and go when the arc ends or is reset.
+local _CELL_OFFSET = {2000, 1500}   -- world units from the fragment
+local function _spawnCells(st)
+    st.cells, st.cells_taken = st.cells or {}, st.cells_taken or {}
+    for _, f in ipairs(_FRAGS) do
+        local n = f.n
+        if not st.cells_taken[n] and not RT.valid(st.cells[n]) then
+            local c = SupplyDrop():setFaction("Independent"):setPosition(f.x + _CELL_OFFSET[1], f.y + _CELL_OFFSET[2])
+            c:setCallSign("Power cell")
+            c:setDescriptions("Small object, warm.",
+                "Concord emergency power cell, still charged. Fly into it to tap it: it will fill the reactor.")
+            c:setScanningParameters(1, 1)
+            c:onPickUp(function(_, ship)
+                st.cells_taken[n] = true
+                st.cells[n] = nil
+                if RT.valid(ship) then
+                    ship:setEnergyLevel(ship:getMaxEnergy())
+                    pcall(function() ship:addToShipLog("[Engineering] Emergency power cell tapped. Reactor at 100%.", "#80FF80") end)
+                end
+            end)
+            st.cells[n] = c
+        end
+    end
+end
+
+local function _despawnCells(st)
+    ARC.kill(st.cells)
+    st.cells = {}
 end
 
 -- The other ways to lose the AI while carrying it (power, eject, the ship destroyed); all end in
@@ -387,6 +421,7 @@ local function _clearWorld(st)
     AUDIT.drainOff(st)
     AUDIT.despawnFleet(st)
     _despawnFrags(st)
+    _despawnCells(st)
     _despawnStation(st)
     RT.voice.destroy("ledger_ai")
     RUMORS.removeCategory("LEDGER_HOOK")
@@ -399,6 +434,7 @@ function M.resolve(st)
     RT.clearObjective("ledger")
     RT.voice.destroy("ledger_ai")
     _despawnFrags(st)
+    _despawnCells(st)
     if outcome == "full" then
         RT.flag("ledger_evidence", true)
         _unlockLedger(false)
@@ -470,6 +506,7 @@ M.phases.relay_run = {
     enter = function(st)
         _spawnStation(st)
         _spawnFrags(st)
+        _spawnCells(st)
         _relayObjective()
     end,
 }
@@ -478,6 +515,7 @@ M.phases.carry = {
     enter = function(st)
         _spawnStation(st)
         _despawnFrags(st)
+        _spawnCells(st)   -- the power cells stay out for the carry
         AUDIT.start(st, _HOOKS)   -- the drain, the AI's hello, the audit fleet in 60 s
     end,
     update = function(st, delta, now)

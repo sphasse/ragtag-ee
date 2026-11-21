@@ -53,6 +53,8 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       800 cr of upgrades count now; that was the RC1 bug). It is quiet: rumors and Thresh at Dustmote.
       Noticeable enough? (GM: Missions → Ledger → Mission criteria shows the count.)
 - [ ] Hook at Dustmote → Rezkov's station in the nebula → three data cores (Valcourt, Ostia, Galen)
+- [ ] A **Power cell** beside each core refills the reactor to 100%: does Science spot them? Do they make the carry
+      too easy, or just survivable?
 - [ ] Rezkov's fragment directions end "Bring the assembled AI to me here." on screen, not cut off by
       the bottom of the comms window
 - [ ] The AI's "Unidentified Signal" is **not** on the radar at Port Vesper

@@ -121,6 +121,21 @@ T.step("job accepted", function()
     T.eq("relay_run: three data cores", T.alive(T.st().frags), 3)
     T.check("relay_run: Rezkov profile known", SCIDB.known("rezkov_profile"))
     T.check("relay_run: objective counts fragments", tostring(RT.objectives.ledger):find("0/3", 1, true) ~= nil, RT.objectives.ledger)
+    T.eq("relay_run: a power cell near each core", T.alive(T.st().cells), 3)
+    local cx, cy = T.st().cells[1]:getPosition()
+    T.check("relay_run: the first cell ~2.5U from its core", math.abs(math.sqrt((cx + 172000) ^ 2 + (cy + 70000) ^ 2) - 2500) < 100)
+end)
+
+-- ── A power cell: flying into it fills the reactor ───────────────────────────
+T.step("low on energy, fly into the first power cell", function()
+    T.P():setEnergyLevel(150)
+    T.moveTo(T.st().cells[1]:getPosition())
+end)
+T.waitFor("cell: picked up", function() return T.st().cells_taken[1] end, 8)
+T.step("reactor full", function()
+    T.check("cell: energy at the maximum", T.P():getEnergy() >= T.P():getMaxEnergy() - 1, T.P():getEnergy())
+    T.check("cell: gone", not RT.valid(T.st().cells[1]))
+    T.eq("cell: the other two still out", T.alive(T.st().cells), 2)
 end)
 
 -- ── Relay run: one real pickup, two given ────────────────────────────────────
@@ -134,6 +149,7 @@ T.step("the other two", function()
     T.check("carry: drain on", T.st().drain_on)
     T.check("carry: the AI has a voice", RT.voice.exists("ledger_ai"))
     T.eq("carry: no cores left", T.alive(T.st().frags), 0)
+    T.eq("carry: the two untouched power cells stay out", T.alive(T.st().cells), 2)
     -- The "Unidentified Signal" is nowhere: no position, no radar blip (it once sat on the radar
     -- over Port Vesper, at 0, 0).
     local v = RT.voice.get("ledger_ai")
@@ -585,7 +601,7 @@ T.step("GM: back to waiting, jobs not done", function()
 end)
 
 T.deactivate({
-    gone = {"Rezkov's station", "CAS Double Entry", "CAS Debit", "Data core"},
+    gone = {"Rezkov's station", "CAS Double Entry", "CAS Debit", "Data core", "Power cell"},
     check = function()
         T.check("inactive: AI voice gone", not RT.voice.exists("ledger_ai"))
         T.check("inactive: Thresh profile forgotten", not SCIDB.known("thresh_profile"))
