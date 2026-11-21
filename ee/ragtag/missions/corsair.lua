@@ -77,16 +77,18 @@ local _RING_LANES = {{0, 25}, {103.85, 6.9}, {256.15, 6.9}}   -- {centre, half-w
 -- ── Tuning ───────────────────────────────────────────────────────────────────
 local _LOAD_TIME      = 15          -- seconds the raid escorts dwell, docked at the depot, loading the haul
 local _DOCK_GRACE     = 30          -- alongside this long without docking: load anyway
--- What the escort says as it starts loading.
 -- What the escort says when the haul is aboard, before they start back to Blackwater.
 local _HAUL_ABOARD = '"Gao yang jong duh goo yang... we hit the jackpot. Mines, missiles, the lot, all aboard. '
     .. 'Heading back to Blackwater. Meet you there."'
 -- The guide paces the crew: it holds (defending itself) once the crew is more than _GUIDE_HOLD_D
--- behind and flies on once they are back within _GUIDE_GO_D. It has no warp and a top speed of
--- _GUIDE_IMPULSE (50 world units/s = 3.0 U/min on the helm; a stock freighter does 60 = 3.6), just slower than the crew, so it leads steadily. Past _GUIDE_WAIT_D it tells
--- them to keep up (once a minute at most). It leads to the Blackwater approach (north of the mine
--- ring), then in through the north gap and docks at Blackwater.
-local _GUIDE_IMPULSE  = 50
+-- behind and flies on once they are back within _GUIDE_GO_D. It has no warp drive (the AI warps in
+-- hops) but cruises on impulse at warp-1 speed, _GUIDE_IMPULSE: 500 world units/s = 30 U/min on the
+-- helm, the Light Freighter's warp 1 (warp speed 500 per level), so the crew follows at warp 1.
+-- Past _GUIDE_WAIT_D it tells them to keep up (once a minute at most). It leads to the Blackwater
+-- approach (north of the mine ring), then slows to _GUIDE_DOCK_IMPULSE (6 U/min) to go in through
+-- the north gap and dock at Blackwater.
+local _GUIDE_IMPULSE      = 500
+local _GUIDE_DOCK_IMPULSE = 100
 local _GUIDE_HOLD_D   = 5.5 * U
 local _GUIDE_GO_D     = 4.5 * U
 local _GUIDE_WAIT_D   = 8 * U
@@ -238,11 +240,11 @@ local function _spawnGuide(st, x, y)
     if RT.valid(st.guide) then return st.guide end
     local g = CpuShip():setTemplate("Adder MK5"):setFaction("Corsair Friendly")
     g:setCallSign("Long Memory"):setPosition(x, y)
-    -- A steady lead the crew can follow: no warp, impulse capped at _GUIDE_IMPULSE (playtest: warp
-    -- hops and a fast Adder made following awkward).
+    -- A steady lead the crew can follow at warp 1: no warp drive (the AI warps in hops), a warp-1
+    -- cruise on impulse (_GUIDE_IMPULSE), and the acceleration to reach it in about 8 s.
     g:setWarpDrive(false)
-    local _, rev = g:getImpulseMaxSpeed()
-    g:setImpulseMaxSpeed(_GUIDE_IMPULSE, math.min(rev or _GUIDE_IMPULSE, _GUIDE_IMPULSE))
+    g:setImpulseMaxSpeed(_GUIDE_IMPULSE)
+    pcall(function() g:setAcceleration(60, 60) end)
     g:setDescriptions("Corsair raider.", "Corsair raider Long Memory, running friendly colours. Weapons cold.")
     g:setScanningParameters(1, 1)
     g:setCommsScript(""):setCommsFunction(ARC.comms(_guideComms, '"Long Memory. Not looking for you."'))
@@ -880,8 +882,10 @@ M.phases.hook = {
 local function _guideLead(st, g)
     local bw = _blackwater()
     if st.guide_leg == "dock" and RT.valid(bw) then
+        g:setImpulseMaxSpeed(_GUIDE_DOCK_IMPULSE)   -- slow through the mine gap and into the dock
         g:orderDock(bw)
     else
+        g:setImpulseMaxSpeed(_GUIDE_IMPULSE)        -- warp-1 speed
         g:orderFlyTowards(_BW_APPROACH_X, _BW_APPROACH_Y)
     end
 end
