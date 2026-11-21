@@ -167,3 +167,34 @@ T.waitFor("on: defenders are posted again", function()
     st = T.world("defenders")
     return st.slots ~= nil and st.slots["Port Vesper"] ~= nil and RT.valid(st.slots["Port Vesper"].ship)
 end, 3)
+
+-- The universe's Corsair garrisons (the Gauntlet packs, Blackwater's port defenders) have Corsair
+-- names, not EmptyEpsilon's automatic ones ("CV12"). Playtest 2026-11-21.
+T.step("Corsair garrisons have names", function()
+    local named, auto, seen = 0, {}, {}
+    for _, g in ipairs(VERSE.GARRISONS) do
+        if g.fac == "Corsairs" then
+            for _, o in ipairs(getObjectsInRadius(g.x * 1000, g.y * 1000, 2500)) do
+                if isObjectType(o, "CpuShip") and not seen[o] then
+                    seen[o] = true
+                    local cs = o:getCallSign()
+                    if cs:match("^%u%u%d+$") then auto[#auto + 1] = cs else named = named + 1 end
+                end
+            end
+        end
+    end
+    T.eq("garrisons: no automatic Corsair callsigns near the posts", table.concat(auto, ", "), "")
+    -- Every name in the data is a ship in the game (they may have wandered off their post).
+    local missing, n = {}, 0
+    for _, g in ipairs(VERSE.GARRISONS) do
+        if g.fac == "Corsairs" then
+            T.eq("garrisons: a name for every ship at (" .. g.x .. ", " .. g.y .. ")", #(g.callsigns or {}), #g.ships)
+            for _, cs in ipairs(g.callsigns or {}) do
+                n = n + 1
+                if T.find(cs) == nil then missing[#missing + 1] = cs end
+            end
+        end
+    end
+    T.eq("garrisons: thirteen named Corsair ships", n, 13)
+    T.eq("garrisons: every named ship is in the game", table.concat(missing, ", "), "")
+end)

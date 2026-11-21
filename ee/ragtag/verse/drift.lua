@@ -204,12 +204,17 @@ VERSE.extend({
     -- Garrisons hold a location (orderDefendLocation) and don't wander.
     garrisons = {
         -- The Gauntlet: Corsair ambush packs (beatable early, with care)
-        {fac = "Corsairs", x = 5, y = 64, ships = {"MT52 Hornet", "Adder MK5"}},
-        {fac = "Corsairs", x = 29, y = 73, ships = {"Adder MK5", "Adder MK5"}},
-        {fac = "Corsairs", x = 49, y = 69, ships = {"MT52 Hornet", "MT52 Hornet", "Adder MK5"}},
+        {fac = "Corsairs", x = 5, y = 64, ships = {"MT52 Hornet", "Adder MK5"}, callsigns = {"Short Change", "Cold Feet"}},
+        {fac = "Corsairs", x = 29, y = 73, ships = {"Adder MK5", "Adder MK5"}, callsigns = {"Easy Money", "Pay Day"}},
+        {fac = "Corsairs", x = 49, y = 69, ships = {"MT52 Hornet", "MT52 Hornet", "Adder MK5"},
+         callsigns = {"Small Mercy", "Fool's Gold", "Rain Check"}},
         -- Blackwater Reach: needs a few upgrades
-        {fac = "Corsairs", x = 55, y = 91, ships = {"Phobos T3", "Adder MK5", "Adder MK5"}, role = "port"},
-        {fac = "Corsairs", x = 62, y = 104, ships = {"Phobos T3", "Piranha F12", "MT52 Hornet"}, role = "port"},
+        {fac = "Corsairs", x = 55, y = 91, ships = {"Phobos T3", "Adder MK5", "Adder MK5"}, role = "port",
+         callsigns = {"Front Door", "Long Shadow", "Steady Hand"}},   -- on the northern approach
+        -- South-east, inside the ring (5.8U out). At (62, 104) the post was 8.6U out, against the 9U
+        -- mine ring: two of its ships started within 0.3U of the mines and one died at spawn.
+        {fac = "Corsairs", x = 60, y = 102, ships = {"Phobos T3", "Piranha F12", "MT52 Hornet"}, role = "port",
+         callsigns = {"Back Door", "Night Owl", "Slow Burn"}},
         -- The Boneyard: relic war drones
         {fac = "Relic", x = 23, y = -86, ships = {"WX-Lindworm", "WX-Lindworm", "WX-Lindworm"}},
         {fac = "Relic", x = 47, y = -104, ships = {"Stalker Q7", "WX-Lindworm"}},
