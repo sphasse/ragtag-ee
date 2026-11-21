@@ -1,8 +1,8 @@
 -- Name: The Short Haul
 -- Description: A race against the clock and each other. Every crew starts in a stock Light Freighter with the same money. Take jobs, buy upgrades, keep your standing: when the clock runs out, the richest ship (credits plus what its upgrades cost) wins. A live leaderboard and the clock show on Relay, Operations and the combined stations. Nothing is saved.
 ---
---- The Drift, one-shot competition. No story arcs, no saved campaign. The job boards never run dry
---- and favour short runs. The GM starts the clock; when it runs out the final standings pop up on
+--- The Drift, one-shot competition. No story arcs, no saved campaign. A taken job is replaced at
+--- once and the boards favour short runs. The GM starts the clock; when it runs out the final standings pop up on
 --- every ship and the leaderboard goes away, but the scenario carries on.
 -- Type: The Drift Universe
 -- Setting[Length]: How long the competition runs once the GM starts the clock.
@@ -140,9 +140,11 @@ function init()
         _joined(ship)
     end)
 
-    -- Job boards: never run dry (no cooldown: the list is always full) and favour short runs.
+    -- Job boards: a taken job is replaced at once (no refill delay, so the list is always full),
+    -- but the offers stand as usual (hailing again does not re-roll them); short runs.
     JOBS.init()
-    JOBS.config.work_cooldown_enabled = false
+    JOBS.config.work_cooldown_enabled = true
+    JOBS.config.refill_secs = 0
     JOBS.config.mission_distance_mode = "short"
     for _, d in ipairs(VERSE.STATIONS) do
         if d.fac ~= "Corsairs" and d.fac ~= "Hollow" then

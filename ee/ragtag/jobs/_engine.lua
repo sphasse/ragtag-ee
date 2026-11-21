@@ -19,6 +19,10 @@ JOBS.SPEED = { warp1 = 500, impulse = 100 }
 JOBS.config = {
     work_cooldown_enabled = true,
     work_cooldown_secs    = 10 * 60,
+    -- How long a TAKEN slot stays empty before a new job fills it (nil: work_cooldown_secs).
+    -- Untaken offers still stand for work_cooldown_secs. The Short Haul sets 0: a taken job is
+    -- replaced at once, but the board is not re-rolled on every hail.
+    refill_secs           = nil,
     mission_distance_mode = "medium",   -- "short"|"medium"|"long"
     jobboard_locked       = false,       -- set true during Witness arc
     max_active            = 2,           -- per ship
@@ -678,8 +682,13 @@ local function _repGate(cs, ship, n_slots)
     return n_slots, nil
 end
 
+-- How long a taken slot stays empty (JOBS.config.refill_secs, else the work cooldown).
+local function _refillSecs()
+    return JOBS.config.refill_secs or JOBS.config.work_cooldown_secs
+end
+
 -- Step 2, the per-slot cooldown: which slots get a new job now. A taken slot stays empty for
--- the cooldown; an untaken offer is replaced after the same time.
+-- the refill time (_refillSecs); an untaken offer is replaced after the work cooldown.
 local function _slotsDue(ss, n_slots, now)
     local due = {}
     if not JOBS.config.work_cooldown_enabled then
@@ -689,7 +698,7 @@ local function _slotsDue(ss, n_slots, now)
     for sn = 1, n_slots do
         local slot = ss.slots[sn]
         if slot.taken_at then
-            if now - slot.taken_at >= JOBS.config.work_cooldown_secs then
+            if now - slot.taken_at >= _refillSecs() then
                 slot.taken_at = nil
                 due[#due + 1] = sn
             end
@@ -833,7 +842,7 @@ function JOBS.board(cs, ship)
     if JOBS.config.work_cooldown_enabled then
         for _, slot in pairs(ss.slots) do
             if slot.taken_at then
-                local r = JOBS.config.work_cooldown_secs - (now - slot.taken_at)
+                local r = _refillSecs() - (now - slot.taken_at)
                 if r > 0 and (wait == nil or r < wait) then wait = r end
             end
         end

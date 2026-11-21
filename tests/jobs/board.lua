@@ -262,6 +262,36 @@ T.step("standing decides how much is shown", function()
     T.check("gate: closed below -400", #b.offers == 0 and b.closed and b.nag ~= nil)
     RT.addReputation("Independent", 100 - T.rep("Independent", T.P()), "test", T.P())
 end)
+-- The Short Haul: a taken slot refills at once (refill_secs = 0), but untaken offers still stand:
+-- hailing again does not re-roll the board.
+T.step("refill_secs 0: a taken job is replaced at once, the rest stand", function()
+    JOBS.config.refill_secs = 0
+    JOBS._station_work = {}
+    local b1 = JOBS.board(HOME, T.P()).offers
+    T.check("refill: at least two offers to work with", #b1 >= 2, #b1)
+    local again = JOBS.board(HOME, T.P()).offers
+    local same = #again == #b1
+    for i, m in ipairs(b1) do
+        local found = false
+        for _, o in ipairs(again) do if o == m then found = true end end
+        same = same and found
+    end
+    T.check("refill: hailing again shows the same offers (no re-roll)", same)
+    local taken, kept = b1[1], b1[2]
+    T.check("refill: taken", JOBS.accept(taken, true, T.P()))
+    local b2 = JOBS.board(HOME, T.P())
+    local has_taken, has_kept = false, false
+    for _, o in ipairs(b2.offers) do
+        if o == taken then has_taken = true end
+        if o == kept then has_kept = true end
+    end
+    T.check("refill: the taken job is gone", not has_taken)
+    T.check("refill: the other offer still stands", has_kept)
+    T.eq("refill: the board is full again at once", #b2.offers, #b1)
+    T.check("refill: nothing to wait for", b2.wait == nil, tostring(b2.wait))
+    JOBS.complete(T.activeEntry(taken))
+    JOBS.config.refill_secs = nil
+end)
 T.step("with the cooldown off the board is rebuilt each visit", function()
     JOBS.config.work_cooldown_enabled = false
     JOBS._station_work = {}

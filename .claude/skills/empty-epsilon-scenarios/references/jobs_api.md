@@ -105,7 +105,8 @@ if #pool == 0 then pool = _ARCHETYPES end  -- last resort
 | Key | Default | Notes |
 |---|---|---|
 | `work_cooldown_enabled` | `true` | Gate repeat offers per station slot |
-| `work_cooldown_secs` | `600` | Cooldown in seconds (10 min) |
+| `work_cooldown_secs` | `600` | Cooldown in seconds (10 min): how long an untaken offer stands |
+| `refill_secs` | `nil` | How long a TAKEN slot stays empty (nil: `work_cooldown_secs`). The Short Haul sets 0: a taken job is replaced at once without re-rolling the rest |
 | `mission_distance_mode` | `"medium"` | `"short"` / `"medium"` / `"long"` |
 | `jobboard_locked` | `false` | Set `true` by an arc (`M.locks_jobs`) to hide the board; also stops new patrols |
 | `max_active` | `2` | Max simultaneously active contracts, per ship |

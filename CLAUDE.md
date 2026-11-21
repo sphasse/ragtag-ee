@@ -28,7 +28,7 @@ Contributors add **universe extensions** and **scenarios** independently.
     their saved flags in `M.flags` / `M.reads` (`check.py` rejects undeclared flag names).
 - `scenarios/<campaign>/scenario_NN_name.lua` (+ `bible.md`, `plan.md`); `scenarios/_template/` is not installed
 - `scenarios/shorthaul/scenario_81_shorthaul.lua` — The Short Haul: a one-shot, timed job-running competition between
-  crews (no arcs, nothing saved, boards never run dry, short runs; see its `bible.md`). Number 81 is shared with
+  crews (no arcs, nothing saved, a taken job is replaced at once, short runs; see its `bible.md`). Number 81 is shared with
   stock EE's PvP scenario on purpose (`STOCK_NUMBER_OK` in `check.py`)
 - `scenarios/_battlelab/` — **parked** (the leading `_` keeps it out of installs and releases; `check.py` still checks it).
   Rename the folder back to `battlelab` and re-run `tools/install.py` to bring both labs back. `scenario_63_battlelab.lua` — Battle Lab: the Boneyard's Annex fight (Concord vs Relic drones at
