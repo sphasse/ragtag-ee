@@ -26,8 +26,25 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 from install import scenario_files  # noqa: E402
 
+# What Ragtag is, what it needs, and where the docs are: shared by the zip's README and the GitHub
+# release notes (tools/release.py), so the two always say the same thing.
+EE_REQUIRED = "EE-2026.09.22PR"
+DOCS_URL = "https://github.com/sphasse/ragtag-ee/tree/main/docs"
+EE_URL = "https://github.com/daid/EmptyEpsilon"
+ABOUT = ("Ragtag is a custom scenario script for Empty Epsilon, the open-source spaceship bridge "
+         "simulator game (" + EE_URL + ").")
+REQUIREMENT = ("Requires Empty Epsilon " + EE_REQUIRED + " or newer. It has only been tested on the "
+               + EE_REQUIRED + " pre-release of Empty Epsilon; older versions will not work.")
+DOCS = "Player guide, game master guide and other documentation: " + DOCS_URL
+
 README = """Ragtag for EmptyEpsilon, version {version}
 =========================================
+
+{about}
+
+IMPORTANT: {requirement}
+
+{docs}
 
 Install
 -------
@@ -117,6 +134,7 @@ def main() -> int:
                 count += 1
         z.writestr("RAGTAG_README.txt", README.format(
             version=args.version, scenarios=scenario_titles(scenarios),
+            about=ABOUT, requirement=REQUIREMENT, docs=DOCS,
             radar=RADAR_NOTE if args.radar_icons else ""))
     print(f"Wrote {zpath} ({count} files, {zpath.stat().st_size // 1024} KB)")
     return 0

@@ -64,7 +64,17 @@ def notes_for(number: int, previous: int | None, extra: str) -> str:
     since = f"{previous}..HEAD" if previous is not None else "HEAD"
     subjects = [s for s in git("log", "--no-merges", "--format=%s", since).splitlines()
                 if s.strip() and player_facing(s)]
-    lines = []
+    sys.path.insert(0, str(ROOT / "tools"))
+    import package   # the shared About / requirement / docs text (tools/package.py)
+    lines = [
+        f"> [!IMPORTANT]\n> **{package.REQUIREMENT}**",
+        "",
+        package.ABOUT.replace("Empty Epsilon,", f"[Empty Epsilon]({package.EE_URL}),", 1)
+                     .replace(f" ({package.EE_URL})", ""),
+        "",
+        f"**Documentation:** a player guide, a game master guide and more in the [docs directory]({package.DOCS_URL}).",
+        "",
+    ]
     if extra.strip():
         lines += [extra.strip(), ""]
     lines += [
