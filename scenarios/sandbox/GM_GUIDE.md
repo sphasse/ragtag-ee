@@ -2,7 +2,10 @@
 
 ## Quick Start
 
-1. **Install**: `python tools/install.py --ee <EmptyEpsilon folder>`
+Needs Empty Epsilon **EE-2026.09.22PR or newer** (only tested on the EE-2026.09.22PR pre-release).
+
+1. **Install**: unzip a release zip into your EmptyEpsilon folder (on macOS,
+   `EmptyEpsilon.app/Contents/Resources`), or from the repository: `python tools/install.py --ee <EmptyEpsilon folder>`
 2. **Start EmptyEpsilon server** (with `httpserver=8080` in options.ini)
 3. **Select scenario**: "The Drift"
 4. **Optional**: Start AI director on GPU PC: `cd director && python main.py`
@@ -30,8 +33,9 @@ The Magpie starts at Port Vesper and is the only ship in the story arcs. On the 
 screen, **Create player ship** lists one entry per named freighter ("Light Freighter: Raven",
 "Light Freighter: Jackdaw", ...): pick the ships of the crews playing tonight. Each entry's
 description shows that ship's saved credits and upgrades; the same entry next session brings
-them back. A lost Magpie is rebuilt by picking "Light Freighter: Magpie". Details:
-`docs/GM_SHIP_MANAGEMENT.md`.
+them back. A lost Magpie is rebuilt by picking "Light Freighter: Magpie". However a freighter is
+made, it starts with the same stock loadout (no nuke or mines, 2 homing missiles, 2 engineering
+crew) before its own upgrades go on. Details: `docs/GM_SHIP_MANAGEMENT.md`.
 
 ## What Players Can Do
 
@@ -51,8 +55,8 @@ them back. A lost Magpie is rebuilt by picking "Light Freighter: Magpie". Detail
 - Salvage supplements missions rather than replacing them
 
 ### Upgrade
-- **32 upgrades** in 11 component lines (hull, shields, beams, missiles, tubes, engines,
-  thrusters, reactor, repair crew, sensors, probes), from 150 to 2,500 credits; the top levels
+- **36 upgrades** in 11 component lines (hull, shields, beams, missiles, tubes, engines,
+  thrusters, reactor, engineering crew, sensors, probes), from 150 to 2,500 credits; the top levels
   escalate (sensors 500 / 1,000 / 2,000, turn 200 / 800 / 2,000, acceleration 300 / 1,000 / 2,500,
   Shield IV 1,800, Armour III 1,100). Full list: `ee/ragtag/core/upgrades.lua`.
 - **Handling** (each level needs the one before; the stock Light Freighter turns at 10°/s and
@@ -70,8 +74,11 @@ them back. A lost Magpie is rebuilt by picking "Light Freighter: Magpie". Detail
   They sit in the existing thruster and engine lines, so they are sold where those lines already
   are (a shipwright sells every level of its lines). Combat thrusters (boost and strafe, 300) and the
   two engine tunes (top impulse) are separate chains in the same lines.
-- Each shipwright is a **base for some lines** ("base for hull, reactor and beam upgrades", shown in
-  the Science DB's Ports entries) and fits every level of them.
+- Each shipwright is a **base for some lines** and fits every level of them. Science's database lists
+  them in each **Ports** entry (the Shipwright field, e.g. "hull, reactor, beam", or "6 upgrade lines"
+  with the list in the description).
+- **Engineering crew** (the repair crew line: "Two more hands", "Another two hands", "Full crew
+  complement") are *hired*, 150 cr for two, up to 8. **Probes**: 60 → 90 → 120 speed (200, 250 cr).
 - **Hob's Landing (the Hob Works)** is the independent science and engineering port: sensors,
   engines, thrusters, reactor, shields and probes, everything Ostia Highport's yard fits, with no
   Concord papers. No upgrade is sold only at Concord ports. (It also builds the Maw finale's warhead.)
@@ -102,11 +109,17 @@ Types:
 
 Time limits scale with distance. Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction.
 
-**Hacking specifics:** The target is a stationary Concord comms relay beacon. Player must hack any system to 75%. Active relays jam scan probes within 5U.
+**Hacking specifics:** The target is a stationary, armed comms relay (Relic, beam arcs with gaps between them, indestructible until hacked). Relay must hack any system to 75%. Active relays jam scan probes within 5U.
+
+**On Relay**, each job is one short line saying what to do next ("Deliver to Halcyon", "Destroy Iron
+Gull", "Return to Vesper"); arc objectives are one short line each too.
 
 ### Combat
 - **Corsairs** ambush in the Gauntlet and Blackwater
-- **Relic drones** guard the Boneyard (war machines, hostile to all)
+- **Relic drones** guard the Boneyard (war machines, hostile to all), with three old **gun platforms**
+  (two lances, one barrage) well away from the Ashgrave Annex. The platforms fire HVLI shells at any
+  crew in range (6-7U), can be destroyed, and come back each session. The Boneyard arc's Annex hack
+  quiets them with the drones. Hailed, drones and platforms answer in base64 (decode it).
 - **Hollow ships** in the Maw (deadly — avoid early game)
 - **Concord patrols** do inspections when rep ≥ −200; below that threshold they spawn as hostile and attack on sight
 - **Destroying a ship that was not your enemy costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a friendly Corsair counts as Corsairs), charged to the ship that made the kill. Enemies cost nothing (Corsair patrols and raiders, hostile Concord ships, job targets that turned on the crew), nor do ships in a story-arc fight, Relic or Hollow ships**
@@ -127,7 +140,9 @@ The GM screen's buttons, top to bottom:
 - **Ship Upgrades...**: pick a ship, then grant or revoke upgrades on **that ship** and view its
   status sheet (see `docs/GM_SHIP_MANAGEMENT.md`)
 - **Missions...**: the story arcs (Rezkov, Boneyard, Ledger, Corsair): trigger conditions, state,
-  "→" buttons to jump an arc to any phase, and phase helpers (e.g. the Ledger's "+100 energy").
+  "→" buttons to jump an arc to any phase, and phase helpers (e.g. the Ledger's "+100 energy", and
+  "Satisfy done jobs" while it waits for its two board jobs). **Mission criteria** shows each condition,
+  "Result: ALL MET" or "do not start", and once the arc is over "Mission completed" and its outcome.
   **Enable arc / Disable arc** (on any arc not running, finished ones included) first resets the
   arc to "never happened": every flag of the arc, its done flag included, and its state
 - **Backup campaign / Restore campaign**: six numbered save slots (see Saving, below)
@@ -153,7 +168,7 @@ Plugins menu ("Trigger Spawn Now") or EmptyEpsilon's own GM tools to create ship
 
 ### Opening (5-10 min)
 1. Crew spawns docked at Port Vesper
-2. Port Vesper dockmaster hails with welcome/warning
+2. Hailing Port Vesper the first time gets the dockmaster's welcome and warning
 3. Crew can buy upgrades, hail for rumours, check credits
 4. Crew undocks when ready
 
@@ -231,7 +246,8 @@ Crew decides what to do: jobs from the station boards, salvage, exploration. Enc
 
 ## Files
 
-- **Scenario**: `scenarios/sandbox/scenario_80_ragtag.lua`
+- **Scenario**: `scenarios/sandbox/scenario_80_ragtag.lua` (The Short Haul, the competition:
+  `scenarios/shorthaul/scenario_81_shorthaul.lua`, see `docs/GM_GUIDE.md`)
 - **Campaign save**: Server's `scriptstorage.json`, key `ragtag.campaign.sandbox`
 - **Director memory**: `director/director_memory.json`
 - **Bible**: `scenarios/sandbox/bible.md` (context for AI director)

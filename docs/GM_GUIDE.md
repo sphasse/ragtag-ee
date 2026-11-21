@@ -1,6 +1,13 @@
 # GM Operations Guide — The Drift
 
 Running a session of The Drift: free exploration, job contracts, faction consequences, and wrap-up.
+For the competition scenario, see **The Short Haul** below.
+
+> Ragtag needs Empty Epsilon **EE-2026.09.22PR or newer** and has only been tested on the
+> EE-2026.09.22PR pre-release. Install from a release zip: unzip it into your EmptyEpsilon folder
+> (on macOS, `EmptyEpsilon.app/Contents/Resources`). More detail: `scenarios/sandbox/GM_GUIDE.md`
+> (buttons and settings), [GM_SHIP_MANAGEMENT.md](GM_SHIP_MANAGEMENT.md) (several ships),
+> [REPUTATION.md](REPUTATION.md).
 
 ---
 
@@ -40,6 +47,23 @@ Crew runs jobs, explores regions, and accumulates credits and rep. Encounters co
 - **Concord inspection** — if they wander into the Arbiter Line or Core with middling rep, Concord will warp-jam and hail. The relay officer has 60 seconds to respond. Their choice.
 - **Rep consequences** — the Relay console logs every rep change and flags threshold crossings. Good moments for a line from you (the Director console's "Say", or a GM hail).
 
+### Story arcs
+
+Four story arcs unlock as the **primary ship** (the Magpie) earns standing and invests in upgrades;
+other ships work the job boards only. **Missions...** on the GM screen shows each arc's conditions
+(**Mission criteria**: each condition met or not, "Result: ALL MET / do not start", and once it is
+over, whether it was completed and how), its state, "→" buttons to jump to any phase, and helpers.
+
+| Arc | Starts when | What it is |
+|---|---|---|
+| Rezkov | Independent standing 500+ and 600 cr of upgrades | A fixer's job that turns political |
+| Ledger | Rezkov over (or declined), 800 cr of upgrades, 2 board jobs since | A data heist in Concord space, and an audit |
+| Boneyard | Rezkov over, 800 cr of upgrades | A rescue that leads to a Concord archive and a fleet battle |
+| Corsair | Rezkov over, 1000 cr of upgrades | Blackwater asks for help against a Concord fleet |
+
+Spoilers and GM detail for each arc: `ee/ragtag/missions/<arc>.md` in the repository. Arc objectives
+show as one short line on Relay and Operations.
+
 ### Closing (5-10 min)
 
 GM quits any time (the campaign autosaves; use **Backup campaign** for a restore point). Resume with Continue next session.
@@ -66,7 +90,7 @@ See **[REPUTATION.md](REPUTATION.md)** for the full mechanics reference — rewa
 |---|---|---|
 | Safe (Core, Border, Rim safe zones) | Concord inspections only | Scout |
 | Risky — the Gauntlet, Shroud | Corsairs | Medium (with upgrades) |
-| Dangerous — Blackwater, Boneyard | Corsairs / Relic drones | Heavy |
+| Dangerous — Blackwater, Boneyard | Corsairs / Relic drones (and three old gun platforms in the Boneyard) | Heavy |
 | Deadly — the Maw | Hollow | Heavy (always) |
 
 ### Upgrade tiers
@@ -82,6 +106,28 @@ See **[REPUTATION.md](REPUTATION.md)** for the full mechanics reference — rewa
 ## If Something Breaks
 
 - **Director offline** — nothing in the game depends on it. It only observes.
-- **Player ship destroyed** — session ends with a "ship lost" outcome. Credits and upgrades already saved are preserved.
+- **Player ship destroyed** — its crew loses half its credits (upgrades and standing are kept). The session goes on while any player ship is left; it ends only when every ship is lost. Rebuild a lost ship by picking its name on the **Create player ship** list (see [GM_SHIP_MANAGEMENT.md](GM_SHIP_MANAGEMENT.md)).
 - **Concord patrol stuck or hostile** — raising rep with the **Reputation...** button stops new hostile patrols but does not call off one already there. **World Plugins... → Proximity Spawns**: switch it off and on again to remove every patrol.
 - **LUA-Error in log** — check `EmptyEpsilon.log` for file and line number. Most errors are API calls on invalid objects after a ship is destroyed.
+
+---
+
+## The Short Haul
+
+A one-shot competition (scenario 81, in the same release). Every crew flies a stock Light Freighter
+with 200 credits; the richest ship when the clock runs out wins. Score is **net worth**: credits plus
+the list price of the ship's upgrades. Nothing is saved, and The Drift's campaign is never touched.
+
+- **Setting: Length** — 15 minutes, 30 minutes (default) or 1 hour.
+- **Ships:** the Magpie starts at Port Vesper; other crews pick a named Light Freighter on
+  **Create player ship**. Every ship starts with the same loadout and credits.
+- **Start the clock** (GM button) when every crew is in: the job boards stay shut until then.
+- During the race a **live leaderboard** (time left, the top five, your own place, at most 20 characters
+  a line) shows on Relay, Operations, Tactical, Engineering+, Single Pilot and the alt Relay. No pop-ups.
+- **At zero** (or **End the competition now**) the final standings pop up on every console and go in the
+  ship logs; the leaderboard and clock go away and the ships fly on, on their own.
+- Same universe, jobs, rewards, upgrade prices and reputation as The Drift; no story arcs, no survey
+  pay. A taken job is replaced on the board at once, and boards favour short runs (**Jobs...** can change
+  the distance). A lost ship costs half its credits, as in The Drift.
+- GM buttons: **Start the clock**, **Standings** (each ship's credits and upgrade value), **End the
+  competition now**, plus Reputation, Jobs and Ship Upgrades.

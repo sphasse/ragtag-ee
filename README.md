@@ -6,7 +6,13 @@
 
 **Space-western at the edge of settled space.** Command a ragtag freighter making your way in a frontier cluster of five suns—trade, fight, explore, and survive in a living universe of trade lanes, frontier stations, and pirate havens.
 
-Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine), with an optional AI director: a local language model that watches the session and keeps notes and summaries for the GM. It observes only; it does not change the game.
+Ragtag is a custom scenario script for [Empty Epsilon](https://github.com/daid/EmptyEpsilon), the open-source spaceship bridge simulator, with an optional AI director: a local language model that watches the session and keeps notes and summaries for the GM. It observes only; it does not change the game.
+
+> **Requires Empty Epsilon EE-2026.09.22PR or newer.** It has only been tested on the EE-2026.09.22PR pre-release.
+
+Two scenarios: **The Drift**, the persistent campaign, and **The Short Haul**, a timed race between
+crews to make the most money (15, 30 or 60 minutes; nothing saved). Player and GM guides are in
+[docs/](docs/).
 
 ![The Drift](docs/verse_map.svg)
 
@@ -17,17 +23,19 @@ Built for [EmptyEpsilon](https://daid.github.io/EmptyEpsilon/) (2024+ ECS engine
 ### A Rich Sandbox Universe
 **The Drift** — a persistent, data-driven universe with:
 - **16 stations** across 5 suns, from rich Concord Core worlds to lawless Rim outposts
-- **17 distinct regions** with varying danger levels (safe, risky, dangerous, deadly)
-- **Dynamic trade traffic**: 15 AI freighters following realistic routes, docking and departing
+- **21 regions** with varying danger levels (safe, risky, dangerous, deadly)
+- **Dynamic trade traffic**: AI freighters following trade routes, docking and departing
 - **Salvage economy**: 25+ salvage clusters (credits, missiles, hull patches) respawn each session
-- **Progressive upgrades**: 15 total upgrades across different shipyards (shields, weapons, engines, warp)
+- **Progressive upgrades**: 36 upgrades in 11 lines (hull, shields, beams, missiles, tubes, engines, thrusters, reactor, engineering crew, sensors, probes), each line sold at the shipwrights that specialise in it
 - **Proximity spawn system**: faction patrols that scale with player strength, region danger, and reputation (see below)
+- **Gun platforms** (contributed by Kuri148): old Relic guns standing in the Boneyard
+- **Four story arcs** for the campaign ship, unlocked by standing and upgrade investment (Rezkov, then the Ledger, the Boneyard and the Corsairs)
 
 ### Five Factions
 - **Concord**: Government military. Patrol the trade lanes, enforce the law, winners of the Settlement War
 - **Independents**: Traders, salvagers, drifters—people making their way
 - **Corsairs**: Pirates and raiders. Fast ships, ambush tactics, fortified haven
-- **Relic Drones**: Automated war machines from 20 years ago, still guarding the Boneyard
+- **Relic Drones**: Automated war machines from 20 years ago, still guarding the Boneyard (with its old gun platforms)
 - **The Hollow**: Unknown faction from the Maw. Extremely hostile. Don't go there.
 
 ### Seven Job Types
@@ -66,7 +74,7 @@ Combined tier maps to a ship group: scout → light → medium → heavy (capped
 | Arbiter Line | Concord | Comms-first shake-down | 12 min |
 | the Shroud, Halcyon Rest | Corsairs | Attack | 4 min |
 | the Gauntlet, Blackwater Reach | Corsairs | Attack | 3 min |
-| the Boneyard | Relic | Attack on sight, no comms, WX-Lindworm/Stalker templates | 3 min |
+| the Boneyard | Relic | Attack on sight, don't negotiate, WX-Lindworm/Stalker templates | 3 min |
 | the Maw | Hollow | Attack on sight, no comms | 2 min |
 
 **Throttles** (per zone; the GM sets each zone to None / Low / Medium / High, default Medium):
@@ -103,6 +111,7 @@ Ignoring the hail (−100), fleeing past 10U (−100), destroying the jammer (�
 Standing with each faction, kept per ship (see [docs/REPUTATION.md](docs/REPUTATION.md)):
 - Completing a job: + the job's reward, with the faction of the station that posted it
 - Failing or abandoning a job: − the job's reward
+- Destroying a ship that wasn't your enemy: −200 with its faction (fighting off attackers costs nothing)
 - Standing below 0 with a faction means fewer job offers at its stations; below −400, none
 - Concord standing decides how its patrols treat the ship (above)
 
@@ -116,11 +125,18 @@ Standing with each faction, kept per ship (see [docs/REPUTATION.md](docs/REPUTAT
 ## Installation
 
 ### Requirements
-- EmptyEpsilon 2024+ (ECS engine—must have `toJSON` function)
-- Python 3.11+ (for tools and optional AI director)
-- Lua 5.4 (for validation tools)
+- Empty Epsilon **EE-2026.09.22PR or newer** (only tested on the EE-2026.09.22PR pre-release)
+- For the repository tools and the optional AI director: Python 3.11+, Lua 5.4
 
-### Game Server Setup
+### From a release (players and GMs)
+
+1. Download the latest `ragtag-N.zip` from [Releases](https://github.com/sphasse/ragtag-ee/releases).
+2. Unzip it into your EmptyEpsilon folder (on macOS: `EmptyEpsilon.app/Contents/Resources`), merging
+   its `scripts/` folder. Upgrading? Delete the old `scripts/ragtag` folder first (your campaign save
+   is not in it).
+3. Start EmptyEpsilon and pick **The Drift** or **The Short Haul** on the server.
+
+### From the repository (server operators and developers)
 
 1. **Install the framework and scenarios:**
    ```bash
@@ -133,7 +149,7 @@ Standing with each faction, kept per ship (see [docs/REPUTATION.md](docs/REPUTAT
    - Windows: `options.ini` is in the EmptyEpsilon folder
    - Linux/macOS: `~/.emptyepsilon/options.ini`
 
-3. **Start EmptyEpsilon** and select **The Drift** from the scenario list
+3. **Start EmptyEpsilon** and select **The Drift** (or **The Short Haul**) from the scenario list
 
 4. **Configure campaign settings:**
    - Campaign: Continue (preserves credits/upgrades) or Fresh start

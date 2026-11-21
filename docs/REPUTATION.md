@@ -12,7 +12,7 @@ There are three factions that matter:
 
 **The Corsairs** — pirates, toll-takers, opportunists. They don't offer work and they're not interested in your reputation the way the other factions are. What they're interested in is whether you look like easy money. Where they spawn and how much trouble they give you depends on where you fly; your standing with them mostly determines what jobs you can pick up at their-adjacent ports, and how few other options the job board shows you when things go south.
 
-Reputation carries across sessions. The Drift doesn't forget.
+Reputation is kept **per ship**: with several crews flying, each ship has its own standing. It carries across sessions. The Drift doesn't forget.
 
 ---
 
@@ -24,7 +24,7 @@ Independent standing high → more work available, better contracts offered. Sta
 
 Corsair standing high → more work available at Border ports, fewer obstacles in rough space. Standing low → the board thins out. Standing very low → almost nothing, plus warrants from previous jobs go unresolved.
 
-Donations at **Saint Brennan's Mission** and **Concord Waypoint Galen** are a way to rebuild Independent standing when other options are thin — slow but reliable.
+Donations are a way to rebuild standing when other options are thin — slow but reliable: **Saint Brennan's Mission** for Independent standing, **Concord Waypoint Galen** for Concord standing.
 
 ---
 
@@ -36,7 +36,7 @@ Donations at **Saint Brennan's Mission** and **Concord Waypoint Galen** are a wa
 
 ### Tracking and display
 
-Reputation is stored per-faction in the campaign save as an unbounded integer — no cap in either direction. It starts at zero for all factions.
+Reputation is stored per ship and per faction in the campaign save (the primary ship's record, and one record per other ship) as an unbounded integer — no cap in either direction. It starts at zero for all factions.
 
 Every reputation change logs three lines to the Relay console:
 1. The change: `Concord reputation +100 — completed: Delivery run`
@@ -76,17 +76,19 @@ reward = base × type_mult
        rounded to nearest 5cr
 ```
 
-| Tier | Base reward | Ship upgrade count |
+| Tier | Base reward | The ship's upgrade investment |
 |---|---|---|
-| Tier 0 | 50cr | 0–1 upgrades |
-| Tier 1 | 65cr | 2–4 upgrades |
-| Tier 2 | 80cr | 5+ upgrades |
+| Tier 0 | 50cr | under 500 cr |
+| Tier 1 | 65cr | 500–999 cr |
+| Tier 2 | 80cr | 1000 cr and up |
 
 | Mission type | Type multiplier |
 |---|---|
 | Delivery | 1.0× |
 | Salvage | 1.2× |
 | Hacking | 1.4× |
+| Tailing | 1.4× |
+| Escort | 1.5× (plus a 90 cr munitions allowance) |
 | Destroy | 1.6× |
 | Boarding | 1.8× |
 
@@ -131,7 +133,7 @@ Corsairs have no patrol shake-down. Their spawn zones and ship strength are dete
 
 ### Donation opportunities
 
-Two stations offer a way to rebuild Independent standing outside of jobs:
+Two stations offer a way to rebuild standing outside of jobs:
 
 | Station | Faction | Location | Donation | Rep gained |
 |---|---|---|---|---|

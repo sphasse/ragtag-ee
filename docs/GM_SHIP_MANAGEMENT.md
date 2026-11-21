@@ -35,6 +35,8 @@ ship's record holds (credits and upgrades), or that it has none yet.
 - An entry for a ship that is already flying makes nothing (the GM screen says so).
 - The list is built when the selection screen opens: go back to it to see up-to-date records.
 - The new ship appears at Port Vesper.
+- Every Light Freighter, however it was made, starts with the same stock loadout: no nuke or mine
+  racks, 2 homing missiles, 2 engineering crew. Its own upgrades go on top.
 
 ### Rebuilding the Magpie
 When the Magpie is destroyed, the session goes on with the other ships and the story arcs wait.
@@ -78,11 +80,11 @@ The menu lists every player ship in the game. Pick one; everything on the next s
 - A button per upgrade, labelled with its state: ■ owned, □ not owned, × locked (its
   prerequisite is missing).
 - Press □ to **grant** the upgrade free of charge. It is added to the ship's record and applied
-  at once; the ship's log says "Upgrade installed".
+  at once; the ship's log says "Upgrade installed" (for engineering crew: "Crew hired").
 - Press ■ to **revoke** it. The ship is rebuilt from its template and its remaining upgrades are
   re-applied, because an upgrade's effect cannot be undone piece by piece. The ship keeps its
-  position, heading, name and faction; its hull, shields, energy and missiles are reset to the
-  template's (plus what the remaining upgrades add).
+  position, heading, name and faction; its hull, shields, energy, missiles and crew go back to the
+  stock loadout (plus what the remaining upgrades add).
 - Repair-crew upgrades are special: pressing one the ship already owns re-applies it (to restore
   crew that died), up to 8 crew.
 
