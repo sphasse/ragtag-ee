@@ -618,8 +618,31 @@ end
 -- Add a ship to RT.players (once). For ships the engine created (the "Create player ship"
 -- screen): the scenario names it in onNewPlayerShip and calls this; its record is bound and its
 -- upgrades applied on the next RT.update, by the callsign it has then.
+-- The stock loadout of a new player freighter, before its upgrades go on: a modest start, no
+-- nukes or mines on a freight hauler, 2 homing missiles, 2 repair crew. Every ship gets it, however
+-- it was made (RT.spawnPlayer, the "Create player ship" list, a hull rebuilt to take upgrades off),
+-- so a ship from the list is never better armed than the Magpie. Only for RT.PLAYER_TEMPLATE
+-- unless `any_template` (RT.spawnPlayer always applied it); other player ships keep their template.
+function RT.provision(p, any_template)
+    if not RT.valid(p) then return end
+    if not any_template then
+        local ok, t = pcall(function() return p:getTypeName() end)
+        if not ok or t ~= RT.PLAYER_TEMPLATE then return end
+    end
+    p:setWeaponStorageMax("Nuke", 0):setWeaponStorage("Nuke", 0)
+    p:setWeaponStorageMax("Mine", 0):setWeaponStorage("Mine", 0)
+    p:setWeaponStorage("Homing", 2)
+    p:setRepairCrewCount(2)
+end
+
 function RT.adoptPlayer(ship)
-    if RT.playerShip(ship) == nil then table.insert(RT.players, ship) end
+    if RT.playerShip(ship) == nil then
+        table.insert(RT.players, ship)
+        -- Joining for the first time: fresh from its template, not yet outfitted (RT.outfit puts
+        -- its upgrades on after this).
+        local st = RT.shipState(ship)
+        if not (st and st.outfitted) then RT.provision(ship) end
+    end
     RT.player = RT.players[1]   -- backward-compat alias always points to first ship
     RT.promotePrimary()
     return ship
@@ -724,11 +747,7 @@ function RT.spawnPlayer(x, y, heading, opts)
     local p = PlayerSpaceship():setTemplate(tmpl):setFaction(faction)
     p:setCallSign(cs):setPosition(x, y)
     if heading then p:setHeading(heading) end
-    -- A modest, slightly battered start: no nukes or mines on a freight hauler.
-    p:setWeaponStorageMax("Nuke", 0):setWeaponStorage("Nuke", 0)
-    p:setWeaponStorageMax("Mine", 0):setWeaponStorage("Mine", 0)
-    p:setWeaponStorage("Homing", 2)
-    p:setRepairCrewCount(2)
+    RT.provision(p, true)
     -- onNewPlayerShip fires during setTemplate above and may have already registered
     -- the ship (e.g. to preserve a non-Independent faction). Guard against duplicates.
     RT.adoptPlayer(p)

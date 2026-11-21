@@ -114,6 +114,9 @@ function init()
     RT._saves_frozen = true
 
     VERSE.build({session = 1})
+    -- Survey pay for charting a region goes only to the primary ship (it starts inside Port
+    -- Vesper's region: +10 at once). In a race that is an unfair head start: off.
+    VERSE.SURVEY_CREDITS = false
     VERSE.requirePlaces({"Port Vesper"})
 
     RT.PLAYER_TEMPLATE = "Light Freighter"

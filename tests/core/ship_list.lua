@@ -60,6 +60,21 @@ T.step("Wren joins with its record", function()
     T.eq("pick: its saved credits", T.credits(W), 345)
     T.check("pick: its saved upgrade", RT.hasUpgrade("hull_plating", W))
     T.check("pick: listed as flying now", entry("Wren")[3]:find("Flying now", 1, true) ~= nil)
+    -- Provisioned like the campaign ship (RT.provision), not as the template comes: no nuke, no
+    -- mines, 2 homing, 2 repair crew (playtest: list ships had a nuke and a full crew).
+    T.eq("loadout: no nuke rack", W:getWeaponStorageMax("Nuke"), 0)
+    T.eq("loadout: no mine rack", W:getWeaponStorageMax("Mine"), 0)
+    T.eq("loadout: 2 homing", W:getWeaponStorage("Homing"), 2)
+    T.eq("loadout: 2 repair crew", W:getRepairCrewCount(), 2)
+    T.eq("loadout: same nuke rack as the primary", W:getWeaponStorageMax("Nuke"), A:getWeaponStorageMax("Nuke"))
+end)
+T.wait(2.5)   -- the location line is refreshed every 2 s
+T.step("every ship shows where it is", function()
+    local f, found = W.components.custom_ship_functions, false
+    for i = 1, #f do
+        if tostring(f[i].name) == "rt_region_r" and tostring(f[i].caption):find("Location: ", 1, true) then found = true end
+    end
+    T.check("location: Wren's Relay shows its location", found)
 end)
 
 T.step("a ship already flying is not made twice", function()

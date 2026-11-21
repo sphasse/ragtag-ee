@@ -19,6 +19,10 @@ campaign is never touched (own save key `shorthaul`, saving switched off).
 - At zero (or **End the competition now**) the final standings pop up on every console of every
   ship and go in the ship log; the leaderboard and clock go away. The scenario carries on: the
   ships are on their own.
+- Every ship is provisioned alike (`RT.provision`: no nuke, no mines, 2 homing, 2 repair crew),
+  whether the scenario made it or a crew picked it from the list. No survey pay for charting regions
+  (`VERSE.SURVEY_CREDITS = false`): only the primary ship is tracked for it, and it starts inside
+  Port Vesper's region (+10 at once).
 - A lost ship costs half its credits, as in The Drift; a ship rebuilt under the same name carries on
   with what it had left.
 

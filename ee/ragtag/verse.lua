@@ -511,18 +511,28 @@ local function isDiscovered(name)
     return false
 end
 
+-- Survey pay for charting a region for the first time (the primary ship, the campaign's chart).
+-- A scenario where it would be unfair (The Short Haul: only the primary is tracked) sets false.
+VERSE.SURVEY_CREDITS = true
+
 function VERSE.updateRegion()
+    -- Every player ship shows where it is. Always refresh, so the grid coordinate stays current.
+    -- getSectorName directly: VERSE must not depend on the JOBS layer.
+    for _, s in ipairs(RT.players or {}) do
+        if RT.valid(s) then
+            local sx, sy = s:getPosition()
+            local label = "Location: " .. VERSE.regionAt(sx, sy).name .. "  " .. getSectorName(sx, sy)
+            s:addCustomInfo("helms", "rt_region", label, 1)
+            s:addCustomInfo("relay", "rt_region_r", label, 1)
+            s:addCustomInfo("operations", "rt_region_o", label, 1)
+        end
+    end
+
+    -- Charting, region warnings and events follow the primary ship (the campaign's chart).
     local p = RT.player
     if not RT.valid(p) then return end
     local x, y = p:getPosition()
     local r = VERSE.regionAt(x, y)
-
-    -- Always refresh label so the grid coordinate stays current.
-    -- getSectorName directly: VERSE must not depend on the JOBS layer.
-    local label = "Location: " .. r.name .. "  " .. getSectorName(x, y)
-    p:addCustomInfo("helms", "rt_region", label, 1)
-    p:addCustomInfo("relay", "rt_region_r", label, 1)
-    p:addCustomInfo("operations", "rt_region_o", label, 1)
 
     if r == VERSE.region then return end
     VERSE.region = r
@@ -535,7 +545,7 @@ function VERSE.updateRegion()
         if type(RT.campaign.discovered) ~= "table" then RT.campaign.discovered = {} end
         table.insert(RT.campaign.discovered, r.name)
         p:addToShipLog("Charted: " .. r.desc, "#A0E0FF")
-        RT.addCredits(10 + 15 * r.danger, "survey data for " .. r.name, p)
+        if VERSE.SURVEY_CREDITS then RT.addCredits(10 + 15 * r.danger, "survey data for " .. r.name, p) end
     elseif first_session then
         p:addToShipLog("Entering " .. r.name .. ".", "#A0E0FF")
     end

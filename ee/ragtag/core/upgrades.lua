@@ -251,6 +251,7 @@ function RT.rebuildHull(p)
     local rot, cs, fac, tmpl = p:getRotation(), p:getCallSign(), p:getFaction(), p:getTypeName()
     p:setTemplate(tmpl or RT.PLAYER_TEMPLATE)
     p:setCallSign(cs):setFaction(fac):setPosition(x, y):setRotation(rot)
+    RT.provision(p)   -- the stock freighter loadout again (setTemplate brought the nuke back)
 end
 
 function RT.revokeUpgrade(id, ship)
