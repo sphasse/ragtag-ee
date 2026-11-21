@@ -36,6 +36,15 @@ def git(*args: str, check: bool = True) -> str:
     return r.stdout.strip()
 
 
+def _scenario_names() -> str:
+    """The scenarios in the zip, by their in-game names: **The Drift** or **The Short Haul**."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import package   # tools/package.py: the same scenario list the zip is built from
+    names = [n.strip() for n in package.scenario_titles(package.release_scenarios()).split(",") if n.strip()]
+    bold = [f"**{n}**" for n in names] or ["**The Drift**"]
+    return bold[0] if len(bold) == 1 else ", ".join(bold[:-1]) + " or " + bold[-1]
+
+
 def numbered_tags() -> list[int]:
     return sorted(int(t) for t in git("tag", "--list").split() if t.isdigit())
 
@@ -66,7 +75,7 @@ def notes_for(number: int, previous: int | None, extra: str) -> str:
         "`EmptyEpsilon` in it; on macOS right-click EmptyEpsilon.app → Show Package Contents → `Contents/Resources`.",
         "3. Upgrading? Delete the old `scripts/ragtag` folder first (your campaign save is not in it).",
         "4. Unzip into that folder, merging its `scripts/` with the one already there.",
-        "5. Start EmptyEpsilon and pick the scenario **The Drift** on the server.",
+        f"5. Start EmptyEpsilon and pick a scenario on the server: {_scenario_names()}.",
         "",
         f"## Changes since release {previous}" if previous is not None else "## Changes",
         "",
