@@ -104,6 +104,10 @@ STOCK_FACTIONS = re.compile(r'"(Human Navy|Exuari|Ghosts)"')
 STOCK_NUMBERS = {"00", "02", "03", "05", "06", "07", "08", "10", "20", "27", "29", "30", "31", "32", "33", "34", "39",
                  "44", "47", "48", "49", "50", "51", "53", "54", "55", "56", "57", "58", "59", "60", "62", "74", "79",
                  "81", "88", "99"}
+# Scenarios allowed to share a stock number anyway (a deliberate choice; EE lists both).
+STOCK_NUMBER_OK = {
+    "scenarios/shorthaul/scenario_81_shorthaul.lua",   # The Short Haul: one above The Drift (80), beside stock PvP
+}
 
 
 def check_scenarios(places: dict) -> None:
@@ -115,7 +119,7 @@ def check_scenarios(places: dict) -> None:
         if not m:
             errors.append(f"{rel}: name must be scenario_NN_name.lua")
         elif not f.parent.name.startswith("_"):
-            if m.group(1) in STOCK_NUMBERS:
+            if m.group(1) in STOCK_NUMBERS and rel.as_posix() not in STOCK_NUMBER_OK:
                 errors.append(f"{rel}: scenario number {m.group(1)} is used by a stock EmptyEpsilon scenario (see CONTRIBUTING.md)")
             if m.group(1) in numbers:
                 errors.append(f"{rel}: scenario number {m.group(1)} already used by {numbers[m.group(1)]}")
