@@ -108,7 +108,7 @@ T.waitFor("escort: within 4.5U it leads on", function() return not T.st().guide_
 T.step("leading", function()
     T.eq("pace: flies on to Blackwater", guide():getOrder(), "Fly towards")
     T.check("guide: no warp", not guide():hasWarpDrive())
-    T.eq("guide: top speed 30", math.floor(guide():getImpulseMaxSpeed() + 0.5), 30)
+    T.eq("guide: top speed 50 (3.0 U/min)", math.floor(guide():getImpulseMaxSpeed() + 0.5), 50)
     -- Long Memory and the crew at the approach point, north of the mine ring.
     guide():setPosition(55000, 99000 - 12000)
     T.P():setPosition(55000 - 2000, 99000 - 13000)

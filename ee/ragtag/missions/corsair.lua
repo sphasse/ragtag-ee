@@ -83,10 +83,10 @@ local _HAUL_ABOARD = '"Gao yang jong duh goo yang... we hit the jackpot. Mines, 
     .. 'Heading back to Blackwater. Meet you there."'
 -- The guide paces the crew: it holds (defending itself) once the crew is more than _GUIDE_HOLD_D
 -- behind and flies on once they are back within _GUIDE_GO_D. It has no warp and a top speed of
--- _GUIDE_IMPULSE (30 u/s), slower than the crew, so it leads steadily. Past _GUIDE_WAIT_D it tells
+-- _GUIDE_IMPULSE (50 world units/s = 3.0 U/min on the helm; a stock freighter does 60 = 3.6), just slower than the crew, so it leads steadily. Past _GUIDE_WAIT_D it tells
 -- them to keep up (once a minute at most). It leads to the Blackwater approach (north of the mine
 -- ring), then in through the north gap and docks at Blackwater.
-local _GUIDE_IMPULSE  = 30
+local _GUIDE_IMPULSE  = 50
 local _GUIDE_HOLD_D   = 5.5 * U
 local _GUIDE_GO_D     = 4.5 * U
 local _GUIDE_WAIT_D   = 8 * U
