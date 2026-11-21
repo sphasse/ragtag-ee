@@ -72,8 +72,7 @@ end
 -- Fires one HVLI shell. Mirrors the engine's tube-fired HVLI component set.
 -- (The engine also adds destroyed_by_area_damage, which has no Lua binding; the only
 -- effect of leaving it out is that EMP/energy blasts don't shoot these shells down.)
-local function fireShell(owner, x, y, rotation, speed, range, damage)
-    local e = createEntity()
+local function buildShell(e, owner, x, y, rotation, speed, range, damage)
     e.components.transform = {rotation = rotation}
     e:setPosition(x, y)
     e.components.physics = {type = "sensor", size = {10, 30}}
@@ -82,7 +81,12 @@ local function fireShell(owner, x, y, rotation, speed, range, damage)
         damage_at_center = damage, damage_at_edge = damage, blast_range = 20,
         owner = owner, explosion_sfx = "sfx/explosion.wav",
     }
-    e.components.lifetime = {maximum = range / speed}   -- `maximum` on EE 2026-10-31 (was `lifetime`)
+    -- The lifetime component's field: `lifetime` on EE-2026.09.22PR (what the campaign is played
+    -- on), `maximum` on EE 2026-10-31 (the headless test build). Try one, then the other.
+    local t = range / speed
+    if not pcall(function() e.components.lifetime = {lifetime = t} end) then
+        e.components.lifetime = {maximum = t}
+    end
     e.components.radar_trace = {icon = "radar/missile.png", radius = 32, min_size = 16, max_size = 16,
         color = {200, 200, 200, 255}, rotate = true}
     e.components.radar_signature = {gravity = 0.1}
@@ -90,6 +94,18 @@ local function fireShell(owner, x, y, rotation, speed, range, damage)
     e.components.sfx = {sound = "sfx/hvli_fire.wav"}
     local faction = owner:getFaction()
     if faction then e:setFaction(faction) end
+    return e
+end
+
+-- One shell, or none: if a component can't be set (an engine version with other names), the
+-- half-built entity is removed rather than left flying with no lifetime, and the error raised.
+local function fireShell(owner, x, y, rotation, speed, range, damage)
+    local e = createEntity()
+    local ok, err = pcall(buildShell, e, owner, x, y, rotation, speed, range, damage)
+    if not ok then
+        pcall(function() e:destroy() end)
+        error(err, 0)
+    end
     return e
 end
 

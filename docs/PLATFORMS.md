@@ -76,9 +76,11 @@ Light Freighter.
   `fireShell()` builds the shell from components instead (`missile_flight`, `explode_on_touch`,
   `lifetime`, `physics`, `radar_trace`, `radar_signature`, `constant_particle_emitter`, `sfx`), the same
   set and values the engine uses for a tube-fired HVLI (`MissileSystem::spawnProjectile`).
-- EE-2026-10-31 renamed the `lifetime` component's field to `maximum` (the PR's `lifetime = {lifetime = ...}`
-  raised "unknown component lifetime member lifetime" on the first shot). A shot that fails is now logged
-  once (`PLATFORMS._fire_error`) instead of raising every time.
+- The `lifetime` component's field is `lifetime` on EE-2026.09.22PR (what the campaign is played and released
+  on) and `maximum` on the EE-2026-10-31 development build (the headless tests). The shell tries `lifetime`,
+  then `maximum`, so it works on both. (A fix that set only `maximum` broke every shot on EE-2026.09.22PR:
+  the platforms looked as if they weren't hostile.) A shot that still fails is logged once
+  (`PLATFORMS._fire_error`) and its half-built shell removed, instead of raising every time.
 - The engine also gives HVLIs `destroyed_by_area_damage`, which can't be set from Lua. The only
   difference: EMP and energy blasts don't shoot these shells down.
 - Shells carry `explode_on_touch.owner = platform`, so a platform can't hit itself.
