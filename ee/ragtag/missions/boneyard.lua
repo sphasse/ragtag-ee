@@ -696,7 +696,7 @@ M.phases = {
                     RT.flag("boneyard_hack_done", true)
                     ARC.log("[Relay] Research archive download complete. Data secured.", "#00AAFF")
                     _indexAshgraveResearch()
-                    if not st.concord_beaten then RT.setObjective("Defeat the Concord fleet", true, "boneyard") end
+                    if not st.concord_beaten then RT.setObjective("Defeat Concord fleet", true, "boneyard") end
                 elseif op.key == "reprogram" then
                     RT.flag("boneyard_drone_flip", true)
                     _reprogramDrones(st)

@@ -249,7 +249,7 @@ T.step("research indexed", function()
         if SCIDB.announced[i]:find("Database entry updated: ", 1, true) then upd = upd + 1 end
     end
     T.eq("control: each of the three research entries is announced", upd, 3)
-    T.eq("control: the fleet is the objective now", RT.objectives.boneyard, "Defeat the Concord fleet")
+    T.eq("control: the fleet is the objective now", RT.objectives.boneyard, "Defeat Concord fleet")
     T.eq("control: still at the Annex (the fleet is not beaten)", T.phase(), "annex_control")
 end)
 T.talk(annex, {"2) Reprogram the drones"})

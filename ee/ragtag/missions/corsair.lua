@@ -517,7 +517,7 @@ local function _startBattle(st)
     ARC.log("[CNS Retribution] Blackwater Reach, this is Concord battle fleet command. Your haven is declared a pirate installation under the Settlement Accords. Stand down and prepare to be boarded.", "#FF6666")
     local line = '"Here they come. Hold the line!"'
     if not ARC.hail(_blackwater(), line, "Reva Okonkwo") then ARC.log("[Reva Okonkwo] " .. line, "#FFCC80") end
-    RT.setObjective("Destroy the Concord battle fleet", true, "corsair")
+    RT.setObjective("Defeat Concord fleet", true, "corsair")
 end
 
 -- True when ANY player ship is within _START_U of any ship of the battle, on either side: coming
@@ -599,7 +599,7 @@ local function _tickTender(st, now)
         local where = _grid(tx, ty)
         local text = "Your racks are nearly empty. We carry what's left of the Anvil haul. Come alongside at " .. where .. " and we'll load you up."
         if not ARC.hail(st.tender, '"' .. text .. '"') then ARC.log("[Magazine] " .. text, "#FFCC80") end
-        RT.setObjective("Rearm alongside Magazine (" .. where .. ")", true, "corsair_rearm")
+        RT.setObjective("Rearm: Magazine " .. where, true, "corsair_rearm")
     end
 
     if st.reloads > 0 and share < 1 and ARC.near(p, tx, ty, _RELOAD_R) then
@@ -712,7 +712,7 @@ local function _greywaterHook(src, tgt)
         local g = _spawnGuide(st, _GREYWATER_MEET_X, _GREYWATER_MEET_Y)
         g:orderIdle()
         st.hail_when_near, st.hook_hailed = true, false
-        RT.setObjective("Meet Long Memory at the Gauntlet's edge", true, "corsair")
+        RT.setObjective("Meet Long Memory", true, "corsair")
         ARC.log("[Greywater] Message for you: Long Memory is waiting at grid " .. _grid(_GREYWATER_MEET_X, _GREYWATER_MEET_Y) .. ", the edge of the Gauntlet.", "#A0C0FF")
         setCommsMessage('The barkeep wipes the same glass for a while, then slides a data chip across the bar.\n\n'
             .. '"Friend of yours at Blackwater wants a word. There\'s a ship called Long Memory waiting at the edge of the Gauntlet, grid '
@@ -905,7 +905,7 @@ M.phases.escort = {
         st.guide_leg = "approach"
         _guideLead(st, st.guide)
         st.guide_waiting = false
-        RT.setObjective("Follow Long Memory to Blackwater", true, "corsair")
+        RT.setObjective("Follow Long Memory", true, "corsair")
     end,
     update = function(st, delta, now)
         local p = ARC.player()
@@ -967,7 +967,7 @@ M.phases.briefing = {
         -- The crew has docked: Long Memory's job is done. Back out into the Drift (east, away
         -- from where the wall will go), gone a minute later.
         _guideLeaves(st, _BW_X + 25 * U, _BW_Y - 10 * U)
-        RT.setObjective("Dock at Blackwater, talk to Reva", true, "corsair")
+        RT.setObjective("Talk to Reva", true, "corsair")
     end,
 }
 
@@ -979,7 +979,7 @@ M.phases.raid = {
         _spawnDepot(st)
         _spawnDefenders(st)
         _spawnEscorts(st)
-        RT.setObjective("Raid the Concord forward depot", true, "corsair")
+        RT.setObjective("Raid Concord depot", true, "corsair")
         ARC.log("[Corsair Arc] Concord forward depot at grid " .. _grid(_DEPOT_X, _DEPOT_Y)
             .. ", between Cinder and Tamsin. Two Concord guards. Hardtack and Ninth Life are under your command: hail them for orders.", "#A0C0FF")
     end,
@@ -1045,7 +1045,7 @@ M.phases.battle = {
         for _, s in ipairs(ARC.alive(st.escorts)) do _sendHome(st, s, nil, nil, true) end
         local bw = _blackwater()
         if RT.valid(bw) then pcall(function() bw:setCanBeDestroyed(false) end) end
-        RT.setObjective("Join the Corsair line west of Blackwater", true, "corsair")
+        RT.setObjective("Join the Corsairs", true, "corsair")
     end,
     update = function(st, delta, now)
         _tickRoutes(st)

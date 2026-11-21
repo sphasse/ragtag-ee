@@ -72,7 +72,7 @@ The raid brought back more than mines. **Magazine** (Flavia, `Corsair Friendly`,
 the rest of the Anvil haul at (43, 82): behind the north end of the Corsair line, clear of
 Blackwater's ring. When the crew's missile racks (homing, HVLI, mines, EMP, whatever the ship carries) are
 at or below 25%, it hails ("Your racks are nearly empty… come alongside at <grid>") and a second
-objective line appears: "Rearm alongside Magazine (<grid>)". Within 1.2U for 8 s refills every
+objective line appears: "Rearm: Magazine <grid>". Within 1.2U for 8 s refills every
 rack to its maximum. Three loads aboard; it calls again each time the racks run low while loads are
 left. Hailing it says how many loads are left, or "The haul is gone". It is destructible: if the
 Concord gets to it, Reva says so and the objective goes. Arc ship only (other ships get "Corsair

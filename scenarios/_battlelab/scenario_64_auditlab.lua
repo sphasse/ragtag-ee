@@ -102,7 +102,7 @@ local function reset()
         if #full > 0 then p:setShields(table.unpack(full)) end
     end
     placeFragment()
-    RT.setObjective("Pick up the data core (fragment 3)", true, "audit")
+    RT.setObjective("Pick up data core", true, "audit")
 end
 
 local function status()

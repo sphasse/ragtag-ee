@@ -46,7 +46,7 @@ Three operations, **one at a time** (while one is in progress the others show as
 
 The reprogram and the lasers keep running if the crew undocks. The intended order is the drones first (the defence starts), then the lasers or the fight, then the archive: while the Concord fleet is out the download takes 5 minutes docked (`_DOWNLOAD_SLOW`). When the last Concord ship dies the Annex compresses the archive (log: "Archive compressed"): a download not yet started takes 1 minute (`_DOWNLOAD_FAST`), and one already running finishes within a minute of that moment.
 
-When the last Concord ship dies, the Annex hails the crew once, "All Concord forces in proximity have been eliminated." (ship-log fallback if comms are busy), and the drones fall back to defend the Annex. If the archive is in but the fleet is not beaten, the objective is "Defeat the Concord fleet".
+When the last Concord ship dies, the Annex hails the crew once, "All Concord forces in proximity have been eliminated." (ship-log fallback if comms are busy), and the drones fall back to defend the Annex. If the archive is in but the fleet is not beaten, the objective is "Defeat Concord fleet".
 
 With the archive downloaded **and** the fleet gone, the arc moves to `report`, or, for a crew that found the Annex without rescuing the survivors, straight to `done`. **Leaving the Boneyard** (20U outside it: 49U from its centre, `_LEAVE_R`) also ends the phase with whatever the crew has: with the archive (and the survivors rescued earlier) it moves to `report`, otherwise to `done` (no archive: no 600 cr; the fleet left alive: the "Concord swept the Boneyard" rumor). The GM also has `Destroy Concord`.
 

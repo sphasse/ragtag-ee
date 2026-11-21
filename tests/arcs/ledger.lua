@@ -256,7 +256,7 @@ T.step("collections", function()
     local f = T.st().fleet
     T.eq("hostile: faction", f[1]:getFaction(), "Concord Hostile")
     T.check("hostile: an enemy now", f[1]:isEnemy(T.P()))
-    T.check("hostile: objective changes", (RT.objectives.ledger or ""):find("Break the audit", 1, true) ~= nil)
+    T.check("hostile: objective changes", (RT.objectives.ledger or ""):find("Escape the audit", 1, true) ~= nil)
     T.eq("hostile: every auditor's jammer cooldown started", #T.st().jammers, 3)
 end)
 T.step("no combat jammer right away", function()

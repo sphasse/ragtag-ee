@@ -777,53 +777,24 @@ end
 -- Each shows as its own "Objective: ..." line on Relay and Operations.
 RT.objectives      = {}   -- key -> text
 RT._objective_keys = {}   -- insertion order, for the display order
-RT._objective_lines = {}  -- key -> how many side-panel lines it shows now
-
 -- The side panels (Relay, Operations, ...) fit about this many characters per status line
--- (playtest): longer text is wrapped over several lines (RT.wrapLines) or shortened.
+-- (playtest). Objectives are written to fit on one line (check.py rejects a longer literal one);
+-- anything longer is cut on the panel. The ship log always has the full text.
 RT.SIDE_LINE_MAX = 20
 
--- Word-wrap text into lines of at most `width` characters; `first` is put before the first line
--- (and counts toward it). A word longer than a line is cut into pieces.
-function RT.wrapLines(text, width, first)
-    width = width or RT.SIDE_LINE_MAX
-    local words = {}
-    if first then words[1] = first end
-    for w in tostring(text or ""):gmatch("%S+") do
-        while #w > width do words[#words + 1] = w:sub(1, width); w = w:sub(width + 1) end
-        if w ~= "" then words[#words + 1] = w end
-    end
-    local lines, cur = {}, ""
-    for _, w in ipairs(words) do
-        if cur == "" then
-            cur = w
-        elseif #cur + 1 + #w <= width then
-            cur = cur .. " " .. w
-        else
-            lines[#lines + 1] = cur
-            cur = w
-        end
-    end
-    if cur ~= "" then lines[#lines + 1] = cur end
-    return lines
+local function _objKeys(key)
+    if key == "main" then return "rt_objective", "rt_objective_ops" end
+    return "rt_objective_" .. key, "rt_objective_ops_" .. key
 end
 
-local function _objKeys(key, n)
-    local suffix = (n and n > 1) and ("_" .. n) or ""
-    if key == "main" then return "rt_objective" .. suffix, "rt_objective_ops" .. suffix end
-    return "rt_objective_" .. key .. suffix, "rt_objective_ops_" .. key .. suffix
-end
-
--- Remove a key's side-panel lines from every ship.
-local function _clearObjectiveLines(key)
-    for n = 1, math.max(RT._objective_lines[key] or 0, 1) do
-        local relay_key, ops_key = _objKeys(key, n)
-        RT.forEachPlayer(function(p)
-            pcall(function() p:removeCustom(relay_key) end)
-            pcall(function() p:removeCustom(ops_key) end)
-        end)
+-- What an objective shows on a side panel: one line, at most RT.SIDE_LINE_MAX characters.
+function RT.objectiveLine(text)
+    text = tostring(text or "")
+    if #text > RT.SIDE_LINE_MAX then
+        log("[RT] objective too long for the side panel, cut: " .. text)
+        text = text:sub(1, RT.SIDE_LINE_MAX)
     end
-    RT._objective_lines[key] = 0
+    return text
 end
 
 function RT.setObjective(text, silent, key)
@@ -834,21 +805,17 @@ function RT.setObjective(text, silent, key)
     end
     RT.objectives[key] = clean
     if key == "main" then RT.objective = clean end
-    local idx = 0
-    for i, k in ipairs(RT._objective_keys) do if k == key then idx = i end end
-    -- On the side panels: "Obj: " and the text, wrapped to fit (orders 100+, after the credits,
-    -- the location and a race leaderboard).
-    _clearObjectiveLines(key)
-    local lines = RT.wrapLines(clean, RT.SIDE_LINE_MAX, "Obj:")
+    local order = 0
+    for i, k in ipairs(RT._objective_keys) do if k == key then order = i end end
+    -- One line per objective on the side panels (orders 100+, after the credits, the location
+    -- and a race leaderboard); the full text goes to the ship log.
+    local line = RT.objectiveLine(clean)
+    local relay_key, ops_key = _objKeys(key)
     RT.forEachPlayer(function(p)
-        for n, line in ipairs(lines) do
-            local relay_key, ops_key = _objKeys(key, n)
-            p:addCustomInfo("relay", relay_key, line, 100 + idx * 10 + n)
-            p:addCustomInfo("operations", ops_key, line, 100 + idx * 10 + n)
-        end
+        p:addCustomInfo("relay", relay_key, line, 100 + order)
+        p:addCustomInfo("operations", ops_key, line, 100 + order)
         if not silent then p:addToShipLog("New objective: " .. clean, "#80C0FF") end
     end)
-    RT._objective_lines[key] = #lines
     RT.emit("objective", {text = clean, key = key})
 end
 
@@ -865,7 +832,11 @@ function RT.clearObjective(key)
     for _, k in ipairs(keys) do
         RT.objectives[k] = nil
         if k == "main" then RT.objective = "" end
-        _clearObjectiveLines(k)
+        local relay_key, ops_key = _objKeys(k)
+        RT.forEachPlayer(function(p)
+            pcall(function() p:removeCustom(relay_key) end)
+            pcall(function() p:removeCustom(ops_key) end)
+        end)
     end
     if not key then RT._objective_keys = {} end
 end

@@ -106,7 +106,7 @@ function AUDIT.start(st, hooks)
     st.warned = {}
     st.eject_press = function() AUDIT.eject(st, hooks) end
     _setDrainUI(true, st.eject_press)
-    _objective(hooks, "Keep power up, deliver AI to Rezkov")
+    _objective(hooks, "Keep power up")
     _aiVoice()
     if not ARC.hail(RT.voice.get("ledger_ai"), AUDIT.AI_HELLO, "Unidentified Signal") then
         ARC.log("[Unidentified Signal] " .. AUDIT.AI_HELLO, "#C0E0FF")   -- comms busy: never lose the hello
@@ -222,7 +222,7 @@ function AUDIT.hostile(st, hooks, why)
         end
     end
     ARC.log("[CAS Double Entry] " .. (_HOSTILE_LINES[why] or _HOSTILE_LINES.refused), "#FF4444")
-    _objective(hooks, "Break the audit and deliver the AI to Rezkov")
+    _objective(hooks, "Escape the audit")
 end
 
 local function _auditReplies(st, hooks)
@@ -295,7 +295,7 @@ function AUDIT.spawnFleet(st, hooks)
     for i, e in ipairs(AUDIT.EXCUSES) do excuses[i] = e end
     for i = #excuses, 2, -1 do local j = math.random(i); excuses[i], excuses[j] = excuses[j], excuses[i] end
     st.audit = {state = "arriving", stalls = 0, excuses = excuses, jams = {}, last = getScenarioTime()}
-    _objective(hooks, "Deal with the audit, deliver the AI to Rezkov")
+    _objective(hooks, "Deal with the audit")
     ARC.log("[CAS Double Entry] Concord Audit Service. All vessels in this sector: hold position for reconciliation.", "#FF6666")
 end
 

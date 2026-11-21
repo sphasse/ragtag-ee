@@ -548,6 +548,23 @@ def check_arc_flags() -> None:
                               f"{namespace(name)} arc flag but is not declared in its M.flags")
 
 
+SIDE_LINE_MAX = 20   # RT.SIDE_LINE_MAX: a status line on Relay / Operations fits about 20 characters
+OBJECTIVE_LITERAL = re.compile(r'(?:RT\.setObjective|_objective\(hooks,)\(?\s*"([^"]*)"')
+
+
+def check_objectives() -> None:
+    """A literal objective must fit one side-panel line (playtest: longer ones ran off it)."""
+    files = [f for f in (ROOT / "ee" / "ragtag").rglob("*.lua") if "attic" not in f.parts]
+    files += sorted((ROOT / "scenarios").rglob("*.lua"))
+    for f in files:
+        text = f.read_text(encoding="utf-8")
+        for m in OBJECTIVE_LITERAL.finditer(text):
+            if len(m.group(1)) > SIDE_LINE_MAX:
+                line = text.count("\n", 0, m.start()) + 1
+                errors.append(f"{f.relative_to(ROOT)}:{line}: objective \"{m.group(1)}\" is "
+                              f"{len(m.group(1))} characters; the side panel fits {SIDE_LINE_MAX}")
+
+
 def check_api_md_sync() -> None:
     a, b = API_MD_COPIES
     if a.exists() and b.exists() and a.read_text() != b.read_text():
@@ -597,6 +614,7 @@ def main() -> int:
     check_director_actions()
     check_arc_helpers()
     check_arc_flags()
+    check_objectives()
     check_api_md_sync()
     check_python()
 

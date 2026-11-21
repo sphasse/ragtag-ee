@@ -33,7 +33,7 @@ T.dock("Greywater Depot")
 T.talk("Greywater Depot", {"Heard you're holding a message for us."})
 T.step("the raider is waiting", function()
     T.check("hook: Long Memory staged at the Gauntlet's edge", RT.valid(guide()))
-    T.eq("hook: objective", RT.objectives.corsair, "Meet Long Memory at the Gauntlet's edge")
+    T.eq("hook: objective", RT.objectives.corsair, "Meet Long Memory")
     T.check("hook: no hail until the crew is close", not T.st().hook_hailed)
 end)
 T.closeComms()
@@ -419,7 +419,7 @@ T.step("the battle begins", function()
     local per = {0, 0, 0, 0, 0}
     for _, r in ipairs(s.battle.sides.b) do if r.pos then per[r.pos] = per[r.pos] + 1 end end
     T.eq("battle: Corsairs mapped onto the five points, north to south", table.concat(per, "/"), "2/3/2/3/2")
-    T.check("battle: objective", (RT.objectives.corsair or ""):find("Destroy the Concord battle fleet", 1, true) ~= nil, tostring(RT.objectives.corsair))
+    T.check("battle: objective", (RT.objectives.corsair or ""):find("Defeat Concord fleet", 1, true) ~= nil, tostring(RT.objectives.corsair))
 end)
 
 -- ── Rearming from the tender ─────────────────────────────────────────────────

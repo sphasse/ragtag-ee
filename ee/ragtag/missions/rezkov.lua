@@ -180,7 +180,7 @@ local function _checkHack(st, now)
         RT.after(4, function()
             ARC.log("[Hack] Station traffic downloaded to the storage card.", "#80FF80")
             ARC.log("[Mission] Deliver the storage card to Thresh at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#A0C0FF")
-            RT.setObjective("Card to Thresh @ Dustmote", true)
+            RT.setObjective("Card to Thresh", true)
             MISSIONS.phase("rezkov", "m2_deliver")
         end, "rezkov_hack_msg2")
     end
@@ -281,7 +281,7 @@ local function _setupKaelComms(st)
     log(string.format("[RZKOV] _setupKaelComms: called — m3_boarded was %s, meridian_valid=%s",
         tostring(st.m3_boarded), tostring(RT.valid(st.meridian))))
     st.m3_boarded = true
-    RT.setObjective("Speak with Commander Kael", true)
+    RT.setObjective("Talk to Kael", true)
     ARC.meet("rezkov", "kael_profile", "Commander Kael")
     st.meridian:setCommsScript(""):setCommsFunction(_safeComms(function(src, tgt)
         log(string.format("[RZKOV] kael-comms opened: src=%s tgt_valid=%s faction=%s",
@@ -312,7 +312,7 @@ local function _setupKaelComms(st)
             ARC.log("[Rezkov Arc] Data wiped. Let Thresh know at Dustmote Salvage (grid " .. JOBS.gridRef(104000, -36000) .. ").", "#FFCC80")
             RT.flag("kael_alive", true)
             RT.flag("rezkov_m3_data", true)
-            RT.setObjective("Report to Thresh @ Dustmote", true)
+            RT.setObjective("Report to Thresh", true)
             if RT.valid(st.meridian) then
                 st.meridian:setFaction("Independent")
                 st.meridian:orderIdle()
@@ -380,7 +380,7 @@ local function _dustmoteHook(src, tgt, info)
                 addCommsReply("We\'re on it.", function(s4, t4)
                     RT.flag("rezkov_m3_accepted", true)
                     ARC.log("[Rezkov Arc] M3: Intercept CWS Meridian. Last spotted at grid " .. JOBS.gridRef(_MX, _MY) .. ", burning for the Arbiter Line. Disable and board before she gets there.", "#A0C0FF")
-                    RT.setObjective("Disable and board CWS Meridian", true)
+                    RT.setObjective("Board CWS Meridian", true)
                     setCommsMessage("Thresh disappears into the back.")
                 end)
                 addCommsReply("Not right now.", function(s4, t4)
@@ -399,7 +399,7 @@ local function _dustmoteHook(src, tgt, info)
             addCommsReply("We\'re on it.", function(s3, t3)
                 RT.flag("rezkov_m3_accepted", true)
                 ARC.log("[Rezkov Arc] M3: Intercept CWS Meridian before she reaches the Arbiter Line. Disable and board.", "#A0C0FF")
-                RT.setObjective("Disable and board CWS Meridian", true)
+                RT.setObjective("Board CWS Meridian", true)
                 setCommsMessage('"Move."\n\nThresh disappears into the back.')
             end)
             addCommsReply("Not yet.", function(s3, t3)
@@ -575,7 +575,7 @@ M.gm_states = {
     {key = "cardrun",   label = "→ Card run",  fn = _jump("m2_deliver", function(st)
         _spawnWaypoint(st)                         -- Rezkov's station is still up until the card is delivered
         _spawnHackTerminal(st)
-        RT.setObjective("Card to Thresh @ Dustmote", true)
+        RT.setObjective("Card to Thresh", true)
     end)},
     {key = "intercept", label = "→ Intercept", fn = _jump("m3_active", function()
         RT.flag("rezkov_m3_accepted", true)
@@ -583,7 +583,7 @@ M.gm_states = {
     {key = "datarun",   label = "→ Data run",  fn = _jump("m3_deliver", function()
         RT.flag("rezkov_m3_data", true)
         RT.flag("kael_alive", true)
-        RT.setObjective("Report to Thresh @ Dustmote", true)
+        RT.setObjective("Report to Thresh", true)
     end)},
     -- End states: the four real outcomes (see the header for what each means).
     {key = "done_concord",   label = "→ Done: Concord",   fn = _done("concord_won", true, true)},
@@ -753,7 +753,7 @@ M.phases.m3_active = {
         -- Spawn Meridian immediately — she's already burning whether the crew accepts or not
         _spawnMeridian(st)
         if RT.flag("rezkov_m3_accepted") then
-            RT.setObjective("Disable and board CWS Meridian", true)
+            RT.setObjective("Board CWS Meridian", true)
         end
     end,
 

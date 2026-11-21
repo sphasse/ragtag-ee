@@ -139,7 +139,7 @@ local function _fragList()
 end
 
 local function _relayObjective()
-    RT.setObjective(string.format("Recover AI fragments (%d/3)", _fragCount()), true, "ledger")
+    RT.setObjective(string.format("AI fragments %d/3", _fragCount()), true, "ledger")
 end
 
 local function _unlockLedger(quiet)
@@ -498,7 +498,7 @@ M.phases.hook = {
 M.phases.meet = {
     enter = function(st)
         _spawnStation(st)
-        RT.setObjective("Meet Rezkov in the nebula", true, "ledger")
+        RT.setObjective("Meet Rezkov", true, "ledger")
     end,
 }
 
