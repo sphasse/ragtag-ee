@@ -8,8 +8,8 @@ Ported from the **Barrage** and **Lance** platforms in *Unstable 235*
 
 | Kind | Barrels | Cadence | Feel |
 |---|---|---|---|
-| `barrage` | 3, in a tight fan 8° apart | every 4.8 s | a spread of shells sweeping across the ship |
-| `lance` | 1 | every 2.8 s | one fast stream walked back and forth over the ship |
+| `barrage` | 3, in a tight fan 5° apart | every 4.8 s | a spread of shells sweeping ±6° across the ship |
+| `lance` | 1 | every 2.8 s | one stream walked ±2° back and forth over the ship (2.2 s sweep) |
 
 ![Barrage and lance platforms firing on a ship, seen on radar](platform_radar.png)
 
@@ -31,7 +31,11 @@ from the Ashgrave Annex. Being Relic, they fire on any crew in range; they answe
 - **Aim:** it turns toward that ship at `turn_rate` (45°/s) and doesn't fire until
   it's pointed at it. It starts turning at 150% of range, so it's usually already
   facing the ship when the ship enters the band.
-- **Strafe:** while firing, the aim sweeps **10° either side** of the ship, one full sweep
+- **Hit rate** (playtest 2026-11-20): on a stationary Light Freighter 5U out, about one hit every 7-8 s from
+  either kind (10 damage each). They don't lead their shots: a ship moving across the line is mostly missed.
+  The PR's ±10° sweep (and 8° barrage fan) were tuned for bigger targets: a freighter was hit by about 1 shot
+  in 10, and the lance's 3 s sweep fell in step with its 2.8 s cadence, missing for half a minute at a time.
+- **Strafe:** while firing, the aim sweeps either side of the ship (lance ±2°, barrage ±6°; default 10°), one full sweep
   every 3 s. Ships sitting still get hit; ships moving across the line can slip between sweeps.
 - Shells fly just past `max_range` (5% overshoot) and then expire. Each does 10 damage
   (stock HVLI). Platforms only shoot at factions hostile to them (`isEnemy`).

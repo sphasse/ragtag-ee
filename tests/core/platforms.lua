@@ -33,15 +33,17 @@ end)
 T.step("a lance 4U off the ship, facing away", function()
     T.P():setCanBeDestroyed(false)
     local x, y = T.P():getPosition()
+    -- Stock lance settings (playtest: with the old +/-10 degree sweep, in step with the 2.8 s
+    -- cadence, a stationary freighter could go half a minute without a hit).
     plat = PLATFORMS.spawn{kind = "lance", x = x + 4000, y = y, faction = "Corsairs", max_range = 6000,
-                           interval = 1, aim = 0}   -- the ship is due west of it (270): it must turn first
+                           aim = 0}   -- the ship is due west of it (180): it must turn first
     T.check("spawn: a platform", RT.valid(plat))
     T.check("spawn: hostile to the crew", plat:isEnemy(T.P()))
     h0, s0 = T.P():getHull(), T.P():getShieldLevel(0)
 end)
 T.waitFor("fire: it turns, fires and the ship takes damage", function()
     return T.P():getHull() < h0 or T.P():getShieldLevel(0) < s0 - 1
-end, 25)
+end, 40)   -- about one hit every 7 s at the stock lance settings
 T.step("hit", function()
     local t
     for _, e in ipairs(PLATFORMS.list) do if e.obj == plat then t = e end end

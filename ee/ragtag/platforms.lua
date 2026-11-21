@@ -49,9 +49,15 @@ PLATFORMS.defaults = {
 }
 
 PLATFORMS.kinds = {
-    barrage = {barrels = 3, fan_spread = 8, interval = 4.8, label = "Barrage Platform",
+    -- The barrage's fan: shells 5 degrees apart and a +/-6 degree sweep, so every shell crosses
+    -- the target during a sweep (at 8 degrees apart only the middle one could reach a freighter).
+    barrage = {barrels = 3, fan_spread = 5, interval = 4.8, strafe_degrees = 6, label = "Barrage Platform",
         description = "A gun platform. Its HVLI barrels fire in a tight fan, sweeping across whatever it targets."},
-    lance = {barrels = 1, fan_spread = 0, interval = 2.8, label = "Lance Platform",
+    -- The lance walks one stream across its target. A narrow sweep (a Light Freighter is a few
+    -- hundred units across: at +/-10 degrees most shots missed it) and a sweep period that does
+    -- not line up with the 2.8 s cadence (at 3 s, shot after shot came at the same point of the
+    -- sweep, off to one side, for half a minute at a time). Playtest 2026-11-20.
+    lance = {barrels = 1, fan_spread = 0, interval = 2.8, strafe_degrees = 2, strafe_period = 2.2, label = "Lance Platform",
         description = "A gun platform. It walks a single fast stream of HVLIs back and forth across its target."},
 }
 

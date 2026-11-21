@@ -125,5 +125,4 @@ now**, **Pause / resume drain**, **Refill energy**.
 
 A test range for the gun platforms (`ee/ragtag/platforms.lua`, contributed by Kuri148 in PR #1):
 one barrage and one lance platform (Corsairs) east of a Light Freighter. Fly into them: they turn
-to the ship, fire once pointed at it and in range (barrage 6U, lance 8U), and sweep 10° either
-side. GM: **Platform info**. See `docs/PLATFORMS.md`.
+to the ship, fire once pointed at it and in range (barrage 6U, lance 8U), and sweep either side of it (barrage ±6°, lance ±2°). GM: **Platform info**. See `docs/PLATFORMS.md`.

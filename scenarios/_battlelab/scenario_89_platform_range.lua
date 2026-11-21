@@ -2,8 +2,8 @@
 -- Description: Test range for the gun platforms: one barrage and one lance platform. Fly east into them.
 ---
 --- Contributed by Kuri148 (PR #1). Fly toward either platform: they track you and open fire only
---- when you are between point blank and 100% of their range (barrage 6U, lance 8U), sweeping 10
---- degrees either side. Stand-alone: no universe, no campaign save. Parked with the labs
+--- when you are between point blank and 100% of their range (barrage 6U, lance 8U), sweeping
+--- either side of you (barrage 6 degrees, lance 2). Stand-alone: no universe, no campaign save. Parked with the labs
 --- (scenarios/_battlelab: not installed or released unless the folder is renamed back).
 -- Type: The Drift Universe
 
