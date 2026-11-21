@@ -423,11 +423,12 @@ end
 -- the start of every later session (the DB is rebuilt each run; the flag persists).
 local function _survivorRecordsText()
     return table.concat({
-        "Testimony and instrument logs from four archive technicians recovered from a lifeboat on the Boneyard's south rim. "
-          .. "Unverified. Recorded by people who were never cleared to know what they were looking at.",
+        "Testimony and instrument logs from four Ashgrave Annex staff recovered from a lifeboat on the Boneyard's south rim, "
+          .. "uploaded by senior researcher Mara Quill. Unverified.",
         "",
-        "WHO THEY ARE\nCatalogue and records staff of the Ashgrave Annex, a Concord Level-5 research archive buried in the debris field "
-          .. "beyond Ashgrave. They launched a lifeboat disguised as debris to try and make it out. They drifted among the wrecks until the air ran short.",
+        "WHO THEY ARE\nDr. Mara Quill, a senior researcher, and three catalogue technicians of the Ashgrave Annex, a Concord Level-5 "
+          .. "research archive buried in the debris field beyond Ashgrave. They launched a lifeboat disguised as debris to try and make "
+          .. "it out. They drifted among the wrecks until the air ran short.",
         "",
         "THE ANNEX\nIt sits deeper in the debris field than the visible battle damage, north-east of Ashgrave at grid "
           .. JOBS.gridRef(_ANNEX_X, _ANNEX_Y) .. ". Its systems are encrypted and locked down. Anyone with a Relay officer who can breach "
@@ -440,15 +441,16 @@ local function _survivorRecordsText()
         "CONCORD\nConcord traffic over Ashgrave has been heavy for weeks, logged as 'routine rotation'. Staff were told a heavy response group "
           .. "would arrive to seal the archive permanently. That battle group is expected soon and after that the Annex will be closed off forever.",
         "",
-        "THE ARCHIVE\nThe technicians only worked the catalogue desk. The vault index lists a program called 'Ashgrave Synthesis' and a "
-          .. "folder marked 'reversal protocol'. Nobody on staff was cleared to open either.",
+        "THE ARCHIVE\nThe vault index lists a program called 'Ashgrave Synthesis' and a folder marked 'reversal protocol'. "
+          .. "The technicians were never cleared to open either. Quill was: she worked on the reversal program until it was shut "
+          .. "down, and its data stayed locked in the Annex.",
     }, "\n")
 end
 
 local function _addSurvivorRecords()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["boneyard_survivors"] then return end
     local e = SCIDB.addEntry("lore", "Boneyard Survivor Records", _survivorRecordsText(),
-        {["Source"] = "Ashgrave Annex archive staff", ["Reliability"] = "Unverified testimony",
+        {["Source"] = "Dr. Mara Quill and staff", ["Reliability"] = "Unverified testimony",
          ["Hazards"] = "Relic drones; Concord fleet"})
     SCIDB._entries["boneyard_survivors"] = e
 end
@@ -456,18 +458,19 @@ end
 -- The survivors hail the ship through an RT.voice (an Artifact with no position: never on radar,
 -- see ee/ragtag/voice.lua). Falls back to the ship log if comms are busy. A statement, not a
 -- conversation: they ask the crew to come back for the Annex, and nothing needs an answer.
-local _SURVIVOR_MSG = '"Thank you. We saw a lot of strange activity in the Boneyard while we were stranded, '
-    .. 'and we don\'t want those records to be lost, so we\'re uploading them to your database now. Ashgrave is where it starts."\n\n'
+local _SURVIVOR_MSG = '"Thank you. This is Mara Quill, senior researcher at the Ashgrave Annex. We saw a lot of strange activity in '
+    .. 'the Boneyard while we were stranded, and we don\'t want those records to be lost, so we\'re uploading them to your database '
+    .. 'now. Ashgrave is where it starts."\n\n'
     .. '"Please get us out of here, but somebody needs to take a look at our records and come back and investigate. '
     .. 'Those drones are whacko, but if the Annex could be hacked and all the research extracted, someone might actually be held accountable."'
 
 local function _survivorHail()
     RT.voice.create("boneyard_survivors", {
-        name = "Lifeboat Survivors", ttl = 300,
+        name = "Mara Quill", ttl = 300,
         tree = {text = _SURVIVOR_MSG},
     })
-    if not ARC.hail(RT.voice.get("boneyard_survivors"), _SURVIVOR_MSG, "Lifeboat Survivors") then
-        ARC.log("[Lifeboat Survivors] " .. _SURVIVOR_MSG, "#C0E0FF")   -- comms busy: never lose it
+    if not ARC.hail(RT.voice.get("boneyard_survivors"), _SURVIVOR_MSG, "Mara Quill") then
+        ARC.log("[Mara Quill] " .. _SURVIVOR_MSG, "#C0E0FF")   -- comms busy: never lose it
     end
     RT.after(5, function()
         ARC.log("[Science] Survivor records received.", "#00CCAA")   -- SCIDB announces the entry
@@ -488,9 +491,13 @@ local function _survivorsThanks(ship)
     local opener = st.concord_beaten
         and '"You got the archive out, and the Concord fleet is gone? Thank you. All of us, thank you."\n\n'
         or '"You got the archive out, right under the Concord fleet? Thank you. All of us, thank you."\n\n'
+    -- Quill, with the archive the crew brought back: the cure existed, and where the work goes next
+    -- (the hook for the Hob Works mission; plan.md).
     return opener
-        .. '"We were working to reverse the abomination, and we got close. We just needed better engineering than what we had. '
-        .. 'Hopefully the ' .. ship .. ' can carry the mission forward."'
+        .. '"I\'ve been through the reversal folder. The Concord was very close to a cure, but the political fallout from '
+        .. 'building and deploying it would have been too great. So they buried it, and the Pale Sun with it."\n\n'
+        .. '"We\'re headed to Hob\'s Landing to keep our work moving forward. We heard they have some exceptional engineers there. '
+        .. 'If the ' .. ship .. ' is ever out that way, come and find us."'
 end
 
 local function _survivorsHook(src, tgt)
@@ -711,6 +718,13 @@ M.phases = {
                     RT.flag("boneyard_hack_done", true)
                     ARC.log("[Relay] Research archive download complete. Data secured.", "#00AAFF")
                     _indexAshgraveResearch()
+                    -- A crew that never met the survivors still learns where the work goes next
+                    -- (with them, Quill says it at the report).
+                    if not RT.flag("boneyard_buoy_found") then
+                        ARC.log("[Science] The reversal folder: the Concord was very close to a cure, but shelved it for the "
+                            .. "political fallout of building and deploying it. Lead researcher: Dr. Mara Quill. The last note in "
+                            .. "her file is a forwarding address: Hob's Landing.", "#00CCAA")
+                    end
                     if not st.concord_beaten then RT.setObjective("Defeat Concord fleet", true, "boneyard") end
                 elseif op.key == "reprogram" then
                     RT.flag("boneyard_drone_flip", true)

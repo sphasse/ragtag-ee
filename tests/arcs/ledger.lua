@@ -273,9 +273,14 @@ end)
 T.dock(function() return T.st().station end)
 T.step("note credits and standing", function()   -- here, not earlier: new regions pay survey credits
     c0, concord0, indep0 = T.credits(), T.rep("Concord"), T.rep("Independent")
+    RT.flag("kael_alive", true)   -- she lived through the Rezkov arc
 end)
 T.talk(function() return T.st().station end, {"You were right, this thing runs hot."})
 T.step("delivered", function()
+    T.check("done: Rezkov passes on Kael's back channel (she is alive)",
+        T.msg():find("your old 'friend' Commander Kael", 1, true) ~= nil
+        and T.msg():find("our interests might now be more aligned than we thought", 1, true) ~= nil, T.msg())
+    T.check("done: and still sends the crew off", T.msg():find("Go and charge your reactor.", 1, true) ~= nil, T.msg())
     T.eq("done: status", T.status(), "done")
     T.eq("done: outcome full", T.flag("ledger_arc_done"), "full")
     T.check("done: evidence flag", T.flag("ledger_evidence"))
@@ -289,6 +294,23 @@ T.step("delivered", function()
     for _, a in ipairs(STATS.summary().arcs) do if a.id == "ledger" then line = a end end
     T.check("done: statistics report lists the arc as completed", line and line.status == "completed" and line.name == "Ledger Arc",
         line and line.status)
+end)
+T.closeComms()
+
+-- ── Kael dead: Rezkov says nothing of her ─────────────────────────────────────
+T.step("again, Kael dead", function()
+    RT.flag("kael_alive", false)
+    T.jump("carry")
+    T.P():setEnergyLevel(T.P():getMaxEnergy())
+    T.moveNear(T.st().station, 3000)
+end)
+T.dock(function() return T.st().station end)
+T.talk(function() return T.st().station end, {"You were right, this thing runs hot."})
+T.step("no Kael", function()
+    T.eq("kael dead: delivered", T.status(), "done")
+    T.check("kael dead: no word of her", T.msg():find("Kael", 1, true) == nil, T.msg())
+    T.check("kael dead: the usual send-off", T.msg():find("I will release it when it cannot be buried.", 1, true) ~= nil, T.msg())
+    RT.clearFlag("kael_alive")
 end)
 T.closeComms()
 

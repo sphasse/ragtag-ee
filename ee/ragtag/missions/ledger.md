@@ -62,6 +62,11 @@ Rezkov does not broadcast the ledger: "Put it out today and they bury it by the 
 week. I will release it when it cannot be buried." The Maw finale's aftermath is where it goes
 public.
 
+If Kael is alive (`kael_alive`, read from the Rezkov arc), the hand-over adds Rezkov's word about
+her: the Concord Audit Service's report on the crew was buried by "your old 'friend' Commander
+Kael", their interests "might now be more aligned than we thought", "potentially big changes in the
+Concord". A seed for the planned Concord storyline; the arc still ends on the delivery.
+
 ## Exports
 
 | Flag | Values |

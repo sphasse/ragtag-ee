@@ -81,7 +81,7 @@ crew) before its own upgrades go on. Details: `docs/GM_SHIP_MANAGEMENT.md`.
   complement") are *hired*, 150 cr for two, up to 8. **Probes**: 60 → 90 → 120 speed (200, 250 cr).
 - **Hob's Landing (the Hob Works)** is the independent science and engineering port: sensors,
   engines, thrusters, reactor, shields and probes, everything Ostia Highport's yard fits, with no
-  Concord papers. No upgrade is sold only at Concord ports. (It also builds the Maw finale's warhead.)
+  Concord papers. No upgrade is sold only at Concord ports. (In the planned finale it builds the broadcast beacon.)
 - There is no warp upgrade (removed 2026-11-18).
 - Upgrades belong to the ship that bought them: a second player ship has its own credits,
   standing, upgrades and job tier

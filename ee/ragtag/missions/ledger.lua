@@ -360,8 +360,17 @@ _stationComms = function(src, tgt)
             if st then AUDIT.drainOff(st) end
             RT.flag("ledger_arc_done", "full")
             MISSIONS.phase("ledger", "done")
+            -- Kael, if she lived through the Rezkov arc, turns out to be on the inside (plan.md: the
+            -- Concord's fracture; Arc 6 is an option, not a commitment).
+            local kael = ""
+            if RT.flag("kael_alive") then
+                kael = '\n\nWe received some surprising back-channel communication from your old \'friend\' Commander Kael. '
+                    .. 'She managed to bury the Audit Service\'s report on you. We\'re not fully sure why, but our interests might '
+                    .. 'now be more aligned than we thought. Potentially big changes in the Concord, but we\'ve all got work to do '
+                    .. 'before that. Keep an ear to the ground and head on a swivel, Magpie.'
+            end
             setCommsMessage('"It is safe now. So is what it carries.\n\nI will not release this yet. Put it out today and they bury it by the end of the week. '
-                .. 'I will release it when it cannot be buried.\n\nYou did well, Magpie. Go and charge your reactor."')
+                .. 'I will release it when it cannot be buried.' .. kael .. '\n\nYou did well, Magpie. Go and charge your reactor."')
         end)
     elseif phase == "done" or MISSIONS._status["ledger"] == "done" then
         setCommsMessage('"It is safe. When the time comes, the whole Drift will hear it."')
@@ -541,7 +550,7 @@ M.flags = {
     ledger_jobs_base   = "board jobs the primary ship had done when the Rezkov arc was first seen over (the hook waits for M.JOBS_AFTER_REZKOV more)",
     ["ledger_met_*"]   = "Science DB profile met in this arc (thresh, rezkov), set by ARC.meet",
 }
-M.reads = {"rezkov_ai_planted", "rezkov_m2_done", "rezkov_arc_done", "rezkov_declined"}
+M.reads = {"rezkov_ai_planted", "rezkov_m2_done", "rezkov_arc_done", "rezkov_declined", "kael_alive"}
 -- The job count's starting point records the campaign, not this arc's progress: no GM reset
 -- (Enable/Disable, a jump, -> Inactive) clears it, so the jobs done since Rezkov still count.
 -- It is forgotten only when the Rezkov arc is rewound (_rezkovOver).
