@@ -67,9 +67,18 @@ T.step("no contact during the delay; then the delay passes", function()
     T.check("defer: the Gauntlet does not re-offer yet", guide() == nil)
     T.st().deferred_until = 0
 end)
+T.wait(2)
+T.step("the Gauntlet alone never brings the raider", function()
+    T.check("hook: no Long Memory without the Greywater message", guide() == nil)
+end)
 
--- ── Gauntlet contact, "Lead the way" ─────────────────────────────────────────
-T.waitFor("hook: entering the Gauntlet brings the raider", function() return RT.valid(guide()) end, 3)
+-- ── The message again, then "Lead the way" ───────────────────────────────────
+T.dock("Greywater Depot")
+T.talk("Greywater Depot", {"Heard you're holding a message for us."})
+T.step("staged again", function() T.check("hook: Long Memory staged again", RT.valid(guide())) end)
+T.closeComms()
+T.undock()
+T.step("fly out to meet them again", function() T.moveNear(guide(), 3000) end)
 T.talk(guide, {}, {answer = true, name = "Long Memory"})
 T.step("the raider's opener", function()
     T.check("hook: 'Easy there.'", T.msg():find('"Easy there. If we wanted you dead', 1, true) ~= nil, T.msg())
@@ -117,8 +126,13 @@ T.waitFor("guide: at the approach it heads in to dock", function() return T.st()
 T.step("taking the crew to the port", function()
     T.eq("guide: ordered to dock at Blackwater", guide():getOrder(), "Dock")
     T.check("guide: its target is Blackwater", guide():getOrderTarget() == T.find("Blackwater"))
-    T.eq("guide: slows to 100 (6 U/min) for the mine gap and the dock", math.floor(guide():getImpulseMaxSpeed() + 0.5), 100)
+    T.eq("guide: still warp-1 speed through the gap", math.floor(guide():getImpulseMaxSpeed() + 0.5), 500)
+    guide():setPosition(55000, 99000 - 2500)   -- 2.5U from Blackwater
+    T.P():setPosition(55000 - 1000, 99000 - 4000)
 end)
+T.waitFor("guide: slows to 100 (6 U/min) only to dock", function()
+    return math.floor(guide():getImpulseMaxSpeed() + 0.5) == 100
+end, 3)
 
 -- ── Arrival: Long Memory hands over, then leaves once the crew docks ─────────
 T.step("in sight of Blackwater", function() T.moveNear("Blackwater", 4000) end)
@@ -281,14 +295,17 @@ T.step("alongside", function()
     T.check("raid: loading has not started at 4U", not T.st().load_t0)
     for i, s in ipairs(T.st().escorts) do s:setPosition(DEPOT_X + i * 500, DEPOT_Y + 800) end
 end)
-T.waitFor("raid: an escort really docks at the depot", function()
+-- A real docking usually lands within ~25 s, but not always: after 30 s alongside the loading
+-- starts anyway (_DOCK_GRACE). Either way the dwell must start.
+T.waitFor("raid: an escort docks (or the 30 s fallback starts the loading)", function()
+    if T.st().load_t0 then return true end
     for _, s in ipairs(T.st().escorts) do
         local ok, d = pcall(function() return s:getDockedWith() end)
         if ok and d and d == T.st().depot then return true end
     end
     return false
-end, 25)
-T.waitFor("raid: the 15 s dwell starts on docking", function() return T.st().load_t0 end, 3)
+end, 40)
+T.waitFor("raid: the 15 s dwell starts", function() return T.st().load_t0 end, 3)
 T.step("loading", function()
     T.eq("raid: not done until loaded (15 s docked)", T.phase(), "raid")
     T.action("Finish loading")

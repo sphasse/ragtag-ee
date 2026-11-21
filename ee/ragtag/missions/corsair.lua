@@ -85,10 +85,11 @@ local _HAUL_ABOARD = '"Gao yang jong duh goo yang... we hit the jackpot. Mines, 
 -- hops) but cruises on impulse at warp-1 speed, _GUIDE_IMPULSE: 500 world units/s = 30 U/min on the
 -- helm, the Light Freighter's warp 1 (warp speed 500 per level), so the crew follows at warp 1.
 -- Past _GUIDE_WAIT_D it tells them to keep up (once a minute at most). It leads to the Blackwater
--- approach (north of the mine ring), then slows to _GUIDE_DOCK_IMPULSE (6 U/min) to go in through
--- the north gap and dock at Blackwater.
+-- approach (north of the mine ring), then in through the north gap at the same speed, slowing to
+-- _GUIDE_DOCK_IMPULSE (6 U/min) only within _GUIDE_SLOW_R of Blackwater, to dock.
 local _GUIDE_IMPULSE      = 500
 local _GUIDE_DOCK_IMPULSE = 100
+local _GUIDE_SLOW_R       = 3 * U
 local _GUIDE_HOLD_D   = 5.5 * U
 local _GUIDE_GO_D     = 4.5 * U
 local _GUIDE_WAIT_D   = 8 * U
@@ -198,7 +199,7 @@ local function _guideLeaves(st, x, y)
 end
 
 -- The crew said "not right now": the raider leaves, the hook stays open. Another contact (the
--- Greywater message, or entering the Gauntlet again) can try after _REASK_DELAY.
+-- Greywater message) can try after _REASK_DELAY.
 local _REASK_DELAY = 10 * 60
 local function _deferHook(st)
     st.deferred_until = getScenarioTime() + _REASK_DELAY
@@ -846,7 +847,6 @@ M.phases.hook = {
         local p = ARC.player()
         if not p then return end
         local px, py = p:getPosition()
-        local in_gauntlet = ARC.dist(px, py, _GAUNTLET_X, _GAUNTLET_Y) < _GAUNTLET_R
         if RT.valid(st.guide) and st.hail_when_near then
             -- Staged by the Greywater message: waiting at the Gauntlet's edge, hails once close.
             if RT.dist(p, st.guide) < 6 * U then
@@ -856,13 +856,10 @@ M.phases.hook = {
             end
             return
         end
+        -- Long Memory only appears through the Greywater barkeep's message (playtest: it hailed
+        -- on entering the Gauntlet before the crew had heard of it).
         if not RT.valid(st.guide) then
-            if not in_gauntlet or now < (st.deferred_until or 0) then return end
-            local a = math.rad(p:getRotation() or 0)
-            local g = _spawnGuide(st, px + math.cos(a) * 4500, py + math.sin(a) * 4500)
-            g:orderDefendTarget(p)
-            st.hook_at = now + 4
-            ARC.log("[Science] Corsair raider closing. Weapons cold, shields down. They're not attacking.", "#00CCAA")
+            return
         elseif not st.hook_hailed and now >= (st.hook_at or 0) then
             st.hook_hailed = true
             local ok, opened = pcall(function() return st.guide:openCommsTo(p) end)
@@ -882,7 +879,10 @@ M.phases.hook = {
 local function _guideLead(st, g)
     local bw = _blackwater()
     if st.guide_leg == "dock" and RT.valid(bw) then
-        g:setImpulseMaxSpeed(_GUIDE_DOCK_IMPULSE)   -- slow through the mine gap and into the dock
+        -- Warp-1 speed through the ring's gap; slow only for the dock itself (playtest: slowing
+        -- from the approach point, 12U out, made the last leg crawl).
+        local close = ARC.near(g, _BW_X, _BW_Y, _GUIDE_SLOW_R)
+        g:setImpulseMaxSpeed(close and _GUIDE_DOCK_IMPULSE or _GUIDE_IMPULSE)
         g:orderDock(bw)
     else
         g:setImpulseMaxSpeed(_GUIDE_IMPULSE)        -- warp-1 speed
@@ -938,6 +938,11 @@ M.phases.escort = {
         if st.guide_leg ~= "dock" and ARC.near(g, _BW_APPROACH_X, _BW_APPROACH_Y, 1.5 * U) then
             st.guide_leg = "dock"
             if not st.guide_waiting then _guideLead(st, g) end
+        end
+        -- Close to Blackwater: slow down to dock.
+        if st.guide_leg == "dock" and not st.guide_slowed and ARC.near(g, _BW_X, _BW_Y, _GUIDE_SLOW_R) then
+            st.guide_slowed = true
+            g:setImpulseMaxSpeed(_GUIDE_DOCK_IMPULSE)
         end
         local d = RT.dist(p, g)
         local docked = RT.valid(bw) and g:isDocked(bw)

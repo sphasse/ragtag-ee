@@ -134,11 +134,11 @@ raiding by the "transitional" tariffs. A raider who has been watching the crew b
 the crew raids a Concord forward depot so the Corsairs can thicken Blackwater's mine ring with its
 mines, then stands in the Corsair line when the fleet arrives. Linear: defend, or don't do it.
 
-**Trigger:** upgrades >= 1000, Rezkov arc finished or declined, `corsair_arc_done` unset, and the crew enters the Gauntlet.
+**Trigger:** upgrades >= 1000, Rezkov arc finished or declined, `corsair_arc_done` unset; then the Greywater barkeep's message.
 
 **Phases:** `hook` -> `escort` -> `briefing` -> `raid` -> `return` -> `battle` -> `done`
 1. `hook` — rumors point to Greywater Depot, where the barkeep passes a message: *Long Memory*
-   waits at the Gauntlet's edge (fallback: entering the Gauntlet). Replies: Follow / Not right
+   waits at the Gauntlet's edge (the only way it appears). Replies: Follow / Not right
    now (hook stays open, re-offered after 10 min) / Tell your people to forget us (`declined`).
    The raider closes without attacking and hails:
    "We watch things in the Drift, and we know you are someone who is not intimidated by the Concord.

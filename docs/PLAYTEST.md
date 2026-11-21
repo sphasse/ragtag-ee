@@ -90,7 +90,7 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 
 ## 5. Corsair Arc (1000 cr of upgrades)
 
-- [ ] Hook: Greywater barkeep message, or entering the Gauntlet; "Not right now" re-offers after 10 min
+- [ ] Hook: only the Greywater barkeep's message brings Long Memory (not the Gauntlet); "Not right now" re-offers after 10 min
 - [ ] Escort: the guide **paces the crew** (holds past 5.5U behind, leads on within 4.5U). Stop for a
       while (a shake-down, a fight), then follow again: does it pick the crew back up? No warp now, top
       cruise at warp-1 speed (30 U/min): can the crew follow at warp 1? Does it take the crew through the north gap of the mine ring and dock at
