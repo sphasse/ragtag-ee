@@ -19,7 +19,8 @@ The universe places them from its `gun_platforms` data (`verse/drift.lua`; exten
 `{kind = "lance", fac = "Relic", x = 12, y = -95, max_range = 7}` (x, y and max_range in U). `VERSE.build`
 spawns them and `VERSE.update` runs `PLATFORMS.update`. Three Relic platforms stand in the Boneyard, well away
 from the Ashgrave Annex. Being Relic, they fire on any crew in range; they answer hails like the drones
-(base64). They can be destroyed and are rebuilt every session.
+(base64). They can be destroyed and are rebuilt every session. The Boneyard arc's Annex hack quiets them with the drones
+(they turn Derelict and hold fire; a GM reset gives them back to the Relic).
 
 ## Behaviour
 

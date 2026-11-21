@@ -164,7 +164,25 @@ local function relicDrones()
     return relic
 end
 local late
+-- The Boneyard's gun platforms (PLATFORMS), by faction.
+local function platformFactions()
+    local n = {}
+    for _, t in ipairs(PLATFORMS.list) do
+        if RT.valid(t.obj) then
+            if dist(t.obj, 36000, -96000) < 32000 then n[t.obj:getFaction()] = (n[t.obj:getFaction()] or 0) + 1 end
+        end
+    end
+    return n
+end
 T.step("security reset", function()
+    local pf = platformFactions()
+    T.eq("annex_control: the Boneyard's gun platforms go quiet too (Derelict)", pf.Derelict, 3)
+    T.check("annex_control: no Relic platform left", pf.Relic == nil)
+    for _, t in ipairs(PLATFORMS.list) do
+        if RT.valid(t.obj) and t.obj:getFaction() == "Derelict" then
+            T.check("annex_control: a quiet platform is no enemy of the crew", not t.obj:isEnemy(T.P()))
+        end
+    end
     T.eq("annex_control: objective", RT.objectives.boneyard, "Download Annex data")
     T.eq("annex_control: the Annex is Relic Active", annex():getFaction(), "Relic Active")
     T.check("annex_control: no longer an enemy (the crew can dock)", not T.P():isEnemy(annex()))
@@ -492,5 +510,6 @@ T.deactivate({
         T.check("inactive: Boneyard patrols resumed", not PROX._suspended_zones["the Boneyard"])
         T.eq("inactive: no rumors", T.rumors("BONEYARD_HOOK") + T.rumors("BONEYARD_DONE"), 0)
         T.eq("inactive: drones back as they were, no battle group left", census(), census0)
+        T.eq("inactive: the gun platforms are Relic again", platformFactions().Relic, 3)
     end,
 })

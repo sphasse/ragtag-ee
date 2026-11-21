@@ -47,7 +47,7 @@ local _LEAVE_R      =  49000   -- the Boneyard's radius (29U) + 20U: past this t
 function M.init_state()
     return {
         annex            = nil,    -- SpaceStation "Ashgrave Annex"
-        idle_drones      = {},     -- Relic ships set Derelict when hack completes
+        idle_drones      = {},     -- Relic drones and gun platforms set Derelict when the hack completes
         annex_battle     = nil,    -- BATTLE.annex: the Concord group, the drones, the Annex's lasers
         concord_beaten   = false,  -- the last Concord ship is gone (the Annex said so)
         fleet_arrived    = false,  -- the crew docked at the Annex and the Concord fleet jumped in
@@ -122,7 +122,22 @@ local function _idleDrones(st)
             end
         end
     end
-    if n > 0 then log("[BONEYARD] idled " .. n .. " Relic drones") end
+    -- The Boneyard's gun platforms (PLATFORMS) are on the same net: Derelict, they stop firing
+    -- (they only fire on ships of a hostile faction). Kept in the same list, so a reset gives them
+    -- back to the Relic too. The Annex is not a platform.
+    for _, t in ipairs((PLATFORMS and PLATFORMS.list) or {}) do
+        local s = t.obj
+        if RT.valid(s) and s ~= st.annex then
+            local ok, fac = pcall(function() return s:getFaction() end)
+            local x, y = s:getPosition()
+            if ok and fac == "Relic" and ARC.dist(x, y, _BONEYARD_CX, _BONEYARD_CY) < 32000 then
+                pcall(function() s:setFaction("Derelict") end)
+                st.idle_drones[#st.idle_drones + 1] = s
+                n = n + 1
+            end
+        end
+    end
+    if n > 0 then log("[BONEYARD] idled " .. n .. " Relic drones and platforms") end
 end
 
 local function _keepDronesIdle(st, now)

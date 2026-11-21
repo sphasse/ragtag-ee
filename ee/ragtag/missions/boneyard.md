@@ -26,6 +26,7 @@ Rumor injection: Concord is mobilising a heavy response group, destination unkno
 ### annex_hack
 Entering the phase sets the objective "Hack the Annex" and nothing else: **no pop-up, no instructions**. The survivors' request is the prompt; working out how is the crew's puzzle. Hailing the Annex only says it is under an encrypted lockdown. Relay must hack the `frontshield` system to 100% (hacking is a Relay-screen function; each success adds 50% and it decays over 180 s, so two successes in a row). A probe parked near the Annex does not last (playtest: the drones kill probes), so in practice the crew has to get close, under the drones' fire, until the hack lands. At 50% a mid-hack science log fires: the files are marked Concord Level 5 — not a standard military installation. When the hack completes:
 - Every Relic drone in the Boneyard goes Derelict and idle (the IFF is offline). They stay idle for the rest of the arc, and so does any Relic drone that turns up later (checked every 2 s until the arc ends)
+- The Boneyard's three gun platforms (`PLATFORMS`, the universe's `gun_platforms`) go Derelict too and hold fire; a GM reset gives them back to the Relic with the drones
 - Proximity spawns for the Boneyard are suspended
 - The Annex turns `Relic Active` (no longer an enemy of the crew, so it can be docked; enemy of the Concord). Its comms say "Station security has been reset. Dock for more options."
 - The objective becomes "Download Annex data"
