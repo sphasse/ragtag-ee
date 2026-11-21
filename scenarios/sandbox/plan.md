@@ -219,6 +219,22 @@ pointer plus a rumor ("the Works took in some Concord archive refugees").
    (`ledger_evidence`) it does the transfer while Relay holds a hack at a Treasury node (Lumen Exchange
    or Waypoint Galen) under time pressure; without it, board a Treasury tariff courier on the Arbiter
    Line for its credit chips. Concord standing hit; the Audit Service returns.
+   - **The fake transponder** (idea 2026-11-21). Sending them off, the chief engineer: "Your crew has
+     all the skills to pull this mission off, but the Concord is really on the lookout for the Magpie.
+     Our engineers can make a fake transponder that should be able to work for long enough for you to
+     pull it off. Just act normal and don't run from any patrols." While it is fitted, Concord
+     shakedowns judge the ship as if its standing were good (a clean pass), and the patrol says so:
+     "It's an old code, but it checks out…" Hostile-standing patrols spawn as ordinary shakedowns
+     instead of attacking.
+     - Cover breaks (the transponder is burned and real standing applies at once, a hostile patrol
+       turns hostile) if the crew runs from a shakedown, fires on a Concord ship or jammer, or the
+       heist is discovered (the end of the hack or the boarding). Then the escape is the drama.
+     - Implementation: a hook in `PROX` (`world/proximity.lua`) for the standing it uses to pick the
+       shakedown outcome and whether a patrol spawns hostile, e.g. `PROX.standingFor(ship)` that an
+       arc can override while a flag is set (`hob_transponder` = "fitted" / "burned"). Don't change
+       the ship's callsign: per-ship records are keyed by callsign, and a rename would save the
+       record under the fake name. The "old code" line goes into the clean-pass branch of the
+       shakedown comms when the override is on.
 3. `build`: pay at Hob's Landing; the beacon is built (a timer, or "next session"). Export
    `hob_beacon_ready`.
 
