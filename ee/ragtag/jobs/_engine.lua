@@ -189,6 +189,54 @@ local _SHORT_NAMES = {
 }
 function JOBS.shortName(cs) return _SHORT_NAMES[cs] or cs end
 
+-- The shortest recognisable form of a station's name, for the 20-character side panels:
+-- "Halcyon Rest" -> "Halcyon", "Concord Station Arbiter" -> "Arbiter".
+local _TINY_NAMES = {
+    ["Port Vesper"]             = "Vesper",
+    ["Concord Station Arbiter"] = "Arbiter",
+    ["Concord Waypoint Galen"]  = "Galen",
+    ["Saint Brennan's Mission"] = "Brennan's",
+    ["Sentinel Fleet Yard"]     = "Sentinel",
+    ["The Maw"]                 = "Maw",
+}
+function JOBS.tinyName(cs)
+    cs = tostring(cs or "?")
+    return _TINY_NAMES[cs] or cs:match("^(%S+)") or cs
+end
+
+JOBS.PANEL_MAX = 20   -- RT.SIDE_LINE_MAX: a status line on the side panels
+
+-- What an active job shows on Relay: one line of at most JOBS.PANEL_MAX characters, saying what
+-- to do next ("Deliver to Halcyon Rest", "Destroy Iron Gull", "Return to Vesper"). A station
+-- name is shortened (JOBS.shortName, then JOBS.tinyName) until the line fits, then it is cut.
+function JOBS.panelLine(m)
+    local max = JOBS.PANEL_MAX
+    local function fit(verb, cs)
+        for _, name in ipairs({cs, JOBS.shortName(cs), JOBS.tinyName(cs)}) do
+            local line = verb .. " " .. name
+            if #line <= max then return line end
+        end
+        return (verb .. " " .. JOBS.tinyName(cs)):sub(1, max)
+    end
+    local function named(verb, name) return (verb .. " " .. tostring(name or "target")):sub(1, max) end
+    local t = m.type
+    -- The work is done: back to the station that pays.
+    if m._found or m._hacked or m._destroyed or m._scanned or m._boarded then
+        return fit("Return to", m.origin)
+    end
+    if t == "delivery" then return fit("Deliver to", m.dest) end
+    if t == "escort" then return fit("Escort to", m.dest) end
+    if t == "salvage" then
+        local grid = (m.wx and m.wy and getSectorName) and getSectorName(m.wx, m.wy) or nil
+        return grid and ("Salvage at " .. grid) or "Salvage"
+    end
+    if t == "hacking" then return named("Hack", m.target_cs) end
+    if t == "destroy" then return named("Destroy", m.target_cs) end
+    if t == "boarding" then return named("Board", m.target_cs) end
+    if t == "tailing" then return named("Tail", m.target_cs) end
+    return tostring(m.short or "Job"):sub(1, max)
+end
+
 function JOBS.stationFaction(cs)
     for _, st in ipairs(VERSE.STATIONS) do
         if st.cs == cs then return st.fac end
@@ -421,7 +469,7 @@ function JOBS.refreshPanel()
         for slot = 1, JOBS.config.max_active do
             local entry = mine[slot]
             local txt = (entry and entry.phase == "active")
-                        and ("Job: " .. entry.mission.short)
+                        and JOBS.panelLine(entry.mission)
                         or  ("Job " .. slot .. ": (none)")
             p:addCustomInfo("relay", "rt_job_" .. slot, txt, slot)
         end

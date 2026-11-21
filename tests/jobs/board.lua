@@ -292,6 +292,36 @@ T.step("refill_secs 0: a taken job is replaced at once, the rest stand", functio
     JOBS.complete(T.activeEntry(taken))
     JOBS.config.refill_secs = nil
 end)
+-- The Relay job lines fit the 20-character side panel and say what to do next.
+T.step("job lines fit the side panel", function()
+    local cases = {
+        {{type = "delivery", dest = "Saint Brennan's Mission", origin = HOME}, "Deliver to Brennan's"},
+        {{type = "delivery", dest = "Halcyon Rest", origin = HOME}, "Deliver to Halcyon"},
+        {{type = "escort", dest = "Port Vesper", origin = HOME}, "Escort to Vesper"},
+        {{type = "salvage", wx = 0, wy = 0, origin = HOME}, nil},
+        {{type = "salvage", origin = "Concord Station Arbiter", _found = true}, "Return to Arbiter"},
+        {{type = "hacking", target_cs = "Relay K-7", origin = HOME}, "Hack Relay K-7"},
+        {{type = "destroy", target_cs = "Iron Gull", origin = HOME}, "Destroy Iron Gull"},
+        {{type = "destroy", target_cs = "Iron Gull", origin = "Port Vesper", _destroyed = true}, "Return to Vesper"},
+        {{type = "boarding", target_cs = "An Extremely Long Ship Name", origin = HOME}, nil},
+        {{type = "tailing", target_cs = "Grey Heron", origin = HOME}, "Tail Grey Heron"},
+    }
+    for _, c in ipairs(cases) do
+        local line = JOBS.panelLine(c[1])
+        T.check("panel: fits 20: " .. line, #line <= 20, #line)
+        if c[2] then T.eq("panel: " .. c[1].type, line, c[2]) end
+    end
+    T.eq("panel: a tiny name is the first word", JOBS.tinyName("Calder's Reach"), "Calder's")
+    -- An accepted job shows on Relay.
+    local m = T.makeJob("delivery", HOME)
+    T.check("panel: taken", JOBS.accept(m, true, T.P()))
+    JOBS.refreshPanel()
+    local f, shown = T.P().components.custom_ship_functions, nil
+    for i = 1, #f do if tostring(f[i].name) == "rt_job_1" then shown = tostring(f[i].caption) end end
+    T.eq("panel: Relay shows the job line", shown, JOBS.panelLine(m))
+    T.check("panel: it fits", shown and #shown <= 20, tostring(shown))
+    JOBS.complete(T.activeEntry(m))
+end)
 T.step("with the cooldown off the board is rebuilt each visit", function()
     JOBS.config.work_cooldown_enabled = false
     JOBS._station_work = {}
