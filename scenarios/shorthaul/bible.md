@@ -13,7 +13,8 @@ campaign is never touched (own save key `shorthaul`, saving switched off).
   stays full), but offers stand as usual: hailing again does not re-roll the board. Boards favour
   short runs (`JOBS.config.mission_distance_mode = "short"`, changeable from the GM's Jobs menu).
 - The boards stay shut until the GM presses **Start the clock** (so every crew starts together).
-- A live leaderboard (the clock, the top 5 by net worth, and your own place if lower) shows as status
+- A live leaderboard (the clock, the top 5 by net worth, and your own place if lower, marked "<";
+  every line at most 20 characters, `RACE.LINE_MAX`) shows as status
   lines on Relay, Operations, Tactical, Engineering+, Single Pilot and the alt Relay: the consoles a
   short-handed crew combines. No pop-ups until the end.
 - At zero (or **End the competition now**) the final standings pop up on every console of every

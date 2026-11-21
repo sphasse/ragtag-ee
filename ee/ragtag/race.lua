@@ -93,27 +93,35 @@ local function _clearLines(p)
     if s then s.drawn[p] = 0 end
 end
 
+-- The side panels fit about this many characters per line (playtest): every line is kept to it.
+RACE.LINE_MAX = 20
+
+-- "3. Kestrel 1,240 <": place, name (cut short if it has to be), score; "<" marks your own ship.
+local function _standingLine(i, e, me)
+    local tail = " " .. RACE.fmt(e.score) .. (me and " <" or "")
+    local head = i .. ". "
+    local room = RACE.LINE_MAX - #head - #tail
+    local name = e.name
+    if #name > room then name = name:sub(1, math.max(1, room)) end
+    return head .. name .. tail
+end
+
 -- The lines one ship shows: the clock, the top RACE.TOP_N, and its own place if lower.
 function RACE.linesFor(p, standings, now)
     local s = RACE.state
     local head
     if not s.started then
-        head = string.format("%s: waiting for the start (%g min)", RACE.NAME, s.minutes)
+        head = string.format("Not started (%gm)", s.minutes)
     else
-        head = string.format("%s: %s left", RACE.NAME, _clock(RACE.timeLeft(now)))
+        head = "Time left: " .. _clock(RACE.timeLeft(now))
     end
     local lines = {head}
     local mine
     for i, e in ipairs(standings) do
         if e.ship == p then mine = i end
-        if i <= RACE.TOP_N then
-            lines[#lines + 1] = string.format("%d. %s  %s%s", i, e.name, RACE.fmt(e.score), e.ship == p and "  (you)" or "")
-        end
+        if i <= RACE.TOP_N then lines[#lines + 1] = _standingLine(i, e, e.ship == p) end
     end
-    if mine and mine > RACE.TOP_N then
-        local e = standings[mine]
-        lines[#lines + 1] = string.format("%d. %s  %s  (you)", mine, e.name, RACE.fmt(e.score))
-    end
+    if mine and mine > RACE.TOP_N then lines[#lines + 1] = _standingLine(mine, standings[mine], true) end
     return lines
 end
 

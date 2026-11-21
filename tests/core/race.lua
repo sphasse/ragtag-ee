@@ -44,7 +44,7 @@ T.step("set up: shut until the start", function()
     T.eq("score: credits only", RACE.score(A), 500)
     T.eq("score: credits + upgrades at list price", RACE.score(B), 400 + RT.upgradeById("hull_plating").cost)
     RACE.draw(T.now())
-    T.check("before: the clock waits", has(customs(A, "race_relay_"), "waiting for the start"), table.concat(customs(A, "race_relay_"), " | "))
+    T.check("before: the clock waits", has(customs(A, "race_relay_"), "Not started"), table.concat(customs(A, "race_relay_"), " | "))
 end)
 T.step("start", function()
     T.check("start: starts once", RACE.start(T.now()))
@@ -53,9 +53,15 @@ T.step("start", function()
     local st = RACE.standings()
     T.eq("standings: the upgraded ship leads", st[1].name, B:getCallSign())
     local mine = customs(A, "race_relay_")
-    T.check("lines: the clock runs", has(mine, "left"), table.concat(mine, " | "))
-    T.check("lines: the leader", has(mine, "1. " .. B:getCallSign() .. "  600"), table.concat(mine, " | "))
-    T.check("lines: you", has(mine, "2. " .. A:getCallSign() .. "  500  (you)"), table.concat(mine, " | "))
+    T.check("lines: the clock runs", has(mine, "Time left: "), table.concat(mine, " | "))
+    T.check("lines: the leader", has(mine, "1. " .. B:getCallSign() .. " 600"), table.concat(mine, " | "))
+    T.check("lines: you, marked", has(mine, "2. " .. A:getCallSign() .. " 500 <"), table.concat(mine, " | "))
+    for _, l in ipairs(mine) do
+        T.check("lines: fits the side panel (20): " .. l, #l <= RACE.LINE_MAX, #l)
+    end
+    -- A long name is cut short to fit, never the score or the marker.
+    local long = RACE.linesFor(A, {{ship = A, name = "Extraordinarily Long Name", score = 1234567}}, T.now())
+    T.check("lines: a long name is cut to fit", #long[2] <= RACE.LINE_MAX and long[2]:sub(-11) == "1,234,567 <", long[2])
     for _, pos in ipairs({"operations", "tactical", "engineering+", "singlepilot"}) do
         T.check("lines: on " .. pos, #customs(A, "race_" .. pos .. "_") > 0)
     end
