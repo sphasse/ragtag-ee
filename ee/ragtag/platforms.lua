@@ -1,5 +1,8 @@
--- ee/ragtag/CustomObjects/platforms/platforms.lua
--- Stationary gun platforms that aim at enemy player ships and fire HVLI shells.
+-- ee/ragtag/platforms.lua
+-- PLATFORMS: stationary gun platforms that aim at enemy player ships and fire HVLI shells.
+-- Contributed by Kuri148 (PR #1); loaded by core.lua; the universe places them from its
+-- `platforms` data (verse.lua, VERSE.PLATFORMS) and VERSE.update runs PLATFORMS.update.
+-- Docs: docs/PLATFORMS.md.
 --
 -- Ported from the Barrage and Lance platforms in "Unstable 235" (scenario_69_unstable235.lua,
 -- written for EE-2024.12.08). That script used the old HVLI() constructor, which no longer
@@ -20,7 +23,7 @@
 --   "lance"    one barrel, faster cadence: a single stream walked across the target.
 --
 -- Usage in a scenario:
---   require("ragtag/CustomObjects/platforms/platforms.lua")
+--   (core.lua loads it; a stand-alone scenario can require("ragtag/platforms.lua"))
 --   -- in init(), after factions exist (VERSE.setupFactions()):
 --   PLATFORMS.spawn{kind = "barrage", x = x, y = y, faction = "Corsairs"}
 --   PLATFORMS.spawn{kind = "lance", x = x2, y = y2, faction = "Corsairs", max_range = 8000}
@@ -73,7 +76,7 @@ local function fireShell(owner, x, y, rotation, speed, range, damage)
         damage_at_center = damage, damage_at_edge = damage, blast_range = 20,
         owner = owner, explosion_sfx = "sfx/explosion.wav",
     }
-    e.components.lifetime = {lifetime = range / speed}
+    e.components.lifetime = {maximum = range / speed}   -- `maximum` on EE 2026-10-31 (was `lifetime`)
     e.components.radar_trace = {icon = "radar/missile.png", radius = 32, min_size = 16, max_size = 16,
         color = {200, 200, 200, 255}, rotate = true}
     e.components.radar_signature = {gravity = 0.1}
@@ -169,7 +172,13 @@ function PLATFORMS.update(delta)
                 for b = 0, t.barrels - 1 do
                     local a = aim + (b - (t.barrels - 1) / 2) * t.fan_spread
                     local mx, my = vectorFromAngle(a, t.muzzle_offset)
-                    fireShell(station, x + mx, y + my, a, t.shell_speed, range, t.shell_damage)
+                    -- The shell is built from engine components, whose Lua names change between
+                    -- engine versions: a failure is logged once, not raised on every shot.
+                    local ok, err = pcall(fireShell, station, x + mx, y + my, a, t.shell_speed, range, t.shell_damage)
+                    if not ok and not PLATFORMS._fire_error then
+                        PLATFORMS._fire_error = tostring(err)
+                        log("[PLATFORMS] a platform could not fire (engine mismatch?): " .. PLATFORMS._fire_error)
+                    end
                 end
             end
         end

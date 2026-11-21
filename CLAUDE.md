@@ -34,7 +34,7 @@ Contributors add **universe extensions** and **scenarios** independently.
   Rename the folder back to `battlelab` and re-run `tools/install.py` to bring both labs back. `scenario_63_battlelab.lua` — Battle Lab: the Boneyard's Annex fight (Concord vs Relic drones at
   Ashgrave) and an open-space Concord vs Corsairs battle (+ the crew), triggered and tuned from the GM screen; for
   balancing set-piece battles (see its README); `scenario_64_auditlab.lua` — Audit Lab: the Ledger arc's carry and
-  Concord Audit Service attack from the last fragment, replayable from the GM screen
+  Concord Audit Service attack from the last fragment, replayable from the GM screen; `scenario_89_platform_range.lua` — Platform Range: one barrage and one lance gun platform to fly into
 - `director/` — Python 3.11+ stdlib-only AI director; `generated/world.md` is generated
 - `tests/` — in-game regression tests run by `tools/game_tests.py` (never installed into a played game): `_harness.lua`,
   `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua`, `jobs/multiship.lua`
@@ -43,9 +43,9 @@ Contributors add **universe extensions** and **scenarios** independently.
   `core/gm_console.lua` (the GM menus act on the ship picked), `core/primary.lua` (losing and restoring the primary ship),
   `core/ship_list.lua` (the sandbox's "Create player ship" list: one Light Freighter entry per named ship),
   `core/save_version.lua` (save format versions and migrations)
-  and `core/stations.lua` (ports are indestructible; a lost station is reported), `core/upgrades.lua` (the upgrade catalogue and line bases), `core/race.lua` (The Short Haul's clock, score and leaderboard)
+  and `core/stations.lua` (ports are indestructible; a lost station is reported), `core/upgrades.lua` (the upgrade catalogue and line bases), `core/race.lua` (The Short Haul's clock, score and leaderboard), `core/platforms.lua` (gun platforms: placed, aim, fire, range)
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
-- `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse), `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements) and `ee/ragtag/battle.lua` (`BATTLE`: set-piece battles over combat points, shared by the Battle Lab, the Corsair arc and, as `BATTLE.annex`, the Boneyard arc), all loaded by `core.lua`
+- `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse), `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements) `ee/ragtag/battle.lua` (`BATTLE`: set-piece battles over combat points, shared by the Battle Lab, the Corsair arc and, as `BATTLE.annex`, the Boneyard arc) and `ee/ragtag/platforms.lua` (`PLATFORMS`: stationary gun platforms, contributed by Kuri148 in PR #1; the universe places them from its `gun_platforms` data, three Relic ones in the Boneyard; `docs/PLATFORMS.md`), all loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
 
 ## Commands

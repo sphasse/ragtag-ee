@@ -242,6 +242,16 @@ VERSE.extend({
         {x = 151, y = 114, r = 12, count = 34, gap_angle = 300, gap_width = 40},
     },
 
+    -- Gun platforms (ragtag/platforms.lua, contributed by Kuri148): Settlement War guns still
+    -- standing in the Boneyard, Relic like its drones, so they fire on any crew in range. Kept well
+    -- away from the Ashgrave Annex (43, -104; over 25U), its fight and the rescue pod (22, -72).
+    -- kind "barrage" (3-shell fan) or "lance" (one stream); max_range in U (default 6).
+    gun_platforms = {
+        {kind = "lance",   fac = "Relic", x = 12, y = -95,  max_range = 7},   -- the Boneyard's west edge
+        {kind = "barrage", fac = "Relic", x = 18, y = -110},                  -- north-west, among the wrecks
+        {kind = "lance",   fac = "Relic", x = 48, y = -76,  max_range = 7},   -- south-east edge
+    },
+
     -- Hazards
     hazards = {
         {kind = "blackhole", x = 177, y = -52},

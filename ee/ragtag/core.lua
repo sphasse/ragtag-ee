@@ -917,3 +917,4 @@ require("ragtag/core/gm_tools.lua")     -- RT.addCampaignGMFunctions, campaign b
 require("ragtag/voice.lua")
 require("ragtag/stats.lua")
 require("ragtag/battle.lua")   -- BATTLE: set-piece battles over combat points (Battle Lab, Corsair arc)
+require("ragtag/platforms.lua")   -- PLATFORMS: gun platforms (the universe places them; Kuri148, PR #1)

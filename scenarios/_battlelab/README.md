@@ -120,3 +120,10 @@ GM console: **Status** (time carrying, energy, time to the fleet, the audit's st
 jammers, each auditor's hull and range), **Reset the round** (core back, fleet gone, crew back at the
 start with full energy, hull and shields), **Pick up the core now**, **Fleet now**, **Auditors hostile
 now**, **Pause / resume drain**, **Refill energy**.
+
+## Platform Range (scenario 89)
+
+A test range for the gun platforms (`ee/ragtag/platforms.lua`, contributed by Kuri148 in PR #1):
+one barrage and one lance platform (Corsairs) east of a Light Freighter. Fly into them: they turn
+to the ship, fire once pointed at it and in range (barrage 6U, lance 8U), and sweep 10° either
+side. GM: **Platform info**. See `docs/PLATFORMS.md`.

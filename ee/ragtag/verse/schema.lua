@@ -17,6 +17,8 @@
 --       nebula_fields = { ... }, asteroid_fields = { ... }, garrisons = { ... },
 --       minefields = { ... }, hazards = { ... }, wreck_fields = { ... },
 --       salvage = { ... }, routes = { ... }, rumors = { "..." },
+--       gun_platforms = { {kind = "lance", fac = "Relic", x = 12, y = -95, max_range = 7} },
+--                  -- PLATFORMS (ragtag/platforms.lua): "barrage" or "lance"; x, y and max_range in U
 --       lore = { "A paragraph the AI director should know about this part of the universe." },
 --       route_stops = { border = {"New Station"} },   -- add stops to existing routes
 --   })
@@ -31,6 +33,7 @@ VERSE.LISTS = {
     nebula_fields = "NEBULA_FIELDS", asteroid_fields = "ASTEROID_FIELDS", garrisons = "GARRISONS",
     minefields = "MINEFIELDS", hazards = "HAZARDS", wreck_fields = "WRECK_FIELDS",
     salvage = "SALVAGE", routes = "ROUTES", rumors = "RUMORS", lore = "LORE",
+    gun_platforms = "GUN_PLATFORMS",
 }
 for _, T in pairs(VERSE.LISTS) do VERSE[T] = VERSE[T] or {} end
 VERSE.extensions = VERSE.extensions or {}
@@ -102,6 +105,13 @@ function VERSE.validate()
     end
     for _, s in ipairs(VERSE.SALVAGE) do
         needNum("salvage", s, "x", "y", "tier")
+    end
+    for _, g in ipairs(VERSE.GUN_PLATFORMS) do
+        needNum("gun platform", g, "x", "y")
+        if g.kind ~= nil and g.kind ~= "barrage" and g.kind ~= "lance" then
+            bad("gun platform at (%s, %s) from %s: kind must be \"barrage\" or \"lance\"", tostring(g.x), tostring(g.y), tostring(g.source))
+        end
+        if type(g.fac) ~= "string" then bad("gun platform at (%s, %s) from %s needs fac", tostring(g.x), tostring(g.y), tostring(g.source)) end
     end
     return problems, places
 end

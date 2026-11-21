@@ -215,7 +215,7 @@ _LISTS = [
     "stars", "planets", "stations", "regions",
     "nebula_fields", "asteroid_fields", "garrisons",
     "minefields", "hazards", "wreck_fields", "salvage",
-    "routes", "rumors", "lore",
+    "routes", "rumors", "lore", "gun_platforms",
 ]
 
 

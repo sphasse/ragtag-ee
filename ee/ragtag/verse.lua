@@ -397,6 +397,29 @@ end
 -- defenders plugin to walk round their post. Rebuilt with the universe.
 VERSE.PICKETS = {}
 
+-- Gun platforms (PLATFORMS, ragtag/platforms.lua; contributed by Kuri148): stationary guns from the
+-- universe data's gun_platforms list. They fire at player ships of a faction hostile to theirs.
+-- A Relic platform answers hails like the drones (base64). Destructible; rebuilt every session.
+local function buildGunPlatforms()
+    if not (PLATFORMS and PLATFORMS.spawn) then return 0 end
+    local n = 0
+    for _, g in ipairs(VERSE.GUN_PLATFORMS) do
+        local ok, st = pcall(PLATFORMS.spawn, {kind = g.kind or "lance", x = g.x * U, y = g.y * U,
+            faction = g.fac, callsign = g.callsign, max_range = g.max_range and g.max_range * U or nil})
+        if ok and st then
+            n = n + 1
+            if g.fac == "Relic" then
+                st:setDescriptions("Weapons platform.", "Settlement War gun platform. Still armed, still guarding nothing in particular.")
+                if VERSE.droneComms then st:setCommsScript(""):setCommsFunction(VERSE.droneComms) end
+            end
+            if g.desc then st:setDescriptions("Weapons platform.", g.desc) end
+        else
+            log("[VERSE] gun platform failed: " .. tostring(st))
+        end
+    end
+    return n
+end
+
 local function buildGarrisons()
     local n = 0
     VERSE.PICKETS = {}
@@ -585,6 +608,7 @@ function VERSE.build(opts)
     buildMines()
     buildHazards()
     VERSE.garrison_count = buildGarrisons()
+    VERSE.platform_count = buildGunPlatforms()
     buildWrecks(map_rng)
     -- Salvage clusters and wreck scanning are handled by the WORLD "salvage" plugin.
     -- Freighter traffic and ambient crates are handled by the WORLD "traffic" plugin.
@@ -602,6 +626,7 @@ function VERSE.update(delta)
         VERSE.last_region_check = now
         VERSE.updateRegion()
     end
+    if PLATFORMS and PLATFORMS.update then PLATFORMS.update(delta) end   -- the gun platforms aim and fire
     -- Traffic, ambient crates, and wreck scanning are driven by WORLD plugins.
 end
 
