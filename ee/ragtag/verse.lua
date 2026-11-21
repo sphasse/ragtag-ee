@@ -521,7 +521,13 @@ function VERSE.updateRegion()
     for _, s in ipairs(RT.players or {}) do
         if RT.valid(s) then
             local sx, sy = s:getPosition()
-            local label = "Location: " .. VERSE.regionAt(sx, sy).name .. "  " .. getSectorName(sx, sy)
+            -- "Blackwater Reach F9": region and grid, kept to the side panel's width (the region
+            -- name is shortened if it has to be, never the grid).
+            local grid = getSectorName(sx, sy)
+            local name = VERSE.regionAt(sx, sy).name:gsub("^the ", ""):gsub("^%l", string.upper)
+            local room = (RT.SIDE_LINE_MAX or 20) - #grid - 1
+            if #name > room then name = name:sub(1, math.max(1, room)) end
+            local label = name .. " " .. grid
             s:addCustomInfo("helms", "rt_region", label, 1)
             s:addCustomInfo("relay", "rt_region_r", label, 1)
             s:addCustomInfo("operations", "rt_region_o", label, 1)

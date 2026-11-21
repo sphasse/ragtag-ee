@@ -69,12 +69,36 @@ T.step("Wren joins with its record", function()
     T.eq("loadout: same nuke rack as the primary", W:getWeaponStorageMax("Nuke"), A:getWeaponStorageMax("Nuke"))
 end)
 T.wait(2.5)   -- the location line is refreshed every 2 s
-T.step("every ship shows where it is", function()
-    local f, found = W.components.custom_ship_functions, false
+-- Side-panel lines fit about 20 characters (RT.SIDE_LINE_MAX, playtest).
+local function captions(p, prefix)
+    local out = {}
+    local f = p.components.custom_ship_functions
     for i = 1, #f do
-        if tostring(f[i].name) == "rt_region_r" and tostring(f[i].caption):find("Location: ", 1, true) then found = true end
+        if tostring(f[i].name):sub(1, #prefix) == prefix then out[#out + 1] = tostring(f[i].caption) end
     end
-    T.check("location: Wren's Relay shows its location", found)
+    return out
+end
+T.step("every ship shows where it is, in 20 characters", function()
+    local loc = captions(W, "rt_region_r")
+    T.eq("location: Wren's Relay shows its location", #loc, 1)
+    T.check("location: region and grid, no 'Location:'", loc[1] and not loc[1]:find("Location", 1, true), tostring(loc[1]))
+    T.check("location: fits 20", loc[1] and #loc[1] <= RT.SIDE_LINE_MAX, tostring(loc[1]))
+end)
+T.step("objectives wrap to fit the side panels", function()
+    local text = "Deal with the audit, deliver the AI to Rezkov"
+    local lines = RT.wrapLines(text, 20, "Obj:")
+    T.eq("wrap: first line starts 'Obj:'", lines[1]:sub(1, 4), "Obj:")
+    for _, l in ipairs(lines) do T.check("wrap: fits 20: " .. l, #l <= 20, #l) end
+    T.eq("wrap: every word kept, in order", table.concat(lines, " "), "Obj: " .. text)
+    T.eq("wrap: an over-long word is cut", RT.wrapLines("Supercalifragilisticexpialidocious", 20)[1], "Supercalifragilistic")
+    RT.setObjective(text, true, "test_wrap")
+    local shown = captions(W, "rt_objective_test_wrap")
+    T.eq("objective: one line per wrapped line", #shown, #lines)
+    for _, l in ipairs(shown) do T.check("objective: fits 20: " .. l, #l <= 20, #l) end
+    RT.setObjective("Short one", true, "test_wrap")
+    T.eq("objective: a shorter one leaves no stale lines", #captions(W, "rt_objective_test_wrap"), 1)
+    RT.clearObjective("test_wrap")
+    T.eq("objective: cleared", #captions(W, "rt_objective_test_wrap"), 0)
 end)
 
 T.step("a ship already flying is not made twice", function()
