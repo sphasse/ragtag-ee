@@ -499,7 +499,8 @@ end
 local function _survivorsThanks(ship)
     local st = MISSIONS._state["boneyard"] or {}
     local opener = st.concord_beaten
-        and '"You got the archive out, and the Concord fleet is gone? Thank you. All of us, thank you."\n\n'
+        and '"You got the archive out, and a whole Concord battle group destroyed? That\'ll set them back. '
+            .. 'Thank you. All of us, thank you."\n\n'
         or '"You got the archive out, right under the Concord fleet? Thank you. All of us, thank you."\n\n'
     -- Quill, with the archive the crew brought back: the cure existed, and where the work goes next
     -- (the hook for the Hob Works mission; plan.md).

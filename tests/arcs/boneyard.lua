@@ -405,6 +405,8 @@ T.step("before the talk", function()
 end)
 T.talk("Halcyon Rest", {"Talk with the lifeboat survivors"})
 T.step("their thanks", function()
+    T.check("report: the battle group destroyed sets them back",
+        T.msg():find("a whole Concord battle group destroyed? That'll set them back.", 1, true) ~= nil, T.msg())
     T.check("report: the Concord was very close to a cure", T.msg():find("The Concord was very close to a cure, but the political fallout", 1, true) ~= nil, T.msg())
     T.check("report: they head for Hob's Landing", T.msg():find("We're headed to Hob's Landing to keep our work moving forward.", 1, true) ~= nil, T.msg())
     T.check("report: exceptional engineers", T.msg():find("exceptional engineers", 1, true) ~= nil, T.msg())
