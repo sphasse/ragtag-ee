@@ -26,6 +26,9 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       told to keep clear; refusing the fine makes the patrol attack the refusing ship only
 - [ ] A patrol whose ship leaves the zone switches to the other ship if it is still in the zone
 - [ ] GM **Reputation...** lists both ships; **Jobs...** has a credits pair per ship
+- [ ] GM **Jobs... → New delivery...**: select a port on the map → **Use map selection** sets From;
+      post a `[SPECIAL]` for the second ship: it is on that port's board for that ship only, and
+      delivering it pays the GM's amount; **Assign now** puts a job straight on a ship's Relay panel
 - [ ] A wreck scanned by the second ship gives up salvage near the second ship
 - [ ] Freighters never pop in or teleport next to either ship
 - [ ] The "Create player ship" list: ten "Light Freighter: <name>" entries, the Magpie first; each

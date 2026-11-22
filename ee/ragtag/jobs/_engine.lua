@@ -59,6 +59,7 @@ local _inject_seq = 0
 --                                    -- job). Still looks like a normal job (no [SPECIAL] tag).
 --   any_ship = true,                 -- not arc work: offered to every player ship (tests, GM).
 --                                    -- Without it an injected job is for the primary ship only.
+--   for_ship = <ship>,               -- not arc work: offered to that one player ship only (GM).
 --   record   = <mission table> | function(cs) return <mission table> end,
 -- }
 -- Build records with JOBS.build("delivery"|"salvage", opts) (see those modules).
@@ -68,10 +69,25 @@ function JOBS.inject(def)
         id = def.id or ("inj_" .. _inject_seq),
         category = def.category, priority = def.priority or 3,
         origin = def.origin, when = def.when, record = def.record, ensure = def.ensure,
-        any_ship = def.any_ship, missions = {},
+        any_ship = def.any_ship, for_ship = def.for_ship, missions = {},
     }
     JOBS._injected[#JOBS._injected + 1] = e
     return e.id
+end
+
+-- Remove one injected job by the id JOBS.inject returned (a job already taken carries on).
+function JOBS.removeInjected(id)
+    for i = #JOBS._injected, 1, -1 do
+        if JOBS._injected[i].id == id then table.remove(JOBS._injected, i) end
+    end
+end
+
+-- Whether `ship` may see and take job `m`: generated jobs are open to every ship; an injected
+-- job is for its for_ship, every ship (any_ship), or else the primary ship only (arc work).
+function JOBS._openTo(m, ship)
+    if not m._inject then return true end
+    if m._for_ship then return m._for_ship == ship end
+    return (m._any_ship or ship == RT.player) and true or false
 end
 
 function JOBS.removeCategory(category)
@@ -88,11 +104,15 @@ local function _originMatches(e, cs)
 end
 
 -- Eligible missions at station cs. hook=true -> priority >= 4; false -> seeds.
--- primary=false: only the entries open to every ship (any_ship).
-function JOBS._injectedFor(cs, hook, primary)
+-- primary=false: only the entries open to every ship (any_ship). An entry with for_ship is
+-- listed only when `ship` is that ship.
+function JOBS._injectedFor(cs, hook, primary, ship)
     local out = {}
     for _, e in ipairs(JOBS._injected) do
-        if (e.priority >= 4) == hook and _originMatches(e, cs) and (primary ~= false or e.any_ship) then
+        local open
+        if e.for_ship then open = (ship ~= nil and e.for_ship == ship)
+        else open = (primary ~= false or e.any_ship) end
+        if (e.priority >= 4) == hook and _originMatches(e, cs) and open then
             local ok_when = true
             if e.when then
                 local ok, res = pcall(e.when, cs)
@@ -113,6 +133,7 @@ function JOBS._injectedFor(cs, hook, primary)
                         rec._inject = e.id
                         rec._ensure = e.ensure and e.priority < 4 or nil
                         rec._any_ship = e.any_ship or nil
+                        rec._for_ship = e.for_ship
                         e.missions[cs] = rec
                         m = rec
                     end
@@ -486,7 +507,7 @@ end
 function JOBS.accept(m, skip_log, ship)
     ship = RT.playerShip(ship) or RT.player
     if not RT.valid(ship) then return false end
-    if m._inject and not m._any_ship and ship ~= RT.player then return false end   -- arc jobs: primary only
+    if not JOBS._openTo(m, ship) then return false end   -- arc jobs: primary only; GM jobs: their ship
     if #JOBS.activeFor(ship) >= JOBS.config.max_active and not m.story then return false end
     m.ship = ship
     JOBS._done[m.id] = true
@@ -846,14 +867,12 @@ function JOBS.board(cs, ship)
     -- story arcs belong to that ship. Story contracts do not use up the station's slots. A seed
     -- already sitting in a slot stays there for the primary ship and is hidden from the others.
     local primary = (ship == RT.player)
-    local story  = JOBS._injectedFor(cs, true, primary)
-    local seeds  = JOBS._injectedFor(cs, false, primary)
+    local story  = JOBS._injectedFor(cs, true, primary, ship)
+    local seeds  = JOBS._injectedFor(cs, false, primary, ship)
 
     _placeEnsured(ss, n_slots, due, offers, seeds, now)
-    if not primary then
-        for i = #offers, 1, -1 do
-            if offers[i]._inject and not offers[i]._any_ship then table.remove(offers, i) end
-        end
+    for i = #offers, 1, -1 do
+        if not JOBS._openTo(offers[i], ship) then table.remove(offers, i) end
     end
 
     local ctx, slots_failed = JOBS.offerContext(cs), 0

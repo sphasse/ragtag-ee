@@ -324,6 +324,36 @@ function M.build(o)
     }
 end
 
+-- For the GM's New delivery (gm_console.lua): the cargo list, and what the board would pay and
+-- allow for a run. Archetypes for one faction's ports (fac) only fit there; the GM may use any.
+function M.archetypes() return _ARCHETYPES end
+
+-- The archetypes a port of `faction` would offer (the ones for any faction plus its own).
+function M.archetypesFor(faction)
+    local out = {}
+    for _, a in ipairs(_ARCHETYPES) do
+        if not a.fac or a.fac == faction then out[#out + 1] = a end
+    end
+    return out
+end
+
+-- o = {origin, dest, urgent, arch (optional), ship (whose tier; default the primary ship)}.
+-- Returns reward, seconds: the board's pay (at the ship's tier, at most 1, as the board rolls
+-- it) and time limit. nil when either port is missing.
+function M.suggest(o)
+    local oe, de = RT.find(o.origin), RT.find(o.dest)
+    if not (RT.valid(oe) and RT.valid(de)) then return nil end
+    local ox, oy = oe:getPosition(); local dx, dy = de:getPosition()
+    local dist   = math.sqrt((dx-ox)^2 + (dy-oy)^2)
+    local region = VERSE.regionAt(dx, dy)
+    local tier   = math.min(JOBS.maxTier(o.ship), 1)
+    local dmin, dmax = JOBS.getDistanceRange()
+    local reward = JOBS.calcReward(JOBS.ECONOMY.base_reward[tier],
+        JOBS.ECONOMY.type_mult["delivery"] * ((o.arch and o.arch.reward_mult) or 1),
+        dist, region and region.danger or 0, dmin, dmax, o.urgent and 1.5 or 1.0)
+    return reward, M.duration({distance_u = dist, urgent = o.urgent})
+end
+
 function M.duration(m)
     local d = m.distance_u or 60000
     if m.urgent then

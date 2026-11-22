@@ -205,6 +205,281 @@ function GMCONSOLE.add(opts)
         addSessionGMFunctions()
     end)
 
+    -- ── New delivery (Jobs... → New delivery...) ─────────────────────────────────
+    -- The GM writes a delivery job: starting and ending port, cargo, time, pay and who it is for,
+    -- then posts it on the starting port's board or hands it straight to a ship. EE's GM screen
+    -- has buttons but no text box, so the cargo and its lines come from the delivery archetypes
+    -- (picked, or Random). Time and pay start at what the board would offer ("suggested") and
+    -- follow the ports until the GM changes them. The draft is kept between visits.
+    local showNewDelivery, showPostedJobs, showPortPicker, showCargoPicker, showAdjust
+    local GM_CATEGORY = "GM_JOBS"
+    local PAGE = 12
+
+    local function _delivery() return JOBS._registry["delivery"] end
+
+    local function _draft()
+        local d = GMCONSOLE._draft
+        if not d then
+            d = {arch_i = 0, urgent = false, special = true}
+            GMCONSOLE._draft = d
+        end
+        if d.who ~= "any" and not RT.valid(d.who) then d.who = RT.player end
+        return d
+    end
+
+    -- The ports a delivery can run between: universe stations with a job board, by name.
+    local function _ports()
+        local out = {}
+        for _, s in ipairs(VERSE.STATIONS or {}) do
+            if s.fac ~= "Corsairs" and s.fac ~= "Hollow" and RT.valid(RT.find(s.cs)) then
+                out[#out + 1] = s.cs
+            end
+        end
+        table.sort(out)
+        return out
+    end
+
+    -- Posted GM jobs still in the engine (waiting on a board or taken and under way).
+    local function _gmJobs()
+        local out = {}
+        for _, e in ipairs(JOBS._injected) do
+            if e.category == GM_CATEGORY then out[#out + 1] = e end
+        end
+        return out
+    end
+
+    local function _arch(d)
+        return d.arch_i > 0 and _delivery().archetypes()[d.arch_i] or nil
+    end
+
+    local function _who(d)
+        if d.who == "any" then return nil end
+        return d.who
+    end
+
+    local function _whoName(d)
+        if d.who == "any" then return "any ship" end
+        return RT.valid(d.who) and d.who:getCallSign() or "?"
+    end
+
+    -- The board's pay and time for the draft, or nil until both ports are set.
+    local function _suggested(d)
+        if not (d.origin and d.dest) then return nil end
+        return _delivery().suggest{origin = d.origin, dest = d.dest, urgent = d.urgent,
+                                   arch = _arch(d), ship = _who(d)}
+    end
+
+    local function _mins(secs) return string.format("%dm", math.floor(secs / 60 + 0.5)) end
+
+    -- The draft as a job record (cargo resolved now when Random), or nil and why not.
+    local function _buildJob(d)
+        if not d.origin then return nil, "Pick a starting port first." end
+        if not d.dest then return nil, "Pick an ending port first." end
+        if d.origin == d.dest then return nil, "The starting and ending ports are the same." end
+        local pay, secs = _suggested(d)
+        if not pay then return nil, "One of the ports is gone." end
+        local arch = _arch(d)
+        if not arch then
+            local pool = _delivery().archetypesFor(JOBS.stationFaction(d.origin))
+            arch = pool[math.random(#pool)]
+        end
+        local m = JOBS.build("delivery", {
+            origin = d.origin, dest = d.dest, cargo = arch.cargo, urgent = d.urgent,
+            reward = d.pay or pay, time_limit = d.secs or secs,
+            brief = arch.lore .. "\n\n" .. arch.accept_msg, complete_msg = arch.recv_msg,
+            story = d.special or nil, category = GM_CATEGORY,
+        })
+        m.tier = math.min(JOBS.maxTier(_who(d)), 1)
+        return m
+    end
+
+    local function _summary(m, where)
+        return string.format("%s%s: %s\n%dm, %dcr, for %s.\n\n%s",
+            m.special and "[SPECIAL] " or "", where, m.short, math.floor(m.time_limit / 60), m.reward,
+            _whoName(_draft()), m.brief)
+    end
+
+    local function _post(d)
+        local m, why = _buildJob(d)
+        if not m then addGMMessage(why); return end
+        local inj_id
+        local function gone() JOBS.removeInjected(inj_id) end
+        m.on_complete, m.on_fail = gone, gone   -- finished either way: off the GM list, never re-offered
+        inj_id = JOBS.inject{
+            category = GM_CATEGORY, priority = 5, origin = d.origin, record = m,
+            any_ship = (d.who == "any") or nil,
+            for_ship = (d.who ~= "any" and d.who ~= RT.player) and d.who or nil,
+        }
+        addGMMessage(_summary(m, "Posted at " .. d.origin))
+    end
+
+    local function _assign(d)
+        local ship = _who(d) or RT.player
+        local m, why = _buildJob(d)
+        if not m then addGMMessage(why); return end
+        if not RT.valid(ship) then addGMMessage("No ship to give it to."); return end
+        if not JOBS.accept(m, false, ship) then
+            addGMMessage(ship:getCallSign() .. " already has " .. JOBS.config.max_active
+                .. " jobs. Make it [SPECIAL] (no cap), or post it.")
+            return
+        end
+        JOBS.log(m, m.brief)
+        addGMMessage(_summary(m, "Given to " .. ship:getCallSign()))
+    end
+
+    showNewDelivery = function()
+        clearGMFunctions()
+        local d = _draft()
+        addGMFunction("← Back to Jobs", function() showJobsMenu() end)
+        addGMFunction("From: " .. (d.origin or "(pick)") .. "...", function() showPortPicker("origin", 1) end)
+        addGMFunction("To: " .. (d.dest or "(pick)") .. "...", function() showPortPicker("dest", 1) end)
+        local arch = _arch(d)
+        addGMFunction("Cargo: " .. (arch and arch.cargo or "Random") .. "...", function() showCargoPicker(1) end)
+        addGMFunction("Urgent: " .. (d.urgent and "yes" or "no"), function()
+            d.urgent = not d.urgent
+            showNewDelivery()
+        end)
+        local pay, secs = _suggested(d)
+        local function adj(val, sug, fmt)
+            if not sug then return "(pick ports)" end
+            if not val or val == sug then return fmt(sug) .. " (suggested)" end
+            return fmt(val) .. " (sugg. " .. fmt(sug) .. ")"
+        end
+        addGMFunction("Time: " .. adj(d.secs, secs, _mins) .. "...", function() showAdjust("secs") end)
+        addGMFunction("Pay: " .. adj(d.pay, pay, function(v) return v .. "cr" end) .. "...", function() showAdjust("pay") end)
+        addGMFunction("Kind: " .. (d.special and "[SPECIAL]" or "normal work"), function()
+            d.special = not d.special
+            showNewDelivery()
+        end)
+        addGMFunction("For: " .. _whoName(d), function()
+            -- Cycle: each live ship (primary first), then any ship.
+            local list = {}
+            RT.forEachPlayer(function(p) list[#list + 1] = p end)
+            list[#list + 1] = "any"
+            local at = 0
+            for i, w in ipairs(list) do if w == d.who then at = i end end
+            d.who = list[at % #list + 1]
+            showNewDelivery()
+        end)
+        addGMFunction("Post at " .. (d.origin and JOBS.shortName(d.origin) or "start"), function()
+            _post(d); showNewDelivery()
+        end)
+        if d.who ~= "any" then
+            addGMFunction("Assign now to " .. _whoName(d), function() _assign(d); showNewDelivery() end)
+        end
+        addGMFunction("Clear draft", function()
+            GMCONSOLE._draft = nil
+            showNewDelivery()
+        end)
+    end
+
+    -- A paged list: header buttons, then PAGE entries from `items` (label, fn) with Previous/Next.
+    local function _paged(items, page, reopen)
+        local pages = math.max(1, math.ceil(#items / PAGE))
+        page = math.max(1, math.min(page, pages))
+        for i = (page - 1) * PAGE + 1, math.min(#items, page * PAGE) do
+            addGMFunction(items[i].label, items[i].fn)
+        end
+        if page > 1 then addGMFunction("◀ Previous", function() reopen(page - 1) end) end
+        if page < pages then addGMFunction("Next ▶", function() reopen(page + 1) end) end
+    end
+
+    showPortPicker = function(field, page)
+        clearGMFunctions()
+        local d = _draft()
+        addGMFunction("← Back to the job", function() showNewDelivery() end)
+        addGMFunction("Use map selection", function()
+            local picked
+            for _, obj in ipairs(getGMSelection() or {}) do
+                for _, cs in ipairs(_ports()) do
+                    if RT.find(cs) == obj then picked = cs end
+                end
+            end
+            if not picked then
+                addGMMessage("Select one port on the map first (not a Corsair or Hollow station).")
+                return
+            end
+            d[field] = picked
+            showNewDelivery()
+        end)
+        local items = {}
+        for _, cs in ipairs(_ports()) do
+            items[#items + 1] = {label = (d[field] == cs and "* " or "") .. cs, fn = function()
+                d[field] = cs
+                showNewDelivery()
+            end}
+        end
+        _paged(items, page, function(p) showPortPicker(field, p) end)
+    end
+
+    showCargoPicker = function(page)
+        clearGMFunctions()
+        local d = _draft()
+        addGMFunction("← Back to the job", function() showNewDelivery() end)
+        addGMFunction((d.arch_i == 0 and "* " or "") .. "Random", function()
+            d.arch_i = 0
+            showNewDelivery()
+        end)
+        local items = {}
+        for i, a in ipairs(_delivery().archetypes()) do
+            local label = a.cargo .. (a.urgent and " (urgent)" or "") .. (a.fac and (" [" .. a.fac .. "]") or "")
+            items[#items + 1] = {label = (d.arch_i == i and "* " or "") .. label, fn = function()
+                d.arch_i = i
+                d.urgent = a.urgent and true or false
+                showNewDelivery()
+            end}
+        end
+        _paged(items, page, showCargoPicker)
+    end
+
+    -- field = "secs" (time limit) or "pay". nil in the draft = follow the suggestion.
+    showAdjust = function(field)
+        clearGMFunctions()
+        local d = _draft()
+        local pay, secs = _suggested(d)
+        local sug = (field == "secs") and secs or pay
+        if not sug then addGMMessage("Pick both ports first."); return showNewDelivery() end
+        local cur = d[field] or sug
+        local steps, floor, show
+        if field == "secs" then
+            steps, floor, show = {{"−5 min", -300}, {"−1 min", -60}, {"+1 min", 60}, {"+5 min", 300}}, 60, _mins
+        else
+            steps, floor, show = {{"−100cr", -100}, {"−25cr", -25}, {"+25cr", 25}, {"+100cr", 100}}, 5,
+                                 function(v) return v .. "cr" end
+        end
+        addGMFunction("← Done (" .. show(cur) .. ")", function() showNewDelivery() end)
+        for _, s in ipairs(steps) do
+            local delta = s[2]
+            addGMFunction(s[1], function()
+                d[field] = math.max(floor, cur + delta)
+                showAdjust(field)
+            end)
+        end
+        addGMFunction("Use suggested (" .. show(sug) .. ")", function()
+            d[field] = nil
+            showAdjust(field)
+        end)
+    end
+
+    showPostedJobs = function()
+        clearGMFunctions()
+        addGMFunction("← Back to Jobs", function() showJobsMenu() end)
+        local list = _gmJobs()
+        if #list == 0 then addGMFunction("(none posted)", function() end) end
+        for _, e in ipairs(list) do
+            local m = e.record
+            if m and JOBS._done[m.id] then
+                local who = RT.valid(m.ship) and m.ship:getCallSign() or "?"
+                addGMFunction("Taken (" .. who .. "): " .. m.short, function() end)
+            elseif m then
+                addGMFunction("Withdraw: " .. m.short .. " @ " .. JOBS.shortName(m.origin), function()
+                    JOBS.removeInjected(e.id)
+                    showPostedJobs()
+                end)
+            end
+        end
+    end
+
     local _DISTANCE_MODES = {"short", "medium", "long"}
     local _DISTANCE_NAMES = {short = "Short", medium = "Medium", long = "Long"}
 
@@ -214,6 +489,9 @@ function GMCONSOLE.add(opts)
             clearGMFunctions()
             addSessionGMFunctions()
         end)
+
+        addGMFunction("New delivery...", function() showNewDelivery() end)
+        addGMFunction("Posted GM jobs (" .. #_gmJobs() .. ")...", function() showPostedJobs() end)
 
         local cool_on = JOBS.config.work_cooldown_enabled
         addGMFunction("Work Cooldown: " .. (cool_on and "ON" or "OFF"), function()

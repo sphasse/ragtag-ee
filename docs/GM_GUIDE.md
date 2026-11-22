@@ -130,4 +130,5 @@ the list price of the ship's upgrades. Nothing is saved, and The Drift's campaig
   pay. A taken job is replaced on the board at once, and boards favour short runs (**Jobs...** can change
   the distance). A lost ship costs half its credits, as in The Drift.
 - GM buttons: **Start the clock**, **Standings** (each ship's credits and upgrade value), **End the
-  competition now**, plus Reputation, Jobs and Ship Upgrades.
+  competition now**, plus Reputation, Jobs (including **New delivery...**, a GM-written job: see the
+  sandbox GM guide) and Ship Upgrades.

@@ -136,7 +136,20 @@ The GM screen's buttons, top to bottom:
   (per-zone None / Low / Medium / High, "Trigger Spawn Now"), Station Defenders, Salvage Clusters
   (density, reward), Station Traffic (density), Rumors, Science Database
 - **Jobs...**: work cooldown on/off, job distance (short / medium / long), credits +50 / −50 (a pair
-  of buttons per ship when there are several)
+  of buttons per ship when there are several), and GM-written jobs:
+  - **New delivery...** builds a delivery job. **From** / **To**: select a port on the map and press
+    **Use map selection**, or pick it from the list. **Cargo**: Random (picked when posted, to suit the
+    starting port) or one of the board's cargoes, which brings its own briefing and arrival lines (the GM
+    screen has no text box, so there is no typed description; play the briefing over comms if you want).
+    **Time** and **Pay** start at what the board would offer (marked *suggested*) and follow the ports
+    until you change them. **Kind**: `[SPECIAL]` (outside the 2-job cap, no standing lost if it fails) or
+    normal work (counts toward the cap, costs standing if it fails, looks like any other job). **For**:
+    each ship in turn, then any ship.
+  - **Post at <port>** puts it on the starting port's board for that ship (or every ship) until taken.
+    **Assign now** hands it straight to the ship, wherever it is (a normal job needs a free slot). The
+    draft is kept, so posting a second similar job is quick; **Clear draft** starts over.
+  - **Posted GM jobs...** lists them: **Withdraw** one still on a board; a taken one shows who has it.
+    A GM job is never re-offered after it is delivered or fails. Posted jobs last for the session only.
 - **Ship Upgrades...**: pick a ship, then grant or revoke upgrades on **that ship** and view its
   status sheet (see `docs/GM_SHIP_MANAGEMENT.md`)
 - **Missions...**: the story arcs (Rezkov, Boneyard, Ledger, Corsair): trigger conditions, state,
