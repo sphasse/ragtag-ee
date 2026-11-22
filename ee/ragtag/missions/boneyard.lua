@@ -286,7 +286,13 @@ local _DOCK_FIRST    = "[Ashgrave Annex]\n\nStation security has been reset. Doc
 
 local function _setAnnexControlComms(st)
     if not RT.valid(st.annex) then return end
-    st.annex:setCommsFunction(ARC.comms(function(src, tgt)
+    -- The operations menu. "Refresh" redraws it, so the crew can watch a countdown without
+    -- disconnecting (playtest); the screens it leads to come back to it the same way.
+    local menu
+    local function back(label)
+        addCommsReply(label or "Back to the operations", function(s2, t2) menu(s2, t2) end)
+    end
+    menu = function(src, tgt)
         if not ARC.docked(src, tgt, _DOCK_FIRST) then return end
         local now = getScenarioTime()
         local fleet = (st.fleet_arrived and not st.concord_beaten) and "Concord battle fleet in proximity.\n\n" or ""
@@ -298,29 +304,33 @@ local function _setAnnexControlComms(st)
         for i, op in ipairs(_OPS) do
             local running = _runningOp(st)
             if st[op.key .. "_done"] then
-                addCommsReply("[COMPLETE] " .. op.done, function() setCommsMessage(op.done_msg) end)
+                addCommsReply("[COMPLETE] " .. op.done, function() setCommsMessage(op.done_msg); back() end)
             elseif running == op then
                 local remaining = math.max(0, math.ceil(_opTime(st, op) - (now - st[op.key .. "_start"])))
                 addCommsReply("[IN PROGRESS] " .. op.running .. ": " .. remaining .. "s", function()
                     setCommsMessage(op.busy_msg)
+                    back()
                 end)
             elseif running then
-                addCommsReply("[LOCKED] " .. op.label, function() setCommsMessage(_ONE_AT_A_TIME) end)
+                addCommsReply("[LOCKED] " .. op.label, function() setCommsMessage(_ONE_AT_A_TIME); back() end)
             else
                 local secs = _fmtSecs(_opTime(st, op))
                 addCommsReply(i .. ") " .. op.label .. " (" .. secs .. ")", function(s2, t2)
                     if not ARC.docked(s2, t2, _DOCK_FIRST) then return end
-                    if _runningOp(st) then setCommsMessage(_ONE_AT_A_TIME); return end
+                    if _runningOp(st) then setCommsMessage(_ONE_AT_A_TIME); back(); return end
                     st[op.key .. "_start"] = getScenarioTime()
                     ARC.log(op.started, op.color)
                     setCommsMessage("Operation started. Stand by for " .. secs .. ".")
+                    back()
                 end)
             end
         end
+        back("Refresh")
         addCommsReply("Disconnect", function()
             setCommsMessage("Channel closed.")
         end)
-    end, "[Ashgrave Annex]\n\nAdmin session in use by another vessel."))
+    end
+    st.annex:setCommsFunction(ARC.comms(menu, "[Ashgrave Annex]\n\nAdmin session in use by another vessel."))
 end
 
 -- The hack landed: the Annex stops being an enemy (Relic Active: hostile to the Concord only), so

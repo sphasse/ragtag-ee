@@ -250,6 +250,25 @@ T.step("the others are locked meanwhile", function()
     T.check("control: reprogram locked during download", T.hasReply("[LOCKED] Reprogram the drones"), table.concat(T.replies(), " | "))
     T.check("control: lasers locked during download", T.hasReply("[LOCKED] Enable station defense lasers"), table.concat(T.replies(), " | "))
     T.check("control: not done early", not T.flag("boneyard_hack_done"))
+    T.check("control: a Refresh option", T.hasReply("Refresh"), table.concat(T.replies(), " | "))
+end)
+-- Refresh redraws the menu with the countdown as it is now, without disconnecting (playtest).
+local before_s
+local function inProgressSecs()
+    for _, r in ipairs(T.replies()) do
+        local n = r:match("^%[IN PROGRESS%] Downloading archive: (%d+)s")
+        if n then return tonumber(n) end
+    end
+end
+T.step("note the countdown", function() before_s = inProgressSecs() end)
+T.wait(3)
+T.reply({"Refresh"})
+T.step("refreshed", function()
+    local now_s = inProgressSecs()
+    T.check("refresh: the operations menu again", T.msg():find("Select operation:", 1, true) ~= nil, T.msg())
+    T.check("refresh: the countdown has moved on", before_s and now_s and now_s <= before_s - 2,
+        tostring(before_s) .. " -> " .. tostring(now_s))
+    T.check("refresh: and can refresh again", T.hasReply("Refresh"))
 end)
 T.closeComms()
 T.undock()

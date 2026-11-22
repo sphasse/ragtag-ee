@@ -37,7 +37,7 @@ The Annex's operations are offered **only to a ship docked at it**. The Annex is
 
 **The first docking brings the fleet**: every console gets the pop-up "Incoming jump detected. A Concord battle fleet has arrived." and the Concord battle group appears (see "The Annex fight" below); CNS Vanguard orders all vessels to stand down.
 
-Three operations, **one at a time** (while one is in progress the others show as [LOCKED]):
+Three operations, **one at a time** (while one is in progress the others show as [LOCKED]; **Refresh** redraws the menu with the current countdown, and every screen reached from it leads back to it):
 
 | Operation | Time | Effect |
 |---|---|---|
