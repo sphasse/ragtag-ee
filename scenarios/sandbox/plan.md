@@ -3,7 +3,7 @@
 The sandbox campaign's story layer: five arcs on top of the open-play job loop, with an
 optional sixth serial that unlocks after the finale (Arc 6, below).
 This is the master plan — detailed enough to rebuild any arc from scratch.
-Built arcs have authoritative design docs in `ee/ragtag/missions/<id>.md`; this
+Built arcs have authoritative GM guides in `docs/GM_<ARC>_MISSION.md`; this
 file holds the connective tissue, the unbuilt arc specs, and the cross-arc state
 contract.
 
@@ -11,10 +11,10 @@ Status at last update (2026-11-21):
 
 | # | Arc | Status | Module |
 |---|-----|--------|--------|
-| 1 | Rezkov Arc | **BUILT** | `ee/ragtag/missions/rezkov.lua` + `rezkov.md` |
-| 2 | Ledger Arc (accounting AI) | **BUILT** | `ee/ragtag/missions/ledger.lua` + `ledger.md` |
-| 3 | Boneyard Arc | **BUILT** | `ee/ragtag/missions/boneyard.lua` + `boneyard.md` |
-| 4 | Corsair Arc (redemption) | **BUILT** | `ee/ragtag/missions/corsair.lua` + `corsair.md` |
+| 1 | Rezkov Arc | **BUILT** | `ee/ragtag/missions/rezkov.lua` + `docs/GM_REZKOV_MISSION.md` |
+| 2 | Ledger Arc (accounting AI) | **BUILT** | `ee/ragtag/missions/ledger.lua` + `docs/GM_LEDGER_MISSION.md` |
+| 3 | Boneyard Arc | **BUILT** | `ee/ragtag/missions/boneyard.lua` + `docs/GM_BONEYARD_MISSION.md` |
+| 4 | Corsair Arc (redemption) | **BUILT** | `ee/ragtag/missions/corsair.lua` + `docs/GM_CORSAIR_MISSION.md` |
 | 5a | The Hob Works (engineering and heist) | planned (2026-11-21); seeds built | — |
 | 5 | Maw Arc (finale): deploy and defend a broadcast station | planned (revised 2026-11-21) | — |
 | — | The Concord's fracture (instability seeds) | deferred until after the playtest | — |
@@ -56,7 +56,7 @@ tariffs, the battle groups — is the cost of keeping it buried.*
 
 ## Arc 1 — Rezkov Arc (BUILT)
 
-Full detail: `ee/ragtag/missions/rezkov.md`. Summary of what matters downstream.
+Full detail: `docs/GM_REZKOV_MISSION.md`. Summary of what matters downstream.
 
 - **Trigger**: Independent rep ≥ +500, upgrade spend ≥ 600cr, not declined/done.
   Concord rep ≥ 0 required at M1 accept (Rezkov won't use a flagged crew).
@@ -78,7 +78,7 @@ Full detail: `ee/ragtag/missions/rezkov.md`. Summary of what matters downstream.
 
 ## Arc 2 — Ledger Arc (accounting AI) (BUILT)
 
-Built 2026-11-13; full design in `ee/ragtag/missions/ledger.md`. Summary:
+Built 2026-11-13; full design in `docs/GM_LEDGER_MISSION.md`. Summary:
 
 - **Premise.** The Galen hack planted an AI in the Concord books. It found the twenty-year
   black budget ("Maw containment", "Ashgrave remediation"), split itself into three fragments
@@ -98,7 +98,7 @@ Built 2026-11-13; full design in `ee/ragtag/missions/ledger.md`. Summary:
 
 ## Arc 3 — Boneyard Arc (BUILT)
 
-Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstream.
+Full detail: `docs/GM_BONEYARD_MISSION.md`. Summary of what matters downstream.
 
 - **Trigger**: upgrade spend ≥ 800cr, Rezkov arc finished or declined (`requires`), not done.
   Rezkov is the gate for every Phase II arc (Ledger, Boneyard, Corsair).
@@ -127,7 +127,7 @@ Full detail: `ee/ragtag/missions/boneyard.md`. Summary of what matters downstrea
   - Rep: Concord -300 (-500 with drone flip); Corsairs +150 with drone flip.
     Credits 600 (data) + 200 (flip).
 
-## Arc 4 — Corsair Arc (redemption) — BUILT 2026-11-15 (details: `ee/ragtag/missions/corsair.md`)
+## Arc 4 — Corsair Arc (redemption) — BUILT 2026-11-15 (details: `docs/GM_CORSAIR_MISSION.md`)
 
 **Premise.** A Concord battle fleet (seeded by the Boneyard hook rumors: two groups left Lumen; never
 numbered, since the crew may meet them in either order) is coming for Blackwater Reach, to settle the Corsair problem quietly while the Drift
@@ -167,7 +167,7 @@ mines, then stands in the Corsair line when the fleet arrives. Linear: defend, o
    (`ee/ragtag/battle.lua`). 7 Concord ships and 12 Corsairs in two lines 25U west of Blackwater,
    frozen until any player ship comes within 5U of either line; then fought over five combat points.
    All 7 Concord destroyed -> `defended`; the crew's ship destroyed -> `failed` (the Corsairs may
-   all be lost). Details: `ee/ragtag/missions/corsair.md`, "The battle" and "The mine ring".
+   all be lost). Details: `docs/GM_CORSAIR_MISSION.md`, "The battle" and "The mine ring".
 
 **Flags:** `corsair_hook`, `corsair_briefed`, `corsair_raid_done`, `corsair_joined`,
 `corsair_arc_done`, `corsair_battlegroup_destroyed`, `corsair_ally`, `corsair_rewarded`,

@@ -54,15 +54,16 @@ other ships work the job boards only. **Missions...** on the GM screen shows eac
 (**Mission criteria**: each condition met or not, "Result: ALL MET / do not start", and once it is
 over, whether it was completed and how), its state, "→" buttons to jump to any phase, and helpers.
 
-| Arc | Starts when | What it is |
-|---|---|---|
-| Rezkov | Independent standing 500+ and 600 cr of upgrades | A fixer's job that turns political |
-| Ledger | Rezkov over (or declined), 800 cr of upgrades, 2 board jobs since | A data heist in Concord space, and an audit |
-| Boneyard | Rezkov over, 800 cr of upgrades | A rescue that leads to a Concord archive and a fleet battle |
-| Corsair | Rezkov over, 1000 cr of upgrades | Blackwater asks for help against a Concord fleet |
+| Arc | Starts when | What it is | GM guide |
+|---|---|---|---|
+| Rezkov | Independent standing 500+ and 600 cr of upgrades | A fixer's job that turns political | [GM_REZKOV_MISSION.md](GM_REZKOV_MISSION.md) |
+| Ledger | Rezkov over (or declined), 800 cr of upgrades, 2 board jobs since | A data heist in Concord space, and an audit | [GM_LEDGER_MISSION.md](GM_LEDGER_MISSION.md) |
+| Boneyard | Rezkov over, 800 cr of upgrades | A rescue that leads to a Concord archive and a fleet battle | [GM_BONEYARD_MISSION.md](GM_BONEYARD_MISSION.md) |
+| Corsair | Rezkov over, 1000 cr of upgrades | Blackwater asks for help against a Concord fleet | [GM_CORSAIR_MISSION.md](GM_CORSAIR_MISSION.md) |
 
-Spoilers and GM detail for each arc: `ee/ragtag/missions/<arc>.md` in the repository. Arc objectives
-show as one short line on Relay and Operations.
+Each arc's GM guide (spoilers) covers its premise and place in the campaign, triggers, phases, GM
+buttons and what it leaves for later arcs, with design notes at the end. Arc objectives show as one
+short line on Relay and Operations.
 
 ### Closing (5-10 min)
 

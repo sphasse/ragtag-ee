@@ -2,7 +2,7 @@
 -- The Corsair Arc: help Blackwater stand against the Concord's second battle group.
 --
 -- Trigger: upgrades >= 1000, corsair_arc_done unset; the hook fires when the crew enters the
--- Gauntlet. Design notes: corsair.md. Linear: defend, or don't do it.
+-- Gauntlet. GM guide: docs/GM_CORSAIR_MISSION.md. Linear: defend, or don't do it.
 --
 --   hook      a Corsair raider (Long Memory) hails without attacking: follow us to Blackwater
 --   escort    follow the guide; Corsair territory is friendly for now; dock at Blackwater

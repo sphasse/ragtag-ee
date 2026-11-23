@@ -5,7 +5,7 @@ machine in `ee/ragtag/missions/`. Missions must be decoupled from core gameplay:
 function (or gracefully do nothing) even if the player never encounters them, and core systems
 (jobs board, reputation, proximity spawns) must work with no arc active.
 
-**Mission-specific design notes go in a per-mission doc (`ee/ragtag/missions/<name>.md`),
+**Mission-specific details go in a per-mission GM guide (`docs/GM_<NAME>_MISSION.md`),
 not in CLAUDE.md or this reference.** The module itself is the authority on its own state.
 
 Load everything with `require("ragtag/missions.lua")` in the scenario after the JOBS require.
@@ -426,7 +426,7 @@ Each mission must be **self-contained and decoupled**:
   `JOBS.config.*` via approved fields.
 - Core gameplay (job board, proximity spawns, reputation) must work without the arc active.
 - Do not add arc logic to scenario `update()` or `init()` beyond the MISSIONS wiring calls.
-- Design and state machine details go in a **per-mission doc** (`ee/ragtag/missions/<name>.md`);
+- Design and state machine details go in a **per-mission GM guide** (`docs/GM_<NAME>_MISSION.md`);
   not in CLAUDE.md or this reference file.
 
 This makes arcs easy to disable, restart, skip, or test independently.
@@ -447,7 +447,7 @@ reference, never required by the loader. `check.py` errors on any file in
 `ee/ragtag/missions/` that isn't required by `missions.lua`, so attic/ is where
 intentionally unloaded arcs go.
 
-Design notes for each arc: `ee/ragtag/missions/<id>.md`.
+GM guide and design notes for each arc: `docs/GM_<ARC>_MISSION.md`.
 
 ---
 

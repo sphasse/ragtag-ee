@@ -7,14 +7,16 @@ description: Add or extend a story arc in the ragtag sandbox campaign using the 
 
 **Read `references/missions_api.md` now.** It is the authoritative reference.
 **Note**: this file is also kept in `.claude/skills/empty-epsilon-scenarios/references/missions_api.md` — update both when it changes (`check.py` errors if the two copies differ).
-The reference implementation is `ee/ragtag/missions/rezkov.lua`; design notes live in `ee/ragtag/missions/rezkov.md`.
+The reference implementation is `ee/ragtag/missions/rezkov.lua`; its GM guide is `docs/GM_REZKOV_MISSION.md`.
 
 ---
 
 ## Quick start
 
 1. Create `ee/ragtag/missions/<name>.lua`.
-2. Create `ee/ragtag/missions/<name>.md` — design notes, state diagram, lore. Arc-specific details go here; don't add them to CLAUDE.md.
+2. Create `docs/GM_<NAME>_MISSION.md` — a GM guide, in this order: Premise (where the arc sits in the campaign: what it sets up
+   and for whom), Triggers, Phases (a `###` per phase), GM console, Exports, then Design notes (state, tuning, history,
+   testing). Link it from the story-arc table in `docs/GM_GUIDE.md`. Arc-specific details go here; don't add them to CLAUDE.md.
 3. Add `require("ragtag/missions/<name>.lua")` to `ee/ragtag/missions.lua`.
 4. Create `tests/arcs/<name>.lua` — the arc's regression test (`check.py` errors without it). See "Testing an arc" below.
 5. Run `python3 tools/check.py` after any change, and `python3 tools/game_tests.py --ee <EmptyEpsilon dir> <name>` after any change to the arc.
@@ -158,6 +160,6 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 - [ ] Destruction callbacks registered via `RT.onKill`, never `entity:onDestruction`
 - [ ] Every `M.gm_states` / `M.gm_actions` label is ≤ 18 characters (check function labels at their longest value)
 - [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
-- [ ] Design doc exists at `ee/ragtag/missions/<name>.md`
+- [ ] GM guide exists at `docs/GM_<NAME>_MISSION.md` and is linked from `docs/GM_GUIDE.md`
 - [ ] `tests/arcs/<name>.lua` plays the real path, every ending, every GM state and "-> Inactive"; `tools/game_tests.py` passes
 - [ ] `python3 tools/check.py` passes

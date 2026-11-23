@@ -2,7 +2,7 @@
 -- The Ledger Arc: carry the rogue accounting AI out of Concord space.
 --
 -- Trigger: Rezkov arc finished or declined, upgrade investment >= 800cr.
--- Structure: init -> hook -> meet -> relay_run -> carry -> done   (design notes: ledger.md)
+-- Structure: init -> hook -> meet -> relay_run -> carry -> done   (GM guide: docs/GM_LEDGER_MISSION.md)
 --
 --   hook       vague rumors send the crew to Dustmote; Thresh says the big guy wants to see them
 --   meet       Rezkov's station is back in the nebula; docking gets the real briefing
