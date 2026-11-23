@@ -193,7 +193,7 @@ mines, then stands in the Corsair line when the fleet arrives. Linear: defend, o
 
 **Premise.** The Boneyard's lifeboat survivors, led by **Dr. Mara Quill** (senior researcher on the
 reversal program until the Concord shut it down), take the crew's archive to Hob's Landing, where
-the Hob Works' chief engineer, **Ilse Marchetti** (came out of the Concord's Applied Research Division
+the Hob Works' chief engineer, **Anton Marchetti** (he came out of the Concord's Applied Research Division
 the year the Pale Sun was sealed, under Director Tan, a Ledger signatory) can build what the Concord would not.
 
 **Seeded already (2026-11-21, built):** Quill introduces herself in the survivors' pickup hail and
@@ -599,7 +599,7 @@ If an arc module is lost, rebuild against these rails:
   Regular Concord forces respond (no Audit Service: its records were purged); the arc should bring
   a real battle or two. The fake transponder stays (getting into position). Haul ~12,000 cr.
   Sentinel Fleet Yard may move further from Lumen Exchange.
-- The chief engineer is **Ilse Marchetti**; the beacon costs **10,000 cr** (the ~12,000 haul leaves
+- The chief engineer is **Anton Marchetti** (male, for balance: the cast already has Quill, Kael and Sauvola); the beacon costs **10,000 cr** (the ~12,000 haul leaves
   ~2,000 for upgrades); the Hob Works waits for the Ledger arc (`ledger_arc_done`, any outcome).
   Convoy ships (recommended): 2 × Adder MK8 escorts (hull raised to ~100), an Equipment Freighter 5
   prize with one weak rear beam.
