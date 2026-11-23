@@ -6,6 +6,7 @@ require("ragtag/world/rumors.lua")
 require("ragtag/missions/_engine.lua")
 require("ragtag/missions/_helpers.lua")   -- ARC: helpers shared by the arcs below
 require("ragtag/missions/_audit.lua")     -- AUDIT: the Ledger carry (also the Audit Lab)
+require("ragtag/missions/_aftermath.lua") -- AFTERMATH: the rumors that follow the arcs' outcomes
 require("ragtag/missions/rezkov.lua")
 require("ragtag/missions/boneyard.lua")
 require("ragtag/missions/ledger.lua")

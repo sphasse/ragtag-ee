@@ -17,7 +17,8 @@
 --                          are mixed so the crew hears all of them and can choose.
 --
 -- API:
---   RUMORS.add({text, priority, faction, category, once})  -- returns assigned id
+--   RUMORS.add({id, text, priority, faction, category, once, on_heard})  -- returns the id
+--     id: optional fixed id (else assigned); on_heard: called each time it is told
 --   RUMORS.remove(id)                                -- remove one rumor
 --   RUMORS.removeCategory(category)                  -- remove all in a category
 --   RUMORS.get(callsign, source_faction)             -- call from comms handlers
@@ -148,6 +149,7 @@ function RUMORS.add(r)
         faction  = r.faction,   -- nil = any source faction
         category = r.category,  -- nil = uncategorized; use e.g. "START_WITNESS_MISSION"
         once     = r.once,      -- true = removed after it has been told once
+        on_heard = r.on_heard,  -- function() called each time it is told (e.g. AFTERMATH's saved marks)
     }
     return id
 end
@@ -284,6 +286,13 @@ local function _freshSeeds(source_faction)
     return fresh
 end
 
+local function _told(r)
+    if r.on_heard then
+        local ok, err = pcall(r.on_heard)
+        if not ok then log("[RUMORS] on_heard error: " .. tostring(err)) end
+    end
+end
+
 function RUMORS.get(callsign, source_faction)
     if WORLD and not WORLD.isEnabled("rumors") then return nil end
     -- Hooks (priority > SEED_MAX_PRIORITY) matching the source faction
@@ -308,6 +317,7 @@ function RUMORS.get(callsign, source_faction)
         end
         local chosen = tier[math.random(#tier)]
         if chosen.once then RUMORS.remove(chosen.id) end
+        _told(chosen)
         return chosen.text
     end
 
@@ -325,6 +335,7 @@ function RUMORS.get(callsign, source_faction)
         local chosen = fresh[math.random(#fresh)]
         RUMORS._heard[chosen.id] = true
         if chosen.once then RUMORS.remove(chosen.id) end
+        _told(chosen)
         return chosen.text
     end
     return _nextBackground()

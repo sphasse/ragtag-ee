@@ -665,6 +665,23 @@ M.phases.init = {
 The hook itself decides whether to offer anything:
 `if not ARC.docked(src, tgt) then return end`, then check the arc's phase.
 
+## Aftermath rumors (news of an arc's outcome)
+
+The news that follows an arc's ending is not added by the arc. It lives in one list, `AFTERMATH.ENTRIES` in
+`ee/ragtag/missions/_aftermath.lua`: each entry has a fixed `id`, the arc's `<ARC>_DONE` category and a `when`
+condition on saved flags. `AFTERMATH.sync()` (every second from `MISSIONS.update`, and called by the arc's
+`M.resolve`) puts on the pool every entry whose condition holds and takes off the rest, so the news is back every
+session and follows a GM rewind. News is told once: a heard entry is marked in the campaign save
+(`campaign.rumors_heard`), stays in rotation that session and is not put back in a later one; a rewind (the
+condition false) clears the mark.
+
+- To add news for an arc: an entry with a condition on its saved outcome flag (save one at resolve if the outcome
+  only lives in `st`, as the Boneyard does with `boneyard_fleet_beaten`), and `AFTERMATH.sync()` in `M.resolve`.
+- News that needs two arcs: one entry whose condition reads both arcs' flags. Don't check other arcs' flags inside
+  an arc.
+- News is priority 3 (seed tier). Never a hook priority: a hook replaces every other rumor.
+- The arc's `M.gm_reset` still removes its `<ARC>_DONE` category; clearing its flags keeps it off.
+
 ## Rumor tiers (RUMORS.add priority)
 
 - **3 seed**: background foreshadowing, loaded from `M.on_load` while the arc waits for its trigger. Mixed into the normal "Any news?" rotation: each unheard seed is picked slightly more readily than each pool rumor (`RUMORS.SEED_WEIGHT` = 1.5 vs 1), subject to the 5-minute cooldown, each heard once before repeating. Harmless if never heard. (Priority 2 is treated the same.)

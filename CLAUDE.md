@@ -21,7 +21,8 @@ Contributors add **universe extensions** and **scenarios** independently.
   - `jobs/` — the job board: `_engine.lua` (`JOBS.board` decides the offers, a renderer shows them), one file per job type
   - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs),
-    `_audit.lua` (`AUDIT`: the Ledger arc's carry and audit stop, shared with the Audit Lab), one file per arc.
+    `_audit.lua` (`AUDIT`: the Ledger arc's carry and audit stop, shared with the Audit Lab), `_aftermath.lua`
+    (`AFTERMATH`: the news rumors that follow arc outcomes, each told once across sessions), one file per arc.
     Core never depends on this folder; shared arc code goes in `_helpers.lua`, not `core.lua`.
     Arcs belong to the primary ship only (`ARC.player()`; other player ships just work the job board; if it is lost, a ship
     that joins under or is renamed to the campaign's ship name becomes the primary again: `RT.promotePrimary`), and declare

@@ -783,12 +783,7 @@ function M.resolve(st)
         end
         ARC.log("[Corsair Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "defended" and "#80FF80" or "#FF8080")
     end)
-    RUMORS.removeCategory("CORSAIR_DONE")
-    if outcome == "defended" then
-        RUMORS.add({text = "A whole Concord battle group died off Blackwater. The Corsairs are calling it the Second Settlement.", priority = 3, category = "CORSAIR_DONE"})
-    elseif outcome == "failed" then
-        RUMORS.add({text = "Blackwater's burning, they say. The Concord calls it a clean-up. The Corsair families scattered into the Gauntlet.", priority = 3, category = "CORSAIR_DONE"})
-    end
+    AFTERMATH.sync()   -- the aftermath rumors follow corsair_arc_done (missions/_aftermath.lua)
     -- The fleet's remains, the allies and the haul's mines leave the board a little later.
     ARC.kill(st.guide); st.guide = nil
     -- 5 minutes: time for the surviving Corsairs to fly home out of sight.

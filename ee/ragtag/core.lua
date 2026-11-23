@@ -294,6 +294,7 @@ local function defaultCampaign()
         discovered = {}, -- names of charted regions (see ragtag_verse.lua)
         stats = {},      -- statistics (see ragtag/stats.lua)
         achievements = {}, -- id -> {at, session} (see ragtag/stats.lua)
+        rumors_heard = {}, -- aftermath rumor id -> true: told in an earlier session (missions/_aftermath.lua)
         reputation = {   -- the primary ship's standing with each faction (unbounded; thresholds at ±200/±400/±500)
             Concord = 0,
             Corsairs = 0,

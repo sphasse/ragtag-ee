@@ -129,7 +129,7 @@ Landing ("We heard they have some exceptional engineers there"). That ends the a
 
 ### Done
 
-The objective clears, the rewards are paid, outcome rumors go out, the Boneyard's patrols resume, and
+The objective clears, the rewards are paid, the news goes out (see Exports), the Boneyard's patrols resume, and
 the remaining combat ships are removed 2 minutes later.
 
 ## GM console
@@ -168,11 +168,23 @@ given are not undone.
 | `boneyard_hack_done` | the archive was downloaded (Hob Works price: 10,000 with it, 15,000 without) |
 | `boneyard_drone_flip` | the drones were reprogrammed (finale defense wing) |
 | `boneyard_battlegroup_destroyed` | CNS *Vanguard* destroyed (the Concord rebuilding; Arc 6 option) |
+| `boneyard_fleet_beaten` | the whole battle group was destroyed (the news) |
 
 Rewards, once:
 - Concord −300, and another −200 if the drones were reprogrammed.
 - Corsairs +150 if the drones were reprogrammed.
 - 600 cr for the archive, 200 cr for the drones. The lasers pay nothing.
+
+**News** (rumors at any port from the end of the arc; each is told once, then retired from later
+sessions):
+- Always: "Whatever Concord had locked in the Boneyard, someone got to it. The rumors about the Pale
+  Sun are getting louder."
+- Fleet destroyed, drones reprogrammed: "…a Concord battle group got torn apart in the Boneyard.
+  Something woke those drones up…"; without the drones: "A Concord battle group went into the Boneyard
+  and didn't come out…". Either way: the Senate's defence committee wants to know how a battle group was
+  lost on a "routine security operation", and Fleet Command wants the hearing closed.
+- Fleet left alive: "Concord swept the Boneyard… Nobody's buying it.", and the battle group went straight
+  back to Ostia, no shore leave, nobody saying what it was guarding.
 
 Science DB with the archive: **Hollow true nature**, **Ashgrave Research** and **The Synthesis**
 (`hollow_true_nature`, `ashgrave_research`, `synthesis_details`).
@@ -225,7 +237,8 @@ under 1.0. The arc completes at `>= 0.99`.
 ### Patrols and rumors
 
 - `PROX.suspendZone("the Boneyard")` when the hack lands; resumed at resolve and on cancel.
-- `BONEYARD_HOOK` rumors in the hook phase; `BONEYARD_DONE` outcome rumors at resolve.
+- `BONEYARD_HOOK` rumors in the hook phase. The `BONEYARD_DONE` news is in `missions/_aftermath.lua` and
+  follows the flags; `boneyard_fleet_beaten` is saved at resolve so the news knows how the fight went.
 
 ### History
 

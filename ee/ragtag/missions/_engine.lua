@@ -295,6 +295,7 @@ end
 -- Called every frame from the scenario update().
 function MISSIONS.update(delta)
     if not RT.anyPlayerAlive() then return end
+    if AFTERMATH then AFTERMATH.update() end   -- the arcs' aftermath rumors follow their flags
 
     for _, id in ipairs(MISSIONS._order) do
         local M      = MISSIONS._registry[id]

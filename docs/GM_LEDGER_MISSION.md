@@ -141,6 +141,14 @@ are not applied by a jump.
 
 Rewards, once: **full** → 600 cr, Concord −200, Independent +200. **Lost** → nothing.
 
+**News** (rumors at any port from the end of the arc; each is told once, then retired from later
+sessions):
+- Full: the audit at Lumen "just stopped. Nobody closed it… The auditors look scared.", and two senior
+  Treasury clerks resigned the same morning, while Deputy Secretary Voss has stopped taking meetings.
+- Lost: the audit closed as "an accounting error, corrected", and the Audit Service got a commendation
+  and a bigger budget.
+- The lines are in `ee/ragtag/missions/_aftermath.lua`.
+
 Science DB: Lore → "The Containment Ledger" (lock key `ledger_findings`), unlocked on full and readable
 exactly while `ledger_evidence` is set. It names Voss, Hale, Tan and the Standing Committee.
 

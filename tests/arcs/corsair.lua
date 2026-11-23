@@ -480,7 +480,7 @@ T.step("defended", function()
     T.eq("defended: Corsair standing up to +500 from below zero", T.rep("Corsairs"), 500)
     T.eq("defended: Concord -300", T.rep("Concord") - concord0, -300)
     T.eq("defended: Blackwater stays friendly", hostileAt("Blackwater"), "Corsair Friendly")
-    T.eq("defended: one aftermath rumor", T.rumors("CORSAIR_DONE"), 1)
+    T.eq("defended: two aftermath rumors (the Second Settlement, the squadrons)", T.rumors("CORSAIR_DONE"), 2)
     local home = 0
     for _, r in ipairs(T.st().routes or {}) do
         if not r.dock and math.abs(r.steps[1][1] - 55000) < 1 and math.abs(r.steps[1][2] - 87000) < 1 then home = home + 1 end

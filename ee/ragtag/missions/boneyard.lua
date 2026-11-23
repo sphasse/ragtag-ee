@@ -808,27 +808,10 @@ function M.resolve(st)
         _indexAshgraveResearch()   -- normally already done when the download finished
     end
 
-    -- (The crew can leave with the fleet still there: then the Concord "swept" the Boneyard.)
-    if st.concord_beaten and RT.flag("boneyard_drone_flip") then
-        RUMORS.add({
-            text     = "Word's out — a Concord battle group got torn apart in the Boneyard. Something woke those drones up. Official Concord statement: none.",
-            priority = 4, category = "BONEYARD_DONE",
-        })
-    elseif st.concord_beaten then
-        RUMORS.add({
-            text     = "A Concord battle group went into the Boneyard and didn't come out. Official Concord statement: none.",
-            priority = 4, category = "BONEYARD_DONE",
-        })
-    else
-        RUMORS.add({
-            text     = "Concord swept the Boneyard. Called it a routine security operation. Nobody's buying it.",
-            priority = 3, category = "BONEYARD_DONE",
-        })
-    end
-    RUMORS.add({
-        text     = "Whatever Concord had locked in the Boneyard, someone got to it. The rumors about the Pale Sun are getting louder.",
-        priority = 3, category = "BONEYARD_DONE",
-    })
+    -- Aftermath rumors (missions/_aftermath.lua) follow the flags. The crew can leave with the
+    -- fleet still there: then the Concord "swept" the Boneyard.
+    if st.concord_beaten then RT.flag("boneyard_fleet_beaten", true) end
+    AFTERMATH.sync()
 
     PROX.resumeZone("the Boneyard")
 
@@ -865,6 +848,7 @@ M.flags = {
     boneyard_hack_done             = "the Ashgrave research archive was downloaded",
     boneyard_drone_flip            = "the Relic drones were reprogrammed against the Concord",
     boneyard_battlegroup_destroyed = "the battle group's command ship (CNS Vanguard) was destroyed",
+    boneyard_fleet_beaten          = "the whole Concord battle group was destroyed (set at resolve; the aftermath rumors)",
     boneyard_arc_done              = "true once the crew has reported to the survivors (or, without them, won the Annex fight)",
     boneyard_rewarded              = "reputation and credits were paid (an end state pays once)",
 }

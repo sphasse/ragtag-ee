@@ -548,7 +548,8 @@ SCIDB lock keys: `hollow_true_nature`, `ashgrave_research`, `synthesis_details`
 `republic_formed` (Republic, to be added).
 
 Rumor categories: `<ARC>_HOOK` injected in hook enter / removed in hook exit;
-`<ARC>_DONE` injected at resolve (persistent flavor for the session).
+`<ARC>_DONE`: the news of an arc's outcome, listed in `ee/ragtag/missions/_aftermath.lua` (AFTERMATH) with a
+condition on saved flags; back every session, each line told once. Rumors that need two arcs go there too.
 
 World-state readers (not arcs) that consume these flags: `VERSE` build and the
 PROX zone table read `maw_arc_done` (dormant Maw, danger, Concord shakedowns);

@@ -151,8 +151,16 @@ battle. Rewards are paid once (`corsair_rewarded`).
 | `corsair_met_reva` | Reva's Science DB profile |
 
 Rewards, once: **defended** → Corsair standing to +500 if it was 0 or below, otherwise +500 on top;
-Concord −300. **Failed / declined** → nothing, and Corsair territory turns hostile again. `CORSAIR_DONE`
-rumors either way.
+Concord −300. **Failed / declined** → nothing, and Corsair territory turns hostile again.
+
+**News** (rumors at any port from the end of the arc; each is told once, then retired from later
+sessions; the lines are in `ee/ragtag/missions/_aftermath.lua`):
+- Defended: "A whole Concord battle group died off Blackwater. The Corsairs are calling it the Second
+  Settlement.", and Fleet Command pulled two squadrons off the Arbiter Line to cover the hole, leaving the
+  Border stretched thin and the tariff collectors nervous.
+- Failed: "Blackwater's burning, they say…", and the Concord is handing out medals for it, though half
+  the Border stations wouldn't fly the flag for the ceremony.
+- Declined: none.
 
 ## Design notes
 

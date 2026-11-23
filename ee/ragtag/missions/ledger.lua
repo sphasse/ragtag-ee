@@ -456,14 +456,7 @@ function M.resolve(st)
         end
         ARC.log("[Ledger Arc] Arc complete. Outcome: " .. outcome .. ".", outcome == "full" and "#80FF80" or "#FF8080")
     end)
-    RUMORS.removeCategory("LEDGER_DONE")
-    if outcome == "full" then
-        RUMORS.add({text = "Concord's audit at Lumen just stopped. Nobody closed it. Nobody explains it. The auditors look scared.",
-                    priority = 3, category = "LEDGER_DONE"})
-    else
-        RUMORS.add({text = "Concord closed its audit at Lumen. Official word: an accounting error, corrected.",
-                    priority = 3, category = "LEDGER_DONE"})
-    end
+    AFTERMATH.sync()   -- the aftermath rumors follow ledger_arc_done (missions/_aftermath.lua)
     -- The audit fleet and Rezkov's station leave the board a little later.
     RT.after(90, function()
         local cur = MISSIONS._state["ledger"]

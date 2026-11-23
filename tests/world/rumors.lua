@@ -123,3 +123,65 @@ T.step("on again", function()
     T.check("on: chatter is back", is_pool(RUMORS.get(fresh_source(), "Independent")))
 end)
 T.closeComms()
+
+-- ── Aftermath: the news that follows an arc's outcome (missions/_aftermath.lua) ──
+-- Told once: kept for the session it is heard in, not put back in a later session; a rewind
+-- (the outcome flag cleared) lets it be told again.
+local function aftermath_on_pool(id)
+    for _, r in ipairs(RUMORS._injected) do if r.id == id then return r end end
+end
+T.step("aftermath entries", function()
+    local ids, texts = {}, {}
+    for _, e in ipairs(AFTERMATH.ENTRIES) do
+        T.check("aftermath: unique id " .. e.id, not ids[e.id]); ids[e.id] = true
+        T.check("aftermath: unique text " .. e.id, not texts[e.text]); texts[e.text] = true
+        T.check("aftermath: fits a comms line " .. e.id, #e.text <= 220, #e.text)
+    end
+    T.eq("aftermath: news is seed tier, never a hook", AFTERMATH.PRIORITY, 3)
+    RT.campaign.rumors_heard = {}
+    AFTERMATH._session_heard = {}
+    RT.flag("ledger_arc_done", "full")
+    AFTERMATH.sync()
+    T.eq("aftermath: a full Ledger puts two lines out", T.rumors("LEDGER_DONE"), 2)
+    T.check("aftermath: the resignations line is one of them", aftermath_on_pool("aftermath_ledger_resignations") ~= nil)
+    AFTERMATH.sync()
+    T.eq("aftermath: a second sync adds no duplicates", T.rumors("LEDGER_DONE"), 2)
+    RT.flag("ledger_arc_done", "lost")
+    AFTERMATH.sync()
+    T.check("aftermath: the outcome changed, the lines follow",
+        aftermath_on_pool("aftermath_ledger_commendation") ~= nil and aftermath_on_pool("aftermath_ledger_resignations") == nil)
+    RT.flag("ledger_arc_done", "full")
+    AFTERMATH.sync()
+end)
+T.step("aftermath: hearing one marks it in the save", function()
+    local told = nil
+    for _ = 1, 2000 do
+        local t = RUMORS.get(fresh_source(), "Independent")
+        if t == aftermath_on_pool("aftermath_ledger_resignations").text then told = t; break end
+    end
+    T.check("aftermath: the line is told", told ~= nil)
+    T.eq("aftermath: marked heard in the campaign", RT.campaign.rumors_heard.aftermath_ledger_resignations, true)
+    AFTERMATH.sync()
+    T.check("aftermath: still in rotation this session", aftermath_on_pool("aftermath_ledger_resignations") ~= nil)
+end)
+T.step("aftermath: a new session does not repeat it", function()
+    -- What a restart does: the rumor pool is rebuilt and nothing is heard yet this session.
+    RUMORS.removeCategory("LEDGER_DONE")
+    AFTERMATH._session_heard = {}
+    RT.campaign.rumors_heard.aftermath_ledger_audit_stopped = nil   -- (the draw above may have told it too)
+    AFTERMATH.sync()
+    T.check("next session: the heard line is retired", aftermath_on_pool("aftermath_ledger_resignations") == nil)
+    T.check("next session: the unheard line comes back", aftermath_on_pool("aftermath_ledger_audit_stopped") ~= nil)
+end)
+T.step("aftermath: a rewind lets it be told again", function()
+    RT.clearFlag("ledger_arc_done")
+    AFTERMATH.sync()
+    T.eq("rewind: the lines go", T.rumors("LEDGER_DONE"), 0)
+    T.check("rewind: the heard mark is cleared", RT.campaign.rumors_heard.aftermath_ledger_resignations == nil)
+    RT.flag("ledger_arc_done", "full")
+    AFTERMATH.sync()
+    T.eq("replay: both lines are back", T.rumors("LEDGER_DONE"), 2)
+    RT.clearFlag("ledger_arc_done")
+    AFTERMATH.sync()
+    RT.campaign.rumors_heard = {}
+end)
