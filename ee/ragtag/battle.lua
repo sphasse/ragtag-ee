@@ -337,7 +337,7 @@ BATTLE.ANNEX = {
     drone_speed   = 1.5,             -- x the fastest Concord ship's impulse (no warp)
     drone_turn    = 30,
     drone_accel   = 35,
-    lasers        = {count = 3, range = 4500, cycle = 3, damage = 32},  -- the Annex's, once armed (8 was too weak)
+    lasers        = {count = 3, range = 4500, cycle = 3, damage = 16},  -- the Annex's, once armed (8 was too weak; 32 made it the first pick and took apart the fleet: playtest 2026-11-22)
 }
 
 local Annex = {}

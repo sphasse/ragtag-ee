@@ -369,7 +369,7 @@ T.step("the engine has the target", function()
 end)
 T.waitFor("control: the Annex's lasers hit it", function() return annex_hit end, 10)
 T.step("annex lasers hit hard; the Concord group dies", function()
-    T.eq("control: Annex lasers hit for 32", annex():getBeamWeaponDamage(0), 32)
+    T.eq("control: Annex lasers hit for 16", annex():getBeamWeaponDamage(0), 16)
     for _, s in ipairs(T.st().concord_group) do if s:isValid() then s:destroy() end end
 end)
 T.waitFor("control: with the Concord gone, the drones guard the Annex", function()
