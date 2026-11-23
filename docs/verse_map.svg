@@ -375,8 +375,8 @@
 <text x="393.0" y="184.0" fill="#6fa8ff" font-size="12">Ostia Highport $</text>
 <rect x="283.0" y="287.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 288.0 292.0)"/>
 <text x="297.0" y="296.0" fill="#6fa8ff" font-size="12">Lumen Exchange $</text>
-<rect x="179.0" y="399.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 184.0 404.0)"/>
-<text x="193.0" y="408.0" fill="#6fa8ff" font-size="12">Sentinel Fleet Yard</text>
+<rect x="179.0" y="499.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 184.0 504.0)"/>
+<text x="193.0" y="508.0" fill="#6fa8ff" font-size="12">Sentinel Fleet Yard</text>
 <rect x="515.0" y="379.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 520.0 384.0)"/>
 <text x="529.0" y="388.0" fill="#6fa8ff" font-size="12">Concord Waypoint Galen</text>
 <rect x="731.0" y="479.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 736.0 484.0)"/>
@@ -403,7 +403,7 @@
 <text x="1049.0" y="992.0" fill="#ff8c3c" font-size="12">Blackwater</text>
 <rect x="1419.0" y="1043.0" width="10" height="10" fill="#e03030" transform="rotate(45 1424.0 1048.0)"/>
 <text x="1433.0" y="1052.0" fill="#e03030" font-size="12">The Maw</text>
-<text x="276.0" y="66.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CONCORD CORE</text>
+<text x="276.0" y="22.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CONCORD CORE</text>
 <text x="572.0" y="230.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE ARBITER LINE</text>
 <text x="852.0" y="510.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">VESPER DRIFT</text>
 <text x="696.0" y="638.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">CALDER'S REACH</text>

@@ -59,7 +59,7 @@ VERSE.extend({
          flavor = "Lumen Exchange. Commodities, contracts and customs. Please have your manifest ready.",
          desc = "The Core's trading floor, in the light of the white sun Lumen.",
          lore = "If Ostia is where the Concord makes its laws, Lumen Exchange is where it makes its money. Every cargo contract in the Drift is priced against the Exchange's boards, and the 'transitional' tariffs collected at the Arbiter Line flow here to be counted, invested and spent. The Magistrate of Trade holds court on the upper ring, settling tariff disputes in the Concord's favour with impeccable courtesy.\n\nTraders say you can tell the health of the whole Drift from the noise on the Exchange floor. Lately it has been very quiet in the accounting wing, and very busy in the auditors' offices."},
-        {cs = "Sentinel Fleet Yard", tmpl = "Large Station", fac = "Concord", x = -159, y = -47, concord = true,
+        {cs = "Sentinel Fleet Yard", tmpl = "Large Station", fac = "Concord", x = -159, y = -22, concord = true,
          flavor = "Sentinel Fleet Yard. This is a military facility. State your business or move along.",
          desc = "Concord fleet base. Warships come and go.",
          lore = "Where the Concord's tariffs become warships. Sentinel builds, refits and crews the patrol cruisers that keep the Arbiter Line watched and the Border paying. Battle groups muster here before deployment; the yard's slipways have not been empty since the Settlement War.\n\nCivilian traffic is tolerated, not welcomed. There is no shipwright for hire and no market to speak of, and the yard's traffic control has a famously short memory for courtesy and a long one for transponder codes."},
@@ -132,7 +132,7 @@ VERSE.extend({
     -- Named regions. The smallest region containing the ship wins.
     -- danger: 0 safe, 1 risky, 2 dangerous, 3 deadly
     regions = {
-        {name = "the Concord Core", x = -136, y = -81, r = 55, danger = 0,
+        {name = "the Concord Core", x = -136, y = -81, r = 66, danger = 0,   -- r 55 -> 66 (2026-11-22): takes in Sentinel Fleet Yard, moved 25U south
          desc = "The Core: Concord worlds around the white sun Lumen. Rich, safe, and watched."},
         {name = "the Arbiter Line", x = -62, y = -42, r = 53, danger = 0,   -- r 21 -> 53 (2026-11-18): more Concord space; edge 15U from Calder's Reach, 22U from Port Vesper
          desc = "The Arbiter Line, where Concord checkpoints watch traffic between the Core and the Border."},

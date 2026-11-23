@@ -346,8 +346,8 @@
 <circle cx="964.0" cy="208.0" r="116.0" fill="#d0662c" opacity="0.04" stroke="#d0662c" stroke-width="1" stroke-opacity="0.35"/>
 <circle cx="1444.0" cy="1028.0" r="156.0" fill="#c0392b" opacity="0.04" stroke="#c0392b" stroke-width="1" stroke-opacity="0.35"/>
 <defs><pattern id="concord" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="14" height="14" fill="#6fa8ff" opacity="0.10"/><line x1="0" y1="0" x2="0" y2="14" stroke="#6fa8ff" stroke-width="4" opacity="0.35"/></pattern></defs>
-<circle cx="276.0" cy="268.0" r="220.0" fill="url(#concord)" stroke="#6fa8ff" stroke-width="4"/>
-<text x="276.0" y="478.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 55u · every 10 min</text>
+<circle cx="276.0" cy="268.0" r="264.0" fill="url(#concord)" stroke="#6fa8ff" stroke-width="4"/>
+<text x="276.0" y="522.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 66u · every 10 min</text>
 <circle cx="572.0" cy="424.0" r="212.0" fill="url(#concord)" stroke="#6fa8ff" stroke-width="4"/>
 <text x="572.0" y="626.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 53u · every 12 min</text>
 <circle cx="1092.0" cy="560.0" r="136.0" fill="#ff8c3c" opacity="0.08"/>
@@ -398,8 +398,8 @@
 <text x="393.0" y="184.0" fill="#6fa8ff" font-size="12">Ostia Highport $</text>
 <rect x="283.0" y="287.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 288.0 292.0)"/>
 <text x="297.0" y="296.0" fill="#6fa8ff" font-size="12">Lumen Exchange $</text>
-<rect x="179.0" y="399.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 184.0 404.0)"/>
-<text x="193.0" y="408.0" fill="#6fa8ff" font-size="12">Sentinel Fleet Yard</text>
+<rect x="179.0" y="499.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 184.0 504.0)"/>
+<text x="193.0" y="508.0" fill="#6fa8ff" font-size="12">Sentinel Fleet Yard</text>
 <rect x="515.0" y="379.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 520.0 384.0)"/>
 <text x="529.0" y="388.0" fill="#6fa8ff" font-size="12">Concord Waypoint Galen</text>
 <rect x="731.0" y="479.0" width="10" height="10" fill="#6fa8ff" transform="rotate(45 736.0 484.0)"/>
@@ -426,7 +426,7 @@
 <text x="1049.0" y="992.0" fill="#ff8c3c" font-size="12">Blackwater</text>
 <rect x="1419.0" y="1043.0" width="10" height="10" fill="#e03030" transform="rotate(45 1424.0 1048.0)"/>
 <text x="1433.0" y="1052.0" fill="#e03030" font-size="12">The Maw</text>
-<text x="276.0" y="66.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CONCORD CORE</text>
+<text x="276.0" y="22.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CONCORD CORE</text>
 <text x="572.0" y="230.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE ARBITER LINE</text>
 <text x="852.0" y="510.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">VESPER DRIFT</text>
 <text x="696.0" y="638.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">CALDER'S REACH</text>
@@ -454,7 +454,7 @@
 <text x="1704" y="1228" fill="#d9d4c7" font-size="20" font-weight="700" text-anchor="end">The Drift: who patrols where</text>
 <rect x="1334" y="16" width="370" height="172" fill="#0d1520" opacity="0.85" stroke="#2a3a4d"/>
 <text x="1344" y="36" fill="#d9d4c7" font-size="13" font-weight="700">Patrol zones (world/proximity.lua)</text>
-<text x="1344" y="56" fill="#6fa8ff" font-size="12">the Concord Core · Concord · r 55u · cooldown 600 s</text>
+<text x="1344" y="56" fill="#6fa8ff" font-size="12">the Concord Core · Concord · r 66u · cooldown 600 s</text>
 <text x="1344" y="73" fill="#6fa8ff" font-size="12">the Arbiter Line · Concord · r 53u · cooldown 720 s</text>
 <text x="1344" y="90" fill="#ff8c3c" font-size="12">the Shroud · Corsairs · r 34u · cooldown 240 s</text>
 <text x="1344" y="107" fill="#ff8c3c" font-size="12">Halcyon Rest · Corsairs · r 9u · cooldown 240 s</text>

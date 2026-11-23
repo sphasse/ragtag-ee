@@ -203,7 +203,8 @@ from building and deploying it would have been too great", and that they are hea
 pointer as a Science log line when the archive download completes. Hob's Landing's lore names the
 Works' chief engineer as an ex-Applied Research scientist. Thresh does not broker any of it.
 
-**Trigger:** Boneyard done with the archive (`boneyard_hack_done`), Rezkov over, **and the Ledger arc
+**Trigger:** Boneyard done (`boneyard_arc_done`, **any outcome, as long as the lifeboat survivors were
+rescued**: `boneyard_buoy_found`; decided 2026-11-22), Rezkov over, **and the Ledger arc
 over** (`ledger_arc_done`, any outcome; decided 2026-11-22, so the two story arcs never overlap);
 hook = Quill's pointer plus a rumor ("the Works took in some Concord archive refugees").
 
@@ -211,7 +212,9 @@ hook = Quill's pointer plus a rumor ("the Works took in some Concord archive ref
 1. `meeting` (docked at Hob's Landing): Quill and Chief Engineer Marchetti. "Our research has paid off."
    Plain exposition: the Maw was caused by a Concord program to make the population docile; a station
    broadcasting the right frequency throughout the Maw can reverse it; the Works can build it; parts
-   cost **10,000 cr** (decided 2026-11-22) and the work is stalled. New Science DB entry for the device (name TBD, e.g. "The
+   cost **10,000 cr** (decided 2026-11-22) and the work is stalled. **Without the archive**
+   (`boneyard_hack_done` unset) the research comes from the survivors' own notes, the work is harder
+   and the price is **15,000 cr**: the ~12,000 haul does not cover it and the crew makes up the rest. New Science DB entry for the device (name TBD, e.g. "The
    Pale Sun Beacon"): what it is, why the Concord never built it (very close, but the political
    fallout of building and deploying it was too great), and that it must run within range for some
    minutes while protected.
@@ -262,18 +265,13 @@ hook = Quill's pointer plus a rumor ("the Works took in some Concord archive ref
    - **The haul:** ~**12,000 cr** to the arc ship when the freighter is boarded and the crew gets
      clear, so the crew can pay for the beacon *and* afford some good upgrades. Concord standing
      takes a big hit. No Audit Service.
-   - **Sentinel Fleet Yard may move.** It is 38U from Lumen Exchange today (about 5 min at convoy
-     speed: a tight window), next to the planet Valcourt. It has played no part in the built arcs,
-     so it can move further out (e.g. 60U or so, ~8 min) to give the crew room to pick an intercept
-     point. Check the Concord Core region's edge, the traffic lanes (`world/traffic.lua`), rumors
-     and job lists that name it, and regenerate the maps (`check.py --fix`). A move is not a breaking
-     change (a rename or removal would be). The optional Arc 6 uses Sentinel; a robbed payroll fits it.
+   - **Sentinel Fleet Yard moved** (built 2026-11-22): 25U south, to (-159, -22), now 59U from Lumen
+     Exchange (~8 min at convoy speed; it was 38U, ~5 min). The Concord Core's radius went 55 -> 66 so
+     the yard is still in Core space. The optional Arc 6 uses Sentinel; a robbed payroll fits it.
 3. `build`: pay at Hob's Landing; the beacon is built (a timer, or "next session"). Export
    `hob_beacon_ready`.
 
-Open: where Sentinel Fleet Yard ends up; whether the trigger takes any Boneyard outcome (without
-the archive the cure has to come from Quill's own notes, at a higher price); hull and speed numbers
-for the convoy (playtest).
+Open: hull and speed numbers for the convoy (playtest).
 
 ---
 
@@ -603,6 +601,9 @@ If an arc module is lost, rebuild against these rails:
   ~2,000 for upgrades); the Hob Works waits for the Ledger arc (`ledger_arc_done`, any outcome).
   Convoy ships (recommended): 2 × Adder MK8 escorts (hull raised to ~100), an Equipment Freighter 5
   prize with one weak rear beam.
+- Sentinel Fleet Yard moved 25U south (Core radius 55 -> 66 to keep it inside). The Hob Works
+  starts after any Boneyard ending if the lifeboat survivors were rescued; without the archive the
+  research is the survivors' and the beacon costs 15,000 cr.
 
 ## Decisions made (2026-11-21)
 
