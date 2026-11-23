@@ -17,7 +17,9 @@
 --
 -- Every entry added (SCIDB.addEntry, profiles) or revealed (SCIDB.unlock) during play is announced
 -- in the ship log, where Relay sees it, with where it is: "[Science] Database entry added: Lore >
--- Thresh." Building the database and SCIDB.sync (restoring what a save already earned) are quiet.
+-- Thresh.", and as a pop-up on Science, Operations and Single Pilot ("Science database updated:
+-- New: Lore > Thresh"; entries within a second share one pop-up). Building the database and
+-- SCIDB.sync (restoring what a save already earned) are quiet: no log line, no pop-up.
 -- Arcs therefore never write their own "database updated" lines; a narrative line ("Survivor
 -- records received.") goes before the change, so it reads first.
 --
@@ -59,7 +61,32 @@ local function _place(entry, parent, name)
     return entry
 end
 
--- Tell the crew (every player ship's log; Relay reads it) that an entry was added or updated.
+-- The Science pop-up: the consoles that have the database, and how long to gather entries that
+-- arrive together (the Boneyard archive unlocks three at once) into one pop-up.
+SCIDB.POPUP_CONSOLES = {"Science", "Operations", "SinglePilot"}
+SCIDB.POPUP_GATHER   = 1      -- seconds
+SCIDB.popups   = {}           -- the last pop-up texts, newest last (tests read it: pop-ups can't be)
+SCIDB._pending = {}           -- places waiting for the next pop-up
+SCIDB._popup_n = 0
+
+-- Show the gathered entries as one dismissable pop-up on the database consoles of every player ship.
+function SCIDB._flushPopup()
+    if #SCIDB._pending == 0 then return end
+    local text = "Science database updated:\n" .. table.concat(SCIDB._pending, "\n")
+    SCIDB._pending = {}
+    SCIDB._popup_n = SCIDB._popup_n + 1
+    SCIDB.popups[#SCIDB.popups + 1] = text
+    while #SCIDB.popups > 20 do table.remove(SCIDB.popups, 1) end
+    if not (RT and RT.forEachPlayer) then return end
+    RT.forEachPlayer(function(p)
+        for _, pos in ipairs(SCIDB.POPUP_CONSOLES) do
+            pcall(function() p:addCustomMessage(pos, "scidb_popup_" .. SCIDB._popup_n .. "_" .. pos, text) end)
+        end
+    end)
+end
+
+-- Tell the crew that an entry was added or updated: a line in every player ship's log (Relay reads
+-- it) and, gathered with anything else that changes within a second, a pop-up on Science.
 local function _announce(entry, verb)
     if SCIDB._quiet > 0 then return end
     local where = SCIDB._paths[entry] or "the database"
@@ -67,6 +94,11 @@ local function _announce(entry, verb)
     SCIDB.announced[#SCIDB.announced + 1] = line
     while #SCIDB.announced > 20 do table.remove(SCIDB.announced, 1) end
     if RT and RT.shipLog then RT.shipLog(line, "#00CCAA") end
+    SCIDB._pending[#SCIDB._pending + 1] = (verb == "added" and "New: " or "Updated: ") .. where
+    if #SCIDB._pending == 1 then
+        if RT and RT.after then RT.after(SCIDB.POPUP_GATHER, SCIDB._flushPopup, "scidb_popup")
+        else SCIDB._flushPopup() end
+    end
 end
 
 -- Run fn(...) with the announcements off (a restore of what the crew already had, not news).

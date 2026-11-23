@@ -91,7 +91,8 @@ to an end state, or `→ Inactive`) leaves the database matching the state it la
   person are reset, and stays while another arc still has met them.
 - **Announcements**: every entry added (`SCIDB.addEntry`, profiles) or revealed (`SCIDB.unlock`)
   during play is announced in every player ship's log (Relay reads it) with where it is:
-  `[Science] Database entry added: Lore > Thresh.` / `... updated: Lore > Ashgrave Research.`
+  `[Science] Database entry added: Lore > Thresh.` / `... updated: Lore > Ashgrave Research.`, and pops up on
+  Science, Operations and Single Pilot ("Science database updated:" with each place; entries within a second share one pop-up).
   An arc never writes its own "database updated" line. A story line ("Survivor records
   received.") goes **before** the SCIDB call so it reads first. Building the database and
   `SCIDB.sync()` are quiet (restoring what a save already earned is not news); for any other

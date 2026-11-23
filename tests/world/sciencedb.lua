@@ -180,3 +180,32 @@ T.step("key/values fit the Science screen", function()
         end
     end
 end)
+
+-- ── The Science pop-up ───────────────────────────────────────────────────────
+-- Everything announced also pops up on Science, Operations and Single Pilot; entries that change
+-- within a second share one pop-up; quiet restores pop nothing up.
+local popups0
+T.wait(1.5)   -- let the pop-ups from the steps above go out
+T.step("two entries at once", function()
+    popups0 = #SCIDB.popups
+    T.eq("pop-up: nothing waiting", #SCIDB._pending, 0)
+    SCIDB.addEntry("lore", "Test Popup One", "First.")
+    SCIDB.addEntry("lore", "Test Popup Two", "Second.", nil, "test_popup_two", "[ sealed ]")
+    SCIDB.unlock("test_popup_two")
+    T.eq("pop-up: not shown at once (gathering)", #SCIDB.popups, popups0)
+end)
+T.wait(1.5)
+T.step("one pop-up for both", function()
+    T.eq("pop-up: one pop-up", #SCIDB.popups, popups0 + 1)
+    local text = SCIDB.popups[#SCIDB.popups] or ""
+    T.check("pop-up: a heading", text:find("Science database updated:", 1, true) == 1, text)
+    T.check("pop-up: the new entry, with its place", text:find("New: Lore > Test Popup One", 1, true) ~= nil, text)
+    T.check("pop-up: the revealed entry", text:find("Updated: Lore > Test Popup Two", 1, true) ~= nil, text)
+    T.eq("pop-up: the consoles", table.concat(SCIDB.POPUP_CONSOLES, ","), "Science,Operations,SinglePilot")
+    SCIDB.quietly(function() SCIDB.addEntry("lore", "Test Popup Quiet", "Restored.") end)
+end)
+T.wait(1.5)
+T.step("a quiet restore pops nothing up", function()
+    T.eq("pop-up: quiet adds no pop-up", #SCIDB.popups, popups0 + 1)
+    T.eq("pop-up: and nothing waiting", #SCIDB._pending, 0)
+end)

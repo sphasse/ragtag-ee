@@ -126,7 +126,9 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 
 - [ ] The Concord lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) walk a
       slow beat round their posts and read as pickets ("Concord lane picket…"), not lost defenders
-- [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …")
+- [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …") and pop up on
+      Science (and Operations / Single Pilot): does Science notice them now? The Boneyard archive's three entries
+      should arrive as one pop-up
 - [ ] An empty job board says "check back in a while / a few / a bit"
 - [ ] GM **Enable arc / Disable arc** on a finished arc resets it (its done flag too)
 

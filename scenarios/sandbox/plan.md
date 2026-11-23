@@ -203,21 +203,44 @@ from building and deploying it would have been too great", and that they are hea
 pointer as a Science log line when the archive download completes. Hob's Landing's lore names the
 Works' chief engineer as an ex-Applied Research scientist. Thresh does not broker any of it.
 
-**Trigger:** Boneyard done (`boneyard_arc_done`, **any outcome, as long as the lifeboat survivors were
-rescued**: `boneyard_buoy_found`; decided 2026-11-22), Rezkov over, **and the Ledger arc
-over** (`ledger_arc_done`, any outcome; decided 2026-11-22, so the two story arcs never overlap);
-hook = Quill's pointer plus a rumor ("the Works took in some Concord archive refugees").
+**Trigger** (revised 2026-11-23): Rezkov over, and **all three Phase II arcs over**, any outcome:
+Ledger (`ledger_arc_done`), Boneyard (`boneyard_arc_done`, **as long as the lifeboat survivors were
+rescued**: `boneyard_buoy_found`) and Corsair (`corsair_arc_done`). Then **5 board jobs** by the primary
+ship after the last of the three ended (the Ledger hook's job count: a saved starting point, the
+ship's `jobs_done`, a GM "Satisfy done jobs" helper). Waiting for Corsair too settles both fleet fights
+before the heist backstory (the Concord rebuilding at Sentinel) and keeps the arcs from overlapping.
+
+**Hook** (decided 2026-11-23): **port news, no hail.** Going somewhere to talk with someone is the
+dynamic; map-wide hails make less sense. A priority-5 rumor limited to Independent ports
+(`RUMORS.add{faction = "Independent"}`), so "Any news?" there tells it first: "Mara Quill left a message
+for your crew. Something about a breakthrough at the Works. She asked you to come by Hob's Landing when
+you can." Hearing it sets the objective **"Meet Quill at Hob's Landing"**. It stays on offer until they
+meet.
 
 **Shape:**
-1. `meeting` (docked at Hob's Landing): Quill and Chief Engineer Marchetti. "Our research has paid off."
+1. `meeting` (docked at Hob's Landing): Quill and Chief Engineer Marchetti. **Three or four short comms
+   pages** joined by "Go on." (comms overlays the main screen and can't scroll: each page fits with room
+   to spare): (1) context, Quill: what the archive showed; (2) the breakthrough, Marchetti; (3) the goal
+   and the problem, the price; (4) the pitch (below). Replies: **Interested** → the convoy brief; **Not
+   right now** → the offer stays open, re-offered on the next docking there. No permanent decline: the
+   finale needs the beacon.
+   - **The pitch** (the user's line, 2026-11-23): "…Which brings us to you. We think we've got a creative
+     way to get the cash. Your friend Rezkov is a supporter of our research and he said your crew is one
+     of the few capable of pulling off this job. Interested in learning more?" **Rezkov only refers the
+     crew** (he holds the Ledger and wants the cover-up made unburiable; a cure does that); no side quest,
+     no other part in the mission. Variants: Rezkov arc `concord_won` (the crew sold him out): "Rezkov
+     hasn't forgotten the Meridian business, but he still says…"; Ledger `lost`: "…even after the Lumen
+     business". The crew always met Rezkov in the Ledger arc.
    Plain exposition: the Maw was caused by a Concord program to make the population docile; a station
    broadcasting the right frequency throughout the Maw can reverse it; the Works can build it; parts
    cost **10,000 cr** (decided 2026-11-22) and the work is stalled. **Without the archive**
    (`boneyard_hack_done` unset) the research comes from the survivors' own notes, the work is harder
    and the price is **15,000 cr**: the ~12,000 haul does not cover it and the crew makes up the rest. New Science DB entry for the device (name TBD, e.g. "The
-   Pale Sun Beacon"): what it is, why the Concord never built it (very close, but the political
-   fallout of building and deploying it was too great), and that it must run within range for some
-   minutes while protected.
+   Pale Sun Beacon") that **covers everything the briefing said**, so a crew that skimmed the comms can
+   read it again: what the Maw program was, what the beacon does, why the Concord never built it (very
+   close, but the political fallout of building and deploying it was too great), that it must run
+   within range of the Maw for some minutes while protected, and the price and why. Every database
+   change now pops up on Science, Operations and Single Pilot (built 2026-11-23).
 2. `heist` (revised 2026-11-22): **a train job.** The crew intercepts a moving Concord convoy carrying
    the money from **Lumen Exchange to Sentinel Fleet Yard**: the escort job turned around (we are the
    interceptors). The crew does it themselves: **the Ledger AI plays no part.**
@@ -240,7 +263,8 @@ hook = Quill's pointer plus a rumor ("the Works took in some Concord archive ref
        e.g. CTS *Tithe* (Treasury) with CNS escorts. It runs on impulse along the lane (the escort job's convoy speed,
      ~125 u/s ≈ 7.5U/min), so where and when to intercept is the crew's call. Destroying the freighter
      loses the money (fail, retry: a later convoy).
-   - **Getting into position: the fake transponder** (idea 2026-11-21). Sending them off, the chief
+   - **Getting into position: the fake transponder** (idea 2026-11-21; **made by the Works' engineers**,
+     not Rezkov, decided 2026-11-23). Sending them off, the chief
      engineer: "Your crew has all the skills to pull this mission off, but the Concord is really on
      the lookout for the Magpie. Our engineers can make a fake transponder that should be able to
      work for long enough for you to pull it off. Just act normal and don't run from any patrols."
@@ -588,6 +612,19 @@ If an arc module is lost, rebuild against these rails:
   what the arc spawned.
 - Run `python tools/check.py` after every change; headless smoke test before
   calling an arc done.
+
+## Decisions made (2026-11-23)
+
+- Hob Works trigger: Rezkov over and all three Phase II arcs over (Ledger, Boneyard with the survivors
+  rescued, Corsair), then 5 board jobs after the last of them.
+- Hook: port news at Independent ports ("Mara Quill left a message for your crew…"), no hail; hearing it
+  sets the objective "Meet Quill at Hob's Landing".
+- Briefing: three or four short comms pages (context, breakthrough, goal and the cash problem, the pitch);
+  Rezkov only refers the crew to the Works; the beacon's Science DB entry covers everything the briefing
+  says.
+- The fake transponder is made by the Works' engineers, not Rezkov.
+- Built: every Science DB change pops up on Science, Operations and Single Pilot, entries within a second
+  sharing one pop-up (players missed the "[Science]" log lines).
 
 ## Decisions made (2026-11-22)
 
