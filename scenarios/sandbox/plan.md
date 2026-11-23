@@ -214,32 +214,58 @@ pointer plus a rumor ("the Works took in some Concord archive refugees").
    Pale Sun Beacon"): what it is, why the Concord never built it (very close, but the political
    fallout of building and deploying it was too great), and that it must run within range for some
    minutes while protected.
-2. `heist`: steal the money from the Concord. Recommended: drain CX-0, the Ledger's 'Contingent
-   Reserve' account, so the cover-up's money pays for the cure. With the Ledger AI
-   (`ledger_evidence`) it does the transfer while Relay holds a hack at a Treasury node (Lumen Exchange
-   or Waypoint Galen) under time pressure; without it, board a Treasury tariff courier on the Arbiter
-   Line for its credit chips. Concord standing hit; the Audit Service returns.
-   - **The fake transponder** (idea 2026-11-21). Sending them off, the chief engineer: "Your crew has
-     all the skills to pull this mission off, but the Concord is really on the lookout for the Magpie.
-     Our engineers can make a fake transponder that should be able to work for long enough for you to
-     pull it off. Just act normal and don't run from any patrols." While it is fitted, Concord
-     shakedowns judge the ship as if its standing were good (a clean pass), and the patrol says so:
-     "It's an old code, but it checks out…" Hostile-standing patrols spawn as ordinary shakedowns
-     instead of attacking.
+2. `heist` (revised 2026-11-22): **a train job.** The crew intercepts a moving Concord convoy carrying
+   the money from **Lumen Exchange to Sentinel Fleet Yard**: the escort job turned around (we are the
+   interceptors). The crew does it themselves: **the Ledger AI plays no part.**
+   - **Backstory** (the engineer's briefing, and a rumor or two at Core-facing ports): with the
+     Concord's battle groups destroyed, the Concord is pouring money and resources into Sentinel
+     Fleet Yard to rebuild its fleet. Hitting the payroll convoy pays for the beacon *and* sets the
+     rebuild back. Variant text if neither battle group died (`boneyard_battlegroup_destroyed`,
+     `corsair_battlegroup_destroyed`): "reinforcing", not "rebuilding".
+   - **The convoy:** one large Treasury freighter with minimal defenses (the prize; disabled and
+     boarded, not destroyed, like the boarding job) and **two fairly tough escort fighters** the crew
+     has to dispatch first. It runs on impulse along the lane (the escort job's convoy speed,
+     ~125 u/s ≈ 7.5U/min), so where and when to intercept is the crew's call. Destroying the freighter
+     loses the money (fail, retry: a later convoy).
+   - **Getting into position: the fake transponder** (idea 2026-11-21). Sending them off, the chief
+     engineer: "Your crew has all the skills to pull this mission off, but the Concord is really on
+     the lookout for the Magpie. Our engineers can make a fake transponder that should be able to
+     work for long enough for you to pull it off. Just act normal and don't run from any patrols."
+     While it is fitted, Concord shakedowns judge the ship as if its standing were good (a clean
+     pass), and the patrol says so: "It's an old code, but it checks out…" Hostile-standing patrols
+     spawn as ordinary shakedowns instead of attacking.
      - Cover breaks (the transponder is burned and real standing applies at once, a hostile patrol
-       turns hostile) if the crew runs from a shakedown, fires on a Concord ship or jammer, or the
-       heist is discovered (the end of the hack or the boarding). Then the escape is the drama.
+       turns hostile) if the crew runs from a shakedown, fires on a Concord ship or jammer, or when
+       it attacks the convoy.
      - Implementation: a hook in `PROX` (`world/proximity.lua`) for the standing it uses to pick the
        shakedown outcome and whether a patrol spawns hostile, e.g. `PROX.standingFor(ship)` that an
-       arc can override while a flag is set (`hob_transponder` = "fitted" / "burned"). Don't change
-       the ship's callsign: per-ship records are keyed by callsign, and a rename would save the
-       record under the fake name. The "old code" line goes into the clean-pass branch of the
-       shakedown comms when the override is on.
+       arc can override while a flag is set (`hob_transponder` = "fitted" / "burned"). Primary ship
+       only. Don't change the ship's callsign: per-ship records are keyed by callsign, and a rename
+       would save the record under the fake name. The "old code" line goes into the clean-pass branch
+       of the shakedown comms when the override is on.
+   - **Real battles, one or two:** (1) the intercept itself, the two escorts then the freighter;
+     (2) the Concord response: once the convoy calls for help, **regular Concord forces** (not the
+     Audit Service: its records were purged) sortie from Sentinel and Lumen and chase the crew out
+     of the Core, with combat warp jammers (`PROX.tickCombatJammers`). Possibly a picket on the
+     Arbiter Line on the way home. Reuse `BATTLE` for the response waves and the boarding job's
+     disable-and-board for the freighter.
+   - **The haul:** ~**12,000 cr** to the arc ship when the freighter is boarded and the crew gets
+     clear, so the crew can pay for the beacon *and* afford some good upgrades. Concord standing
+     takes a big hit. No Audit Service.
+   - **Sentinel Fleet Yard may move.** It is 38U from Lumen Exchange today (about 5 min at convoy
+     speed: a tight window), next to the planet Valcourt. It has played no part in the built arcs,
+     so it can move further out (e.g. 60U or so, ~8 min) to give the crew room to pick an intercept
+     point. Check the Concord Core region's edge, the traffic lanes (`world/traffic.lua`), rumors
+     and job lists that name it, and regenerate the maps (`check.py --fix`). A move is not a breaking
+     change (a rename or removal would be). The optional Arc 6 uses Sentinel; a robbed payroll fits it.
 3. `build`: pay at Hob's Landing; the beacon is built (a timer, or "next session"). Export
    `hob_beacon_ready`.
 
-Open: the engineer's name, the heist's final shape, the price (10,000 vs ~6,000, and whether the
-crew can top it up from its own credits).
+Open: the engineer's name; the beacon's price now that the haul is ~12,000 (10,000 leaves ~2,000
+for upgrades; lower to leave more); where Sentinel Fleet Yard ends up; the escort fighters' and the
+freighter's templates; whether the trigger takes any Boneyard outcome (without the archive the
+cure has to come from Quill's own notes, at a higher price) and waits for `ledger_arc_done` so the
+two story arcs don't overlap.
 
 ---
 
@@ -555,6 +581,16 @@ If an arc module is lost, rebuild against these rails:
   what the arc spawned.
 - Run `python tools/check.py` after every change; headless smoke test before
   calling an arc done.
+
+## Decisions made (2026-11-22)
+
+- **The Hob Works heist is a train job:** intercept a Treasury convoy from Lumen Exchange to
+  Sentinel Fleet Yard (the escort job reversed): two fairly tough escort fighters and a large,
+  lightly defended freighter to disable and board. Backstory: with the battle groups gone, the
+  Concord is pouring money into Sentinel to rebuild its fleet. The players do it, not the Ledger AI.
+  Regular Concord forces respond (no Audit Service: its records were purged); the arc should bring
+  a real battle or two. The fake transponder stays (getting into position). Haul ~12,000 cr.
+  Sentinel Fleet Yard may move further from Lumen Exchange.
 
 ## Decisions made (2026-11-21)
 
