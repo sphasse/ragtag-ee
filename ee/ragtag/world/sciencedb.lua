@@ -433,6 +433,84 @@ local function _buildPorts()
     end
 end
 
+-- ─── Ship Upgrades ────────────────────────────────────────────────────────────
+-- A top-level section rolling up the upgrade catalogue (RT.UPGRADES): one entry per component line
+-- (RT.UPGRADE_LINES), with every level's name, effect, price and prerequisite, and the ports whose
+-- shipwright fits that line (VERSE.STATIONS `shop`, read through RT.stocks, the shipwright's own test).
+SCIDB.UPGRADE_LINE_TITLES = {
+    hull = "Hull", shields = "Shields", beams = "Beam weapons", missiles = "Missile racks",
+    tubes = "Torpedo tubes", engines = "Engines", thrusters = "Thrusters", reactor = "Reactor",
+    repair = "Engineering crew", sensors = "Sensors", probes = "Probes",
+}
+
+local function _fmtCr(n)
+    local s = tostring(math.floor(n))
+    while true do
+        local r, k = s:gsub("^(%d+)(%d%d%d)", "%1,%2")
+        s = r
+        if k == 0 then break end
+    end
+    return s .. " cr"
+end
+
+-- The ports whose shipwright fits an upgrade, sorted by name (hostile havens are left out, as in Ports).
+local function _fittedAt(id)
+    local out = {}
+    for _, d in ipairs((VERSE and VERSE.STATIONS) or {}) do
+        if not SCIDB.PORT_EXCLUDE_FACTIONS[d.fac] and RT and RT.stocks and RT.stocks(d, id) then
+            out[#out + 1] = d
+        end
+    end
+    table.sort(out, function(a, b) return a.cs < b.cs end)
+    return out
+end
+
+local function _buildUpgrades()
+    if not (RT and RT.UPGRADES and RT.UPGRADE_LINES) then return end
+    local root = _entry(nil, "Ship Upgrades",
+        "What the Drift's shipwrights can fit to a Light Freighter, by component, with prices and where " ..
+        "to buy them.\n\n" ..
+        "HOW TO BUY\nDock at a port with a shipwright and open Shipwright in the station's comms. A " ..
+        "shipwright fits every level of the components it is a base for; a level is offered once the " ..
+        "one it needs is fitted.\n\n" ..
+        "WHO OWNS IT\nAn upgrade belongs to the ship that bought it, and stays with it from session to " ..
+        "session, even if the ship is lost and rebuilt.\n\n" ..
+        "BETTER WORK\nThe more a ship has invested in upgrades, the better the work the job boards " ..
+        "offer it: hacking jobs from 500 cr invested, destroy and boarding jobs from 1,000 cr.",
+        {["Components"] = tostring(#RT.UPGRADE_LINES), ["Upgrades"] = tostring(#RT.UPGRADES)})
+    SCIDB._entries["upgrades"] = root
+
+    for _, line in ipairs(RT.UPGRADE_LINES) do
+        local ups = {}
+        for _, u in ipairs(RT.UPGRADES) do if u.line == line.id then ups[#ups + 1] = u end end
+        if #ups > 0 then
+            -- Ports: those that fit any level of the line (a base sells every level).
+            local ports = _fittedAt(ups[1].id)
+            local where = {}
+            for _, d in ipairs(ports) do
+                where[#where + 1] = d.cs .. " (" .. getSectorName(d.x * _PORT_U, d.y * _PORT_U) .. ")"
+            end
+            local lo, hi = ups[1].cost, ups[1].cost
+            local levels = {}
+            for _, u in ipairs(ups) do
+                lo, hi = math.min(lo, u.cost), math.max(hi, u.cost)
+                local need = u.requires and RT.upgradeById(u.requires)
+                levels[#levels + 1] = u.name .. ", " .. _fmtCr(u.cost) ..
+                    (need and (" (needs " .. need.name .. ")") or "") .. "\n" .. u.desc
+            end
+            local title = SCIDB.UPGRADE_LINE_TITLES[line.id] or _cap(line.name)
+            local desc = "FITTED AT\n" .. (#where > 0 and (table.concat(where, ", ") .. ".") or "No shipwright in the Drift fits these.") ..
+                "\n\nUPGRADES\n" .. table.concat(levels, "\n\n")
+            local kv = {
+                ["Upgrades"]    = tostring(#ups),
+                ["Price"]       = lo == hi and _fmtCr(lo) or (_fmtCr(lo) .. " - " .. _fmtCr(hi)),
+                ["Shipwrights"] = #ports == 1 and ports[1].cs or (#ports .. " ports"),
+            }
+            SCIDB._entries["upgrades_" .. line.id] = _entry(root, title, desc, kv)
+        end
+    end
+end
+
 -- ─── Database construction ────────────────────────────────────────────────────
 
 local function _build()
@@ -578,6 +656,7 @@ local function _build()
     -- ── Lore ─────────────────────────────────────────────────────────────────
 
     _buildPorts()
+    _buildUpgrades()
 
     local lore = _entry(nil, "Lore",
         "Historical records, research summaries, and recovered documents. " ..

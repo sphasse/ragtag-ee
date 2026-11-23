@@ -20,6 +20,7 @@ Contributors add **universe extensions** and **scenarios** independently.
     `director/actions/*.lua` (the action whitelist; `index.lua` is generated)
   - `jobs/` — the job board: `_engine.lua` (`JOBS.board` decides the offers, a renderer shows them), one file per job type
   - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
+    (the Science database: the Drift's sections, Ports and Ship Upgrades built from `RT.UPGRADES` and the stations' `shop`)
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs),
     `_audit.lua` (`AUDIT`: the Ledger arc's carry and audit stop, shared with the Audit Lab), `_aftermath.lua`
     (`AFTERMATH`: the news rumors that follow arc outcomes, each told once across sessions), one file per arc.

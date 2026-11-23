@@ -57,6 +57,40 @@ T.step("one port entry per friendly station", function()
     T.check("ports: Port Vesper is described", #(desc("port_Port Vesper") or "") > 20)
 end)
 
+-- ── Ship Upgrades: the catalogue rolled up ───────────────────────────────────
+T.step("the Ship Upgrades section", function()
+    T.eq("upgrades: a top-level section", top_names()["Ship Upgrades"], 1)
+    local intro = desc("upgrades") or ""
+    T.check("upgrades: says how to buy", intro:find("open Shipwright", 1, true) ~= nil, intro)
+    local listed = {}
+    for _, line in ipairs(RT.UPGRADE_LINES) do
+        local text = desc("upgrades_" .. line.id)
+        T.check("upgrades: an entry for " .. line.id, text ~= nil)
+        text = text or ""
+        for _, u in ipairs(RT.UPGRADES) do
+            if u.line == line.id then
+                local cost = u.cost >= 1000 and string.format("%d,%03d cr", u.cost // 1000, u.cost % 1000) or (u.cost .. " cr")
+                local has = text:find(u.name .. ", " .. cost, 1, true) ~= nil and text:find(u.desc, 1, true) ~= nil
+                T.check("upgrades: " .. u.id .. " with its price and effect", has, text)
+                if has then listed[u.id] = true end
+                if u.requires then
+                    local need = RT.upgradeById(u.requires)
+                    T.check("upgrades: " .. u.id .. " says what it needs", text:find("(needs " .. need.name .. ")", 1, true) ~= nil)
+                end
+                for _, d in ipairs(VERSE.STATIONS) do
+                    if RT.stocks(d, u.id) and not SCIDB.PORT_EXCLUDE_FACTIONS[d.fac] then
+                        T.check("upgrades: " .. u.id .. " fitted at " .. d.cs, text:find(d.cs, 1, true) ~= nil)
+                    end
+                end
+            end
+        end
+    end
+    for _, u in ipairs(RT.UPGRADES) do T.check("upgrades: every upgrade is listed: " .. u.id, listed[u.id]) end
+    local hull = desc("upgrades_hull") or ""
+    T.check("upgrades: Port Vesper fits hull, with its grid", hull:find("Port Vesper (", 1, true) ~= nil, hull)
+    T.check("upgrades: Lumen Exchange does not", hull:find("Lumen Exchange", 1, true) == nil, hull)
+end)
+
 -- ── Locked entries ───────────────────────────────────────────────────────────
 local locked_text
 T.step("a locked entry", function()

@@ -126,6 +126,8 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
 
 - [ ] The Concord lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) walk a
       slow beat round their posts and read as pickets ("Concord lane picket…"), not lost defenders
+- [ ] Science DB **Ship Upgrades** (top level): one entry per component with every upgrade's effect, price, prerequisite
+      and the ports that fit it. Does it read well on the Science screen? Do crews use it to plan purchases?
 - [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …") and pop up on
       Science (and Operations / Single Pilot): does Science notice them now? The Boneyard archive's three entries
       should arrive as one pop-up
