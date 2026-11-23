@@ -112,11 +112,11 @@ local function _spawnWaypoint(st)
                     addCommsReply("Understood.", function(s3, t3) setCommsMessage("The channel closes.") end)
                     return
                 end
-                ARC.log("[Rezkov] Job accepted: Concord Waypoint Galen (grid " .. JOBS.gridRef(-75000, -52000) .. "), Arbiter Line. Hack the station's front shield generator to 100%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
+                ARC.log("[Rezkov] Job accepted: Concord Waypoint Galen (grid " .. JOBS.gridRef(-75000, -52000) .. "), Arbiter Line. Hack the station's front shield generator down to 0%. Retrieve 90-day traffic log. Deliver storage card to Thresh at Dustmote Salvage. 600cr.", "#A0C0FF")
                 RT.setObjective("Hack Waypoint Galen", true)
                 RT.flag("rezkov_m1_done", true)
                 MISSIONS.phase("rezkov", "m2_active")
-                setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock with the station and hack their front shield generators to 100% to download the traffic log to the storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. Make your way over there but do not make it look suspicious. Pick up some jobs along the way to get you closer."')
+                setCommsMessage('"Waypoint Galen. Small Concord checkpoint, Arbiter Line. Dock with the station and hack their front shield generators down to 0% to download the traffic log to the storage card.\n\nThen bring the card to my contact at Dustmote Salvage. Ask for Thresh.\n\n600 credits on delivery. Make your way over there but do not make it look suspicious. Pick up some jobs along the way to get you closer."')
                 addCommsReply("Understood.", function() setCommsMessage("Rezkov ends the channel.") end)
             end)
             addCommsReply("Not our kind of work.", function(s2, t2)

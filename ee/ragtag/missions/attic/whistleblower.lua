@@ -228,7 +228,7 @@ M.phases.transit = {
             local tx, ty = VERSE.at("Concord Station Arbiter", 8, -4)
             RT.shipLog("[Whistleblower] Data terminal located: " .. (st.terminal_cs or "unknown") ..
                 " at grid " .. JOBS.gridRef(tx, ty) ..
-                ". Hack any system to 75% to extract the logs.", "#A0C0FF")
+                ". Hack any system down to 25% to extract the logs.", "#A0C0FF")
             RT.setObjective("Hack " .. (st.terminal_cs or "the data terminal"), true)
             MISSIONS.phase("whistleblower", "hacking")
         end

@@ -328,7 +328,7 @@ function M.generate(opts)
         short          = arch.short_offer,
         obj            = "Hack relay near " .. opts.origin,
         brief          = arch.lore .. "\n\n" .. arch.accept_msg
-                         .. "\n\nHack any of the relay's systems to 75% to breach its datastore."
+                         .. "\n\nHack any one of the relay's systems down to 25% to breach its datastore."
                          .. "\n\nWARNING: this relay has active automated defenses. Approach with caution.",
         complete_msg   = arch.recv_msg,
         distance_u     = opts.distance_u or 0,
