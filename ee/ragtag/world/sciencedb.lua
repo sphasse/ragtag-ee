@@ -3,7 +3,7 @@
 -- Runs in init(): removes the stock sections listed in SCIDB.REMOVE_STOCK (EE builds the stock
 -- database before the scenario starts), then builds the Drift's top-level sections: "The Drift"
 -- (overview), Factions, Regions, Ports (one entry per friendly/neutral universe station, from
--- VERSE.STATIONS) and Lore, beside the stock Natural, Technologies, Weapons, Ships and Stations.
+-- VERSE.STATIONS) and Lore, beside the stock Natural, Technologies, Weapons and Ships.
 --
 -- API:
 --   SCIDB.unlock(key)              -- reveal a locked entry
@@ -641,10 +641,11 @@ _P.defaults         = {}
 
 -- Stock top-level sections the Drift replaces (EE builds the stock database in science_db.lua
 -- before the scenario's init). The stock Factions list the stock universe (Human Navy, Kraylor,
--- Exuari...); the Drift has its own top-level Factions. Natural, Technologies, Weapons, Ships and
--- Stations stay: generic gameplay help, and Science's "Database" button on a scanned ship looks
--- its template up in Ships/Stations.
-SCIDB.REMOVE_STOCK = {"Factions"}
+-- Exuari...); the Drift has its own top-level Factions. The stock Stations section is only generic
+-- station templates (the Drift's own stations are in Ports), so it goes too; a scanned station's
+-- "Database" button on Science then has no template entry to open. Natural, Technologies,
+-- Weapons and Ships stay: generic gameplay help, and that button looks a ship's template up in Ships.
+SCIDB.REMOVE_STOCK = {"Factions", "Stations"}
 
 local function _destroyTree(node)
     local ok, kids = pcall(function() return node:getEntries() end)

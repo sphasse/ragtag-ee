@@ -38,6 +38,7 @@ T.step("the Drift's sections are there", function()
     local tops = top_names()
     T.eq("sections: one Factions section (the Drift's; the stock one is removed)", tops["Factions"], 1)
     T.check("sections: stock Ships help is kept", tops["Ships"] ~= nil)
+    T.check("sections: the stock Stations section is removed (the Drift's are in Ports)", tops["Stations"] == nil)
     local facs = child_names("factions")
     for _, f in ipairs({"Concord", "Corsairs", "Independent", "Relic", "Hollow"}) do
         T.check("factions: " .. f, facs[f])
