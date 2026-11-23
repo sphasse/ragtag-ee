@@ -17,6 +17,8 @@ RT.UPGRADE_LINES = {
     {id = "repair", name = "repair crew"}, {id = "sensors", name = "sensor"}, {id = "probes", name = "probe"},
 }
 
+RT.PROBE_SPEED_STOCK = 1000   -- EE's stock scan probe speed, world units/s (60 U a minute)
+
 RT.UPGRADES = {
     {id = "hull_plating", line = "hull", name = "Salvaged hull plating", gm_name = "Hull armor", cost = 200,
      desc = "+50 hull.",
@@ -121,12 +123,13 @@ RT.UPGRADES = {
      desc = "Long-range radar 40u -> 45u. Built for mapping the Drift; you'll use it to see trouble first.",
      apply = function(p) p:setLongRangeRadarRange(45000) end},
     {id = "fast_probes", line = "probes", name = "Overcharged probe capacitors", gm_name = "Fast probes", cost = 200,
-     -- EE's stock probe speed is 1000 world units/s (shown as 60 a minute).
-     desc = "Scan probe speed 60 -> 90.",
-     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(1500) end) end},
+     -- EE's stock probe speed is 1000 world units/s (60 U a minute). The Light Freighter's warp is
+     -- 500 a level (warp 4: 2000), so both levels out-pace the ship at full warp.
+     desc = "Scan probe speed 60 -> 150 U a minute: faster than the ship at full warp.", probe_speed = 2500,
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(2500) end) end},
     {id = "ludicrous_probes", line = "probes", name = "Ludicrous-speed probe mod", gm_name = "Ludicrous", cost = 250, requires = "fast_probes",
-     desc = "Scan probe speed 90 -> 120: twice stock. They've hit the plaid.",
-     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(2000) end) end},
+     desc = "Scan probe speed 150 -> 300 U a minute: five times stock. They've hit the plaid.", probe_speed = 5000,
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(5000) end) end},
     -- Second tier: what it takes to survive Blackwater, the Boneyard and, eventually, the Maw.
     {id = "reactor_overhaul", line = "reactor", name = "Reactor overhaul", gm_name = "Reactor", cost = 200,
      desc = "+50% energy capacity.",
@@ -254,7 +257,7 @@ function RT.rebuildHull(p)
     RT.provision(p)   -- the stock freighter loadout again (setTemplate brought the nuke back)
     -- setTemplate keeps the probe launcher's on-launch callback, so a removed probe upgrade would
     -- keep launching fast probes: back to stock speed (the upgrades still kept set it again).
-    p:onProbeLaunch(function(ship, probe) probe:setSpeed(1000) end)
+    p:onProbeLaunch(function(ship, probe) probe:setSpeed(RT.PROBE_SPEED_STOCK) end)
 end
 
 function RT.revokeUpgrade(id, ship)

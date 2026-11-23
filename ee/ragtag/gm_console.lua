@@ -634,9 +634,11 @@ function GMCONSOLE.add(opts)
 
         sec("PROBES")
         add(uline("fast_probes")); add(uline("ludicrous_probes"))
-        local spd = RT.hasUpgrade("ludicrous_probes", p) and 4000
-                 or RT.hasUpgrade("fast_probes", p) and 2000 or 1000
-        add(string.format("  speed: %d wu/s", spd))
+        local spd = RT.PROBE_SPEED_STOCK
+        for _, id in ipairs({"ludicrous_probes", "fast_probes"}) do
+            if RT.hasUpgrade(id, p) then spd = RT.upgradeById(id).probe_speed; break end
+        end
+        add(string.format("  speed: %d wu/s (%d U/min)", spd, spd * 60 / 1000))
 
         addGMMessage(table.concat(L, "\n"))
     end

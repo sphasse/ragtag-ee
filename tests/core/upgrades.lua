@@ -45,15 +45,16 @@ T.step("the catalogue", function()
         seen[u.name] = true
     end
     T.eq("catalogue: no two upgrades share a name", table.concat(dup, ", "), "")
-    -- Probe speed: stock 1000 world units/s (60 a minute), then 90 and 120.
+    -- Probe speed: stock 1000 world units/s (60 a minute), then 150 and 300.
     local function probeSpeed(id)
         local launch, speed
         ids[id].apply({onProbeLaunch = function(_, fn) launch = fn end})
         if launch then launch(nil, {setSpeed = function(_, v) speed = v end}) end
         return speed
     end
-    T.eq("probes 1: 90 (1500 units/s)", probeSpeed("fast_probes"), 1500)
-    T.eq("probes 2: 120 (2000 units/s)", probeSpeed("ludicrous_probes"), 2000)
+    T.eq("probes 1: 150 (2500 units/s)", probeSpeed("fast_probes"), 2500)
+    T.eq("probes 2: 300 (5000 units/s)", probeSpeed("ludicrous_probes"), 5000)
+    T.eq("probes: the catalogue's speeds match", ids.fast_probes.probe_speed .. "," .. ids.ludicrous_probes.probe_speed, "2500,5000")
     for _, id in ipairs({"repair_crew", "repair_crew_2", "repair_crew_3"}) do
         T.check("crew: " .. id .. " is hired engineering crew", ids[id] and ids[id].crew and ids[id].desc:find("Hire 2 more engineering crew", 1, true) ~= nil)
         T.check("crew: " .. id .. " never says three", ids[id] and not ids[id].name:lower():find("three", 1, true))
@@ -158,8 +159,9 @@ end)
 -- The catalogue check above only shows the upgrade asks for the right speed. Here each probe is
 -- launched through the engine (commandLaunchProbe, the Relay/Science launch path, which runs the
 -- ship's onProbeLaunch), flies for 2 s, and its distance gives its speed: stock 1000 units/s
--- (60 U a minute on the screen), 1500 with Overcharged probe capacitors, 2000 with the Ludicrous
--- mod, and stock again once both are removed.
+-- (60 U a minute on the screen), 2500 with Overcharged probe capacitors, 5000 with the Ludicrous
+-- mod, and stock again once both are removed. Both upgrades out-pace the ship at full warp (warp 4:
+-- 4 x 500 = 2000 units/s on the Light Freighter).
 local P = {}
 local function probesNear(x, y)
     local out = {}
@@ -199,9 +201,14 @@ T.step("probes: stock ship", function()
 end)
 launchProbe("stock");                 expectSpeed("stock", 1000)
 T.step("probes: capacitors fitted", function() RT.grantUpgrade("fast_probes", "test", B) end)
-launchProbe("capacitors");            expectSpeed("Overcharged probe capacitors", 1500)
+launchProbe("capacitors");            expectSpeed("Overcharged probe capacitors", 2500)
 T.step("probes: ludicrous mod fitted", function() RT.grantUpgrade("ludicrous_probes", "test", B) end)
-launchProbe("ludicrous");             expectSpeed("Ludicrous-speed probe mod", 2000)
+launchProbe("ludicrous");             expectSpeed("Ludicrous-speed probe mod", 5000)
+T.step("probes: faster than the ship at full warp", function()
+    local warp4 = B.components.warp_drive.speed_per_level * 4
+    T.eq("warp 4 on the Light Freighter", warp4, 2000)
+    T.check("probes: both upgrades out-pace warp 4", RT.upgradeById("fast_probes").probe_speed > warp4)
+end)
 T.step("probes: both removed", function()
     RT.revokeUpgrade("ludicrous_probes", B); RT.revokeUpgrade("fast_probes", B)
 end)
