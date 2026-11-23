@@ -115,7 +115,8 @@ Contributors add **universe extensions** and **scenarios** independently.
 ## Definition of done
 `python3 tools/check.py` passes, and for Lua changes a headless run shows no `LUA-Error`, the smoke test passes
 and `tools/game_tests.py` passes. A change to an arc's, job's or world plugin's behaviour comes with a change to its test
-(`tests/arcs/<arc>.lua`, `tests/jobs/<type>.lua`, `tests/world/<plugin>.lua`); a change to core ownership or the event
+(`tests/arcs/<arc>.lua`, `tests/jobs/<type>.lua`, `tests/world/<plugin>.lua`), and an arc's also with a change to its GM guide
+(`docs/GM_<ARC>_MISSION.md`); a change to core ownership or the event
 bus with a change to `tests/core/`.
 Say plainly in PR descriptions what was and wasn't tested.
 

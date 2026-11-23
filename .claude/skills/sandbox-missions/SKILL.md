@@ -14,14 +14,39 @@ The reference implementation is `ee/ragtag/missions/rezkov.lua`; its GM guide is
 ## Quick start
 
 1. Create `ee/ragtag/missions/<name>.lua`.
-2. Create `docs/GM_<NAME>_MISSION.md` — a GM guide, in this order: Premise (where the arc sits in the campaign: what it sets up
-   and for whom), Triggers, Phases (a `###` per phase), GM console, Exports, then Design notes (state, tuning, history,
-   testing). Link it from the story-arc table in `docs/GM_GUIDE.md`. Arc-specific details go here; don't add them to CLAUDE.md.
+2. Create `docs/GM_<NAME>_MISSION.md`, the arc's GM guide, from `references/gm_guide_template.md`. See "The arc's GM guide" below.
 3. Add `require("ragtag/missions/<name>.lua")` to `ee/ragtag/missions.lua`.
 4. Create `tests/arcs/<name>.lua` — the arc's regression test (`check.py` errors without it). See "Testing an arc" below.
 5. Run `python3 tools/check.py` after any change, and `python3 tools/game_tests.py --ee <EmptyEpsilon dir> <name>` after any change to the arc.
 
 That's the entire integration surface. The arc is self-contained; core gameplay (jobs board, proximity spawns, reputation) keeps working while it's inactive.
+
+---
+
+## The arc's GM guide
+
+Every arc has one GM guide, `docs/GM_<NAME>_MISSION.md` (e.g. `GM_REZKOV_MISSION.md`), started from
+`references/gm_guide_template.md`. It is written for a GM running a session, and it is where arc-specific detail lives
+(not CLAUDE.md, not `missions_api.md`). Sections, in this order:
+
+1. **Premise**: one paragraph of story, then "Where it sits in the campaign": bullets on which thread the arc is,
+   who it introduces and what they do later, what it does to the factions and which later arcs or options that sets up
+   (e.g. "The Concord's losses set up its further destabilization; the friendly Corsairs open options for future Corsair
+   stories; Reva is introduced"). Name the later arcs and flags. Take the big picture from `scenarios/sandbox/plan.md`.
+2. **Triggers**: every start condition in GM words, how it starts, and what is seeded while it waits.
+3. **Phases**: the phase diagram, then a `###` per phase named as the GM screen shows it: what the crew sees and does,
+   the choices (bold reply text → result), where, and how it can fail.
+4. **GM console**: every `M.gm_states` button and `M.gm_actions` helper (and its phase), and what a jump resets.
+5. **Exports**: the flags other arcs read (and who reads them), rewards, Science DB entries.
+6. **Design notes**: last. State, saved flags, engine workarounds, tuning constants, rumor/job categories, history
+   (what a playtest changed and why), open playtest questions, testing.
+
+Write the GM sections from the code (button labels, numbers, quoted lines), not from memory or the plan.
+Add the arc to the story-arc table in `docs/GM_GUIDE.md` (with a link to its guide), and point its row in
+`scenarios/sandbox/plan.md` and the module's header comment at the guide.
+
+**Keep it current.** Any change to an arc's behaviour, text, numbers, buttons or flags updates its GM guide in the same
+commit; a playtest fix also gets a line under Design notes → History.
 
 ---
 
@@ -160,6 +185,6 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 - [ ] Destruction callbacks registered via `RT.onKill`, never `entity:onDestruction`
 - [ ] Every `M.gm_states` / `M.gm_actions` label is ≤ 18 characters (check function labels at their longest value)
 - [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
-- [ ] GM guide exists at `docs/GM_<NAME>_MISSION.md` and is linked from `docs/GM_GUIDE.md`
+- [ ] GM guide `docs/GM_<NAME>_MISSION.md` (Premise, Triggers, Phases, GM console, Exports, Design notes) matches the code and is linked from `docs/GM_GUIDE.md`; a change to an existing arc updated its guide
 - [ ] `tests/arcs/<name>.lua` plays the real path, every ending, every GM state and "-> Inactive"; `tools/game_tests.py` passes
 - [ ] `python3 tools/check.py` passes
