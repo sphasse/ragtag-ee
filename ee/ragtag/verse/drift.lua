@@ -30,7 +30,7 @@ VERSE.extend({
     planets = {
         {name = "Ostia", x = -120, y = -112, r = 3.9, tex = "planets/planet-earth.png", clouds = "planets/clouds-1.png", atmo = {0.3, 0.5, 1.0},
          desc = "Ostia, jewel of the Core and seat of the Concord. Clean, rich, and very well policed."},
-        {name = "Valcourt", x = -169, y = -60, r = 2.9, tex = "planets/planet-2.png", atmo = {0.4, 0.6, 1.0},
+        {name = "Valcourt", x = -169, y = -35, r = 2.9, tex = "planets/planet-2.png", atmo = {0.4, 0.6, 1.0},
          desc = "Valcourt, a Core manufacturing world. Shipyards and smokestacks."},
         {name = "Tamsin", x = -47, y = 56, r = 2.9, tex = "planets/planet-1.png", clouds = "planets/clouds-2.png", atmo = {0.4, 0.8, 0.5},
          desc = "Tamsin, a farming world under the red light of Cinder. Grain, cattle, and long memories."},
