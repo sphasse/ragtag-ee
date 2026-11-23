@@ -269,7 +269,7 @@ function GMCONSOLE.add(opts)
                                    arch = _arch(d), ship = _who(d)}
     end
 
-    local function _mins(secs) return string.format("%dm", math.floor(secs / 60 + 0.5)) end
+    local function _mins(secs) return string.format("%dm", math.floor(secs / 60)) end
 
     -- The draft as a job record (cargo resolved now when Random), or nil and why not.
     local function _buildJob(d)

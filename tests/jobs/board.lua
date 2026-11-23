@@ -327,6 +327,9 @@ T.step("job lines fit the side panel", function()
     local timer = caption("rt_job_1_time")
     T.check("panel: a countdown under the job", timer and timer:match("^Time left %d+:%d%d$"), tostring(timer))
     T.check("panel: the countdown fits", timer and #timer <= 20, tostring(timer))
+    T.eq("panel: the time limit is whole minutes", m._time_limit % 60, 0)
+    T.check("panel: the countdown starts at whole minutes",
+        timer:match(":(%d%d)$") == "00" or timer:match(":(%d%d)$") == "59", tostring(timer))
     local secs = m._expires_at - T.now()
     T.check("panel: the countdown is the time left",
         timer == string.format("Time left %d:%02d", math.floor(secs / 60), math.floor(secs) % 60)

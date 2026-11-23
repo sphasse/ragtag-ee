@@ -351,7 +351,7 @@ function M.suggest(o)
     local reward = JOBS.calcReward(JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["delivery"] * ((o.arch and o.arch.reward_mult) or 1),
         dist, region and region.danger or 0, dmin, dmax, o.urgent and 1.5 or 1.0)
-    return reward, M.duration({distance_u = dist, urgent = o.urgent})
+    return reward, JOBS.timeLimit({type = "delivery", distance_u = dist, urgent = o.urgent})
 end
 
 function M.duration(m)
