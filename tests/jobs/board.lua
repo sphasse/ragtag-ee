@@ -320,7 +320,48 @@ T.step("job lines fit the side panel", function()
     for i = 1, #f do if tostring(f[i].name) == "rt_job_1" then shown = tostring(f[i].caption) end end
     T.eq("panel: Relay shows the job line", shown, JOBS.panelLine(m))
     T.check("panel: it fits", shown and #shown <= 20, tostring(shown))
+    local function caption(key)
+        local fs = T.P().components.custom_ship_functions
+        for i = 1, #fs do if tostring(fs[i].name) == key then return tostring(fs[i].caption) end end
+    end
+    local timer = caption("rt_job_1_time")
+    T.check("panel: a countdown under the job", timer and timer:match("^Time left %d+:%d%d$"), tostring(timer))
+    T.check("panel: the countdown fits", timer and #timer <= 20, tostring(timer))
+    local secs = m._expires_at - T.now()
+    T.check("panel: the countdown is the time left",
+        timer == string.format("Time left %d:%02d", math.floor(secs / 60), math.floor(secs) % 60)
+        or timer == JOBS.timerLine(m), tostring(timer))
     JOBS.complete(T.activeEntry(m))
+    JOBS.refreshPanel()
+    T.eq("panel: the countdown goes with the job", caption("rt_job_1_time"), nil)
+    T.eq("panel: the slot is empty again", caption("rt_job_1"), "Job 1: (none)")
+    -- A job with no time limit (a story job without one) has no countdown.
+    local s = T.makeJob("delivery", HOME)
+    s.story = true
+    T.check("panel: story job taken", JOBS.accept(s, true, T.P()))
+    JOBS.refreshPanel()
+    T.eq("panel: no countdown without a time limit", caption("rt_job_1_time"), nil)
+    JOBS.complete(T.activeEntry(s))
+    JOBS.refreshPanel()
+end)
+T.wait(2.5)
+T.step("the countdown ticks", function()
+    local m = T.makeJob("delivery", HOME)
+    T.check("tick: taken", JOBS.accept(m, true, T.P()))
+    JOBS.refreshPanel()
+    local before = JOBS.timerLine(m)
+    T.check("tick: a countdown", before ~= nil)
+    _G.__tick_m, _G.__tick_before = m, before
+end)
+T.wait(2.5)
+T.step("the countdown went down", function()
+    local m = _G.__tick_m
+    local fs, now_shown = T.P().components.custom_ship_functions, nil
+    for i = 1, #fs do if tostring(fs[i].name) == "rt_job_1_time" then now_shown = tostring(fs[i].caption) end end
+    T.check("tick: Relay's countdown moved on by itself", now_shown and now_shown ~= _G.__tick_before,
+        tostring(_G.__tick_before) .. " -> " .. tostring(now_shown))
+    JOBS.complete(T.activeEntry(m))
+    JOBS.refreshPanel()
 end)
 T.step("with the cooldown off the board is rebuilt each visit", function()
     JOBS.config.work_cooldown_enabled = false

@@ -214,7 +214,7 @@ line to the crew ("say") or set the objective from the director's web console.
 
 ### For the Crew
 - **Station docking**: Request work, buy upgrades, hear rumors
-- **Jobs**: up to two contracts at a time per ship, listed on Relay
+- **Jobs**: up to two contracts at a time per ship, listed on Relay (each with a "Time left" countdown under it)
 - **Credits**: each ship's balance is a `Credits: N` line on Relay and Operations
 - **Reputation tracking**: changes are logged to the ship's log; the full picture is on the GM Campaign Status screen
 - **Persistent progress**: Credits and upgrades carry between sessions

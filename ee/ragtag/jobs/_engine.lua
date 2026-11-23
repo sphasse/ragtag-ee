@@ -484,6 +484,38 @@ end
 
 -- ── Panel ─────────────────────────────────────────────────────────────────────
 -- Each ship's Relay screen lists its own jobs.
+-- A job's countdown on Relay, under its line: "Time left 12:34", or nil for a job with no
+-- time limit (a story job without one).
+function JOBS.timerLine(m, now)
+    if not m._expires_at then return nil end
+    local left = math.max(0, math.floor(m._expires_at - (now or getScenarioTime())))
+    return string.format("Time left %d:%02d", math.floor(left / 60), left % 60)
+end
+
+-- Relay order: credits (0), the region (1), then each job's line and its countdown under it.
+-- Lines are re-sent only when they change, except on the 15 s refresh (force), which re-sends
+-- everything so a line lost any other way comes back.
+local _panel_shown = setmetatable({}, {__mode = "k"})   -- ship -> {key = caption}
+local function _panelSet(p, key, txt, order, force)
+    local shown = _panel_shown[p] or {}
+    _panel_shown[p] = shown
+    if shown[key] == txt and not force then return end
+    shown[key] = txt
+    if txt then p:addCustomInfo("relay", key, txt, order) else p:removeCustom(key) end
+end
+
+-- The countdown lines only (every second, from JOBS.update).
+function JOBS.refreshTimers(now, force)
+    RT.forEachPlayer(function(p)
+        local mine = JOBS.activeFor(p)
+        for slot = 1, JOBS.config.max_active do
+            local entry = mine[slot]
+            local txt = (entry and entry.phase == "active") and JOBS.timerLine(entry.mission, now) or nil
+            _panelSet(p, "rt_job_" .. slot .. "_time", txt, 11 + 2 * slot, force)
+        end
+    end)
+end
+
 function JOBS.refreshPanel()
     RT.forEachPlayer(function(p)
         local mine = JOBS.activeFor(p)
@@ -492,9 +524,10 @@ function JOBS.refreshPanel()
             local txt = (entry and entry.phase == "active")
                         and JOBS.panelLine(entry.mission)
                         or  ("Job " .. slot .. ": (none)")
-            p:addCustomInfo("relay", "rt_job_" .. slot, txt, slot)
+            _panelSet(p, "rt_job_" .. slot, txt, 10 + 2 * slot, true)
         end
     end)
+    JOBS.refreshTimers(nil, true)
 end
 
 function JOBS.updateObj()
@@ -596,6 +629,9 @@ function JOBS.update()
     if now >= JOBS._panel_next then
         JOBS._panel_next = now + 15
         JOBS.refreshPanel()
+    elseif now >= (JOBS._timer_next or 0) then
+        JOBS._timer_next = now + 1
+        JOBS.refreshTimers(now)
     end
 
     local i = #JOBS._active
