@@ -268,14 +268,24 @@ meet.
      engineer: "Your crew has all the skills to pull this mission off, but the Concord is really on
      the lookout for the Magpie. Our engineers can make a fake transponder that should be able to
      work for long enough for you to pull it off. Just act normal and don't run from any patrols."
-     While it is fitted, Concord shakedowns judge the ship as if its standing were good (a clean
-     pass), and the patrol says so: "It's an old code, but it checks out…" Hostile-standing patrols
-     spawn as ordinary shakedowns instead of attacking.
-     - **Engineering fits it** (idea 2026-11-23): custom buttons on Engineering (and Engineering+). One is
-       **"Change transponder"**, which runs a countdown while the swap happens, so there is time pressure
-       on it (e.g. the crew can't do it under a patrol's nose). The second button is still to be decided
-       (perhaps switching back to the real transponder). Open: the countdown's length, whether the ship
-       has to be stopped or undocked, and what interrupting it does.
+     (Original idea, 2026-11-21, before ambient patrols were switched off for the heist: while it is
+     fitted, Concord shakedowns judge the ship as if its standing were good, "It's an old code, but it
+     checks out…", and hostile-standing patrols spawn as ordinary shakedowns. With no patrols during the
+     heist this, and the `PROX.standingFor` hook below, may not be needed: see "Open" under Engineering.)
+     - **Engineering fits it** (decided 2026-11-23): two custom buttons on Engineering (and Engineering+):
+       **"Change transponder"**, which runs a countdown while the swap happens (time pressure; length to
+       be decided), and **"Restore transponder"** (back to the real one).
+     - **It only works for 10 minutes** (decided 2026-11-23): the Concord rotates its encryption keys, so a
+       fake code is good for about 10 minutes from when the swap finishes, then it stops checking out. The
+       convoy's run from Lumen Exchange to Sentinel is ~8 minutes, so the crew has to **time the swap to the
+       start of the money run**: too early and it lapses mid-heist, too late and the convoy is already past.
+     - Open: what the disguise fools now that **ambient Concord patrols are off during the heist** (below).
+       Recommended: the convoy itself. With a valid code the escorts read the ship as ordinary traffic and
+       let it close, so the crew picks where the fight starts. Without one (or once it lapses) the escorts
+       challenge it at ~8U, the freighter runs, and the response force is called at once. Fixed Concord
+       pickets and station defenders could read it the same way. Also open: what "Restore transponder" is
+       for in play (e.g. back to the real code before docking at an Independent port, where a Concord code
+       would draw questions), whether the key can be used twice, the swap's length, and what interrupts it.
      - Cover breaks (the transponder is burned and real standing applies at once, a hostile patrol
        turns hostile) if the crew runs from a shakedown, fires on a Concord ship or jammer, or when
        it attacks the convoy.
@@ -285,6 +295,18 @@ meet.
        only. Don't change the ship's callsign: per-ship records are keyed by callsign, and a rename
        would save the record under the fake name. The "old code" line goes into the clean-pass branch
        of the shakedown comms when the override is on.
+   - **A scheduled run, not a proximity trigger** (decided 2026-11-23). At the briefing in Hob's Landing:
+     "the money transfers run on a regular schedule, with a big one leaving Lumen Exchange in 30 minutes"
+     (30 is the working number). That starts an objective with a **countdown to departure** (the per-job
+     countdown pattern: a "Time left m:ss" line on Relay and Operations, at most 20 characters). The 30
+     minutes are a comfortable cushion to fly to the Core, pick an ambush point and **pre-scan** (e.g. the
+     convoy waiting docked at Lumen Exchange, so Science can scan the escorts and the freighter; fast
+     probes can watch the lane). At zero the convoy undocks and runs to Sentinel whatever the crew is
+     doing. Open: where the convoy waits before departure, and what happens if the crew misses it (a later
+     run on the schedule, as with a destroyed freighter).
+   - **Ambient Concord patrols are off during the heist** (decided 2026-11-23): the arc suspends the Concord
+     Core, Arbiter Line and Escrow Marches PROX zones (`PROX.suspendZone`) from the briefing until the heist
+     ends. The danger is the arc's own: the escorts, then the response force.
    - **Real battles, one or two:** (1) the intercept itself, the two escorts then the freighter;
      (2) the Concord response: once the convoy calls for help, **regular Concord forces** (not the
      Audit Service: its records were purged) sortie from Sentinel and Lumen and chase the crew out
@@ -627,8 +649,12 @@ If an arc module is lost, rebuild against these rails:
 
 - Built: **the Escrow Marches**, a permanent Concord buffer region south of the Core and the Arbiter Line
   (centre -155, 32, r 72), patrolled like the Arbiter Line, nearly reaching the Cinder Fields.
-- Heist: the fake transponder is fitted from **Engineering**, with a "Change transponder" button that
-  runs a countdown (time pressure); a second button to be decided.
+- Heist: the fake transponder is fitted from **Engineering**: "Change transponder" (runs a countdown) and
+  "Restore transponder". A fake code works for 10 minutes (the Concord rotates its encryption keys), so the
+  crew times the swap to the convoy's start.
+- Heist: the convoy runs **on a schedule**, not on proximity: the briefing says the next big transfer
+  leaves Lumen Exchange in 30 minutes, with a countdown objective; time to get in place and pre-scan.
+- Heist: ambient Concord patrols are suspended from the briefing until the heist ends.
 
 - Hob Works trigger: Rezkov over and all three Phase II arcs over (Ledger, Boneyard with the survivors
   rescued, Corsair), then 5 board jobs after the last of them.
