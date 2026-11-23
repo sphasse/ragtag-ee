@@ -153,3 +153,56 @@ T.step("the levels add up", function()
     T.eq("acceleration: 13, 16, then 20 (double)", table.concat(acc, ", "), "13, 16, 20")
     T.eq("reverse acceleration doubles too", math.floor(B.components.impulse_engine.acceleration_reverse + 0.5), 20)
 end)
+
+-- ── Probes, for real: launched from the ship and timed in flight ─────────────
+-- The catalogue check above only shows the upgrade asks for the right speed. Here each probe is
+-- launched through the engine (commandLaunchProbe, the Relay/Science launch path, which runs the
+-- ship's onProbeLaunch), flies for 2 s, and its distance gives its speed: stock 1000 units/s
+-- (60 U a minute on the screen), 1500 with Overcharged probe capacitors, 2000 with the Ludicrous
+-- mod, and stock again once both are removed.
+local P = {}
+local function probesNear(x, y)
+    local out = {}
+    for _, o in ipairs(getObjectsInRadius(x, y, 3000)) do
+        if isObjectType(o, "ScanProbe") then out[o] = true end
+    end
+    return out
+end
+local function launchProbe(label)
+    T.step("probe launch: " .. label, function()
+        B:setPosition(200000, 200000)   -- open space, nothing in the way
+        B:setScanProbeCount(B:getMaxScanProbeCount())
+        local before = probesNear(200000, 200000)
+        commandLaunchProbe(B, 300000, 200000)   -- 100U east: it is still flying when timed
+        P.probe = nil
+        for o in pairs(probesNear(200000, 200000)) do if not before[o] then P.probe = o end end
+        T.check("probe launch: " .. label .. ": a probe is out", P.probe ~= nil)
+        if P.probe then P.x0 = P.probe:getPosition(); P.t0 = T.now() end
+    end)
+    T.wait(2)
+    T.step("probe speed: " .. label, function()
+        if not (P.probe and P.probe:isValid()) then return T.check("probe speed: " .. label .. ": still flying", false) end
+        local x1 = P.probe:getPosition()
+        P.speed = (x1 - P.x0) / (T.now() - P.t0)
+        P.probe:destroy()
+    end)
+end
+local function expectSpeed(label, want)
+    T.step("probe speed: " .. label .. " is " .. want, function()
+        T.check(string.format("probe speed: %s: %d units/s (measured %.0f)", label, want, P.speed or -1),
+            P.speed and math.abs(P.speed - want) <= want * 0.05)
+    end)
+end
+
+T.step("probes: stock ship", function()
+    for _, id in ipairs({"ludicrous_probes", "fast_probes"}) do RT.revokeUpgrade(id, B) end
+end)
+launchProbe("stock");                 expectSpeed("stock", 1000)
+T.step("probes: capacitors fitted", function() RT.grantUpgrade("fast_probes", "test", B) end)
+launchProbe("capacitors");            expectSpeed("Overcharged probe capacitors", 1500)
+T.step("probes: ludicrous mod fitted", function() RT.grantUpgrade("ludicrous_probes", "test", B) end)
+launchProbe("ludicrous");             expectSpeed("Ludicrous-speed probe mod", 2000)
+T.step("probes: both removed", function()
+    RT.revokeUpgrade("ludicrous_probes", B); RT.revokeUpgrade("fast_probes", B)
+end)
+launchProbe("removed");               expectSpeed("both removed (stock again)", 1000)

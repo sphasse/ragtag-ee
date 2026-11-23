@@ -252,6 +252,9 @@ function RT.rebuildHull(p)
     p:setTemplate(tmpl or RT.PLAYER_TEMPLATE)
     p:setCallSign(cs):setFaction(fac):setPosition(x, y):setRotation(rot)
     RT.provision(p)   -- the stock freighter loadout again (setTemplate brought the nuke back)
+    -- setTemplate keeps the probe launcher's on-launch callback, so a removed probe upgrade would
+    -- keep launching fast probes: back to stock speed (the upgrades still kept set it again).
+    p:onProbeLaunch(function(ship, probe) probe:setSpeed(1000) end)
 end
 
 function RT.revokeUpgrade(id, ship)
