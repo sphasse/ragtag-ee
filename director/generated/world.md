@@ -17,6 +17,7 @@ The nebula patches between Port Vesper and Dustmote aren't dense enough to hide 
 - The Cinder Fields [safe]: The Cinder Fields: farming worlds under a cold red sun. Stations: Tamsin Hollow (shipwright).
 - The Concord Core [safe]: The Core: Concord worlds around the white sun Lumen. Rich, safe, and watched. Stations: Ostia Highport (shipwright), Lumen Exchange (shipwright), Sentinel Fleet Yard.
 - The Deep Black [safe]: Past the edge of the charts. Nothing here but silence and distance.
+- The Escrow Marches [safe]: The Escrow Marches: a buffer the Concord holds 'in trust' between the Core and the Border. Checkpoints and patrols, like the Arbiter Line.
 - The Far Reach [safe]: Past the edge of the charts. Nothing here but silence and distance.
 - The Long Dark [safe]: Past the edge of the charts. Nothing here but silence and distance.
 - The Outer Dark [safe]: Past the edge of the charts. Nothing here but silence and distance.

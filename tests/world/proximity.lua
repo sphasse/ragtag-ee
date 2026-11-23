@@ -131,12 +131,31 @@ T.step("setup", function()
     A = T.P()
     st = T.world("proximity")
     T.check("setup: the plugin is running", WORLD.isEnabled("proximity") and st and st._initialized)
-    for _, zone in ipairs({"the Concord Core", "the Arbiter Line", "the Shroud", "the Gauntlet",
+    for _, zone in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches", "the Shroud", "the Gauntlet",
                            "Blackwater Reach", "the Boneyard", "the Maw"}) do
         T.check("setup: zone " .. zone, st.regions[zone] ~= nil and PROX.zones[zone] ~= nil)
     end
     T.eq("setup: nothing spawned at Port Vesper", #groups(), 0)
     T.eq("setup: zones start on Medium", PROX.getZoneMode("the Gauntlet"), 3)
+end)
+
+-- ── The Escrow Marches: Concord space south of the Core and the Arbiter Line ──
+T.step("the Escrow Marches", function()
+    local U = 1000
+    local function at(x, y) return VERSE.regionAt(x * U, y * U).name end
+    T.eq("escrow: its middle", at(-155, 32), "the Escrow Marches")
+    T.eq("escrow: south of the Core", at(-150, 0), "the Escrow Marches")
+    T.eq("escrow: closes the gap where the Core and the Arbiter Line meet", at(-110, -18), "the Escrow Marches")
+    T.check("escrow: no open space along the Core / Arbiter edge to the south",
+        at(-110, -22) ~= "open space" and at(-105, -15) ~= "open space")
+    T.eq("escrow: Sentinel Fleet Yard is still in the Core (the smaller region wins)", at(-159, -22), "the Concord Core")
+    T.eq("escrow: Valcourt still in the Core", at(-169, -35), "the Concord Core")
+    T.eq("escrow: the Cinder Fields are not in it", at(-70, 50), "the Cinder Fields")
+    T.check("escrow: it stops short of the Cinder Fields (open space between)", at(-84, 50) == "open space", at(-84, 50))
+    local z, arb = PROX.zones["the Escrow Marches"], PROX.zones["the Arbiter Line"]
+    T.check("escrow: patrols like the Arbiter Line", z and z.faction == arb.faction and z.comms == arb.comms
+        and z.cooldown == arb.cooldown and z.max_active == arb.max_active)
+    T.check("escrow: a Science DB region entry", SCIDB.get("region_escrow") ~= nil)
 end)
 
 -- ── No spawn where there should be none ──────────────────────────────────────

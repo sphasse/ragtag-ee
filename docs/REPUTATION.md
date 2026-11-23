@@ -8,7 +8,7 @@ There are three factions that matter:
 
 **The Independent network** — everyone who isn't Concord or Corsairs. Port operators, independent traders, the mission boards at neutral stations. High Independent standing opens doors and fills the board with better-paying work. Run enough jobs, treat people square, and stations in the rougher parts of the Drift start routing the worthwhile contracts your way. Let jobs go sideways, fail on delivery, leave people hanging — word gets out, and the board goes quiet.
 
-**The Concord** — the law, such as it is out here. They run inspections on the Arbiter Line and in the Core. A good record means they wave you through without stopping. A bad one means more scrutiny, then fines, then warrants, and eventually — well past the point a reasonable crew would have cleared their name — their patrols stop hailing and start shooting.
+**The Concord** — the law, such as it is out here. They run inspections in the Core, on the Arbiter Line and in the Escrow Marches south of them. A good record means they wave you through without stopping. A bad one means more scrutiny, then fines, then warrants, and eventually — well past the point a reasonable crew would have cleared their name — their patrols stop hailing and start shooting.
 
 **The Corsairs** — pirates, toll-takers, opportunists. They don't offer work and they're not interested in your reputation the way the other factions are. What they're interested in is whether you look like easy money. Where they spawn and how much trouble they give you depends on where you fly; your standing with them mostly determines what jobs you can pick up at their-adjacent ports, and how few other options the job board shows you when things go south.
 
@@ -105,7 +105,7 @@ A completed Tier 0 delivery at minimum range moves about +50 rep. A failed Tier 
 | −400 | Concord ports may offer limited work again | Concord ports will no longer offer work |
 
 **How Concord inspections work:**
-- Concord patrols spawn in the **Concord Core** and **Arbiter Line** zones only.
+- Concord patrols spawn in the **Concord Core**, **Arbiter Line** and **Escrow Marches** zones only.
 - On spawn they fly toward the player ("approaching"). When they close to 5U and the player is more than 20U from any station, they deploy a 1U WarpJammer behind the player, broadcast a warning naming the interceptor, and hail via comms once the player has stopped.
 - Player options: comply (outcome based on rep — wave-through, clean pass, or fine), stall (up to 2 stalls; each resets the 60-second clock), or run (requires getting 10U clear of all patrol ships, −100 rep).
 - Comms timeout (60 seconds of silence after hail): patrol goes hostile, −100 rep, "You were warned" broadcast.
@@ -153,7 +153,7 @@ Requires docking. No limit on number of donations per session.
 | Medium (default) | 1.0× | 12 |
 | High | 2.0× | 24 |
 
-Concord zones cap at **1 active ship** regardless of mode (zone-level override), with per-zone cooldowns of 600s (Core) and 720s (Arbiter Line).
+Concord zones cap at **1 active ship** regardless of mode (zone-level override), with per-zone cooldowns of 600s (Core) and 720s (Arbiter Line, Escrow Marches).
 
 Corsair zone cooldowns by region at Medium mode:
 - Shroud, Halcyon Rest: 240s

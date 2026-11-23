@@ -2,7 +2,7 @@
 
 Do jobs, get paid, keep flying. The crew runs contracts out of stations across the Drift — deliveries, salvage runs, hacking relays, and harder work that pays accordingly. Credits and upgrades persist between sessions. Faction reputation accumulates and shapes what the universe will and won't do for you.
 
-- Concord patrols the Core and Arbiter Line. Good standing means wave-throughs; bad standing means warp jammers, inspection demands, and eventually ships that shoot on sight.
+- Concord patrols the Core, the Arbiter Line and the Escrow Marches. Good standing means wave-throughs; bad standing means warp jammers, inspection demands, and eventually ships that shoot on sight.
 - Corsairs hold the Gauntlet and Blackwater. They don't negotiate.
 - Relic war drones still run Settlement War protocols in the Boneyard.
 - The Maw is past the last warnings. Nobody comes back.

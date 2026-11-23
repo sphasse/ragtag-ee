@@ -541,6 +541,14 @@ local function _build()
         { ["Star"] = "Lumen (white)", ["Law"] = "Heavy Concord presence", ["Danger"] = "Low — unless you're wanted" }
     )
 
+    SCIDB._entries["region_escrow"] = _entry(regions, "The Escrow Marches",
+        "Concord space south of the Core and the Arbiter Line, reaching almost to the Cinder Fields. " ..
+        "The Concord calls it a buffer held 'in trust' for the Border worlds until they are 'ready' for " ..
+        "full membership; the Border calls it the Concord's front yard. Checkpoints and patrols, the same " ..
+        "as on the Arbiter Line: a clean transponder passes, a flagged one gets stopped.",
+        { ["Control"] = "Concord", ["Law"] = "Checkpoints and patrols", ["Danger"] = "Low — unless you're wanted" }
+    )
+
     SCIDB._entries["region_border"] = _entry(regions, "The Border",
         "Independent trading posts around the red star Cinder. Port Vesper is the " ..
         "largest neutral hub in the Drift. Busy lanes, loose law. Where most deals get made.",

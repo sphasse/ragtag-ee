@@ -271,6 +271,11 @@ meet.
      While it is fitted, Concord shakedowns judge the ship as if its standing were good (a clean
      pass), and the patrol says so: "It's an old code, but it checks out…" Hostile-standing patrols
      spawn as ordinary shakedowns instead of attacking.
+     - **Engineering fits it** (idea 2026-11-23): custom buttons on Engineering (and Engineering+). One is
+       **"Change transponder"**, which runs a countdown while the swap happens, so there is time pressure
+       on it (e.g. the crew can't do it under a patrol's nose). The second button is still to be decided
+       (perhaps switching back to the real transponder). Open: the countdown's length, whether the ship
+       has to be stopped or undocked, and what interrupting it does.
      - Cover breaks (the transponder is burned and real standing applies at once, a hostile patrol
        turns hostile) if the crew runs from a shakedown, fires on a Concord ship or jammer, or when
        it attacks the convoy.
@@ -289,6 +294,11 @@ meet.
    - **The haul:** ~**12,000 cr** to the arc ship when the freighter is boarded and the crew gets
      clear, so the crew can pay for the beacon *and* afford some good upgrades. Concord standing
      takes a big hit. No Audit Service.
+   - **The Escrow Marches** (built 2026-11-23): a permanent Concord region south of the Core and the Arbiter
+     Line, centre (-155, 32), radius 72, closing the gap where they met and stopping ~3U short of the Cinder
+     Fields; patrols and shakedowns as on the Arbiter Line. Sentinel Fleet Yard stays in the Core (the
+     smaller region wins), but a crew leaving it to the south now crosses Concord space all the way to the
+     Cinder Fields: the escape after the heist runs through it.
    - **Sentinel Fleet Yard moved** (built 2026-11-22): 25U south, to (-159, -22), now 59U from Lumen
      Exchange (~8 min at convoy speed; it was 38U, ~5 min). The Concord Core's radius went 55 -> 66 so
      the yard is still in Core space. The optional Arc 6 uses Sentinel; a robbed payroll fits it.
@@ -614,6 +624,11 @@ If an arc module is lost, rebuild against these rails:
   calling an arc done.
 
 ## Decisions made (2026-11-23)
+
+- Built: **the Escrow Marches**, a permanent Concord buffer region south of the Core and the Arbiter Line
+  (centre -155, 32, r 72), patrolled like the Arbiter Line, nearly reaching the Cinder Fields.
+- Heist: the fake transponder is fitted from **Engineering**, with a "Change transponder" button that
+  runs a countdown (time pressure); a second button to be decided.
 
 - Hob Works trigger: Rezkov over and all three Phase II arcs over (Ledger, Boneyard with the survivors
   rescued, Corsair), then 5 board jobs after the last of them.

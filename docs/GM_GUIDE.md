@@ -44,7 +44,7 @@ Crew runs jobs, explores regions, and accumulates credits and rep. Encounters co
 
 - **First docking** — crew learns the comms flow (hail → job board → accept). Let it happen naturally.
 - **First combat** — a proximity spawn in the Shroud or Gauntlet. Good moment to let it breathe.
-- **Concord inspection** — if they wander into the Arbiter Line or Core with middling rep, Concord will warp-jam and hail. The relay officer has 60 seconds to respond. Their choice.
+- **Concord inspection** — if they wander into the Core, the Arbiter Line or the Escrow Marches (south of both) with middling rep, Concord will warp-jam and hail. The relay officer has 60 seconds to respond. Their choice.
 - **Rep consequences** — the Relay console logs every rep change and flags threshold crossings. Good moments for a line from you (the Director console's "Say", or a GM hail).
 
 ### Story arcs

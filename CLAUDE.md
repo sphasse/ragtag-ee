@@ -186,7 +186,7 @@ with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unloa
 **Ambient faction patrols** spawn based on player location, not mission progress. System in `ee/ragtag/world/proximity.lua`.
 
 **Zone-based spawns**:
-- **Concord Core / Arbiter Line**: Concord shake-downs (comms-first, not immediate attack)
+- **Concord Core / Arbiter Line / Escrow Marches**: Concord shake-downs (comms-first, not immediate attack)
 - **Shroud / Gauntlet / Blackwater**: Corsairs (attack on sight)
 - **Boneyard**: Relic war drones (no comms, attack)
 - **Maw**: Hollow (no comms, attack)

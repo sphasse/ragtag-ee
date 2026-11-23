@@ -86,6 +86,7 @@ PROX = PROX or {}
 PROX.zones = {
     ["the Concord Core"]  = {faction = "Concord",  comms = "shakedown", cooldown = 600, groups = _CONCORD_GROUPS, max_active = 1},
     ["the Arbiter Line"]  = {faction = "Concord",  comms = "shakedown", cooldown = 720, groups = _CONCORD_GROUPS, max_active = 1},
+    ["the Escrow Marches"] = {faction = "Concord", comms = "shakedown", cooldown = 720, groups = _CONCORD_GROUPS, max_active = 1},
     ["the Shroud"]        = {faction = "Corsairs",                       cooldown = 240},
     ["Halcyon Rest"]      = {faction = "Corsairs",                       cooldown = 240},
     ["the Gauntlet"]      = {faction = "Corsairs",                       cooldown = 180},
@@ -1135,13 +1136,14 @@ end
 -- ── GM menu ───────────────────────────────────────────────────────────────────
 
 local _ZONE_ORDER = {
-    "the Concord Core", "the Arbiter Line",
+    "the Concord Core", "the Arbiter Line", "the Escrow Marches",
     "the Shroud", "Halcyon Rest", "the Gauntlet", "Blackwater Reach",
     "the Boneyard", "the Maw",
 }
 local _ZONE_LABEL = {
     ["the Concord Core"]  = "Concord Core",
     ["the Arbiter Line"]  = "Arbiter Line",
+    ["the Escrow Marches"] = "Escrow Marches",
     ["the Shroud"]        = "The Shroud",
     ["Halcyon Rest"]      = "Halcyon Rest",
     ["the Gauntlet"]      = "The Gauntlet",
@@ -1240,7 +1242,7 @@ function PROX.clearWantedStatus()
     local i = #st.active
     while i >= 1 do
         local g = st.active[i]
-        if g.shakedown_hostile or g.region_name == "the Concord Core" or g.region_name == "the Arbiter Line" then
+        if g.shakedown_hostile or (PROX.zones[g.region_name] and PROX.zones[g.region_name].faction == "Concord") then
             for _, s in ipairs(g.ships) do
                 if RT.valid(s) then s:destroy() end
             end
@@ -1252,6 +1254,7 @@ function PROX.clearWantedStatus()
     end
     st.region_cd["the Concord Core"]  = nil
     st.region_cd["the Arbiter Line"]  = nil
+    st.region_cd["the Escrow Marches"] = nil
 end
 
 -- Suppress ambient spawns in a named zone (e.g. during a story arc).

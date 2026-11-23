@@ -60,10 +60,10 @@ def star_color(e):
 
 # ── Viewport ──────────────────────────────────────────────────────────────────
 # Tight around all meaningful content (excludes far-margin placeholder regions).
-# Concord Core left edge ≈ −191, Deep Shroud right edge ≈ +200,
-# Concord Core top ≈ −136, Maw bottom ≈ +148.
+# Escrow Marches left edge ≈ −227, Deep Shroud right edge ≈ +200,
+# Concord Core top ≈ −147, Maw bottom ≈ +148.
 S = 4          # pixels per unit
-X0, Y0 = -205, -148
+X0, Y0 = -232, -148
 X1, Y1 = 225, 168
 W, H = (X1 - X0) * S, (Y1 - Y0) * S
 px = lambda x: (x - X0) * S
@@ -223,8 +223,11 @@ for e in entries("stations"):
     )
 
 # ── Region labels ─────────────────────────────────────────────────────────────
+# Regions whose top edge lies inside another region: label them in their middle instead.
+_LABEL_AT_CENTRE = {"the Escrow Marches"}
 _SHROUD_LABELS = {"the Shroud", "the Concord Core", "the Rim", "the Cinder Fields",
-                  "Greywater", "Vesper Drift", "the Arbiter Line", "Calder's Reach"}
+                  "Greywater", "Vesper Drift", "the Arbiter Line", "Calder's Reach",
+                  "the Escrow Marches"}
 for e in entries("regions"):
     name = strv(e, "name")
     if name in _FAR_MARGIN_NAMES:
@@ -238,8 +241,10 @@ for e in entries("regions"):
             f' text-anchor="middle">{label.upper()}</text>'
         )
     elif label in _SHROUD_LABELS:
+        ly = py(num(e, "y")) if label in _LABEL_AT_CENTRE \
+            else (py(num(e, "y")) - num(e, "r") * S + 18)
         svg.append(
-            f'<text x="{px(num(e,"x")):.1f}" y="{py(num(e,"y")) - num(e,"r") * S + 18:.1f}"'
+            f'<text x="{px(num(e,"x")):.1f}" y="{ly:.1f}"'
             f' fill="#a58fd0" font-size="15" font-weight="700"'
             f' text-anchor="middle" opacity="0.8">{label.upper()}</text>'
         )

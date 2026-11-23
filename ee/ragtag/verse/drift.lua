@@ -136,6 +136,11 @@ VERSE.extend({
          desc = "The Core: Concord worlds around the white sun Lumen. Rich, safe, and watched."},
         {name = "the Arbiter Line", x = -62, y = -42, r = 53, danger = 0,   -- r 21 -> 53 (2026-11-18): more Concord space; edge 15U from Calder's Reach, 22U from Port Vesper
          desc = "The Arbiter Line, where Concord checkpoints watch traffic between the Core and the Border."},
+        -- Added 2026-11-23: Concord space south of the Core and the Arbiter Line, closing the gap where they
+        -- meet (around -110, -20) and reaching nearly to the Cinder Fields (~3U short). Bigger than the Core
+        -- (72 vs 66), so where they overlap the Core wins (smallest region): Sentinel Fleet Yard stays Core.
+        {name = "the Escrow Marches", x = -155, y = 32, r = 72, danger = 0,
+         desc = "The Escrow Marches: a buffer the Concord holds 'in trust' between the Core and the Border. Checkpoints and patrols, like the Arbiter Line."},
         {name = "Vesper Drift", x = 8, y = -5, r = 20, danger = 0,
          desc = "Vesper Drift: busy lanes, loose rock, and Port Vesper at the centre of it all."},
         {name = "Calder's Reach", x = -31, y = 21, r = 14, danger = 0,
