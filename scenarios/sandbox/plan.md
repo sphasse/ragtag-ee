@@ -193,8 +193,8 @@ mines, then stands in the Corsair line when the fleet arrives. Linear: defend, o
 
 **Premise.** The Boneyard's lifeboat survivors, led by **Dr. Mara Quill** (senior researcher on the
 reversal program until the Concord shut it down), take the crew's archive to Hob's Landing, where
-the Hob Works' chief engineer (name TBD; came out of the Concord's Applied Research Division the year
-the Pale Sun was sealed, under Director Tan, a Ledger signatory) can build what the Concord would not.
+the Hob Works' chief engineer, **Ilse Marchetti** (came out of the Concord's Applied Research Division
+the year the Pale Sun was sealed, under Director Tan, a Ledger signatory) can build what the Concord would not.
 
 **Seeded already (2026-11-21, built):** Quill introduces herself in the survivors' pickup hail and
 records; at the report she says the Concord was very close to a cure, "but the political fallout
@@ -203,14 +203,15 @@ from building and deploying it would have been too great", and that they are hea
 pointer as a Science log line when the archive download completes. Hob's Landing's lore names the
 Works' chief engineer as an ex-Applied Research scientist. Thresh does not broker any of it.
 
-**Trigger:** Boneyard done with the archive (`boneyard_hack_done`), Rezkov over; hook = Quill's
-pointer plus a rumor ("the Works took in some Concord archive refugees").
+**Trigger:** Boneyard done with the archive (`boneyard_hack_done`), Rezkov over, **and the Ledger arc
+over** (`ledger_arc_done`, any outcome; decided 2026-11-22, so the two story arcs never overlap);
+hook = Quill's pointer plus a rumor ("the Works took in some Concord archive refugees").
 
 **Shape:**
-1. `meeting` (docked at Hob's Landing): Quill and the chief engineer. "Our research has paid off."
+1. `meeting` (docked at Hob's Landing): Quill and Chief Engineer Marchetti. "Our research has paid off."
    Plain exposition: the Maw was caused by a Concord program to make the population docile; a station
    broadcasting the right frequency throughout the Maw can reverse it; the Works can build it; parts
-   cost ~10,000 cr and the work is stalled. New Science DB entry for the device (name TBD, e.g. "The
+   cost **10,000 cr** (decided 2026-11-22) and the work is stalled. New Science DB entry for the device (name TBD, e.g. "The
    Pale Sun Beacon"): what it is, why the Concord never built it (very close, but the political
    fallout of building and deploying it was too great), and that it must run within range for some
    minutes while protected.
@@ -224,7 +225,16 @@ pointer plus a rumor ("the Works took in some Concord archive refugees").
      `corsair_battlegroup_destroyed`): "reinforcing", not "rebuilding".
    - **The convoy:** one large Treasury freighter with minimal defenses (the prize; disabled and
      boarded, not destroyed, like the boarding job) and **two fairly tough escort fighters** the crew
-     has to dispatch first. It runs on impulse along the lane (the escort job's convoy speed,
+     has to dispatch first.
+     - **Escorts: 2 × Adder MK8** (recommended 2026-11-22). The toughest stock Adder: 50 shields,
+       900-unit front beam, fast turn, so they read as fighters (fighter radar trace) but not as the
+       Adder MK5 the crew meets on every patrol and job. Stock hull is only 50, so raise it to ~100
+       (and tune) for "fairly tough"; two of them against one Light Freighter is a real fight. Not a
+       Phobos/Atlantis: those are the battle groups' and patrols' warships, and too slow to be escorts.
+     - **The prize: an Equipment Freighter 5** (stock: hull 100, shields 50/50, no weapons, evasion AI,
+       the largest transport model; NOT the Jump variant, which could jump away). Give it one weak rear
+       beam for "minimal defenses" and the convoy's impulse speed. Callsigns in the Concord's style,
+       e.g. CTS *Tithe* (Treasury) with CNS escorts. It runs on impulse along the lane (the escort job's convoy speed,
      ~125 u/s ≈ 7.5U/min), so where and when to intercept is the crew's call. Destroying the freighter
      loses the money (fail, retry: a later convoy).
    - **Getting into position: the fake transponder** (idea 2026-11-21). Sending them off, the chief
@@ -261,11 +271,9 @@ pointer plus a rumor ("the Works took in some Concord archive refugees").
 3. `build`: pay at Hob's Landing; the beacon is built (a timer, or "next session"). Export
    `hob_beacon_ready`.
 
-Open: the engineer's name; the beacon's price now that the haul is ~12,000 (10,000 leaves ~2,000
-for upgrades; lower to leave more); where Sentinel Fleet Yard ends up; the escort fighters' and the
-freighter's templates; whether the trigger takes any Boneyard outcome (without the archive the
-cure has to come from Quill's own notes, at a higher price) and waits for `ledger_arc_done` so the
-two story arcs don't overlap.
+Open: where Sentinel Fleet Yard ends up; whether the trigger takes any Boneyard outcome (without
+the archive the cure has to come from Quill's own notes, at a higher price); hull and speed numbers
+for the convoy (playtest).
 
 ---
 
@@ -591,6 +599,10 @@ If an arc module is lost, rebuild against these rails:
   Regular Concord forces respond (no Audit Service: its records were purged); the arc should bring
   a real battle or two. The fake transponder stays (getting into position). Haul ~12,000 cr.
   Sentinel Fleet Yard may move further from Lumen Exchange.
+- The chief engineer is **Ilse Marchetti**; the beacon costs **10,000 cr** (the ~12,000 haul leaves
+  ~2,000 for upgrades); the Hob Works waits for the Ledger arc (`ledger_arc_done`, any outcome).
+  Convoy ships (recommended): 2 × Adder MK8 escorts (hull raised to ~100), an Equipment Freighter 5
+  prize with one weak rear beam.
 
 ## Decisions made (2026-11-21)
 
