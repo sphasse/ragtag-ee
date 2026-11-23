@@ -124,12 +124,12 @@ RT.UPGRADES = {
      apply = function(p) p:setLongRangeRadarRange(45000) end},
     {id = "fast_probes", line = "probes", name = "Overcharged probe capacitors", gm_name = "Fast probes", cost = 200,
      -- EE's stock probe speed is 1000 world units/s (60 U a minute). The Light Freighter's warp is
-     -- 500 a level (warp 4: 2000), so both levels out-pace the ship at full warp.
-     desc = "Scan probe speed 60 -> 150 U a minute: faster than the ship at full warp.", probe_speed = 2500,
-     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(2500) end) end},
+     -- 500 a level (warp 4: 2000): level 1 keeps pace with the ship at full warp, level 2 out-paces it.
+     desc = "Scan probe speed 60 -> 120 U a minute: keeps pace with the ship at full warp.", probe_speed = 2000,
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(2000) end) end},
     {id = "ludicrous_probes", line = "probes", name = "Ludicrous-speed probe mod", gm_name = "Ludicrous", cost = 250, requires = "fast_probes",
-     desc = "Scan probe speed 150 -> 300 U a minute: five times stock. They've hit the plaid.", probe_speed = 5000,
-     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(5000) end) end},
+     desc = "Scan probe speed 120 -> 180 U a minute: outruns the ship at full warp. They've hit the plaid.", probe_speed = 3000,
+     apply = function(p) p:onProbeLaunch(function(ship, probe) probe:setSpeed(3000) end) end},
     -- Second tier: what it takes to survive Blackwater, the Boneyard and, eventually, the Maw.
     {id = "reactor_overhaul", line = "reactor", name = "Reactor overhaul", gm_name = "Reactor", cost = 200,
      desc = "+50% energy capacity.",

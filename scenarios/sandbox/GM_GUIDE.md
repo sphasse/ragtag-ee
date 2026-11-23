@@ -78,7 +78,7 @@ crew) before its own upgrades go on. Details: `docs/GM_SHIP_MANAGEMENT.md`.
   them in each **Ports** entry (the Shipwright field, e.g. "hull, reactor, beam", or "6 upgrade lines"
   with the list in the description).
 - **Engineering crew** (the repair crew line: "Two more hands", "Another two hands", "Full crew
-  complement") are *hired*, 150 cr for two, up to 8. **Probes**: 60 → 150 → 300 U a minute (200, 250 cr); both levels out-pace the ship at warp 4 (120 U a minute).
+  complement") are *hired*, 150 cr for two, up to 8. **Probes**: 60 → 120 → 180 U a minute (200, 250 cr): level 1 keeps pace with the ship at warp 4 (120 U a minute), level 2 outruns it.
 - **Hob's Landing (the Hob Works)** is the independent science and engineering port: sensors,
   engines, thrusters, reactor, shields and probes, everything Ostia Highport's yard fits, with no
   Concord papers. No upgrade is sold only at Concord ports. (In the planned finale it builds the broadcast beacon.)
