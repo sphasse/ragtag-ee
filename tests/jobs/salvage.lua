@@ -8,7 +8,8 @@ local HOME = "Port Vesper"
 local m, c0, rep0
 local function target() for _, ce in ipairs(m._cluster) do if ce.is_target then return ce end end end
 local function decoy()  for _, ce in ipairs(m._cluster) do if not ce.is_target then return ce end end end
-local function scan(ce) ce.marker:setScannedByFaction("Independent", true) end
+-- One Science scan: the "simple" state (a second scan would make it "full"); that is enough.
+local function scan(ce) ce.marker:setScanStateByFaction("Independent", "simple") end
 local function markersLeft()
     local n = 0
     for _, ce in ipairs(m._cluster or {}) do if not ce._materialized and RT.valid(ce.marker) then n = n + 1 end end

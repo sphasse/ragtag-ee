@@ -434,7 +434,7 @@ function M.update(m, entry, ctx)
         if not ce._materialized and RT.valid(ce.marker) then
             local scanned = false
             for _, p in ipairs(JOBS.ships(m)) do
-                if ce.marker:isFullyScannedBy(p) then scanned = true; break end
+                if ce.marker:isScannedBy(p) then scanned = true; break end   -- one scan (simple) is enough
             end
             if scanned then
                 local mx, my = ce.marker:getPosition()
