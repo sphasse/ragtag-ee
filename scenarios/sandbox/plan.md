@@ -407,6 +407,102 @@ Open: hull and speed numbers for the convoy (playtest).
 
 ---
 
+## One-off contracts — PLANNED (2026-11-24)
+
+Two money jobs for the stretch before the Lullaby pickup, inspired by Firefly, Andor and The
+Mandalorian. Each is a small one-time arc for the primary ship (`missions/<id>.lua`, a GM guide, a
+test), started by a [SPECIAL] contract on one port's board, with seed rumors from the moment it is
+available. The job board stays open (`locks_jobs = false`). Defaults taken where the user did not
+change them: the payouts below, a clean crew at Ostia pays for being seen, a 15-minute spoil timer,
+one-time only.
+
+### Cold Chain (`coldchain`)
+
+**Premise.** A fever is spreading through Tamsin Hollow, the farm depot that feeds half the Border.
+The cure exists, but the only stock is in the Concord's medical depot at Ostia Highport, and the
+Concord won't release it to an Independent port.
+
+**Trigger.** The Hob Works funded (`hob_arc_done = "funded"`: fake transponder codes are on sale),
+then a few board jobs. It is the first job built around the codes.
+
+**Seed rumors** (priority 3, Independent ports, from the moment it is available): the fever ("Tamsin
+Hollow's turning ships away. Some fever in the farm crews."), the cure ("The Concord's got the cure
+sitting in a depot at Ostia, they say. Not for Rim folk."), the doctor asking for help.
+
+**Hook.** A [SPECIAL] contract on Tamsin Hollow's board, "Medical run: Ostia Highport". Taking it opens
+a short brief from the depot's doctor, **Dr. Nell Varga** (new, with a Science DB profile): the depot's
+release orders are on Ostia's own systems; dock, have Relay break in, and the serum is loaded as an
+approved order. "If they see who took it, they'll come for you. If they don't…"
+
+**Phases.**
+1. `approach`: fly to Ostia Highport (about 166U from Tamsin, deep in the Concord Core). A wanted crew
+   needs a fake code to get within the port guard's 5U; a clean crew does not, but see 3.
+2. `lift`: docked at Ostia, Relay hacks the port itself (a station's shields are hackable systems)
+   to 75%, the hacking job's bar. Only a hack completed while docked counts (Relay could hack it from
+   range). The release order goes through and the serum is loaded.
+3. Who saw it, decided at the moment the serum is loaded:
+   - a fake code running: the theft is put down to "an unknown freighter": no Concord standing loss,
+     no chase;
+   - no code: the Magpie is identified: Concord −300, and the Concord zones go into the 30-second
+     chase (`PROX.chaseZone`) until it is out of Concord space.
+4. `run`: a spoil timer on Relay, "Serum good for 14:59", back to Tamsin.
+5. Delivery at Tamsin Hollow: in time, 3,000 cr and Independent +150; spoiled, 1,000 cr ("some of it
+   is still good").
+
+**Fail.** The Magpie lost with the serum: the job ends, and Varga's last line goes into the port news.
+
+**Extras.** Achievements: "Cold Chain" (in time) and a hidden one for a clean lift with a code running.
+Science DB: the fever. Aftermath rumors: the Concord depot theft.
+
+**To verify when building:** a station's shield hack level (`components.shields.front_hacked_level` /
+`rear_hacked_level`) rises from Relay's hack and is readable from Lua; a wanted ship can dock at a
+Concord port (factions are not enemies; only the guard reacts).
+
+### The Bounty (`bounty`)
+
+**Premise.** **Pell Ashby**, the bookkeeper of an Independent shipping guild, disappeared with the
+guild's payroll. The guild posts a bounty: alive, no exceptions. His side, which comes out later: the
+guild had been skimming its own crews' pay for years.
+
+**Trigger.** Boarding jobs unlocked (1,000 cr of upgrades) and Rezkov over; before or after the heist.
+
+**Where.** Out of the way: the bounty is posted at **Dustmote Salvage** (Thresh's scrapyard and black
+market, on the far east of the Rim), and Ashby hides in the **Deep Shroud**, the biggest nebula (42U,
+with the black hole and the rift in it). **Seed rumors** (priority 3, Independent ports) get the crew
+there: a guild bounty on a bookkeeper, posted at Dustmote; a ship seen running into the Deep Shroud.
+
+**Phases.**
+1. `hook`: a [SPECIAL] contract on Dustmote's board, "Bounty: Pell Ashby, alive". Thresh adds the
+   trail: Ashby's ship went into the Deep Shroud.
+2. `hunt`: **Long Odds** and two escorts are somewhere in the Deep Shroud, which blinds long-range
+   radar. Science finds them with probes and scans; once found, they run.
+   - **Long Odds is tough** and must be taken alive: it cannot be destroyed. It is disabled by the
+     heist's rule (impulse and rear shield both down at once: 90% hacked or under 10% health).
+   - **Two escorts**, less tough, can be destroyed.
+3. `capture`: Long Odds disabled, the crew docks: Ashby is aboard. The escorts, if any are left, break
+   off.
+4. **His offer.** In the brig he asks to talk. He has moved the payroll into crypto credits and
+   memorized the keys: "The Independents can probably beat it out of me, but none of us want to see
+   that happen..." Two replies:
+   - **"Take him in."** Deliver to Dustmote Salvage: 3,000 cr, Independent +100.
+   - **"Hear him out."** He offers 4,500 cr of it to be dropped at **Saint Brennan's Mission** (neutral
+     ground, where the order shelters him): 4,500 cr, Independent −150 (the guild hears).
+5. Delivery at the chosen port ends it.
+
+**Fail.** The Magpie lost with Ashby aboard: the contract is void.
+
+**Extras.** Hidden achievements: "Bring Him In" and "Everyone Has a Price". Science DB: the bounty
+notice, then Ashby's side of the story. Aftermath rumors by choice (the guild's books opened, or
+"Ashby was seen at Saint Brennan's").
+
+**Later (kept, not built now):** a rival bounty hunter (Cass Dunmore in the Last Word) who hails on the
+way to the drop: "Hand him over and nobody gets hurt", fought or bribed (1,000 cr).
+
+**Numbers for playtest:** Long Odds' template, hull and shields (tough: something like a Phobos T3
+with more hull); the escorts (two lighter ships, e.g. Adder MK5s); how fast they run once found.
+
+---
+
 ## Arc 5 — Maw Arc (finale) — PLANNED (revised 2026-11-21: a broadcast station, not a warhead)
 
 **Premise.** The Hollow are the Pale Sun colonists, changed by the Concord's Ashgrave Synthesis
