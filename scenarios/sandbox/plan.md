@@ -366,8 +366,10 @@ meet.
      engineers"** (15,000 without the archive; offered while they can afford it); the rest is theirs.
      Not delivered in time: the arc stays open, the crew's **Independent standing is set to −100**,
      whatever it was (decided 2026-11-23), the Works pester them for a while (port news at Independent
-     ports), and eventually the arc ends without the beacon. Open (small): how long the pestering lasts,
-     and whether a late delivery is still accepted during it.
+     ports) for **30 minutes**, and then the arc ends without the beacon (decided 2026-11-23). **A late
+     delivery is accepted** during those 30 minutes, and the messages push for it: they try to **shame
+     the crew into bringing the money in** (e.g. "Mara Quill says the Works are still waiting on the
+     Magpie. Twenty years those people have been Hollow, and the Magpie is sitting on their cure money.").
    - **The way home** (decided 2026-11-23): **just the ordinary proximity intercepts for now**: once the
      crew has the cash, the arc resumes the Concord PROX zones it suspended, so the Core, Arbiter Line and
      Escrow Marches patrols are back on the way out. More may come after the audit playtest.
