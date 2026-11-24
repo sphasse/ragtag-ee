@@ -16,8 +16,7 @@ Where it sits in the campaign:
 - **It is the evidence thread.** Of the three Phase II arcs, the Ledger proves the cover-up on paper.
   The Containment Ledger names the people who signed for it: Deputy Treasury Secretary **Aurelian
   Voss**, Rear Admiral **Corin Hale** (Fleet Logistics), Director **Mireille Tan** (Applied Research
-  Division) and the Council's Standing Committee on Security. Tan's division matters again in the
-  Hob Works mission, whose chief engineer came out of Applied Research under her.
+  Division) and the Council's Standing Committee on Security.
 - **Rezkov holds it.** He won't release it yet: "Put it out today and they bury it by the end of the
   week." The finale (the Maw) is where it goes public. With the ledger (`ledger_evidence`) the finale
   can reach its two best endings, and the cover-up becomes public; without it, only the crew knows.

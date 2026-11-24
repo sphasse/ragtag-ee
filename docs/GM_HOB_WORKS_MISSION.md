@@ -17,8 +17,10 @@ Where it sits in the campaign:
 - **It turns the science thread into the cure.** The Boneyard's archive (or the survivors' own notes)
   becomes a funded project. The arc ends when the crew pays the Works (`hob_arc_done = "funded"`);
   Lullaby takes time to build, and a later mission picks it up before the Maw finale.
-- **It introduces Anton Marchetti**, the Works' chief engineer, who came out of the Concord's Applied
-  Research Division the year the Pale Sun was sealed, under Director Tan (a signatory in the Ledger).
+- **It introduces Anton Marchetti**, the Works' young chief engineer (about thirty): his father, a Free
+  Ship engineer, was killed in the last year of the Settlement War, and he grew up in the Works' test
+  bays. He has never worked for the Concord. Quill speaks for the Works; Marchetti speaks once, after
+  payment, to offer fake transponder codes.
   **Mara Quill**, met as a lifeboat survivor in the Boneyard arc, becomes a regular contact.
 - **It costs the Concord again.** The stolen transfer was meant to replace the battle groups lost in
   the Boneyard and at Blackwater. Its loss stalls the rebuild at Sentinel Fleet Yard, and the news
@@ -107,7 +109,8 @@ Meridian business, but he still says…". If the Ledger AI was lost: "…even af
   Magpie comes within 15U before departure without a working fake code, they hail once ("We see you,
   Magpie. Head the other direction or you are in for trouble. This is a fight you cannot win."), turn
   hostile and come for it. The convoy still leaves on schedule.
-- **The fake transponder:** Engineering's **"Change transponder"** button. It takes effect at once,
+- **The fake transponder:** Engineering's **"Change transponder"** button, with a pop-up on Engineering
+  explaining it when the heist starts. It takes effect at once,
   works once, and shows **"Code valid 9:59"** on Engineering. Inside 15U with a good code the Magpie is
   not seen. When the code runs out ("Code expired"), a Magpie inside 15U is spotted as above.
 - **Departure:** at zero the transport turns hostile and runs for Sentinel at **125 u/s (7.5U a
@@ -136,7 +139,10 @@ The way home has the ordinary Concord patrols again. Escorts still chasing give 
   2,000 is yours for the trouble." (From the wreck: "9,000 credits. Lullaby's parts cost 10,000, so that
   leaves us 1,000 short. Can you cover the rest?") **"Deliver 10,000 cr to the engineers"** (15,000
   without the archive) pays the Works and **ends the arc**: "These credits will get us what we need, but
-  it is going to take some time. We'll reach out again when we have results."
+  it is going to take some time. We'll reach out again when we have results." Then Marchetti: "That
+  transponder of mine worked, didn't it? If you ever need one of these for a future job, stop by and
+  I'll hook you up for 500." From then on the Hob Works shipwright sells fake transponder codes (see
+  Exports). The "Nothing to See Here" achievement comes with the first swap.
 - **Late:** the deadline passes, the crew's **Independent standing is set to −100** whatever it was,
   and for **30 minutes** Independent ports' news shames them ("Mara Quill says the Works are still
   waiting on the Magpie. Twenty years those people have been Hollow, and the Magpie is sitting on their
@@ -196,6 +202,12 @@ mid-heist, the next session starts the heist over with a fresh countdown.
 | `hob_haul` | 12000 / 9000 (until delivered) |
 
 Standing: Concord −800 (boarded) or −1,000 (destroyed); Independent set to −100 on a missed delivery.
+
+Funded unlocks **fake transponder codes** for the whole campaign (`campaign.transponder_unlocked`,
+`RT.unlockTransponder`, `ee/ragtag/core/transponder.lua`): 500 cr each at the Hob Works shipwright, one
+use each, 10 minutes in which the Concord reads a wanted ship as clean. Science DB: Ship Upgrades >
+Fake transponder. A GM jump or "→ Inactive" locks the sale again (codes already bought are kept); a
+save funded before the sale existed gets it at the next session.
 
 Science DB: profiles of **Dr. Mara Quill** and **Anton Marchetti**; Lore → **"Lullaby (Phase II reversal
 beacon)"** (from the meeting) and **"Convoy intel: CTS Tithe"** (from the brief), with a route map
@@ -273,6 +285,9 @@ ships, like the boarding job's targets.
 - 2026-11-23: built from the plan (Arc 5a). Designed over several sessions: a train job instead of a
   Ledger-AI hack; Sentinel moved south and the Escrow Marches added; a scheduled departure instead of a
   proximity trigger; the fake transponder kept only for scanning the docked convoy.
+- 2026-11-24: Marchetti rewritten: young, his father killed in the Settlement War (no longer
+  ex-Applied Research). He offers fake transponder codes after payment; Engineering gets a pop-up for
+  the heist's button.
 - 2026-11-23 (playtest): the arc ends at payment. The 10-minute build was too short for something this
   big, so Lullaby is picked up in a later mission; `hob_beacon_ready` and the build phase are gone
   ("built" saves become "funded": save format 2). Quill's hand-over line says the extra cash is the

@@ -181,12 +181,26 @@ local function _setTransponderUI(st, show_button, code_text)
     st.code_text = code_text
 end
 
+-- Engineering's pop-up when the heist's button appears: what it is for.
+local function _explainHeistTransponder()
+    local text = "The Hob Works wired a fake transponder into the ship.\n\nPress \"Change transponder\" "
+        .. "to swap it in. For " .. (M.CODE_TIME // 60) .. " minutes the convoy's escorts read the Magpie "
+        .. "as an ordinary ship, so you can get close and scan the convoy while it waits at Lumen Exchange. "
+        .. "It works once: then the Concord rotates its keys. Once the convoy leaves, the escorts know you."
+    ARC.withPlayer(function(p)
+        for _, pos in ipairs(_ENG) do
+            pcall(function() p:addCustomMessage(pos, "hob_transponder_help_" .. pos, text) end)
+        end
+    end)
+end
+
 -- Engineering's "Change transponder": immediate, one use, good for CODE_TIME seconds.
 function M.transponderPressed()
     local st = MISSIONS._state["hob"]
     if not st or not _active("heist") or st.code_used or st.departed then return end
     st.code_used = true
     st.code_until = getScenarioTime() + M.CODE_TIME
+    if STATS then STATS.inc("transponder_swaps", 1) end   -- the "Nothing to See Here" achievement
     _setTransponderUI(st, false, "Code valid " .. _mmss(M.CODE_TIME))
     ARC.log(string.format("[Engineering] Transponder swapped. The Works' code will check out for %d minutes, until the Concord rotates its keys.",
         M.CODE_TIME // 60), "#80FF80")
@@ -452,7 +466,7 @@ local function _briefPages()
     local p1 = archive
         and '"Magpie, it\'s Mara Quill. Thank you for coming.\n\nWe\'ve been through every file you brought out of the Annex. The Maw was no accident. Twenty years ago the Concord ran a program to make the Pale Sun colonists docile, and it worked far better than anyone meant. That is what the Hollow are: those colonists."'
         or  '"Magpie, it\'s Mara Quill. Thank you for coming.\n\nThe Annex archive never came out, so we rebuilt what we could from our own notes. It is enough. The Maw was no accident. Twenty years ago the Concord ran a program to make the Pale Sun colonists docile, and it worked far better than anyone meant. That is what the Hollow are: those colonists."'
-    local p2 = '"We\'ve been working with Anton Marchetti, the Works\' chief engineer. He was in Applied Research the year they sealed the Pale Sun, and he knows what it costs him to say this: it can be undone.\n\nA station broadcasting the right frequency throughout the Maw, held there long enough, puts the Hollow to sleep and then starts to bring them back. The archive calls it the Phase II reversal. We call it Lullaby."'
+    local p2 = '"We\'ve been working with Anton Marchetti, the Works\' chief engineer. He\'s young, and the most brilliant engineer I have ever worked with. His father died in the Settlement War, and he grew up in the Works\' test bays. He looked at our numbers for one night and said it can be undone.\n\nA station broadcasting the right frequency throughout the Maw, held there long enough, puts the Hollow to sleep and then starts to bring them back. The archive calls it the Phase II reversal. We call it Lullaby."'
     local p3 = '"The Concord was very close to building one. It wasn\'t the engineering that stopped them, it was what building it would have admitted.\n\nWe can build it here. The problem is parts: '
         .. _cr(_price()) .. ' credits of components nobody sells on credit'
         .. (archive and '' or ', more than it would be with the archive, since we are working from notes')
@@ -552,7 +566,9 @@ local function _paymentReply()
     if have >= price then
         addCommsReply("Deliver " .. _cr(price) .. " cr to the engineers", function()
             _pay(price)
-            setCommsMessage('"These credits will get us what we need, but it is going to take some time. We\'ll reach out again when we have results.\n\nThank you, Magpie. All of you."')
+            setCommsMessage('"These credits will get us what we need, but it is going to take some time. We\'ll reach out again when we have results.\n\nThank you, Magpie. All of you."'
+                .. '\n\nAnton Marchetti leans into the channel, grinning. "That transponder of mine worked, didn\'t it? If you ever need one of these for a future job, stop by and I\'ll hook you up for '
+                .. RT.TRANSPONDER.cost .. '."')
         end)
     end
 end
@@ -745,6 +761,7 @@ function M.resolve(st)
     RT.clearObjective("hob")
     if outcome == "funded" then
         ARC.log("[Hob Works] The Works have what they need for Lullaby. Quill will be in touch when they have results.", "#80FF80")
+        RT.unlockTransponder()   -- Marchetti's offer: fake transponder codes at the Hob Works shipwright
     else
         ARC.log("[Hob Works] The Works have given up on the Magpie. Lullaby will not be built.", "#FF8080")
     end
@@ -768,6 +785,8 @@ M.phases.init = {
     no_skip = true,
     enter = function(st)
         ARC.stationHook("Hob's Landing", _hobHook)
+        -- Funded before the transponder was for sale (a save from before 2026-11-24): sell it now.
+        if RT.flag("hob_arc_done") == "funded" then RT.unlockTransponder(true) end
         -- Paid but the arc never closed (a crash between paying and done): it is funded.
         if RT.flag("hob_paid") and not RT.flag("hob_arc_done") then
             RT.flag("hob_arc_done", "funded")
@@ -797,6 +816,7 @@ M.phases.heist = {
         _suspendPatrols()
         _addIntelEntry()
         _setTransponderUI(st, true, nil)
+        _explainHeistTransponder()
         RT.setObjective("Rob the convoy", true, "hob")
         ARC.log(string.format("[Heist] The Treasury convoy leaves Lumen Exchange (grid %s) for Sentinel Fleet Yard in %d minutes. Its escorts see about 15U. The fake transponder is on Engineering: ten minutes, once.",
             JOBS.gridRef(_stationXY(_LUMEN, -133000, -75000)), M.HEIST_DELAY // 60), "#A0C0FF")
@@ -952,6 +972,7 @@ end
 
 M.gm_reset = function(st, target)
     _clearWorld(st)
+    RT.lockTransponder()   -- "→ Done: Funded" unlocks it again when it resolves
     ARC.resetState(M, st)
     MISSIONS.gmClearFlags("hob", function(name)
         if name == "hob_penalized" then return target == "done" end

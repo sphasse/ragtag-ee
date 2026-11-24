@@ -13,7 +13,7 @@ Space-western sandbox. Wry humour, real stakes, never grimdark. The crew are ind
 - Hob's Landing Sheriff: tired lawman, slow to act but doesn't forget
 - The Hob Works (Hob's Landing): the Drift's independent science and engineering yard; engineers who
   would not work for the Concord. Fits sensors, engines, thrusters, reactors, shields and probes, and
-  will build the broadcast beacon for the finale (its chief engineer is ex-Concord Applied Research;
+  will build the broadcast beacon for the finale (its chief engineer, Anton Marchetti, is young, and his father was killed in the Settlement War;
   the Boneyard survivors, led by Dr. Mara Quill, go there)
 - Various freighter captains: sources of rumours and trade gossip
 - Corsair raiders: opportunistic pirates, avoid fair fights

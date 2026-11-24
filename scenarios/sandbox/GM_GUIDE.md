@@ -82,6 +82,12 @@ crew) before its own upgrades go on. Details: `docs/GM_SHIP_MANAGEMENT.md`.
 - **Hob's Landing (the Hob Works)** is the independent science and engineering port: sensors,
   engines, thrusters, reactor, shields and probes, everything Ostia Highport's yard fits, with no
   Concord papers. No upgrade is sold only at Concord ports. (In the planned finale it builds the broadcast beacon.)
+- **Fake transponder code** (availability earned in-game): 500 cr, sold only at the Hob Works once the
+  crew has paid for Lullaby (Marchetti offers it at the end of the Hob Works arc). A consumable, not a
+  component: each code is one press of Engineering's "Change transponder", and for 10 minutes the
+  Concord reads the ship as clean (a wanted ship's patrols find nothing to stop it for; port guards and
+  lane pickets let it pass). Its real standing is unchanged. Unused codes stay with the ship. Science
+  DB: Ship Upgrades > Fake transponder. Code: `ee/ragtag/core/transponder.lua`.
 - There is no warp upgrade (removed 2026-11-18).
 - Upgrades belong to the ship that bought them: a second player ship has its own credits,
   standing, upgrades and job tier

@@ -151,6 +151,12 @@ Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
 
 ## 7. The world
 
+- [ ] Achievements show in the ship log (Relay) as "[Achievement] Name: ...". Science DB **Achievements** (top
+      level) lists them all, earned [x] or not; hidden story ones show as ??? until earned
+- [ ] Fake transponder codes (after paying the Hob Works): Marchetti's offer, the 500 cr code at the Hob Works
+      shipwright, the pop-up on Engineering, "Change transponder" and "Code valid 9:59". With Concord standing
+      below -200, do port guards, pickets and patrols really let the ship pass for the 10 minutes?
+
 - [ ] The Concord lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) walk a
       slow beat round their posts and read as pickets ("Concord lane picket…"), not lost defenders
 - [ ] With Concord standing below −200, a Concord port's guard ("CPV …") turns hostile once the ship is within

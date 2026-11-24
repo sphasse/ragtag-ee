@@ -401,7 +401,7 @@ local function _makeShakedownComms(group)
         end
         -- The stopped ship's Relay opened the channel — reset the 60-second compliance timer.
         group.last_comms_activity = getScenarioTime()
-        local rep    = RT.getReputation("Concord", player) or 0
+        local rep    = RT.concordSees(player)   -- a fake transponder code reads as clean
         local fine   = 100
         group._stall_count = group._stall_count or 0
 
@@ -567,7 +567,7 @@ local function _spawnGroup(st, region_name, player, px, py)
     end
 
     local now         = getScenarioTime()
-    local concord_rep = RT.getReputation("Concord", player) or 0
+    local concord_rep = RT.concordSees(player)   -- a fake transponder code reads as clean
     local is_shakedown = (zone.comms == "shakedown") and concord_rep >= -200
 
     -- Concord patrols spawning against a hostile-rep player use the hostile
@@ -737,7 +737,7 @@ local function _processGroup(st, group, now)
     if group.is_shakedown and not group.shakedown_done then
         -- Dynamic rep watch: if rep drops below -200 while this group is on a shakedown
         -- approach (before jammer deploy), flip them to hostile immediately.
-        if player and (RT.getReputation("Concord", player) or 0) < -200
+        if player and RT.concordSees(player) < -200
            and group.shakedown_state == "approaching" then
             player:addToShipLog("[Concord] Relations deteriorated. Patrol is now hostile.", "#FF4444")
             for _, s2 in ipairs(group.ships) do

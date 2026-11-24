@@ -23,13 +23,14 @@
 --
 -- Achievements: ACH.define{id, name, desc, hidden, category, check = function(S) return bool end}
 -- is evaluated every few seconds; ACH.award(id) grants one directly (from an arc or event).
--- Awards persist. ACH.announce (default false) controls whether the crew is told.
+-- Awards persist. ACH.announce (on) puts "[Achievement] Name: what it was for" in every player ship's
+-- log (Relay reads it); the Science database's Achievements entry lists them all (world/sciencedb.lua).
 
 STATS = STATS or {}
 ACH   = ACH   or {}
 
 STATS.VERSION = 1
-ACH.announce  = false   -- set true when the crew-facing UI is designed
+ACH.announce  = true    -- tell the crew in the ship log (Relay)
 ACH.defs      = ACH.defs or {}
 ACH.order     = ACH.order or {}
 
@@ -386,4 +387,7 @@ ACH.define{id = "into_the_teeth", name = "Into the Teeth", category = "explorati
         end
         return false
     end}
+ACH.define{id = "nothing_to_see", name = "Nothing to See Here", category = "exploration",
+    desc = "Swap in a fake transponder code.",
+    check = function(s) return STATS.get("transponder_swaps") >= 1 end}
 -- Story-arc achievements are defined by the arcs themselves (ee/ragtag/missions/<arc>.lua).

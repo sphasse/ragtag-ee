@@ -200,7 +200,7 @@ end
 -- ── Concord guards and wanted ships ─────────────────────────────────────────
 
 local function _wanted(p)
-    return (RT.getReputation("Concord", p) or 0) < WORLD.get("defenders", "hostile_below", -200)
+    return RT.concordSees(p) < WORLD.get("defenders", "hostile_below", -200)   -- a fake code reads as clean
 end
 
 -- Back to its post: Concord again, defending its port.

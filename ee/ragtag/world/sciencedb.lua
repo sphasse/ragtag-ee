@@ -245,12 +245,14 @@ SCIDB.PROFILES = {
     marchetti_profile = {
         who  = "marchetti",
         name = "Anton Marchetti",
-        desc = "Chief engineer of the Hob Works at Hob's Landing.\n\n" ..
-               "Came out of the Concord's Applied Research Division the year the Pale Sun was sealed, " ..
-               "and has never said why. Builds things other yards say cannot be built, usually on " ..
-               "time and rarely on budget. Talks fast, swears in three languages, and treats his " ..
-               "crew like family.",
-        kv = {["Role"] = "Chief engineer, Hob Works", ["Formerly"] = "Concord Applied Research",
+        desc = "Chief engineer of the Hob Works at Hob's Landing, and young for it.\n\n" ..
+               "His father, an engineer on the Free Ships, was killed in the last year of the Settlement " ..
+               "War. The Works took the boy in, and he grew up in its test bays. He runs the yard now: " ..
+               "builds things other yards say cannot be built, usually on time and rarely on budget. " ..
+               "Talks fast, swears in three languages, and treats his crew like family. He has never " ..
+               "worked for the Concord, and never will.",
+        kv = {["Role"] = "Chief engineer, Hob Works", ["Age"] = "About thirty",
+              ["Father"] = "Killed in the war",
               ["Manner"] = "Fast, blunt, warm", ["Known for"] = "Building the impossible"},
     },
 }
@@ -536,6 +538,89 @@ local function _buildUpgrades()
     end
 end
 
+-- The fake transponder code (core/transponder.lua): under Ship Upgrades once the campaign has
+-- earned it (Marchetti's offer at the end of the Hob Works arc). A consumable, not a component.
+local function _addTransponderEntry()
+    local root = SCIDB._entries["upgrades"]
+    if not (root and RT and RT.TRANSPONDER) or SCIDB._entries["upgrades_transponder"] then return end
+    local T = RT.TRANSPONDER
+    local where = {}
+    for _, d in ipairs((VERSE and VERSE.STATIONS) or {}) do
+        if T.sold_at[d.cs] then where[#where + 1] = d.cs .. " (" .. getSectorName(d.x * _PORT_U, d.y * _PORT_U) .. ")" end
+    end
+    local desc = "SOLD AT\n" .. table.concat(where, ", ") .. ": the Hob Works, which made the first one for the Treasury convoy job.\n\n" ..
+        "WHAT IT DOES\n" .. T.name .. ", " .. _fmtCr(T.cost) .. ". It goes on Engineering's board as \"Change transponder\". " ..
+        "Press it and for " .. (T.secs // 60) .. " minutes the Concord reads the ship as clean: a wanted ship's patrols find " ..
+        "nothing to stop it for, and port guards and lane pickets let it pass. Then the Concord rotates its keys and the code is spent.\n\n" ..
+        "ONE USE\nEach code works once. Buy as many as you like; the ones you have not used stay with the ship.\n\n" ..
+        "WHAT IT DOES NOT DO\nIt does not change your standing, and it does not hide what you do: fire on the Concord and they know who you are."
+    local e = root:addEntry("Fake transponder")
+    SCIDB._paths[e] = (SCIDB._paths[root] or "Ship Upgrades") .. " > Fake transponder"
+    e:setLongDescription(desc)
+    SCIDB.setKV(e, "Price", _fmtCr(T.cost))
+    SCIDB.setKV(e, "Uses", "One per code")
+    SCIDB.setKV(e, "Lasts", (T.secs // 60) .. " minutes")
+    SCIDB._entries["upgrades_transponder"] = e
+    _announce(e, "added")
+end
+SCIDB.rule("upgrades_transponder", {want = function() return RT.transponderUnlocked and RT.transponderUnlocked() end,
+    add = _addTransponderEntry})
+if RT and RT.on then
+    RT.on(function(ev)
+        if ev.type == "transponder_unlocked" then _addTransponderEntry() end
+    end)
+end
+
+-- ─── Achievements ─────────────────────────────────────────────────────────────
+-- A top-level entry listing every achievement (ACH, stats.lua) and which the campaign has. A
+-- hidden one shows as "???" until it is earned. Kept current by _P.update (no announcement: the
+-- ship log already says "[Achievement] ...").
+SCIDB.ACH_TITLES = {jobs = "Jobs", money = "Money", exploration = "Exploration", story = "Story"}
+
+function SCIDB.achievementsText()
+    local groups, order, earned, total = {}, {}, 0, 0
+    for _, id in ipairs((ACH and ACH.order) or {}) do
+        local def = ACH.defs[id]
+        if def then
+            local cat = def.category or "other"
+            if not groups[cat] then groups[cat] = {}; order[#order + 1] = cat end
+            local has = ACH.has(id)
+            total = total + 1
+            if has then earned = earned + 1 end
+            local line
+            if has then line = "[x] " .. def.name .. ": " .. (def.desc or "")
+            elseif def.hidden then line = "[ ] ???  (a secret, for now)"
+            else line = "[ ] " .. def.name .. ": " .. (def.desc or "") end
+            table.insert(groups[cat], line)
+        end
+    end
+    local out = {"Every achievement in the campaign, and the ones this crew has earned [x]. "
+        .. "A new one is announced in the ship log.", ""}
+    for _, cat in ipairs(order) do
+        out[#out + 1] = string.upper(SCIDB.ACH_TITLES[cat] or cat)
+        for _, l in ipairs(groups[cat]) do out[#out + 1] = l end
+        out[#out + 1] = ""
+    end
+    return table.concat(out, "\n"), earned, total
+end
+
+function SCIDB.refreshAchievements()
+    local e = SCIDB._entries["achievements"]
+    if not e or not ACH then return end
+    local text, earned, total = SCIDB.achievementsText()
+    local sig = earned .. "/" .. total
+    if sig == SCIDB._ach_sig then return end
+    SCIDB._ach_sig = sig
+    e:setLongDescription(text)
+    SCIDB.setKV(e, "Earned", earned .. " of " .. total)
+end
+
+local function _buildAchievements()
+    SCIDB._entries["achievements"] = _entry(nil, "Achievements", "")
+    SCIDB._ach_sig = nil
+    SCIDB.refreshAchievements()
+end
+
 -- ─── Database construction ────────────────────────────────────────────────────
 
 local function _build()
@@ -690,6 +775,7 @@ local function _build()
 
     _buildPorts()
     _buildUpgrades()
+    _buildAchievements()
 
     local lore = _entry(nil, "Lore",
         "Historical records, research summaries, and recovered documents. " ..
@@ -814,7 +900,13 @@ function _P.init(state)
     SCIDB.quietly(_build)   -- the database as it stands at session start is not news
 end
 
-function _P.update(state, delta, now) end
+function _P.update(state, delta, now)
+    -- Achievements: arcs define theirs as they load, and awards come any time.
+    if now >= (state.next_ach or 0) then
+        state.next_ach = now + 2
+        SCIDB.refreshAchievements()
+    end
+end
 
 function _P.gmMenu(addButton, showSelf)
     addButton("Test: unlock hollow", function()

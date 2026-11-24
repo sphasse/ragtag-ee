@@ -26,7 +26,7 @@ crews to make the most money (15, 30 or 60 minutes; nothing saved). Player and G
 - **21 regions** with varying danger levels (safe, risky, dangerous, deadly)
 - **Dynamic trade traffic**: AI freighters following trade routes, docking and departing
 - **Salvage economy**: 25+ salvage clusters (credits, missiles, hull patches) respawn each session
-- **Progressive upgrades**: 36 upgrades in 11 lines (hull, shields, beams, missiles, tubes, engines, thrusters, reactor, engineering crew, sensors, probes), each line sold at the shipwrights that specialise in it
+- **Progressive upgrades**: 36 upgrades in 11 lines (hull, shields, beams, missiles, tubes, engines, thrusters, reactor, engineering crew, sensors, probes), each line sold at the shipwrights that specialise in it, plus a fake transponder code (a 500 cr consumable; availability earned in-game)
 - **Proximity spawn system**: faction patrols that scale with player strength, region danger, and reputation (see below)
 - **Gun platforms** (contributed by Kuri148): old Relic guns standing in the Boneyard
 - **Four story arcs** for the campaign ship, unlocked by standing and upgrade investment (Rezkov, then the Ledger, the Boneyard and the Corsairs)

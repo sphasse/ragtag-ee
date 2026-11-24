@@ -303,6 +303,7 @@ local function defaultCampaign()
         stats = {},      -- statistics (see ragtag/stats.lua)
         achievements = {}, -- id -> {at, session} (see ragtag/stats.lua)
         rumors_heard = {}, -- aftermath rumor id -> true: told in an earlier session (missions/_aftermath.lua)
+        transponder_unlocked = false, -- the Hob Works sells fake transponder codes (core/transponder.lua)
         reputation = {   -- the primary ship's standing with each faction (unbounded; thresholds at ±200/±400/±500)
             Concord = 0,
             Corsairs = 0,
@@ -860,6 +861,7 @@ function RT.update(delta)
     RT.updateTimers()
     RT.updateSounds()
     if STATS then STATS.update(delta) end
+    if RT.tickTransponders then RT.tickTransponders() end
 
     -- Sync RT.players with EmptyEpsilon's active player ships.
     -- Catches ships spawned through GM console or other means outside RT.spawnPlayer().
@@ -920,6 +922,7 @@ require("ragtag/core/sound.lua")        -- RT.sound, RT.soundLoop, the GM "Sound
 require("ragtag/core/reputation.lua")   -- RT.addReputation, RT.getReputation, RT.onKill, kill tracking
 require("ragtag/core/upgrades.lua")     -- RT.UPGRADES, RT.applyUpgrade, RT.grantUpgrade
 require("ragtag/core/stations.lua")     -- RT.station, station hooks, RT.stationComms, shipwright, restock
+require("ragtag/core/transponder.lua")  -- the fake transponder code: sold at the Hob Works, RT.concordSees
 require("ragtag/core/gm_tools.lua")     -- RT.addCampaignGMFunctions, campaign backup / restore
 
 -- Helpers that extend RT. Loaded last: they only use RT at call time.

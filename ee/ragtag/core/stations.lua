@@ -125,6 +125,8 @@ function RT.shipwrightMenu(source, target)
             end)
         end
     end
+    local tp = RT.transponderShopReply and RT.transponderShopReply(source, target)
+    if tp then any = true; table.insert(lines, tp) end
     if not any then table.insert(lines, "Nothing here I can bolt onto that hull. Try another yard.") end
     -- Point the crew at where else to look.
     local elsewhere = {}

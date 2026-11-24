@@ -63,6 +63,9 @@ Reputation matters, and every ship keeps its own. Finish jobs and stations offer
 
 Your starting ship is a Light Freighter — decent shields, basic weapons, warp drive, two homing missiles and a two-person engineering crew. Every shipwright specialises: each one fits a few kinds of upgrade (hull, shields, beams, missiles, engines, thrusters, sensors, probes, the reactor, more engineering crew), and Science's database lists which in its **Ports** entries. Its **Ship Upgrades** section rolls it all up: every upgrade by component, what it does, what it costs, what it needs first, and which ports fit it. Upgrade shields before venturing into risky space; faster turning and acceleration help you get out of trouble.
 
+Some things are for sale only once you have earned them in the story (availability earned in-game): a
+fake transponder code, for one, which lets a ship the Concord wants slip past it for ten minutes.
+
 ---
 
 ## Survival Tips

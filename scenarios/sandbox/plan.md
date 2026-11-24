@@ -195,15 +195,15 @@ The design below is the plan it was built from; the GM guide is the authority on
 
 **Premise.** The Boneyard's lifeboat survivors, led by **Dr. Mara Quill** (senior researcher on the
 reversal program until the Concord shut it down), take the crew's archive to Hob's Landing, where
-the Hob Works' chief engineer, **Anton Marchetti** (he came out of the Concord's Applied Research Division
-the year the Pale Sun was sealed, under Director Tan, a Ledger signatory) can build what the Concord would not.
+the Hob Works' chief engineer, **Anton Marchetti** (young, about thirty; his father, a Free Ship engineer,
+was killed in the Settlement War, and he grew up in the Works' test bays) can build what the Concord would not.
 
 **Seeded already (2026-11-21, built):** Quill introduces herself in the survivors' pickup hail and
 records; at the report she says the Concord was very close to a cure, "but the political fallout
 from building and deploying it would have been too great", and that they are headed to Hob's Landing
 ("We heard they have some exceptional engineers there"). A crew that never rescued them gets the same
 pointer as a Science log line when the archive download completes. Hob's Landing's lore names the
-Works' chief engineer as an ex-Applied Research scientist. Thresh does not broker any of it.
+Works' chief engineer (since 2026-11-24: young, orphaned by the war; no longer ex-Applied Research). Thresh does not broker any of it.
 
 **Trigger** (revised 2026-11-23): Rezkov over, and **all three Phase II arcs over**, any outcome:
 Ledger (`ledger_arc_done`), Boneyard (`boneyard_arc_done`, **as long as the lifeboat survivors were
@@ -720,6 +720,21 @@ If an arc module is lost, rebuild against these rails:
   what the arc spawned.
 - Run `python tools/check.py` after every change; headless smoke test before
   calling an arc done.
+
+## Decisions made (2026-11-24)
+
+- **Marchetti is no longer ex-Concord.** He is a young, brilliant engineer (about thirty) whose father,
+  a Free Ship engineer, was killed in the Settlement War; the Works raised him. A better persona for
+  the players. The Applied Research / Director Tan link is dropped (the Ledger guide, the plan, the
+  bible, his profile and the Hob's Landing lore). Quill still speaks for the Works; he speaks once.
+- **Fake transponder codes are for sale** once the Works are paid: Marchetti offers them ("If you ever
+  need one of these for a future job, stop by and I'll hook you up for 500"). 500 cr, Hob's Landing
+  only, one use per purchase; for 10 minutes the Concord reads a wanted ship as clean (patrols,
+  shake-downs, port guards, lane pickets: `RT.concordSees`). Engineering gets a pop-up explaining the
+  button, both for the heist's code and for a bought one. Science DB: Ship Upgrades > Fake transponder.
+- **Achievements are announced** in the ship log (Relay), and a top-level **Achievements** Science DB
+  entry lists every one, earned or not (hidden ones show as ??? until earned). New: **Nothing to See
+  Here** (swap in a fake transponder code).
 
 ## Decisions made (2026-11-23)
 
