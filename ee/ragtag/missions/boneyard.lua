@@ -922,11 +922,14 @@ M.completed = {
 local _jump = ARC.jumper("boneyard")
 
 -- An end state: which objectives were achieved. The world is left clean (no Annex, no fleet).
--- Like "→ Report", it counts the lifeboat survivors as rescued (the Hob Works arc needs them); the
--- no-survivors ending is reached only by playing it.
+-- Like "→ Report", it counts the lifeboat survivors as rescued (the Hob Works arc needs them), and
+-- the battle group as destroyed (the Hob Works briefing and the news count it); the no-survivors
+-- and fleet-left-alive endings are reached only by playing them.
 local function _done(hack, flip)
     return _jump("done", function()
         if not RT.flag("boneyard_buoy_found") then RT.flag("boneyard_buoy_found", true) end
+        RT.flag("boneyard_battlegroup_destroyed", true)
+        RT.flag("boneyard_fleet_beaten", true)
         if hack then RT.flag("boneyard_hack_done", true) end
         if flip then RT.flag("boneyard_drone_flip", true) end
     end, {skip_completed = true})

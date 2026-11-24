@@ -143,7 +143,7 @@ the remaining combat ships are removed 2 minutes later.
 | `→ Annex hack` | The Annex is out, unhacked |
 | `→ Annex control` | Hacked and dockable; the fleet arrives when the crew docks |
 | `→ Report` | Archive in, fleet beaten; marks the survivors rescued if they weren't |
-| `→ Done: Full` / `→ Done: Data` | End with archive + drones / archive only; both count the survivors as rescued (as `→ Report` does), so the Hob Works can follow |
+| `→ Done: Full` / `→ Done: Data` | End with archive + drones / archive only; both count the survivors as rescued (as `→ Report` does) and the battle group as destroyed, so the Hob Works can follow |
 
 Helpers, shown only in their phase:
 - **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → lifeboat** (hook: the

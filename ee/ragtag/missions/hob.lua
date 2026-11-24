@@ -450,9 +450,9 @@ end
 local function _briefPages()
     local archive = RT.flag("boneyard_hack_done")
     local p1 = archive
-        and '"Magpie. Good, you came. Mara Quill.\n\nWe\'ve been through every file you brought out of the Annex. The Maw was no accident. Twenty years ago the Concord ran a program to make the Pale Sun colonists docile, and it worked far better than anyone meant. That is what the Hollow are: those colonists."'
-        or  '"Magpie. Good, you came. Mara Quill.\n\nThe Annex archive never came out, so we rebuilt what we could from our own notes. It is enough. The Maw was no accident. Twenty years ago the Concord ran a program to make the Pale Sun colonists docile, and it worked far better than anyone meant. That is what the Hollow are: those colonists."'
-    local p2 = '"Anton Marchetti, chief engineer. I was in Applied Research the year they sealed the Pale Sun, so I know what it costs me to say this: it can be undone.\n\nA station broadcasting the right frequency throughout the Maw, held there long enough, puts the Hollow to sleep and then starts to bring them back. The archive calls it the Phase II reversal. We call it Lullaby."'
+        and '"Magpie, it\'s Mara Quill. Thank you for coming.\n\nWe\'ve been through every file you brought out of the Annex. The Maw was no accident. Twenty years ago the Concord ran a program to make the Pale Sun colonists docile, and it worked far better than anyone meant. That is what the Hollow are: those colonists."'
+        or  '"Magpie, it\'s Mara Quill. Thank you for coming.\n\nThe Annex archive never came out, so we rebuilt what we could from our own notes. It is enough. The Maw was no accident. Twenty years ago the Concord ran a program to make the Pale Sun colonists docile, and it worked far better than anyone meant. That is what the Hollow are: those colonists."'
+    local p2 = '"We\'ve been working with Anton Marchetti, the Works\' chief engineer. He was in Applied Research the year they sealed the Pale Sun, and he knows what it costs him to say this: it can be undone.\n\nA station broadcasting the right frequency throughout the Maw, held there long enough, puts the Hollow to sleep and then starts to bring them back. The archive calls it the Phase II reversal. We call it Lullaby."'
     local p3 = '"The Concord was very close to building one. It wasn\'t the engineering that stopped them, it was what building it would have admitted.\n\nWe can build it here. The problem is parts: '
         .. _cr(_price()) .. ' credits of components nobody sells on credit'
         .. (archive and '' or ', more than it would be with the archive, since we are working from notes')
@@ -461,10 +461,11 @@ local function _briefPages()
 end
 
 local function _convoyPages()
-    local both = RT.flag("boneyard_battlegroup_destroyed") and RT.flag("corsair_battlegroup_destroyed")
-    local one = RT.flag("boneyard_battlegroup_destroyed") or RT.flag("corsair_battlegroup_destroyed")
-    local why = both and 'The Concord lost a battle group in the Boneyard and another at Blackwater, and it is rebuilding at Sentinel Fleet Yard.'
-        or one and 'The Concord lost a battle group this year, and it is rebuilding at Sentinel Fleet Yard.'
+    local boneyard = RT.flag("boneyard_battlegroup_destroyed") or RT.flag("boneyard_fleet_beaten")
+    local corsair = RT.flag("corsair_battlegroup_destroyed")
+    local why = (boneyard and corsair) and 'The Concord has lost two battle groups, one in the Boneyard and one at Blackwater, and it is trying to rebuild at Sentinel Fleet Yard.'
+        or boneyard and 'The Concord lost a battle group in the Boneyard, and it is trying to rebuild at Sentinel Fleet Yard.'
+        or corsair and 'The Concord lost a battle group at Blackwater, and it is trying to rebuild at Sentinel Fleet Yard.'
         or 'The Concord is reinforcing its fleet at Sentinel Fleet Yard.'
     local b1 = '"' .. why .. ' The money is going there the old-fashioned way: a one-time Treasury transfer, cash boxes in a transport, leaving Lumen Exchange for Sentinel in '
         .. (M.HEIST_DELAY // 60) .. ' minutes. Take it, and Lullaby gets built and the yard goes without. There is only the one transfer: miss it and it is gone."'
@@ -474,9 +475,10 @@ local function _convoyPages()
         .. 'Blow it up and you\'ll be picking cash boxes out of the wreckage, if they survive."'
     local b3 = '"Two Navy escorts, CNS Surety and CNS Bond: fast, well shielded for their size, a heavy forward beam each. They hunt in a pair and they\'ll break off the convoy to come for you. '
         .. 'Don\'t let them pin you while the transport gets away. Their sensors reach about 15U: sit inside that without a good code and they\'ll see you."'
-    local b4 = '"One more thing. The Concord is really on the lookout for the Magpie. Our engineers have wired a fake transponder into your Engineering station. '
+    local b4 = '"One more thing. The Concord is really on the lookout for the Magpie. Our engineers can wire a fake transponder into your ship, enabled when needed by your Engineering station. '
         .. 'The Concord rotates its encryption keys, so the code is good for ten minutes from when you throw the switch, and only once. '
-        .. 'Use it to get close and scan the convoy before it leaves. Once the shooting starts, the gig is up.\n\nBring the cash here. It only counts once it is in our hands."'
+        .. 'Use it to get close and scan the convoy before it leaves. Once the shooting starts, the gig is up, and you\'ll have to get creative to get back out of Concord space.\n\n'
+        .. 'Bring the cash here. It only counts once it is in our hands. We need the ' .. _cr(_price()) .. '. Any extra credits are yours for the trouble."'
     return b1, b2, b3, b4
 end
 
@@ -547,7 +549,7 @@ local function _paymentReply()
     if have >= price then
         addCommsReply("Deliver " .. _cr(price) .. " cr to the engineers", function()
             _pay(price)
-            setCommsMessage('"Marchetti takes the credit chip and is already shouting for his crew.\n\n"Ten minutes. Lullaby will be ready in ten minutes. Thank you, all of you."')
+            setCommsMessage('"Anton has the credit chip and is already shouting for his crew. Ten minutes: Lullaby will be ready in ten minutes. Thank you, all of you."')
         end)
     end
 end
@@ -944,7 +946,7 @@ M.flags = {
     ["hob_met_*"]    = "Science DB profile met in this arc (quill, marchetti), set by ARC.meet",
 }
 M.reads = {"rezkov_arc_done", "rezkov_declined", "ledger_arc_done", "boneyard_arc_done", "boneyard_buoy_found",
-           "boneyard_hack_done", "boneyard_battlegroup_destroyed", "corsair_arc_done", "corsair_battlegroup_destroyed"}
+           "boneyard_hack_done", "boneyard_battlegroup_destroyed", "boneyard_fleet_beaten", "corsair_arc_done", "corsair_battlegroup_destroyed"}
 M.keep_flags = {"hob_jobs_base"}
 
 M.gm_state_fn = function()

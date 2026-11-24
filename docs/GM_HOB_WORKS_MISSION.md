@@ -56,10 +56,12 @@ Concord ports don't pass it on. Hearing it sets the objective **"Meet Quill at H
 
 Docked at **Hob's Landing**, **"We got Mara Quill's message."** opens four short pages, each moved on
 with **"Go on."**:
-1. **Quill:** what the archive showed. The Maw was a Concord program to make the Pale Sun colonists
-   docile; the Hollow are those colonists. (Her Science DB profile is added.)
-2. **Marchetti:** it can be undone. A station broadcasting the right frequency throughout the Maw puts
-   the Hollow to sleep and then starts to bring them back: Lullaby. (His profile is added.)
+1. **Quill** ("Magpie, it's Mara Quill. Thank you for coming."): what the archive showed. The Maw was a
+   Concord program to make the Pale Sun colonists docile; the Hollow are those colonists. (Her Science
+   DB profile is added.) Quill speaks for the Works throughout; Marchetti never speaks directly.
+2. **Marchetti, through Quill** ("We've been working with Anton Marchetti, the Works' chief engineer…"):
+   it can be undone. A station broadcasting the right frequency throughout the Maw puts the Hollow to
+   sleep and then starts to bring them back: Lullaby. (His profile is added.)
 3. **The problem:** the Concord was very close, but stopped for political reasons. The Works can build
    it, but the parts cost **10,000 cr** (**15,000** without the archive) and the work has stalled.
 4. **The pitch:** "…Which brings us to you. We think we've got a creative way to get the cash. Your
@@ -73,14 +75,19 @@ Meridian business, but he still says…". If the Ledger AI was lost: "…even af
 **"About Lullaby and the cash..."**. There is no permanent "no": the finale needs the beacon.
 
 **The convoy brief**, four more pages:
-1. The money: a one-time Treasury transfer leaving Lumen Exchange for Sentinel **in 15 minutes**, to
-   rebuild the fleet (or "reinforce" it if neither battle group was destroyed). One chance only.
+1. The money: a one-time Treasury transfer leaving Lumen Exchange for Sentinel **in 15 minutes**. "The
+   Concord has lost two battle groups, one in the Boneyard and one at Blackwater, and it is trying to
+   rebuild at Sentinel Fleet Yard." (Only one named if only one died; "reinforcing its fleet" if
+   neither.) One chance only.
 2. **CTS Tithe**, the transport: big, slow, armoured, one small beam aft; it won't stop. Kill its
    engines and drop its rear shield to board it; blow it up and pick cash out of the wreckage.
 3. **CNS Surety and CNS Bond**, the escorts: fast, a heavy forward beam each, they'll come for you.
    **Their sensors reach about 15U.**
-4. The **fake transponder** on Engineering: ten minutes, once. "Bring the cash here. It only counts
-   once it is in our hands."
+4. The **fake transponder**: "Our engineers can wire a fake transponder into your ship, enabled when
+   needed by your Engineering station." Ten minutes, once. "Once the shooting starts, the gig is up, and
+   you'll have to get creative to get back out of Concord space. Bring the cash here. It only counts
+   once it is in our hands. We need the 10,000. Any extra credits are yours for the trouble." (15,000
+   without the archive.)
 
 **We'll do it.** starts the heist; **Not right now.** keeps the offer open.
 
