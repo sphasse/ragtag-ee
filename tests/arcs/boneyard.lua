@@ -522,11 +522,13 @@ T.gmWalk({
     end},
     {key = "done_full", done = true, check = function()
         T.check("GM done_full: both objectives", T.flag("boneyard_hack_done") and T.flag("boneyard_drone_flip"))
+        T.check("GM done_full: survivors rescued (the Hob Works needs them)", T.flag("boneyard_buoy_found"))
         T.check("GM done_full: world left clean", not RT.valid(annex()) and T.alive(T.st().concord_group) == 0)
         paid = T.credits()
     end},
     {key = "done_data", done = true, check = function()
         T.check("GM done_data: data only", T.flag("boneyard_hack_done") and not T.flag("boneyard_drone_flip"))
+        T.check("GM done_data: survivors rescued", T.flag("boneyard_buoy_found"))
         T.eq("GM done_data: an end state does not pay twice", T.credits(), paid)
     end},
 })

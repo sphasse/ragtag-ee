@@ -1008,7 +1008,16 @@ M.gm_actions = {
     ARC.travel("Tithe", {"heist"}, function(st) return st.transport end),
     {label = "Satisfy done jobs", phases = {"inactive"}, fn = function(st)
         if not _phaseTwoOver() then
-            addGMMessage("The Phase II arcs are not all over yet (Ledger, Boneyard with the survivors, Corsair): the job count starts then.")
+            local missing = {}
+            if not (RT.flag("rezkov_arc_done") or RT.flag("rezkov_declined")) then missing[#missing + 1] = "Rezkov not over" end
+            if not RT.flag("ledger_arc_done") then missing[#missing + 1] = "Ledger not done" end
+            if not RT.flag("boneyard_arc_done") then missing[#missing + 1] = "Boneyard not done" end
+            if not RT.flag("boneyard_buoy_found") then
+                missing[#missing + 1] = "Boneyard survivors not rescued (Boneyard → Report or → Done sets it)"
+            end
+            if not RT.flag("corsair_arc_done") then missing[#missing + 1] = "Corsair not done" end
+            addGMMessage("The job count starts when the Phase II arcs are all over. Missing: "
+                .. table.concat(missing, "; ") .. ".")
             return
         end
         RT.flag("hob_jobs_base", _jobsDone() - M.JOBS_AFTER_PHASE2)

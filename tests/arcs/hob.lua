@@ -35,6 +35,34 @@ local function nearEscort(u)
     T.moveTo(ex + u, ey)
 end
 
+-- ── The gate, from the other arcs' GM "→ Done" buttons (how a GM sets up a playtest) ──
+T.step("the gate opens from every Phase II arc's GM end states", function()
+    local function doneStates(id)
+        local out = {}
+        for _, g in ipairs(MISSIONS._registry[id].gm_states or {}) do
+            if g.key:sub(1, 5) == "done_" then out[#out + 1] = g end
+        end
+        return out
+    end
+    local arcs = {"rezkov", "ledger", "boneyard", "corsair"}
+    for _, id in ipairs(arcs) do
+        local g = doneStates(id)[1]
+        g.fn(MISSIONS._state[id] or {})
+    end
+    T.check("GM done: the Phase II arcs are over", M_hob.triggers.requires())
+    for _, id in ipairs(arcs) do
+        for _, g in ipairs(doneStates(id)) do
+            g.fn(MISSIONS._state[id] or {})
+            T.check("GM done: gate open after " .. id .. " " .. g.key, M_hob.triggers.requires())
+        end
+        doneStates(id)[1].fn(MISSIONS._state[id] or {})
+    end
+    T.action("Satisfy done jobs")
+    T.check("GM done: Satisfy done jobs sets the count", gate())
+    RT.clearFlag("boneyard_buoy_found")   -- the next step checks the gate without them
+    RT.clearFlag("hob_jobs_base")
+end)
+
 -- ── The gate ─────────────────────────────────────────────────────────────────
 T.step("the gate", function()
     RT.clearFlag("hob_jobs_base")

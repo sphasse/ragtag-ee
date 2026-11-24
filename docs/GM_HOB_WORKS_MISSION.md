@@ -162,7 +162,9 @@ Helpers, shown only in their phase:
 - **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → Hob's** (hook, deliver,
   build), **Ship → Lumen** and **Ship → Tithe** (heist; 5U from the convoy is inside the escorts' 15U,
   so without a working code they spot the Magpie).
-- **Satisfy done jobs** (waiting): the 5-job count is met at once; the other conditions still apply.
+- **Satisfy done jobs** (waiting): the 5-job count is met at once; the other conditions still apply, and if
+  one is not met the button says which (e.g. "Boneyard survivors not rescued"). The other arcs' GM `→ Done`
+  buttons all meet them (Boneyard's `→ Done` counts the survivors as rescued).
 - **Depart now** (heist): the convoy leaves now.
 - **Transport faster / Transport slower** (heist): ±25 u/s, with the new speed in a GM message. For
   playtesting the run's length.
