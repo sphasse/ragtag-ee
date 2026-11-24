@@ -269,8 +269,9 @@ meet.
        *impulse* set to that speed (script-driven, like the Corsair guide), not on a warp drive, so that
        hacking or damaging the impulse system actually slows it (EE scales impulse by the system's
        health and hack level; a warp drive would ignore an impulse hack). The escorts need at least the
-       same speed to stay with it. Open: is ~4 minutes the run you want, or a slower "half warp" (e.g.
-       0.3 warp, ~6.5 min) for more room?
+       same speed to stay with it. **Tune in a playtest** (decided 2026-11-23): during the intercept the GM
+       screen has **Transport faster / Transport slower** buttons (and shows the current speed), so the run
+       can be adjusted live.
      - **Destroying the freighter loses the money**, and so does letting it reach Sentinel: see "one
        chance" below.
      - **Insider intel in the briefing** (decided 2026-11-23): the Works give a detailed, insider-style
@@ -282,7 +283,8 @@ meet.
          the way to Sentinel. Kill its engines and it's yours. Blow it up and so is the money: gone."
        - Two CNS escort fighters: "fast, well shielded for their size, a heavy forward beam each. They
          hunt in a pair and they'll break off the convoy to come for you. Don't let them pin you while
-         the transport gets away."
+         the transport gets away. Their sensors reach about 15U: sit inside that without a good code and
+         they'll see you."
        The same intel goes into the Science database (as the beacon briefing does), so Science can check
        it against their own scans at Lumen Exchange.
    - **Getting into position: the fake transponder** (idea 2026-11-21; **made by the Works' engineers**,
@@ -299,9 +301,14 @@ meet.
        custom info line). No "Restore transponder": the premise is that the code works because of the
        Concord's rotating encryption keys, so switching it on and off makes no sense. At zero the key has
        rotated and the code no longer checks out.
-     - Open: what happens near Lumen Exchange and the docked convoy **without** a valid code (e.g. the
-       escorts warn the ship off at a few U, or Lumen's traffic control challenges it), so the
-       transponder matters; and what a crew sees when it lapses while they are still close.
+     - **Without a valid code** (decided 2026-11-23): the escorts' **scan range is 15U** (scripted: a
+       distance check on the escorts, not EE's own radar). A player ship inside it without a valid code
+       before departure is spotted, and the escorts come out to fight it. **The convoy still leaves on
+       schedule and the battles still happen**: the crew just has to dodge or fight its way to its scans.
+       The transponder is the "cloak" that lets them sit inside 15U unseen; a crew without one stays
+       outside 15U until the run starts. The briefing gives the 15U figure so the crew knows the line.
+     - Open: what a crew inside 15U sees when the code lapses (the escorts spot it, as above, with a
+       line from them).
      - Don't change the ship's callsign: per-ship records are keyed by callsign, and a rename would save
        the record under the fake name. Primary ship only.
    - **A scheduled run, not a proximity trigger** (decided 2026-11-23). At the briefing in Hob's Landing:
@@ -315,9 +322,8 @@ meet.
    - **One chance** (decided 2026-11-23): this is a **one-time, bigger transfer** to get ships built to
      replace the Concord's Boneyard and Corsair losses (if they happened; "reinforcing" otherwise). Miss
      it, let it reach Sentinel, or destroy the transport, and the heist is over: there is no later run.
-     Open: how the crew then pays for the beacon. The finale needs it and there is no permanent "no" at
-     the briefing, so the likely answer is the Works' price from the crew's own credits (job work), but
-     this needs deciding.
+     Then the crew **pays the Works' price from its own credits**, earned on the job boards (decided
+     2026-11-23); until it can, the beacon is stalled. Something else may be set up later.
    - **Ambient Concord patrols are off during the heist** (decided 2026-11-23): the arc suspends the Concord
      Core, Arbiter Line and Escrow Marches PROX zones (`PROX.suspendZone`) from the briefing until the heist
      ends. The danger is the arc's own: the escorts, then the response force.
@@ -671,6 +677,9 @@ If an arc module is lost, rebuild against these rails:
   letting it reach Sentinel or destroying the transport ends the heist.
 - Heist: the transport keeps going at half warp; the fighters engage, the transport doesn't stop; the crew
   hacks and shoots its impulse drive to slow it. The briefing gives insider intel on all three ships.
+- Heist: the escorts' scan range is 15U (given in the briefing). Inside it without a valid code before
+  departure, the escorts come out to fight; the convoy still leaves on schedule. A missed convoy means the
+  crew pays the Works from its own credits. The GM screen gets Transport faster / slower for playtesting.
 - Heist: the convoy runs **on a schedule**, not on proximity: the briefing says the next big transfer
   leaves Lumen Exchange in 30 minutes, with a countdown objective; time to get in place and pre-scan.
 - Heist: ambient Concord patrols are suspended from the briefing until the heist ends.
