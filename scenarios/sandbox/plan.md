@@ -261,11 +261,12 @@ meet.
        the largest transport model; NOT the Jump variant, which could jump away). Give it one weak rear
        beam for "minimal defenses". Callsigns in the Concord's style, e.g. CTS *Tithe* (Treasury) with CNS
        escorts.
-     - **The run** (decided 2026-11-23): the transport **keeps going at half warp** whatever happens; the
-       fighters peel off to engage, but the transport does not stop or turn to fight. To slow it the crew
-       has to **hack and/or shoot its impulse drive**, then disable and board it. Half warp on the Light
-       Freighter's scale (500 a level) is 250 units/s, 15 U a minute: Lumen to Sentinel (59U) in about
-       4 minutes, and the crew catches it at warp 1 (30 U a minute). Implementation note: run it on
+     - **The run** (decided 2026-11-23): the transport **keeps going at 7.5U a minute** (125 units/s,
+       a quarter of warp 1) whatever happens; the fighters peel off to engage, but the transport does not
+       stop or turn to fight. To slow it the crew has to **hack and/or shoot its impulse drive**, then
+       disable and board it. Lumen to Sentinel (59U) takes **about 8 minutes**: the intercept window. The
+       crew catches it easily at warp 1 (30U a minute). (First set at half warp, 15U a minute, ~4 min;
+       slowed the same day for a roughly 8-minute intercept.) Implementation note: run it on
        *impulse* set to that speed (script-driven, like the Corsair guide), not on a warp drive, so that
        hacking or damaging the impulse system actually slows it (EE scales impulse by the system's
        health and hack level; a warp drive would ignore an impulse hack). The escorts need at least the
@@ -279,7 +280,7 @@ meet.
        speed, hull and shields, armament, and how each behaves (the escorts will come for you; the
        transport will not stop, so go for its engines). Draft, to tune with the numbers:
        - CTS *Tithe*, Treasury transport: "a big, slow-turning hauler, armoured like a vault and about as
-         nimble. One small beam aft to discourage tailgaters. It won't stop for anything: half warp, all
+         nimble. One small beam aft to discourage tailgaters. It won't stop for anything: steady speed, all
          the way to Sentinel. Kill its engines and it's yours. Blow it up and so is the money: gone."
        - Two CNS escort fighters: "fast, well shielded for their size, a heavy forward beam each. They
          hunt in a pair and they'll break off the convoy to come for you. Don't let them pin you while
@@ -314,10 +315,11 @@ meet.
      - Don't change the ship's callsign: per-ship records are keyed by callsign, and a rename would save
        the record under the fake name. Primary ship only.
    - **A scheduled run, not a proximity trigger** (decided 2026-11-23). At the briefing in Hob's Landing:
-     "the money transfers run on a regular schedule, with a big one leaving Lumen Exchange in 30 minutes"
-     (30 is the working number). That starts an objective with a **countdown to departure** (the per-job
-     countdown pattern: a "Time left m:ss" line on Relay and Operations, at most 20 characters). The 30
-     minutes are a comfortable cushion to fly to the Core, pick an ambush point and **pre-scan**: the
+     a big one-time transfer **leaves Lumen Exchange in 15 minutes** (decided 2026-11-23; was 30). That
+     starts an objective with a **countdown to departure** (the per-job countdown pattern: a "Time left
+     m:ss" line on Relay and Operations, at most 20 characters). Hob's Landing to Lumen Exchange is ~249U:
+     ~8.3 min at warp 1, ~4.2 at warp 2, leaving ~7 or ~11 minutes to pick an ambush point and
+     **pre-scan**. The 10-minute fake code can cover most of that wait. The
      convoy **waits docked at Lumen Exchange** (decided 2026-11-23), where the fake transponder lets the
      crew come close enough for Science to scan the escorts and the transport; fast probes can watch the
      lane. At zero the convoy undocks and runs to Sentinel whatever the crew is doing.
@@ -677,13 +679,13 @@ If an arc module is lost, rebuild against these rails:
   "Restore transponder".
 - Heist: one chance. The convoy is a one-time bigger transfer to replace the Concord's losses; missing it,
   letting it reach Sentinel or destroying the transport ends the heist.
-- Heist: the transport keeps going at half warp; the fighters engage, the transport doesn't stop; the crew
+- Heist: the transport keeps going at 7.5U a minute (~8 min Lumen to Sentinel); the fighters engage, the transport doesn't stop; the crew
   hacks and shoots its impulse drive to slow it. The briefing gives insider intel on all three ships.
 - Heist: the escorts' scan range is 15U (given in the briefing). Inside it without a valid code before
   departure, the escorts come out to fight; the convoy still leaves on schedule. A missed convoy means the
   crew pays the Works from its own credits. The GM screen gets Transport faster / slower for playtesting.
 - Heist: the convoy runs **on a schedule**, not on proximity: the briefing says the next big transfer
-  leaves Lumen Exchange in 30 minutes, with a countdown objective; time to get in place and pre-scan.
+  leaves Lumen Exchange in 15 minutes, with a countdown objective; time to get in place and pre-scan.
 - Heist: ambient Concord patrols are suspended from the briefing until the heist ends.
 
 - Hob Works trigger: Rezkov over and all three Phase II arcs over (Ledger, Boneyard with the survivors
