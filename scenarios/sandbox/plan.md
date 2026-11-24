@@ -235,8 +235,10 @@ meet.
    broadcasting the right frequency throughout the Maw can reverse it; the Works can build it; parts
    cost **10,000 cr** (decided 2026-11-22) and the work is stalled. **Without the archive**
    (`boneyard_hack_done` unset) the research comes from the survivors' own notes, the work is harder
-   and the price is **15,000 cr**: the ~12,000 haul does not cover it and the crew makes up the rest. New Science DB entry for the device (name TBD, e.g. "The
-   Pale Sun Beacon") that **covers everything the briefing said**, so a crew that skimmed the comms can
+   and the price is **15,000 cr**: the ~12,000 haul does not cover it and the crew makes up the rest. New Science DB entry for the device, Lore →
+   **"Lullaby (Phase II reversal beacon)"** (decided 2026-11-23: the formal name is the **Phase II
+   reversal transmitter**, after the archive's "Phase II reversal protocol"; the Works call it
+   **Lullaby**, because the first thing it does is put the Hollow to sleep), that **covers everything the briefing said**, so a crew that skimmed the comms can
    read it again: what the Maw program was, what the beacon does, why the Concord never built it (very
    close, but the political fallout of building and deploying it was too great), that it must run
    within range of the Maw for some minutes while protected, and the price and why. Every database
@@ -284,8 +286,8 @@ meet.
        **impulse under 10%** *and* a second hackable system. Options:
        (a) **rear shield** under 10%: "engines dead and the shield down, so you can board" (shields block
        boarding; the rear arc faces a pursuer; hack or shoot it); (b) **maneuvering** under 10%: it can no
-       longer steer, dead in space; (c) **reactor** under 10%: no power anywhere, the most work. Recommended:
-       **(a) the rear shield**: it explains why boarding needs it, Relay can hack it while Weapons work on
+       longer steer, dead in space; (c) **reactor** under 10%: no power anywhere, the most work.
+       **Decided (2026-11-23): (a) the rear shield**: it explains why boarding needs it, Relay can hack it while Weapons work on
        the engines, and the crew can also shoot it down, so a crew bad at hacking still has a way. A system
        "under 10%" means its effective power, health and hack together. Until it is disabled the ship can't
        be boarded; the impulse drive slows it as it falls (EE scales impulse by the system's power).
@@ -296,12 +298,15 @@ meet.
        transport will not stop, so go for its engines). Draft, to tune with the numbers:
        - CTS *Tithe*, Treasury transport: "a big, slow-turning hauler, armoured like a vault and about as
          nimble. One small beam aft to discourage tailgaters. It won't stop for anything: steady speed, all
-         the way to Sentinel. Kill its engines and it's yours. Blow it up and so is the money: gone."
+         the way to Sentinel. Kill its engines and drop its rear shield and you can board it. Blow it up
+         and you'll be picking cash boxes out of the wreckage, if they survive."
        - Two CNS escort fighters: "fast, well shielded for their size, a heavy forward beam each. They
          hunt in a pair and they'll break off the convoy to come for you. Don't let them pin you while
          the transport gets away. Their sensors reach about 15U: sit inside that without a good code and
          they'll see you."
-       The same intel goes into the Science database (as the beacon briefing does), so Science can check
+       The same intel goes into its **own** Science database entry (decided 2026-11-23), e.g. Lore →
+       "Convoy intel: CTS Tithe", separate from the Lullaby entry: the three ships and the escorts' 15U
+       scan range, written (as the beacon briefing does), so Science can check
        it against their own scans at Lumen Exchange.
    - **Getting into position: the fake transponder** (idea 2026-11-21; **made by the Works' engineers**,
      not Rezkov, decided 2026-11-23). Sending them off, the chief
@@ -347,21 +352,25 @@ meet.
      Core, Arbiter Line and Escrow Marches PROX zones (`PROX.suspendZone`) from the briefing until the heist
      ends. The danger is the arc's own: the escorts, then the response force.
    - **Real battles, one or two:** (1) the intercept itself, the two escorts then the freighter;
-     (2) the way home: **to be decided after the next playtest** (2026-11-23): the user wants to see how
-     crews handle the Ledger arc's Audit Service stop first. Options on the table: Concord forces that
+     (2) the way home: **the ordinary proximity intercepts for now** (see "The way home"); more after the
+     next playtest, once the user has seen how crews handle the Ledger arc's Audit Service stop. Options
+     kept for then: Concord forces that
      sortie from Sentinel and Lumen and chase the crew out of the Core (`BATTLE` waves, combat warp
      jammers); a picket line to slip past or break through at the edge of the Escrow Marches or the
      Arbiter Line; a jammer stop like the audit fleet's; or nothing beyond the convoy fight.
-   - **The haul:** **12,000 cr** boarded, **9,000 cr** from the wreck. **Concord standing takes another big
-     hit** (amount to tune; whether boarding and destroying differ, open). No Audit Service.
+   - **The haul:** **12,000 cr** boarded, **9,000 cr** from the wreck. **Concord standing: −800 if the
+     transport survives (boarded), −1,000 if it is destroyed** (decided 2026-11-23). No Audit Service.
    - **Delivering the cash** (decided 2026-11-23): the money **counts only when delivered to Hob's
      Landing**. Taking it starts a **15-minute delivery countdown** (objective line, e.g. "Deliver by
      14:59"). Docked there, the crew gets the cash as credits and a button **"Deliver 10,000 cr to the
      engineers"** (15,000 without the archive; offered while they can afford it); the rest is theirs.
-     Not delivered in time: the arc stays open, the crew's Independent standing goes down, the Works
-     pester them for a while (port news and hails at Independent ports), and eventually the arc ends
-     without the beacon. Open: the standing loss, how long the pestering lasts, whether the cash is lost
-     then.
+     Not delivered in time: the arc stays open, the crew's **Independent standing is set to −100**,
+     whatever it was (decided 2026-11-23), the Works pester them for a while (port news at Independent
+     ports), and eventually the arc ends without the beacon. Open (small): how long the pestering lasts,
+     and whether a late delivery is still accepted during it.
+   - **The way home** (decided 2026-11-23): **just the ordinary proximity intercepts for now**: once the
+     crew has the cash, the arc resumes the Concord PROX zones it suspended, so the Core, Arbiter Line and
+     Escrow Marches patrols are back on the way out. More may come after the audit playtest.
    - **Who the escorts care about** (decided 2026-11-23): **only the Magpie** (the arc ship). Another
      player ship is just another Independent ship: the escorts ignore it but defend themselves. Once
      they have spotted the Magpie they keep fighting it.
