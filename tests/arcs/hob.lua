@@ -183,9 +183,17 @@ T.step("the heist starts", function()
     T.check("heist: departs in 15 minutes", math.abs(T.st().depart_at - T.now() - 900) < 2)
     T.eq("heist: objective", RT.objectives.hob, "Rob the convoy")
     for _, z in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches"}) do
-        T.check("heist: Concord patrols suspended in " .. z, PROX._suspended_zones[z])
+        T.check("heist: Concord patrols still normal in " .. z, not PROX._suspended_zones[z] and not PROX._chase_zones[z])
     end
     T.check("heist: the transponder button on Engineering", T.st().code_used == false)
+    T.st().depart_at = T.now() + 299   -- five minutes to go
+end)
+T.wait(1)
+T.step("five minutes before departure the patrols stop", function()
+    for _, z in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches"}) do
+        T.check("heist: Concord patrols suspended in " .. z, PROX._suspended_zones[z])
+    end
+    T.st().depart_at = T.now() + 880
 end)
 T.closeComms()
 
@@ -291,12 +299,23 @@ T.step("boarded", function()
     T.check("board: 15 minutes to deliver", math.abs(T.st().deliver_due - T.now() - 900) < 2)
     for _, z in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches"}) do
         T.check("board: Concord patrols back in " .. z, not PROX._suspended_zones[z])
+        local c = PROX._chase_zones[z]
+        T.check("board: a chase in " .. z .. ": every 30 s, up to 4 ships", c ~= nil and c.cooldown == 30 and c.max_active == 4)
     end
+    T.check("board: in Concord space", M_hob.inConcordSpace())
+    T.check("board: the chase is on", T.st().chase)
 end)
 
 -- ── Delivery and payment ─────────────────────────────────────────────────────
 T.dock("Hob's Landing")
-T.step("credits before", function() c0 = T.credits() end)
+T.step("credits before", function()
+    T.check("home: out of Concord space", not M_hob.inConcordSpace())
+    T.check("home: the chase is over", not T.st().chase)
+    for _, z in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches"}) do
+        T.check("home: patrols normal in " .. z, not PROX._suspended_zones[z] and not PROX._chase_zones[z])
+    end
+    c0 = T.credits()
+end)
 T.talk("Hob's Landing", {"We have the cash."})
 T.step("delivered", function()
     T.eq("deliver: +12,000 cr", T.credits() - c0, 12000)
@@ -518,6 +537,7 @@ T.deactivate({
         T.check("inactive: no Lullaby entry", SCIDB._entries["hob_lullaby"] == nil)
         for _, z in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches"}) do
             T.check("inactive: patrols on in " .. z, not PROX._suspended_zones[z])
+            T.check("inactive: no chase in " .. z, not PROX._chase_zones[z])
         end
     end,
 })

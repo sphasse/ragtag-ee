@@ -135,7 +135,8 @@ Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
       Does Relay hack while Weapons shoot? Docking to board
 - [ ] Destroying it: the three cash boxes. Does the crew find and collect them?
 - [ ] The escorts (Adder MK8, hull 100): a real fight? Do they leave a second player ship alone?
-- [ ] The way home with the cash: the Concord patrols are back. The 15-minute delivery: tight or easy?
+- [ ] The way home with the cash: a Concord patrol every 30 s until out of Concord space (normal patrols until
+      5 minutes before the convoy leaves). The 15-minute delivery: tight or easy?
 - [ ] Paying: "We have the cash." (Quill: "...the other 2,000 is yours for the trouble.") then "Deliver 10,000 cr
       to the engineers" ends the arc ("...it is going to take some time. We'll reach out again..."). Clear?
 - [ ] A missed delivery (GM: let it lapse): Independent standing to -100, the shaming port news for 30 min,

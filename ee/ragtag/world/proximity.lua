@@ -965,18 +965,21 @@ end
 -- it now, or nil. `taken` holds the zones and cells that already drew a patrol this check.
 local function _bestZone(st, player, px, py, cell, zone_ships, now, taken)
     if taken.cells[cell] then return nil end
+    local cell_busy = false
     for _, g in ipairs(st.active) do
-        if g.cell_key == cell then return nil end   -- one group per grid cell at a time
+        if g.cell_key == cell then cell_busy = true end   -- one group per grid cell at a time
     end
     local best_name, best_depth = nil, 0
     for name, region in pairs(st.regions) do
         local depth = _depthIn(px, py, region)
         local zone  = PROX.zones[name]
         local mode  = _SPAWN_MODES[st.zone_modes[name] or _cfg("default_zone_mode")]
+        local chase = PROX._chase_zones[name]
         local ok = depth > best_depth and not taken.zones[name]
                    and not PROX._suspended_zones[name] and mode.freq > 0
-        -- Per-zone active ship cap (zone.max_active overrides mode default).
-        if ok then ok = (zone_ships[name] or 0) < (zone.max_active or mode.max_active) end
+                   and (chase ~= nil or not cell_busy)   -- a chase ignores the one-group-per-cell rule
+        -- Per-zone active ship cap (zone.max_active overrides mode default; a chase overrides both).
+        if ok then ok = (zone_ships[name] or 0) < ((chase and chase.max_active) or zone.max_active or mode.max_active) end
         if ok then
             -- Per-zone cooldown (zone.cooldown shortened by mode frequency). Corsair standing of
             -- this ship scales aggressiveness: -200 → 30% shorter, -400 → 50% shorter.
@@ -987,6 +990,7 @@ local function _bestZone(st, player, px, py, cell, zone_ships, now, taken)
                 elseif crep <= -200 then cooldown = cooldown * 0.7
                 end
             end
+            if chase then cooldown = chase.cooldown * mode.freq end   -- a chase's cooldown is absolute
             ok = now - (st.region_cd[name] or -99999) >= cooldown / mode.freq
         end
         -- Per-zone density: don't pile on if enough hostiles already nearby.
@@ -1267,6 +1271,19 @@ end
 
 function PROX.resumeZone(name)
     PROX._suspended_zones[name] = nil
+end
+
+-- A chase (e.g. after a story arc's robbery): the zone sends a patrol every `cooldown` seconds,
+-- whatever its GM mode's frequency (mode None still sends none), up to `max_active` ships, even into
+-- a grid cell that already has one. The density limit still applies. PROX.endChase puts it back.
+PROX._chase_zones = PROX._chase_zones or {}
+
+function PROX.chaseZone(name, cooldown, max_active)
+    PROX._chase_zones[name] = {cooldown = cooldown or 30, max_active = max_active or 4}
+end
+
+function PROX.endChase(name)
+    PROX._chase_zones[name] = nil
 end
 
 -- Manually add a no-spawn exclusion zone around a named station.

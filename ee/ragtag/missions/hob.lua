@@ -48,6 +48,9 @@ M.DELIVER_TIME      = 900    -- s to bring the cash to Hob's Landing
 M.PESTER_TIME       = 1800   -- s of shaming port news after a missed delivery
 M.PRICE             = 10000  -- the Works' price with the Ashgrave archive
 M.PRICE_NO_ARCHIVE  = 15000  -- without it (the survivors' own notes)
+M.PATROL_PAUSE      = 300    -- s before departure when the Concord patrols stop (normal until then)
+M.CHASE_COOLDOWN    = 30     -- s between Concord patrols after the heist, until the Magpie leaves Concord space
+M.CHASE_MAX         = 4      -- Concord ships at most per zone during that chase
 M.CONCORD_BOARDED   = -800
 M.CONCORD_DESTROYED = -1000
 M.LATE_INDEPENDENT  = -100   -- Independent standing after a missed delivery, whatever it was
@@ -79,6 +82,8 @@ function M.init_state()
         pester_until = nil,
         timer_text = nil,
         code_text  = nil,
+        patrols_paused = false, -- the Concord zones are off (PATROL_PAUSE s before departure)
+        chase      = nil,   -- after the heist: a patrol every CHASE_COOLDOWN s until out of Concord space
     }
 end
 
@@ -147,13 +152,48 @@ local function _timerLine(st, text)
     end)
 end
 
--- ── Concord patrols: off from the briefing until the heist ends ─────────────
+-- ── Concord patrols ─────────────────────────────────────────────────────────
+-- Normal until PATROL_PAUSE s before the convoy leaves; off while it runs; then, from the end of the
+-- heist, a chase (a patrol every CHASE_COOLDOWN s) until the Magpie is out of Concord space.
 
 local function _suspendPatrols()
     for _, z in ipairs(_CONCORD_ZONES) do PROX.suspendZone(z) end
 end
-local function _resumePatrols()
+local function _endChase(st)
+    for _, z in ipairs(_CONCORD_ZONES) do PROX.endChase(z) end
+    if st then st.chase = nil end
+end
+local function _resumePatrols(st)
     for _, z in ipairs(_CONCORD_ZONES) do PROX.resumeZone(z) end
+    _endChase(st)
+end
+local function _startChase(st)
+    for _, z in ipairs(_CONCORD_ZONES) do
+        PROX.resumeZone(z)
+        PROX.chaseZone(z, M.CHASE_COOLDOWN, M.CHASE_MAX)
+    end
+    st.chase = true
+end
+
+-- Is the arc ship inside any Concord region?
+function M.inConcordSpace()
+    local p = ARC.player()
+    if not p then return false end
+    local x, y = p:getPosition()
+    for _, r in ipairs(VERSE.REGIONS) do
+        for _, z in ipairs(_CONCORD_ZONES) do
+            if r.name == z and ((x / U - r.x) ^ 2 + (y / U - r.y) ^ 2) <= r.r * r.r then return true end
+        end
+    end
+    return false
+end
+
+-- The chase ends once the Magpie is out of Concord space (or lost): patrols back to normal.
+local function _tickChase(st)
+    if st.chase and not M.inConcordSpace() then
+        _endChase(st)
+        ARC.log("[Hob Works] Out of Concord space. The patrols are back to their usual rounds.", "#A0C0FF")
+    end
 end
 
 -- ── The fake transponder (Engineering) ──────────────────────────────────────
@@ -330,7 +370,8 @@ local function _heistOver(st, result, haul)
     if RT.flag("hob_heist") then return end
     RT.flag("hob_heist", result)
     if haul and haul > 0 then RT.flag("hob_haul", haul) end
-    _resumePatrols()   -- the way home: the ordinary Concord patrols are back
+    _startChase(st)   -- the way home: a Concord patrol every 30 s until out of Concord space
+    ARC.log("[Heist] The Concord is hunting the Magpie. Get out of Concord space.", "#FF8080")
     _setTransponderUI(st, false, nil)
     if _active("heist") then MISSIONS.phase("hob", "deliver") end
 end
@@ -409,6 +450,10 @@ local function _tickHeist(st, now)
     local p = ARC.player()
     if not st.departed then
         local left = (st.depart_at or now) - now
+        if left <= M.PATROL_PAUSE and not st.patrols_paused then
+            st.patrols_paused = true
+            _suspendPatrols()   -- the Concord keeps the lanes clear for the convoy
+        end
         _timerLine(st, "Departs in " .. _mmss(left))
         if left <= 0 then _depart(st) end
     else
@@ -745,7 +790,7 @@ local function _clearWorld(st)
     RT.cancelTimer("hob_cleanup")
     _despawnConvoy(st)
     _clearUI(st)
-    _resumePatrols()
+    _resumePatrols(st)
     RUMORS.removeCategory("HOB_HOOK")
     RUMORS.removeCategory("HOB_SHAME")
     RUMORS.removeCategory("HOB_DONE")
@@ -755,7 +800,7 @@ end
 function M.resolve(st)
     local outcome = RT.flag("hob_arc_done") or "abandoned"
     _clearUI(st)
-    _resumePatrols()
+    _resumePatrols(st)
     RUMORS.removeCategory("HOB_SHAME")
     RUMORS.removeCategory("HOB_HOOK")
     RT.clearObjective("hob")
@@ -813,7 +858,6 @@ M.phases.heist = {
     enter = function(st)
         st.depart_at = getScenarioTime() + M.HEIST_DELAY
         _spawnConvoy(st)
-        _suspendPatrols()
         _addIntelEntry()
         _setTransponderUI(st, true, nil)
         _explainHeistTransponder()
@@ -854,6 +898,7 @@ M.phases.deliver = {
         end
     end,
     update = function(st, delta, now)
+        _tickChase(st)
         -- Escorts still out there lose the Magpie once it is well away; the emptied transport is
         -- towed off once the Magpie has left it.
         local p = ARC.player()

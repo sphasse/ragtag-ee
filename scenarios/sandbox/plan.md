@@ -352,11 +352,11 @@ meet.
      it or let it reach Sentinel and the heist is over: there is no later run (destroying it still leaves
      the three cash boxes). Whatever the heist leaves short, the crew **pays from its own credits**, earned on the job boards (decided
      2026-11-23); until it can, the beacon is stalled. Something else may be set up later.
-   - **Ambient Concord patrols are off during the heist** (decided 2026-11-23): the arc suspends the Concord
-     Core, Arbiter Line and Escrow Marches PROX zones (`PROX.suspendZone`) from the briefing until the heist
-     ends. The danger is the arc's own: the escorts, then the response force.
+   - **Ambient Concord patrols** (decided 2026-11-23, revised 2026-11-24): normal until 5 minutes before the
+     convoy leaves, then suspended (`PROX.suspendZone`) until the heist ends; then a chase (`PROX.chaseZone`:
+     a patrol every 30 s, up to 4 per zone) until the Magpie is out of Concord space, then normal. The danger is the arc's own: the escorts, then the response force.
    - **Real battles, one or two:** (1) the intercept itself, the two escorts then the freighter;
-     (2) the way home: **the ordinary proximity intercepts for now** (see "The way home"); more after the
+     (2) the way home: **a chase of proximity intercepts every 30 s** until out of Concord space (2026-11-24); more after the
      next playtest, once the user has seen how crews handle the Ledger arc's Audit Service stop. Options
      kept for then: Concord forces that
      sortie from Sentinel and Lumen and chase the crew out of the Core (`BATTLE` waves, combat warp

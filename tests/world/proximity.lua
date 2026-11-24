@@ -518,6 +518,38 @@ T.step("nobody is charged", function()
     wipe()
 end)
 
+-- ── A chase (an arc's robbery): a Concord patrol every 30 s ──────────────────
+T.step("a wanted ship in the Core", function()
+    wipe()
+    set_rep("Concord", -300, A)
+    go("the Concord Core"); check_now()
+end)
+T.waitFor("chase: the first patrol", function() return #groups() == 1 end, 5)
+T.step("no chase: the zone's own cooldown holds", function()
+    st.region_cd["the Concord Core"] = now() - 31
+    check_now()
+end)
+T.wait(1)
+T.step("chase on", function()
+    T.eq("no chase: still one patrol after 31 s", #groups(), 1)
+    PROX.chaseZone("the Concord Core", 30, 8)
+    st.region_cd["the Concord Core"] = now() - 31
+    check_now()
+end)
+T.waitFor("chase: a second patrol after 30 s, in the same grid cell", function() return #groups() == 2 end, 5)
+T.step("chase off", function()
+    PROX.endChase("the Concord Core")
+    T.check("chase: ended", PROX._chase_zones["the Concord Core"] == nil)
+    st.region_cd["the Concord Core"] = now() - 31
+    check_now()
+end)
+T.wait(1)
+T.step("back to normal", function()
+    T.eq("chase over: no third patrol after 31 s", #groups(), 2)
+    wipe()
+    set_rep("Concord", 0, A)
+end)
+
 -- ── Switching the plugin off removes everything ──────────────────────────────
 T.step("plugin off", function()
     WORLD.disable("proximity")

@@ -103,8 +103,8 @@ Meridian business, but he still says…". If the Ledger AI was lost: "…even af
   Hob's Landing to Lumen is about 249U: ~8 minutes at warp 1, ~4 at warp 2.
 - **The convoy waits** alongside Lumen Exchange: CTS Tithe and its two escorts, all plain Concord.
   Science can scan them (the intel is in the Science DB as "Convoy intel: CTS Tithe").
-- **Concord patrols are off** in the Core, on the Arbiter Line and in the Escrow Marches until the
-  heist ends.
+- **Concord patrols** in the Core, on the Arbiter Line and in the Escrow Marches run as usual until
+  **5 minutes before departure** (`PATROL_PAUSE`), then stop until the heist ends.
 - **The escorts' 15U scan.** Only the Magpie matters to them: any other ship is just traffic. If the
   Magpie comes within 15U before departure without a working fake code, they hail once ("We see you,
   Magpie. Head the other direction or you are in for trouble. This is a fight you cannot win."), turn
@@ -130,8 +130,13 @@ Meridian business, but he still says…". If the Ledger AI was lost: "…even af
 
 ### Deliver
 
-The way home has the ordinary Concord patrols again. Escorts still chasing give up once the Magpie is
-20U away.
+**The way home is a chase.** From the end of the heist (boarded, destroyed, missed or lost) the three
+Concord zones send a patrol **every 30 seconds** (`CHASE_COOLDOWN`), up to 4 ships per zone at once
+(`CHASE_MAX`; each patrol is one Atlantis), whatever the zone's GM mode (None still sends none). The
+log says "The Concord is hunting the Magpie. Get out of Concord space." With the Magpie wanted they
+spawn hostile. Once the Magpie is out of all three regions the patrols go back to normal ("Out of
+Concord space. The patrols are back to their usual rounds."). Escorts still chasing give up once the
+Magpie is 20U away. (A GM jump to "→ Deliver", or a new session mid-delivery, has no chase.)
 
 - **With cash:** "Deliver by 14:59" counts down (objective "Cash to Hob's"). The cash only counts
   when it is delivered. Docked at Hob's Landing, **"We have the cash."** adds it to the ship's credits,
@@ -277,14 +282,16 @@ ships, like the boarding job's targets.
   it before the hack fades? Is 90% / 10% the right bar?
 - Whether the escorts ignore other player ships well enough. They are Concord Hostile with orders
   to attack the Magpie, so they may still shoot back at a ship that shoots them.
-- The way home: only the ordinary patrols for now. Chasers, pickets or a jammer stop are on hold until
-  after the Ledger audit playtest (`scenarios/sandbox/plan.md`).
+- The way home: a patrol every 30 s, up to 4 per zone, until out of Concord space. Too much, too
+  little? (`CHASE_COOLDOWN`, `CHASE_MAX`.)
 
 ### History
 
 - 2026-11-23: built from the plan (Arc 5a). Designed over several sessions: a train job instead of a
   Ledger-AI hack; Sentinel moved south and the Escrow Marches added; a scheduled departure instead of a
   proximity trigger; the fake transponder kept only for scanning the docked convoy.
+- 2026-11-24: Concord patrols stay normal until 5 minutes before departure (were off from the
+  briefing); after the heist, a chase (a patrol every 30 s) until the Magpie leaves Concord space.
 - 2026-11-24: Marchetti rewritten: young, his father killed in the Settlement War (no longer
   ex-Applied Research). He offers fake transponder codes after payment; Engineering gets a pop-up for
   the heist's button.

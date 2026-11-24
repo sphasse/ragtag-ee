@@ -203,6 +203,8 @@ a zone sends at most one patrol per check, after one ship picked at random, so s
 - Fewer hostiles within 10U than the mode's density limit (3 / 6 / 12)
 - No other patrol in the same 18U map cell
 - Zone not suspended by an arc, job board not locked
+- An arc can put a zone on a chase (`PROX.chaseZone(zone, cooldown, max_ships)` / `PROX.endChase`): a patrol every
+  `cooldown` s whatever the GM mode's frequency, up to `max_ships`, even in a busy grid cell (the Hob Works heist's way home)
 - Spawn point outside every station's 15U exclusion zone
 
 A patrol group keeps its ship ENTITIES (`group.ships`), never callsigns: two patrols can draw the same name.
