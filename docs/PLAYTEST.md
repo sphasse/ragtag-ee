@@ -130,7 +130,8 @@ Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
       it? Do they time it to the departure? Inside 15U without it, the escorts' warning hail, then a fight
 - [ ] The run: the transport at 7.5U a minute (GM **Transport faster / slower** to tune). Does it feel like
       chasing a train?
-- [ ] Disabling it: impulse **and** rear shield under 10% (a hack alone only gets a system to 25%). Too hard?
+- [ ] Disabling it: impulse **and** rear shield both down at once, each 90% hacked (Relay) or under 10%
+      health (Science). Do they divide and conquer before the hack fades (~18 s from 100%)? Too hard?
       Does Relay hack while Weapons shoot? Docking to board
 - [ ] Destroying it: the three cash boxes. Does the crew find and collect them?
 - [ ] The escorts (Adder MK8, hull 100): a real fight? Do they leave a second player ship alone?

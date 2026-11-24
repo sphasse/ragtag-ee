@@ -103,9 +103,11 @@ Meridian business, but he still says…". If the Ledger AI was lost: "…even af
   minute)**, about 8 minutes. It never stops or turns to fight. The escorts fly with it, and once
   the run is on they go for the Magpie whenever it is inside 15U, code or no code. Objective "Stop
   CTS Tithe".
-- **Disabling it:** the transport's **impulse drive and rear shield** both have to fall under 10%
-  power. A full Relay hack alone leaves a system at 25%, so the crew has to hack *and* shoot (or shoot
-  hard). A slower impulse drive slows the transport. Disabled, it surrenders and goes dead in space:
+- **Disabling it:** the transport's **impulse drive and rear shield** must both be down at the same
+  time. A system is down when **Relay's hacking screen shows it 90% hacked or more**, or when
+  **Science's scan shows its health under 10%**. A hack fades (from 100% it drops under 90% in about
+  18 s), so it is divide and conquer: e.g. Relay hacks one while Weapons shoot the other down. Hacked
+  or damaged impulse also slows the transport. Disabled, it surrenders and goes dead in space:
   objective "Board CTS Tithe". **Dock with it** to take the four cash boxes: **12,000 cr**, Concord −800.
 - **Destroying it:** three cash boxes tumble in the wreck (the fourth is lost): fly into them
   (objective "Cash boxes 0/3"). All three: **9,000 cr**. Concord −1,000 when it dies.
@@ -219,8 +221,12 @@ ships, like the boarding job's targets.
 
 ### Engine notes
 
-- **System power** is computed as EE does (`ShipSystem::getSystemEffectiveness`): a hack takes off up to
-  75%, damage scales the rest (`M.effectivePower`). That is why hacking alone can't disable it.
+- **What the crew sees.** EE keeps a system's health (damage) and hacked level apart. Science's scan
+  shows health only; Relay's hacking screen shows "hacked N%", counting up. A system's real power
+  combines them (`ShipSystem::getSystemEffectiveness`: a hack takes off up to 75%, damage scales the
+  rest), but no console shows that. So the disable rule (`M.systemDown`) uses the two numbers the crew
+  can see, `HACKED_AT` 90% hacked or `HEALTH_AT` 10% health, not real power. (The first build used
+  real power under 10%, which a hack alone could never reach; changed the same day.)
 - **The transport runs on impulse**, not warp, so an impulse hack or damage really slows it (EE scales
   impulse speed by the system's power). It uses blind fly orders, because the freighter's stock
   "evasion" AI would otherwise flee off the lane. Acceleration is raised from the stock 10 to 25 so it
@@ -235,7 +241,7 @@ ships, like the boarding job's targets.
 ### Tuning (top of `hob.lua`)
 
 `JOBS_AFTER_PHASE2` 5, `HEIST_DELAY` 900 s, `TRANSPORT_SPEED` 125, `SPEED_STEP` 25, `TRANSPORT_ACCEL` 25,
-`ESCORT_SPEED` 150, `SCAN_R` 15U, `CODE_TIME` 600 s, `DISABLED_AT` 0.10, `ARRIVE_R` 3U, `BOX_VALUE` 3,000
+`ESCORT_SPEED` 150, `SCAN_R` 15U, `CODE_TIME` 600 s, `HACKED_AT` 0.90, `HEALTH_AT` 0.10, `ARRIVE_R` 3U, `BOX_VALUE` 3,000
 (4 boarded, `WRECK_BOXES` 3), `DELIVER_TIME` 900 s, `PESTER_TIME` 1,800 s, `BUILD_TIME` 600 s,
 `PRICE` 10,000 / `PRICE_NO_ARCHIVE` 15,000, `CONCORD_BOARDED` −800, `CONCORD_DESTROYED` −1,000,
 `LATE_INDEPENDENT` −100.
@@ -243,8 +249,8 @@ ships, like the boarding job's targets.
 ### Open for playtest
 
 - The transport's speed (use the GM buttons), and the escort and transport numbers.
-- Whether disabling the transport is too hard: under 10% on both systems needs real damage as well as
-  hacks.
+- Disabling the transport: does the crew split the work (hack one system, shoot the other) and time
+  it before the hack fades? Is 90% / 10% the right bar?
 - Whether the escorts ignore other player ships well enough. They are Concord Hostile with orders
   to attack the Magpie, so they may still shoot back at a ship that shoots them.
 - The way home: only the ordinary patrols for now. Chasers, pickets or a jammer stop are on hold until

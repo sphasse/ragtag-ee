@@ -109,7 +109,7 @@ Types:
 
 Time limits scale with distance. Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction.
 
-**Hacking specifics:** The target is a stationary, armed comms relay (Relic, beam arcs with gaps between them, indestructible until hacked). Relay must hack any system to 75% (the crew's screens show it dropping to 25%; the brief says "down to 25%"). Active relays jam scan probes within 5U.
+**Hacking specifics:** The target is a stationary, armed comms relay (Relic, beam arcs with gaps between them, indestructible until hacked). Relay must hack any system to 75% (Relay's hacking screen counts up, "hacked 75%"; the brief says "up to 75% hacked"). Active relays jam scan probes within 5U.
 
 **On Relay**, each job is one short line saying what to do next ("Deliver to Halcyon", "Destroy Iron
 Gull", "Return to Vesper"); arc objectives are one short line each too.

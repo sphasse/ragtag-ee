@@ -9,7 +9,8 @@
 --   heist    the convoy waits docked at Lumen Exchange for HEIST_DELAY s, then runs to Sentinel at
 --            TRANSPORT_SPEED. Escorts spot the Magpie inside SCAN_R (the fake transponder, one use
 --            from Engineering, hides it for CODE_TIME s before departure). Disable (impulse and rear
---            shield under DISABLED_AT) and board: 12,000 cr; destroy it: three 3,000 cr cash boxes.
+--            shield each HACKED_AT hacked or under HEALTH_AT health) and board: 12,000 cr; destroy
+--            it: three 3,000 cr cash boxes.
 --   deliver  the cash counts only at Hob's Landing (DELIVER_TIME s); then the crew pays the Works.
 --            Late: Independent standing to -100, shaming port news for PESTER_TIME s, late delivery
 --            still taken; then the arc ends "abandoned".
@@ -35,7 +36,10 @@ M.TRANSPORT_ACCEL   = 25     -- units/s^2: up to speed in about five seconds
 M.ESCORT_SPEED      = 150    -- the escorts keep up with the transport
 M.SCAN_R            = 15 * U -- the escorts' scan range
 M.CODE_TIME         = 600    -- s the fake transponder code checks out
-M.DISABLED_AT       = 0.10   -- impulse and rear shield effective power below this: disabled
+-- Disabled: impulse AND rear shield each "down", judged by what the crew can see: Relay's hacking
+-- screen at HACKED_AT or more ("hacked 90%"), or Science's health reading under HEALTH_AT.
+M.HACKED_AT         = 0.90
+M.HEALTH_AT         = 0.10
 M.ARRIVE_R          = 3 * U  -- the transport at Sentinel: the money is gone
 M.BOX_VALUE         = 3000
 M.HAUL_BOARDED      = 4 * M.BOX_VALUE   -- 12,000
@@ -118,6 +122,15 @@ local function _eff(ship, sys)
     return math.max(0, 1 - 0.75 * hacked) * math.max(0, health)
 end
 M.effectivePower = _eff
+
+-- A system is down when Relay's hacking screen shows it HACKED_AT or more, or Science shows its health
+-- under HEALTH_AT. (Not effective power: no console shows that, and a full hack alone leaves 25%.)
+local function _down(ship, sys)
+    local okh, health = pcall(function() return ship:getSystemHealth(sys) end)
+    local okk, hacked = pcall(function() return ship:getSystemHackedLevel(sys) end)
+    return (okk and (hacked or 0) >= M.HACKED_AT) or (okh and (health or 1) < M.HEALTH_AT)
+end
+M.systemDown = _down
 
 -- A countdown line on the arc ship's Relay and Operations (under the objective).
 local function _timerLine(st, text)
@@ -405,7 +418,7 @@ local function _tickHeist(st, now)
 
     if st.departed and RT.valid(t) and not st.disabled then
         t:setImpulseMaxSpeed(st.speed, st.speed / 2)
-        if _eff(t, "impulse") < M.DISABLED_AT and _eff(t, "rearshield") < M.DISABLED_AT then
+        if _down(t, "impulse") and _down(t, "rearshield") then
             _disable(st)
         else
             local sx, sy = _stationXY(_SENTINEL, -159000, -22000)
@@ -456,7 +469,8 @@ local function _convoyPages()
     local b1 = '"' .. why .. ' The money is going there the old-fashioned way: a one-time Treasury transfer, cash boxes in a transport, leaving Lumen Exchange for Sentinel in '
         .. (M.HEIST_DELAY // 60) .. ' minutes. Take it, and Lullaby gets built and the yard goes without. There is only the one transfer: miss it and it is gone."'
     local b2 = '"What you are up against. CTS Tithe, the Treasury transport: a big, slow-turning hauler, armoured like a vault and about as nimble. One small beam aft to discourage tailgaters. '
-        .. 'It won\'t stop for anything: steady speed, all the way to Sentinel. Kill its engines and drop its rear shield and you can board it. '
+        .. 'It won\'t stop for anything: steady speed, all the way to Sentinel. Kill its engines and drop its rear shield, both at once: '
+        .. 'hack each one to 90% or shoot it below 10%. Then you can board it. '
         .. 'Blow it up and you\'ll be picking cash boxes out of the wreckage, if they survive."'
     local b3 = '"Two Navy escorts, CNS Surety and CNS Bond: fast, well shielded for their size, a heavy forward beam each. They hunt in a pair and they\'ll break off the convoy to come for you. '
         .. 'Don\'t let them pin you while the transport gets away. Their sensors reach about 15U: sit inside that without a good code and they\'ll see you."'
@@ -628,7 +642,7 @@ local function _intelText()
         "A one-time Treasury transfer from Lumen Exchange to Sentinel Fleet Yard: cash boxes in a transport, two Navy escorts.",
         "",
         "CTS TITHE, TREASURY TRANSPORT",
-        "Big and slow-turning, armoured like a vault. One small beam aft. It will not stop: steady speed all the way to Sentinel. Kill its engines and drop its rear shield to board it. Destroyed, its cash boxes may survive in the wreckage.",
+        "Big and slow-turning, armoured like a vault. One small beam aft. It will not stop: steady speed all the way to Sentinel. To board it, its impulse drive and its rear shield must both be down at once: each one hacked to 90% (Relay's hacking screen) or damaged below 10% health (Science's scan). A hack fades, so hack and shoot together. Destroyed, its cash boxes may survive in the wreckage.",
         "",
         "CNS SURETY AND CNS BOND, ESCORTS",
         "Fast, well shielded for their size, a heavy forward beam each. They hunt in a pair and will break off the convoy to come for you.",

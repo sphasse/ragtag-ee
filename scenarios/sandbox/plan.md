@@ -290,8 +290,10 @@ meet.
        boarding; the rear arc faces a pursuer; hack or shoot it); (b) **maneuvering** under 10%: it can no
        longer steer, dead in space; (c) **reactor** under 10%: no power anywhere, the most work.
        **Decided (2026-11-23): (a) the rear shield**: it explains why boarding needs it, Relay can hack it while Weapons work on
-       the engines, and the crew can also shoot it down, so a crew bad at hacking still has a way. A system
-       "under 10%" means its effective power, health and hack together. Until it is disabled the ship can't
+       the engines, and the crew can also shoot it down, so a crew bad at hacking still has a way. **Revised
+       2026-11-23:** a system is down when Relay's hacking screen shows it **90% hacked** or Science shows its
+       **health under 10%** (the numbers the crew can see; real power was invisible and a hack alone never
+       got it under 10%). Both at once: divide and conquer. Until it is disabled the ship can't
        be boarded; the impulse drive slows it as it falls (EE scales impulse by the system's power).
      - **Then home to Hob's Landing** with the cash: see "Delivering the cash" below.
      - **Insider intel in the briefing** (decided 2026-11-23): the Works give a detailed, insider-style

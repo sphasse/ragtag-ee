@@ -75,7 +75,7 @@ The objective is "Hack the Annex", and **nothing else: no pop-up, no instruction
 request is the prompt; working out how is the crew's puzzle. Hailing the Annex only says it is under
 an encrypted lockdown.
 
-Relay hacks the Annex's **front shield** until the crew sees it at **0%** (each success is 50%, and it
+Relay hacks the Annex's **front shield** until Relay's hacking screen shows it **100% hacked** (each success is 50%, and it
 decays over 180 s, so two in a row). Probes don't last near the drones, so the crew has to get close
 under fire. At 50% a log line notes that the files are marked Concord Level 5.
 

@@ -67,7 +67,7 @@ know if someone in my organization is talking"). Accepting with Concord standing
 ### M2: the hack (Hacking)
 
 Objective "Hack Waypoint Galen". Concord Waypoint Galen is at (−75, −52) on the Arbiter Line. Relay
-hacks Galen's **front shield** until the crew sees it at **0%** (two successful hacks in a row; it
+hacks Galen's **front shield** until Relay's hacking screen shows it **100% hacked** (two successful hacks in a row; it
 decays over 180 s). The ship log then says the AI was installed, and four seconds later that the
 traffic is on the storage card. Objective "Card to Thresh".
 
