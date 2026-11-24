@@ -76,3 +76,15 @@ T.step("unknown upgrade ids are reported", function()
         and lines[1]:find("Wren: no_such_thing", 1, true) ~= nil, lines[1])
     T.eq("unknown: none in a clean save", #RT.warnUnknownUpgrades({upgrades = {"hull_plating"}}), 0)
 end)
+
+-- The real steps.
+T.step("format 2: the Hob Works ends at payment", function()
+    local c = {version = 1, flags = {hob_arc_done = "built", hob_beacon_ready = true, hob_paid = true}}
+    T.expectLogged(function() RT.migrateCampaign(c) end)
+    T.eq("v2: built -> funded", c.flags.hob_arc_done, "funded")
+    T.check("v2: hob_beacon_ready removed", c.flags.hob_beacon_ready == nil)
+    T.check("v2: other flags kept", c.flags.hob_paid == true)
+    local a = {version = 1, flags = {hob_arc_done = "abandoned"}}
+    T.expectLogged(function() RT.migrateCampaign(a) end)
+    T.eq("v2: abandoned untouched", a.flags.hob_arc_done, "abandoned")
+end)

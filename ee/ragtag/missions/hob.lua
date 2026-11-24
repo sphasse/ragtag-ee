@@ -3,7 +3,7 @@
 -- beacon) if the crew pays for the parts, and the crew pays for them by robbing a Concord Treasury
 -- transfer on its way from Lumen Exchange to Sentinel Fleet Yard. GM guide: docs/GM_HOB_WORKS_MISSION.md
 --
--- Structure: init -> hook -> heist -> deliver -> build -> done ("built" | "abandoned")
+-- Structure: init -> hook -> heist -> deliver -> done ("funded" | "abandoned")
 --   hook     port news at Independent ports: Mara Quill left a message. Docked at Hob's Landing,
 --            Quill and Chief Engineer Marchetti brief the crew (four pages), then the convoy brief.
 --   heist    the convoy waits docked at Lumen Exchange for HEIST_DELAY s, then runs to Sentinel at
@@ -13,8 +13,8 @@
 --            it: three 3,000 cr cash boxes.
 --   deliver  the cash counts only at Hob's Landing (DELIVER_TIME s); then the crew pays the Works.
 --            Late: Independent standing to -100, shaming port news for PESTER_TIME s, late delivery
---            still taken; then the arc ends "abandoned".
---   build    BUILD_TIME s (or the next session): hob_beacon_ready (the Maw finale's input).
+--            still taken; then the arc ends "abandoned". Paying the Works ends the arc "funded":
+--            Lullaby takes time to build, and a later mission picks it up.
 
 local M = {}
 M.id             = "hob"
@@ -46,7 +46,6 @@ M.HAUL_BOARDED      = 4 * M.BOX_VALUE   -- 12,000
 M.WRECK_BOXES       = 3                 -- 9,000; the fourth box was lost in the explosion
 M.DELIVER_TIME      = 900    -- s to bring the cash to Hob's Landing
 M.PESTER_TIME       = 1800   -- s of shaming port news after a missed delivery
-M.BUILD_TIME        = 600    -- s to build Lullaby
 M.PRICE             = 10000  -- the Works' price with the Ashgrave archive
 M.PRICE_NO_ARCHIVE  = 15000  -- without it (the survivors' own notes)
 M.CONCORD_BOARDED   = -800
@@ -76,7 +75,6 @@ function M.init_state()
         tx = nil, ty = nil, -- the transport's last position (the wreck's)
         deliver_due = nil,
         pester_until = nil,
-        build_due  = nil,
         timer_text = nil,
         code_text  = nil,
     }
@@ -540,7 +538,8 @@ local function _pay(price)
     RT.addCredits(-price, "Hob Works Arc: parts for Lullaby")
     RT.flag("hob_paid", true)
     RUMORS.removeCategory("HOB_SHAME")
-    MISSIONS.phase("hob", "build")
+    RT.flag("hob_arc_done", "funded")
+    MISSIONS.phase("hob", "done")
 end
 
 local function _paymentReply()
@@ -549,7 +548,7 @@ local function _paymentReply()
     if have >= price then
         addCommsReply("Deliver " .. _cr(price) .. " cr to the engineers", function()
             _pay(price)
-            setCommsMessage('"Anton has the credit chip and is already shouting for his crew. Ten minutes: Lullaby will be ready in ten minutes. Thank you, all of you."')
+            setCommsMessage('"These credits will get us what we need, but it is going to take some time. We\'ll reach out again when we have results.\n\nThank you, Magpie. All of you."')
         end)
     end
 end
@@ -590,7 +589,9 @@ local function _hobHook(src, tgt, info)
                 local late = RT.flag("hob_late")
                 _deliverCash()
                 setCommsMessage((late and '"Quill looks at the cash boxes for a long moment.\n\n"Better late. Not by much."' or '"Quill counts it twice and laughs.\n\n"You actually did it."')
-                    .. '\n\n' .. _cr(haul) .. ' credits, all yours to hand over. Lullaby costs ' .. _cr(price) .. '."')
+                    .. '\n\n' .. _cr(haul) .. ' credits. ' .. (haul >= price
+                        and ('We need ' .. _cr(price) .. ' of it for Lullaby\'s parts; the other ' .. _cr(haul - price) .. ' is yours for the trouble."')
+                        or ('Lullaby\'s parts cost ' .. _cr(price) .. ', so that leaves us ' .. _cr(price - haul) .. ' short. Can you cover the rest?"')))
                 _paymentReply()
             end)
         else
@@ -605,12 +606,6 @@ local function _hobHook(src, tgt, info)
                 end
             end)
         end
-    elseif phase == "build" then
-        addCommsReply("Talk to Quill and Marchetti", function()
-            local st = MISSIONS._state["hob"]
-            local left = st and st.build_due and (st.build_due - getScenarioTime()) or 0
-            setCommsMessage('"Lullaby will be ready in ' .. _mmss(left) .. '. Go and get a coffee."')
-        end)
     end
 end
 
@@ -738,9 +733,8 @@ function M.resolve(st)
     RUMORS.removeCategory("HOB_SHAME")
     RUMORS.removeCategory("HOB_HOOK")
     RT.clearObjective("hob")
-    if outcome == "built" then
-        RT.flag("hob_beacon_ready", true)
-        ARC.log("[Hob Works] Lullaby is built and waiting at Hob's Landing.", "#80FF80")
+    if outcome == "funded" then
+        ARC.log("[Hob Works] The Works have what they need for Lullaby. Quill will be in touch when they have results.", "#80FF80")
     else
         ARC.log("[Hob Works] The Works have given up on the Magpie. Lullaby will not be built.", "#FF8080")
     end
@@ -764,9 +758,9 @@ M.phases.init = {
     no_skip = true,
     enter = function(st)
         ARC.stationHook("Hob's Landing", _hobHook)
-        -- Paid in an earlier session: the build finished between sessions.
+        -- Paid but the arc never closed (a crash between paying and done): it is funded.
         if RT.flag("hob_paid") and not RT.flag("hob_arc_done") then
-            RT.flag("hob_arc_done", "built")
+            RT.flag("hob_arc_done", "funded")
         end
         ARC.route("hob", {
             {"hob_arc_done", "done"},
@@ -868,22 +862,6 @@ M.phases.deliver = {
     end,
 }
 
-M.phases.build = {
-    enter = function(st)
-        st.build_due = getScenarioTime() + M.BUILD_TIME
-        RT.setObjective("Lullaby being built", true, "hob")
-    end,
-    update = function(st, delta, now)
-        local left = st.build_due - now
-        _timerLine(st, "Lullaby in " .. _mmss(left))
-        if left <= 0 then
-            RT.flag("hob_arc_done", "built")
-            MISSIONS.phase("hob", "done")
-        end
-    end,
-    exit = function(st) _timerLine(st, nil) end,
-}
-
 -- ── Trigger: the three Phase II arcs over, then five board jobs ─────────────
 
 local function _jobsDone()
@@ -925,7 +903,7 @@ M.triggers = {
     end,
 }
 
-M.phase_order = {"init", "hook", "heist", "deliver", "build"}
+M.phase_order = {"init", "hook", "heist", "deliver"}
 
 -- ── GM console ──────────────────────────────────────────────────────────────
 
@@ -941,8 +919,7 @@ M.flags = {
     hob_delivered    = "the cash was handed over at Hob's Landing",
     hob_late         = "the delivery deadline passed (Independent standing set to -100; the Works pester the crew)",
     hob_paid         = "the crew paid the Works for Lullaby's parts",
-    hob_beacon_ready = "Lullaby is built (the Maw finale's input)",
-    hob_arc_done     = 'outcome: "built" | "abandoned" (the cash never reached the Works)',
+    hob_arc_done     = 'outcome: "funded" (paid; Lullaby is picked up in a later mission) | "abandoned" (the cash never reached the Works)',
     ["hob_met_*"]    = "Science DB profile met in this arc (quill, marchetti), set by ARC.meet",
 }
 M.reads = {"rezkov_arc_done", "rezkov_declined", "ledger_arc_done", "boneyard_arc_done", "boneyard_buoy_found",
@@ -995,8 +972,7 @@ M.gm_states = {
     {key = "hook",    label = "→ Hook",    fn = _jump("hook")},
     {key = "heist",   label = "→ Heist",   fn = _jump("heist")},
     {key = "deliver", label = "→ Deliver", fn = _jump("deliver")},
-    {key = "build",   label = "→ Build",   fn = _jump("build")},
-    {key = "done_built",     label = "→ Done: Built",     fn = _jump("done", function() RT.flag("hob_arc_done", "built") end)},
+    {key = "done_funded",    label = "→ Done: Funded",    fn = _jump("done", function() RT.flag("hob_arc_done", "funded") end)},
     {key = "done_abandoned", label = "→ Done: Abandoned", fn = _jump("done", function()
         RT.flag("hob_late", true)
         RT.flag("hob_arc_done", "abandoned")
@@ -1005,7 +981,7 @@ M.gm_states = {
 
 M.gm_actions = {
     -- Travel shortcuts for playtesting (the arc ship to 5U from where the phase sends it).
-    ARC.travel("Hob's", {"hook", "deliver", "build"}, "Hob's Landing"),
+    ARC.travel("Hob's", {"hook", "deliver"}, "Hob's Landing"),
     ARC.travel("Lumen", {"heist"}, _LUMEN),
     ARC.travel("Tithe", {"heist"}, function(st) return st.transport end),
     {label = "Satisfy done jobs", phases = {"inactive"}, fn = function(st)
@@ -1046,9 +1022,6 @@ M.gm_actions = {
         ARC.kill(st.transport); st.transport = nil
         _heistOver(st, "boarded", M.HAUL_BOARDED)
     end},
-    {label = "Finish build", phases = {"build"}, fn = function(st)
-        st.build_due = getScenarioTime()
-    end},
 }
 
 -- The Science DB follows the flags (SCIDB.sync at session start and after every GM jump).
@@ -1060,7 +1033,7 @@ end
 if ACH and ACH.define then
     ACH.define{id = "train_job", name = "The Train Job", category = "story", hidden = true,
         desc = "Rob the Treasury convoy and pay for Lullaby.",
-        check = function(s) return s.arcs.hob ~= nil and (s.arcs.hob.completed or 0) > 0 and RT.flag("hob_arc_done") == "built" end}
+        check = function(s) return s.arcs.hob ~= nil and (s.arcs.hob.completed or 0) > 0 and RT.flag("hob_arc_done") == "funded" end}
 end
 
 MISSIONS.register(M)

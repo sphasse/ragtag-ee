@@ -15,7 +15,8 @@ Exchange for Sentinel Fleet Yard, carrying the money the Concord needs to rebuil
 Where it sits in the campaign:
 
 - **It turns the science thread into the cure.** The Boneyard's archive (or the survivors' own notes)
-  becomes a real device. Lullaby built (`hob_beacon_ready`) is what the Maw finale needs.
+  becomes a funded project. The arc ends when the crew pays the Works (`hob_arc_done = "funded"`);
+  Lullaby takes time to build, and a later mission picks it up before the Maw finale.
 - **It introduces Anton Marchetti**, the Works' chief engineer, who came out of the Concord's Applied
   Research Division the year the Pale Sun was sealed, under Director Tan (a signatory in the Ledger).
   **Mara Quill**, met as a lifeboat survivor in the Boneyard arc, becomes a regular contact.
@@ -44,7 +45,7 @@ It starts by itself. There is no hail: the lead comes as port news.
 ## Phases
 
 ```
-hook ─► heist ─► deliver ─► build ─► done (built)
+hook ─► heist ─► deliver ─► done (funded)
                     └──────────────► done (abandoned: the cash never reached the Works)
 ```
 
@@ -128,8 +129,11 @@ The way home has the ordinary Concord patrols again. Escorts still chasing give 
 
 - **With cash:** "Deliver by 14:59" counts down (objective "Cash to Hob's"). The cash only counts
   when it is delivered. Docked at Hob's Landing, **"We have the cash."** adds it to the ship's credits,
-  then **"Deliver 10,000 cr to the engineers"** (15,000 without the archive) pays the Works. The rest is
-  the crew's.
+  and Quill says what it covers: "12,000 credits. We need 10,000 of it for Lullaby's parts; the other
+  2,000 is yours for the trouble." (From the wreck: "9,000 credits. Lullaby's parts cost 10,000, so that
+  leaves us 1,000 short. Can you cover the rest?") **"Deliver 10,000 cr to the engineers"** (15,000
+  without the archive) pays the Works and **ends the arc**: "These credits will get us what we need, but
+  it is going to take some time. We'll reach out again when we have results."
 - **Late:** the deadline passes, the crew's **Independent standing is set to −100** whatever it was,
   and for **30 minutes** Independent ports' news shames them ("Mara Quill says the Works are still
   waiting on the Magpie. Twenty years those people have been Hollow, and the Magpie is sitting on their
@@ -139,14 +143,10 @@ The way home has the ordinary Concord patrols again. Escorts still chasing give 
   **"Talk to Quill and Marchetti"** says how many credits short the crew is; the pay button appears
   once they can afford it. Job-board work makes up the difference.
 
-### Build
-
-Paid: "Lullaby in 9:59" counts down (objective "Lullaby being built"). Ten minutes, or until the next
-session, whichever comes first.
-
 ### Done
 
-- **Built:** "Lullaby is built and waiting at Hob's Landing." `hob_beacon_ready` is set.
+- **Funded:** "The Works have what they need for Lullaby. Quill will be in touch when they have
+  results." Lullaby is picked up in a later mission.
 - **Abandoned:** "The Works have given up on the Magpie."
 - Either way the convoy's leftovers are removed 2 minutes later, and the news rumors of the robbery
   start (see Exports).
@@ -161,13 +161,12 @@ session, whichever comes first.
 | `→ Hook` | Quill's message is port news again |
 | `→ Heist` | Briefed; the convoy at Lumen with a fresh 15-minute countdown |
 | `→ Deliver` | Boarded: carrying 12,000 cr with a fresh 15-minute deadline |
-| `→ Build` | Paid: the 10-minute build |
-| `→ Done: Built` | Lullaby built (`hob_beacon_ready`) |
+| `→ Done: Funded` | Paid: the Works have the money for Lullaby |
 | `→ Done: Abandoned` | The cash never reached the Works |
 
 Helpers, shown only in their phase:
-- **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → Hob's** (hook, deliver,
-  build), **Ship → Lumen** and **Ship → Tithe** (heist; 5U from the convoy is inside the escorts' 15U,
+- **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → Hob's** (hook,
+  deliver), **Ship → Lumen** and **Ship → Tithe** (heist; 5U from the convoy is inside the escorts' 15U,
   so without a working code they spot the Magpie).
 - **Satisfy done jobs** (waiting): the 5-job count is met at once; the other conditions still apply, and if
   one is not met the button says which (e.g. "Boneyard survivors not rescued"). The other arcs' GM `→ Done`
@@ -178,20 +177,18 @@ Helpers, shown only in their phase:
 - **Disable transport** (heist): it surrenders now (leaving first if it hadn't).
 - **Kill escorts** (heist, deliver).
 - **Give cash** (heist): as if boarded: 12,000 cr to deliver.
-- **Finish build** (build).
 
 A jump resets the arc (the convoy, the cash boxes, timers, Engineering's button and line, the rumors,
 the arc's objective, the `hob_*` flags) and replays the earlier phases. Reputation and credits are not
 applied by a jump. The Concord standing loss is applied once (`hob_penalized`). After a session ends
-mid-heist, the next session starts the heist over with a fresh countdown. A paid build is finished at
-the next session.
+mid-heist, the next session starts the heist over with a fresh countdown.
 
 ## Exports
 
 | Flag | Values |
 |---|---|
-| `hob_beacon_ready` | true once Lullaby is built (the Maw finale's input) |
-| `hob_arc_done` | `"built"` / `"abandoned"` |
+| `hob_arc_done` | `"funded"` (paid; the Lullaby pickup mission and the Maw finale read it) / `"abandoned"` |
+| `hob_paid` | true once the Works were paid |
 | `hob_heist` | `"boarded"` / `"destroyed"` / `"missed"` / `"lost"` |
 | `hob_haul` | 12000 / 9000 (until delivered) |
 
@@ -213,12 +210,12 @@ News (port rumors, each told once; `missions/_aftermath.lua`), after a boarding 
 
 `transport`, `escorts`, `boxes` / `boxes_got` (the wreck), `depart_at`, `departed`, `spotted` / `warned`,
 `disabled`, `code_until` / `code_used` (the fake code), `speed` (the transport's, GM-adjustable),
-`tx` / `ty` (its last position, for the wreck), `deliver_due`, `pester_until`, `build_due`.
+`tx` / `ty` (its last position, for the wreck), `deliver_due`, `pester_until`.
 
 ### Saved flags
 
 `hob_jobs_base` (the job count's start; kept through resets), `hob_met`, `hob_briefed`, `hob_heist`,
-`hob_haul`, `hob_penalized`, `hob_delivered`, `hob_late`, `hob_paid`, `hob_beacon_ready`,
+`hob_haul`, `hob_penalized`, `hob_delivered`, `hob_late`, `hob_paid`,
 `hob_arc_done`, `hob_met_quill` / `hob_met_marchetti` (profiles).
 
 ### Factions
@@ -251,7 +248,7 @@ ships, like the boarding job's targets.
 
 `JOBS_AFTER_PHASE2` 5, `HEIST_DELAY` 900 s, `TRANSPORT_SPEED` 125, `SPEED_STEP` 25, `TRANSPORT_ACCEL` 25,
 `ESCORT_SPEED` 150, `SCAN_R` 15U, `CODE_TIME` 600 s, `HACKED_AT` 0.90, `HEALTH_AT` 0.10, `ARRIVE_R` 3U, `BOX_VALUE` 3,000
-(4 boarded, `WRECK_BOXES` 3), `DELIVER_TIME` 900 s, `PESTER_TIME` 1,800 s, `BUILD_TIME` 600 s,
+(4 boarded, `WRECK_BOXES` 3), `DELIVER_TIME` 900 s, `PESTER_TIME` 1,800 s,
 `PRICE` 10,000 / `PRICE_NO_ARCHIVE` 15,000, `CONCORD_BOARDED` −800, `CONCORD_DESTROYED` −1,000,
 `LATE_INDEPENDENT` −100.
 
@@ -270,6 +267,10 @@ ships, like the boarding job's targets.
 - 2026-11-23: built from the plan (Arc 5a). Designed over several sessions: a train job instead of a
   Ledger-AI hack; Sentinel moved south and the Escrow Marches added; a scheduled departure instead of a
   proximity trigger; the fake transponder kept only for scanning the docked convoy.
+- 2026-11-23 (playtest): the arc ends at payment. The 10-minute build was too short for something this
+  big, so Lullaby is picked up in a later mission; `hob_beacon_ready` and the build phase are gone
+  ("built" saves become "funded": save format 2). Quill's hand-over line says the extra cash is the
+  crew's, not "all yours to hand over".
 
 ### Testing
 
@@ -278,7 +279,7 @@ ships, like the boarding job's targets.
 - the four briefing pages and the convoy brief;
 - the transponder (one use, ten minutes, its lapse) and the 15U scan, ignoring a second ship;
 - departure, the GM speed buttons and the transport moving at speed;
-- the disable rule (a full hack alone is not enough), boarding, delivery, payment and the build;
+- the disable rule (a full hack alone is not enough), boarding, delivery and payment (which ends the arc);
 - the wreck's three boxes, a late delivery, an abandoned one, a missed convoy (and paying from job
   credits) and the Magpie lost;
 - the briefing variants, every GM state (with next-session routing) and "-> Inactive".

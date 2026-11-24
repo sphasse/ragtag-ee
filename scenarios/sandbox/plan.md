@@ -384,8 +384,10 @@ meet.
    - **Numbers** (decided 2026-11-23): start with the planned ones (escorts Adder MK8 with hull ~100;
      the transport an Equipment Freighter 5, hull 100, shields 50/50, one weak rear beam) and playtest.
    - **The fake code's countdown** on Engineering reads like **"Code valid 9:59"** (decided 2026-11-23).
-   - **Building the beacon** after payment takes **10 minutes, or until the next session**, whichever
-     comes first (decided 2026-11-23); then `hob_beacon_ready`.
+   - **The arc ends at payment** (decided 2026-11-23, playtest; replaces a 10-minute build): "These
+     credits will get us what we need, but it is going to take some time. We'll reach out again when we
+     have results." `hob_arc_done = "funded"`. Lullaby is picked up in a **later mission** (to plan),
+     which owns the beacon-ready state the Maw finale needs.
    - **Aftermath rumors** (decided 2026-11-23): news of the robbery in the shared aftermath list
      (`missions/_aftermath.lua`), tied to Concord instability (e.g. the Fleet Yard's rebuild stalled for
      want of pay, questions in the Senate about a Treasury convoy lost inside the Core).
@@ -399,8 +401,7 @@ meet.
    - **Sentinel Fleet Yard moved** (built 2026-11-22): 25U south, to (-159, -22), now 59U from Lumen
      Exchange (~8 min at convoy speed; it was 38U, ~5 min). The Concord Core's radius went 55 -> 66 so
      the yard is still in Core space. The optional Arc 6 uses Sentinel; a robbed payroll fits it.
-3. `build`: pay at Hob's Landing; the beacon is built (a timer, or "next session"). Export
-   `hob_beacon_ready`.
+3. Pay at Hob's Landing: the arc ends `funded`. Lullaby is picked up in a later mission.
 
 Open: hull and speed numbers for the convoy (playtest).
 
@@ -459,7 +460,7 @@ wing; Kael (`kael_alive`) — deploy intel and the Arc 6 hook. Concord is absent
   3 → 1; the Maw station becomes Independent and dockable; on `liberation` Concord shakedowns in the
   Core stop. Rumor category `MAW_DONE`.
 
-**Trigger**: upgrades ≥ 1500 AND `hob_beacon_ready` AND `ledger_arc_done` (any) AND
+**Trigger**: upgrades ≥ 1500 AND Lullaby picked up (the later Lullaby mission; `hob_arc_done = "funded"` first) AND `ledger_arc_done` (any) AND
 `corsair_arc_done` (any), `not_flagged = {maw_arc_done}`.
 
 ---
@@ -670,7 +671,7 @@ Flags any future arc may rely on (never rename these):
 | `ledger_arc_done`, `ledger_evidence` | Ledger | `full` / `lost`; bool |
 | `boneyard_arc_done`, `boneyard_hack_done`, `boneyard_drone_flip`, `boneyard_battlegroup_destroyed` | Boneyard | bool |
 | `corsair_arc_done`, `corsair_ally`, `corsair_battlegroup_destroyed` | Corsair | outcome string / bool / bool |
-| `hob_beacon_ready` | Hob Works (planned) | true once the beacon is built (Maw trigger) |
+| `hob_arc_done`, `hob_paid` | Hob Works | `funded` / `abandoned`; bool (the Lullaby pickup mission's input) |
 | `maw_arc_done` | Maw | `liberation` / `mercy` / `quiet` |
 | `republic_arc_done`, `republic_wings`, `republic_corsair`, `republic_ashgrave`, `republic_independent` | Republic | `ascendant` / `coalition`; count; bools |
 

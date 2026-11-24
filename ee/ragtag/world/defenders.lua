@@ -7,7 +7,9 @@
 -- Concord port guards: a player ship with Concord standing below -200 (the patrols' detention
 -- line) that comes within 5U of a Concord defender is attacked by it ("Concord Hostile", attacking
 -- that ship only). It stands down when the ship is beyond 10U of the port, is lost, or its
--- standing recovers. Tuning: hostile_below, guard_radar_u, guard_leash_u.
+-- standing recovers. The lane pickets do the same within 10U of any of their ships, chasing to 20U
+-- from their post, then resume their beat. Tuning: hostile_below, guard_radar_u, guard_leash_u,
+-- picket_radar_u, picket_leash_u.
 --
 -- Lane pickets: the universe's garrisons with a beat (VERSE.PICKETS, from beat_u in the verse
 -- data: the Concord pickets, not tied to a port) walk a slow square round their post, holding
@@ -39,6 +41,10 @@ _P.defaults = {
     hostile_below   = -200,
     guard_radar_u   = 5000,         -- meters: how far a guard notices a wanted ship
     guard_leash_u   = 10000,        -- meters from its port: how far it chases
+    -- Lane pickets do the same with a longer reach: they notice a wanted ship within picket_radar_u
+    -- of any ship in the group, chase it to picket_leash_u from their post, then resume their beat.
+    picket_radar_u  = 10000,
+    picket_leash_u  = 20000,
 }
 
 -- ── Name pools ──────────────────────────────────────────────────────────────
@@ -283,7 +289,7 @@ local function _tickPickets(state, now)
     for _, p in ipairs(state.pickets or {}) do
         local lead
         for _, s in ipairs(p.ships) do if RT.valid(s) then lead = s; break end end
-        if lead then
+        if lead and not p.hostile_to then
             if p.holding_until then
                 if now >= p.holding_until then            -- move on to the next corner
                     p.holding_until = nil
@@ -299,6 +305,50 @@ local function _tickPickets(state, now)
                     p.holding_until = now + dwell          -- hold the corner a while
                     lead:orderDefendLocation(cx, cy)
                 end
+            end
+        end
+    end
+end
+
+-- A picket group turns on the nearest wanted ship within picket_radar_u of any of its ships, and
+-- goes back to its beat when the ship is beyond picket_leash_u of its post, is lost, or is no
+-- longer wanted.
+local function _tickPicketGuards(state)
+    local radar = WORLD.get("defenders", "picket_radar_u", 10000)
+    local leash = WORLD.get("defenders", "picket_leash_u", 20000)
+    for _, p in ipairs(state.pickets or {}) do
+        local alive = {}
+        for _, s in ipairs(p.ships) do if RT.valid(s) then alive[#alive + 1] = s end end
+        if p.hostile_to then
+            local t = p.hostile_to
+            local tx, ty
+            if RT.valid(t) then tx, ty = t:getPosition() end
+            if #alive == 0 or not RT.valid(t) or not _wanted(t)
+               or math.sqrt((tx - p.x) ^ 2 + (ty - p.y) ^ 2) > leash then
+                p.hostile_to = nil
+                for _, s in ipairs(alive) do s:setFaction("Concord") end
+                p.lead, p.holding_until = nil, nil      -- the beat picks up from its corner
+            end
+        end
+        if not p.hostile_to and #alive > 0 then
+            local best, best_d
+            RT.forEachPlayer(function(pl)
+                if _wanted(pl) then
+                    for _, s in ipairs(alive) do
+                        local d = RT.dist(pl, s)
+                        if d <= radar and (not best_d or d < best_d) then best, best_d = pl, d end
+                    end
+                end
+            end)
+            if best then
+                p.hostile_to = best
+                for _, s in ipairs(alive) do
+                    s:setFaction("Concord Hostile")
+                    s:orderAttack(best)
+                end
+                best:addToShipLog(string.format(
+                    "[Concord] %s: %s, you are wanted by the Concord. Power down and prepare to be boarded.",
+                    alive[1]:getCallSign(), best:getCallSign()), "#FF4444")
             end
         end
     end
@@ -344,6 +394,7 @@ function _P.update(state, delta, now)
     if now >= (state.next_guard or 0) then
         state.next_guard = now + 1
         _tickGuards(state)
+        _tickPicketGuards(state)
     end
 
     for cs, slot in pairs(state.slots) do
@@ -375,9 +426,12 @@ function _P.cleanup(state)
     -- Pickets stay in the universe: back to holding their post.
     for _, p in ipairs(state.pickets or {}) do
         for _, s in ipairs(p.ships) do
-            if RT.valid(s) then s:orderDefendLocation(p.x, p.y) end
+            if RT.valid(s) then
+                if p.hostile_to then s:setFaction("Concord") end
+                s:orderDefendLocation(p.x, p.y)
+            end
         end
-        p.lead = nil
+        p.lead, p.hostile_to = nil, nil
     end
 end
 

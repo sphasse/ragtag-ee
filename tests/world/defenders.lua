@@ -192,6 +192,37 @@ T.step("next corner", function()
     T.check("next: a different corner of the same beat", math.abs(dist(tx, ty, law.x, law.y) - 4000) < 50)
 end)
 
+-- ── Pickets turn on wanted ships within 10U, chase to 20U from their post ────
+T.step("a wanted ship 13U from the Lawgiver group", function()
+    setRep(-300)
+    T.moveNear(law.ships[1], 13000)
+end)
+T.wait(2)
+T.step("not noticed at 13U", function()
+    T.check("picket: no target", law.hostile_to == nil)
+    T.eq("picket: still Concord", law.ships[1]:getFaction(), "Concord")
+    T.moveNear(law.ships[1], 8000)
+end)
+T.waitFor("picket: inside 10U the group turns hostile", function() return law.hostile_to ~= nil end, 3)
+T.step("picket hostile", function()
+    for i, s in ipairs(law.ships) do
+        T.eq("picket: ship " .. i .. " Concord Hostile", s:getFaction(), "Concord Hostile")
+        T.eq("picket: ship " .. i .. " attacks", s:getOrder(), "Attack")
+        T.eq("picket: ship " .. i .. " the wanted ship", s:getOrderTarget(), A)
+    end
+    T.moveTo(law.x + 25000, law.y)
+end)
+T.waitFor("picket: beyond 20U of its post it gives up", function() return law.hostile_to == nil end, 3)
+T.wait(1)
+T.step("picket back on its beat", function()
+    T.eq("picket: Concord again", law.ships[1]:getFaction(), "Concord")
+    T.eq("picket: the escort too", law.ships[2]:getFaction(), "Concord")
+    T.check("picket: the lead walks its beat again", law.ships[1]:getOrder() == "Fly towards"
+        or law.ships[1]:getOrder() == "Defend Location", law.ships[1]:getOrder())
+    setRep(0)
+    T.moveNear("Port Vesper", 3000)
+end)
+
 -- ── Off and on ───────────────────────────────────────────────────────────────
 local before = {}
 T.step("plugin off", function()

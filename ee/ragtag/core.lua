@@ -256,8 +256,16 @@ end
 --
 -- A save written by a NEWER framework is loaded but never written back (saving is frozen for the
 -- session), so playing an old install against it cannot destroy what it does not understand.
-RT.SAVE_VERSION = 1
+RT.SAVE_VERSION = 2
 RT.MIGRATIONS   = {}   -- [n] = function(c, log) migrates a version n-1 save to version n
+
+-- 2 (2026-11-23): the Hob Works arc ends when the crew pays the Works (no build timer); Lullaby is
+-- picked up in a later mission. Its outcome "built" is now "funded", and hob_beacon_ready is gone.
+RT.MIGRATIONS[2] = function(c, say)
+    local f = c.flags or {}
+    if f.hob_arc_done == "built" then f.hob_arc_done = "funded"; say("hob_arc_done built -> funded") end
+    if f.hob_beacon_ready ~= nil then f.hob_beacon_ready = nil; say("hob_beacon_ready removed") end
+end
 
 -- Bring a loaded save up to RT.SAVE_VERSION. Returns "current", "migrated" or "newer".
 function RT.migrateCampaign(c)

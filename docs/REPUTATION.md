@@ -101,7 +101,7 @@ A completed Tier 0 delivery at minimum range moves about +50 rep. A failed Tier 
 | +500 | Wave through inspections — no stop, no fine | Concord resumes inspections |
 | +200 | Accept cargo declarations without proof | No longer accepts declarations without proof |
 | 0 | Benefit of doubt on ignored hails | Patrols more likely to escalate inspections |
-| −200 | More work becoming available at Concord ports | **Concord patrols now spawn as hostile and attack on sight**; Concord port guards attack a ship within 5U of them (they chase it to 10U from their port) |
+| −200 | More work becoming available at Concord ports | **Concord patrols now spawn as hostile and attack on sight**; Concord port guards attack a ship within 5U of them (they chase it to 10U from their port); the lane pickets within 10U (to 20U from their post) |
 | −400 | Concord ports may offer limited work again | Concord ports will no longer offer work |
 
 **How Concord inspections work:**

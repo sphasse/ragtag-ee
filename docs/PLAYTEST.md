@@ -136,7 +136,8 @@ Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
 - [ ] Destroying it: the three cash boxes. Does the crew find and collect them?
 - [ ] The escorts (Adder MK8, hull 100): a real fight? Do they leave a second player ship alone?
 - [ ] The way home with the cash: the Concord patrols are back. The 15-minute delivery: tight or easy?
-- [ ] Paying: "We have the cash." then "Deliver 10,000 cr to the engineers"; the 10-minute build
+- [ ] Paying: "We have the cash." (Quill: "...the other 2,000 is yours for the trouble.") then "Deliver 10,000 cr
+      to the engineers" ends the arc ("...it is going to take some time. We'll reach out again..."). Clear?
 - [ ] A missed delivery (GM: let it lapse): Independent standing to -100, the shaming port news for 30 min,
       the late delivery accepted
 - [ ] Rumors afterwards: the robbery and the Concord fallout (the yard layoffs, the Senate)
@@ -155,6 +156,8 @@ Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
 - [ ] With Concord standing below −200, a Concord port's guard ("CPV …") turns hostile once the ship is within
       5U of it ("…you are wanted by the Concord…" in the log), and gives up 10U from the port. Is 5U the right
       radar? Can a wanted crew still slip in and out of a Concord port?
+- [ ] The same for the lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance): hostile within
+      10U, they chase to 20U from their post and then go back to their beat. Too much on the lanes?
 - [ ] Science DB **Ship Upgrades** (top level): one entry per component with every upgrade's effect, price, prerequisite
       and the ports that fit it. Does it read well on the Science screen? Do crews use it to plan purchases?
 - [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …") and pop up on

@@ -1,7 +1,7 @@
 -- Hob Works arc: the gate (Phase II over + survivors + 5 board jobs), the hook through real port
 -- news, the four-page briefing and the convoy brief, the fake transponder and the escorts' 15U
 -- scan, departure and the GM speed buttons, disabling the transport by its systems, boarding,
--- delivery and payment, the build; then the wreck and its cash boxes, a missed convoy, the Magpie
+-- delivery and payment (which ends the arc); then the wreck and its cash boxes, a missed convoy, the Magpie
 -- lost, a late delivery and an abandoned one, the briefing variants, the GM states and
 -- "-> Inactive". Not covered: a real fight with the escorts (the test ship is indestructible), a
 -- real Relay hack (hack levels are set), a real dock (forced), the transport's whole 8-minute run.
@@ -296,21 +296,19 @@ T.step("delivered", function()
     T.check("deliver: delivered", T.flag("hob_delivered"))
     T.check("deliver: no more countdown", T.st().deliver_due == nil)
     T.check("deliver: the pay button", T.hasReply("Deliver 10,000 cr to the engineers"), table.concat(T.replies(), " | "))
+    T.check("deliver: the extra is theirs", T.msg():find("12,000 credits. We need 10,000 of it for Lullaby's parts; the other 2,000 is yours for the trouble.", 1, true) ~= nil, T.msg())
     c0 = T.credits()
 end)
 T.reply({"Deliver 10,000 cr to the engineers"})
 T.step("paid", function()
     T.eq("pay: -10,000 cr", T.credits() - c0, -10000)
     T.check("pay: paid", T.flag("hob_paid"))
-    T.eq("pay: build", T.phase(), "build")
-    T.check("pay: ten minutes", math.abs(T.st().build_due - T.now() - 600) < 2)
-    T.action("Finish build")
+    T.check("pay: it will take time", T.msg():find("These credits will get us what we need, but it is going to take some time. We'll reach out again when we have results.", 1, true) ~= nil, T.msg())
+    T.eq("pay: the arc is done", T.status(), "done")
 end)
 T.closeComms()
-T.waitFor("build: finished", function() return T.status() == "done" end, 3)
-T.step("built", function()
-    T.eq("done: built", T.flag("hob_arc_done"), "built")
-    T.check("done: hob_beacon_ready", T.flag("hob_beacon_ready"))
+T.step("funded", function()
+    T.eq("done: funded", T.flag("hob_arc_done"), "funded")
     T.eq("done: news of the robbery", T.rumors("HOB_DONE"), 3)
     T.check("done: no objective", RT.objectives.hob == nil)
 end)
@@ -368,6 +366,7 @@ T.talk("Hob's Landing", {"We have the cash."})
 T.step("a late delivery is accepted", function()
     T.check("late: better late", T.msg():find("Better late", 1, true) ~= nil, T.msg())
     T.eq("late: +9,000", T.credits() - c0, 9000)
+    T.check("late: 1,000 short of the price", T.msg():find("9,000 credits. Lullaby's parts cost 10,000, so that leaves us 1,000 short. Can you cover the rest?", 1, true) ~= nil, T.msg())
     T.eq("late: the shaming stops", T.rumors("HOB_SHAME"), 0)
     T.check("late: no abandon timer", T.st().pester_until == nil)
 end)
@@ -386,7 +385,6 @@ end)
 T.waitFor("abandon: done", function() return T.status() == "done" end, 3)
 T.step("abandoned", function()
     T.eq("abandon: outcome", T.flag("hob_arc_done"), "abandoned")
-    T.check("abandon: no beacon", not T.flag("hob_beacon_ready"))
 end)
 
 -- ── Missed: it reaches Sentinel ──────────────────────────────────────────────
@@ -416,7 +414,10 @@ T.step("short of the price", function()
     RT.addCredits(10000, "test: job work")
 end)
 T.talk("Hob's Landing", {"Talk to Quill and Marchetti", "Deliver 10,000 cr to the engineers"})
-T.step("paid from job credits", function() T.eq("missed: build", T.phase(), "build") end)
+T.step("paid from job credits", function()
+    T.eq("missed: paid, done", T.status(), "done")
+    T.eq("missed: funded", T.flag("hob_arc_done"), "funded")
+end)
 T.closeComms()
 
 -- ── The Magpie lost during the heist ─────────────────────────────────────────
@@ -470,19 +471,16 @@ T.gmWalk({
         T.restart()
         T.eq("next session: still delivering", T.phase(), "deliver")
     end},
-    {key = "build",   phase = "build", check = function()
-        T.check("GM build: paid replayed", T.flag("hob_paid"))
+    {key = "done_funded", done = true, check = function()
+        T.eq("GM funded: outcome", T.flag("hob_arc_done"), "funded")
+        T.check("GM funded: paid replayed", T.flag("hob_paid"))
+        RT.clearFlag("hob_arc_done")
         T.restart()
-        T.eq("next session: built between sessions", T.flag("hob_arc_done"), "built")
+        T.eq("next session: paid but not closed is funded", T.flag("hob_arc_done"), "funded")
         T.eq("next session: done", T.status(), "done")
-    end},
-    {key = "done_built", done = true, check = function()
-        T.eq("GM built: outcome", T.flag("hob_arc_done"), "built")
-        T.check("GM built: beacon ready", T.flag("hob_beacon_ready"))
     end},
     {key = "done_abandoned", done = true, check = function()
         T.eq("GM abandoned: outcome", T.flag("hob_arc_done"), "abandoned")
-        T.check("GM abandoned: no beacon", not T.flag("hob_beacon_ready"))
         T.check("GM abandoned: not paid", not T.flag("hob_paid"))
     end},
 })

@@ -82,7 +82,7 @@ See **[REPUTATION.md](REPUTATION.md)** for the full mechanics reference — rewa
 
 **Quick summary:** Rep is unbounded. Changes log to Relay immediately with current standings. Destroying a ship that was not your enemy costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a friendly Corsair counts as Corsairs), charged to the ship that made the kill. Enemies cost nothing (Corsair patrols and raiders, hostile Concord ships, job targets that turned on the crew), nor do ships in a story-arc fight, Relic or Hollow ships; failed or expired jobs cost −(reward amount).
 
-- **Concord:** inspections at rep ≥ −200; spawn hostile at rep < −200. Below −200 the Concord port guards (one defender per Concord port) also attack a ship that comes within 5U of them, and stand down once it is 10U from the port or its standing recovers. Raise rep via Concord Waypoint Galen donations or Concord-faction jobs.
+- **Concord:** inspections at rep ≥ −200; spawn hostile at rep < −200. Below −200 the Concord port guards (one defender per Concord port) also attack a ship that comes within 5U of them, and stand down once it is 10U from the port or its standing recovers. The lane pickets do the same within 10U of them, chasing to 20U from their post before resuming their beat. Raise rep via Concord Waypoint Galen donations or Concord-faction jobs.
 - **Independent:** job board thins below 0, goes dark below −400. Raise via Saint Brennan's Mission donations or any job completion.
 - **Corsairs:** patrol frequency scales with rep; job board same thresholds as Independent.
 
