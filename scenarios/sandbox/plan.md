@@ -307,8 +307,10 @@ meet.
        schedule and the battles still happen**: the crew just has to dodge or fight its way to its scans.
        The transponder is the "cloak" that lets them sit inside 15U unseen; a crew without one stays
        outside 15U until the run starts. The briefing gives the 15U figure so the crew knows the line.
-     - Open: what a crew inside 15U sees when the code lapses (the escorts spot it, as above, with a
-       line from them).
+     - **The first time the escorts spot the ship** (decided 2026-11-23; with no code, or when the code
+       lapses inside 15U) they hail it with a warning, as if they know the ship by reputation: "We see you,
+       Magpie. Head the other direction or you are in for trouble. This is a fight you cannot win." (the
+       ship's own name). Once only; after that they come out to fight it.
      - Don't change the ship's callsign: per-ship records are keyed by callsign, and a rename would save
        the record under the fake name. Primary ship only.
    - **A scheduled run, not a proximity trigger** (decided 2026-11-23). At the briefing in Hob's Landing:
