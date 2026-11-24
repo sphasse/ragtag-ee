@@ -74,7 +74,7 @@ VERSE.FACTIONS = {
 -- Factions whose ships count as ambient threats to the player (density checks,
 -- hostile counting). Keep in sync when adding a faction that attacks Independents.
 VERSE.HOSTILE_FACTIONS = {
-    Corsairs = true, Relic = true, Hollow = true, ["Concord Hostile"] = true,
+    Corsairs = true, Relic = true, Hollow = true, ["Concord Hostile"] = true, Fugitive = true,
 }
 
 function VERSE.setupFactions()
@@ -105,7 +105,12 @@ function VERSE.setupFactions()
         "Concord enforcement operating off-manifest. Hostile to Independent traffic.")
     local corsair_friendly = make("Corsair Friendly", 255, 180, 80,
         "Corsair crew running friendly colors. Not shooting at you today.")
+    -- Fugitive: a ship running from the law (The Bounty's Long Odds and its escorts). Hostile to
+    -- Independent ships, so the crew can fight it; no standing is lost for it (not a real faction).
+    local fugitive = make("Fugitive", 200, 200, 200,
+        "A ship running from somebody. Transponder spoofed, flight plan blank, guns warm.")
 
+    fugitive:setEnemy(ind)
     corsairs:setEnemy(ind)
     corsairs:setEnemy(concord)
     hollow:setEnemy(ind)

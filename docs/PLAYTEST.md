@@ -156,6 +156,17 @@ Details: [GM_COLD_CHAIN_MISSION.md](GM_COLD_CHAIN_MISSION.md).
 - [ ] "Serum good for 14:59" on Relay: is 15 minutes tight or easy? Delivery at Tamsin: 3,000 cr in time,
       1,000 spoiled
 
+## 5d. The Bounty (Rezkov over, 1,000 cr of upgrades; or GM jump)
+
+Details: [GM_BOUNTY_MISSION.md](GM_BOUNTY_MISSION.md).
+- [ ] The seed rumors: hearing the Dustmote notice sets "Bounty at Dustmote". Does the crew go that far east?
+- [ ] Thresh's two pages: the notice, then the trail (a real sector in the Deep Shroud) and how to stop Long Odds
+- [ ] Finding Long Odds in the nebula: probes and Science? Found within 8U: it runs, the escorts attack
+- [ ] Long Odds (Phobos T3, 300 hull, 150 shields) can't be destroyed: impulse and rear shield both down at once
+      stops it. Tough enough? Too like the heist? The escorts (Adder MK5s) a real fight?
+- [ ] Ashby's offer (crypto credits, the keys in his head): do they read it? Do they argue? Dustmote for 3,000 and
+      Independent +100, or Saint Brennan's for 4,500 and Independent -150
+
 ## 6. Ship handling upgrades and the Hob Works
 
 - [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does

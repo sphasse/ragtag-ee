@@ -130,11 +130,7 @@ M.effectivePower = _eff
 
 -- A system is down when Relay's hacking screen shows it HACKED_AT or more, or Science shows its health
 -- under HEALTH_AT. (Not effective power: no console shows that, and a full hack alone leaves 25%.)
-local function _down(ship, sys)
-    local okh, health = pcall(function() return ship:getSystemHealth(sys) end)
-    local okk, hacked = pcall(function() return ship:getSystemHackedLevel(sys) end)
-    return (okk and (hacked or 0) >= M.HACKED_AT) or (okh and (health or 1) < M.HEALTH_AT)
-end
+local function _down(ship, sys) return ARC.systemDown(ship, sys, M.HACKED_AT, M.HEALTH_AT) end
 M.systemDown = _down
 
 -- A countdown line on the arc ship's Relay and Operations (under the objective).

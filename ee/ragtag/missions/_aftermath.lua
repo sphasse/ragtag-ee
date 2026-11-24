@@ -103,6 +103,20 @@ AFTERMATH.ENTRIES = {
     {id = "aftermath_coldchain_notice", category = "COLDCHAIN_DONE",
      when = function() local d = F("coldchain_arc_done") return F("coldchain_seen") == "seen" and (d == "delivered" or d == "spoiled") end,
      text = "The Concord's posted a notice on a freighter that robbed its own medical depot at Ostia. Border captains keep buying that crew drinks."},
+
+    -- ── The Bounty (Pell Ashby) ─────────────────────────────────────────────
+    {id = "aftermath_bounty_trial", category = "BOUNTY_DONE",
+     when = function() return F("bounty_arc_done") == "bounty" end,
+     text = "The Rimward Haulers Guild got its bookkeeper back. Nobody's seen him since, and nobody's seen the payroll either."},
+    {id = "aftermath_bounty_books", category = "BOUNTY_DONE",
+     when = function() return F("bounty_arc_done") == "bounty" end,
+     text = "Rimward Haulers' crews are asking why the guild wanted that bookkeeper alive so badly. Somebody's going through the old pay slips."},
+    {id = "aftermath_bounty_sanctuary", category = "BOUNTY_DONE",
+     when = function() return F("bounty_arc_done") == "released" end,
+     text = "Pell Ashby was seen at Saint Brennan's, sweeping the chapel floor. The guild's bounty is still posted. Nobody's collecting."},
+    {id = "aftermath_bounty_backpay", category = "BOUNTY_DONE",
+     when = function() return F("bounty_arc_done") == "released" end,
+     text = "Some Rimward Haulers crews got back pay this month from an account nobody can trace. The guild says it wasn't them."},
 }
 
 AFTERMATH.PRIORITY      = 3

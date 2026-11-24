@@ -309,6 +309,7 @@ add it to `_helpers.lua`, not to `core.lua` and not to both arcs.
 | `ARC.resetState(M, st)` | For `M.gm_reset`: wipe `st` and refill from `M.init_state()`, in place. |
 | `ARC.travel(label, phases, target)` | A GM helper "Ship → label" for `M.gm_actions`: in those phases it puts the arc ship 5U from `target` (callsign, entity, `{x=, y=}`, or `function(st)` returning one). Every phase that sends the crew somewhere gets one (`tests/core/travel.lua` presses them all). |
 | `ARC.shipTo(target, dist)` | What `ARC.travel` calls: undock, move the arc ship `dist` (5U) from `target` on the side it came from, stop. |
+| `ARC.systemDown(ship, sys, hacked_at, health_at)` | A system is down as the crew sees it: Relay shows it `hacked_at` or more hacked, or Science shows its health under `health_at`. For a ship that must be disabled and boarded, not destroyed (Hob Works, The Bounty). |
 | `ARC.inRegions(names)` | True while the arc ship is inside any of the named universe regions (e.g. the three Concord regions: a chase that ends out of Concord space; Hob Works, Cold Chain). |
 
 The skeleton they add up to:
@@ -447,6 +448,7 @@ This makes arcs easy to disable, restart, skip, or test independently.
 | `corsair`  | Corsair Arc   | no  | upgrades_min + not_flagged + requires (Rezkov) (hook on entering the Gauntlet) | hook, escort, briefing, raid, return, battle |
 | `hob`      | Hob Works Arc | no  | not_flagged + requires (Rezkov, Ledger, Boneyard with survivors, Corsair) + custom (5 board jobs after) | hook, heist, deliver |
 | `coldchain` | Cold Chain   | no  | not_flagged + requires (Hob Works funded) + custom (3 board jobs after) | hook, approach, run |
+| `bounty`   | The Bounty    | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, hunt, deliver |
 
 Retired arcs (Witness, Whistleblower) live in `ee/ragtag/missions/attic/` — kept for
 reference, never required by the loader. `check.py` errors on any file in

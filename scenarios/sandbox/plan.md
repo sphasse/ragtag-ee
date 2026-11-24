@@ -17,7 +17,7 @@ Status at last update (2026-11-21):
 | 4 | Corsair Arc (redemption) | **BUILT** | `ee/ragtag/missions/corsair.lua` + `docs/GM_CORSAIR_MISSION.md` |
 | 5a | The Hob Works (engineering and heist) | **BUILT** (2026-11-23) | `ee/ragtag/missions/hob.lua` + `docs/GM_HOB_WORKS_MISSION.md` |
 | — | Cold Chain (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/coldchain.lua` + `docs/GM_COLD_CHAIN_MISSION.md` |
-| — | The Bounty (one-off contract) | planned (2026-11-24) | — |
+| — | The Bounty (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/bounty.lua` + `docs/GM_BOUNTY_MISSION.md` |
 | 5 | Maw Arc (finale): deploy and defend a broadcast station | planned (revised 2026-11-21) | — |
 | — | The Concord's fracture (instability seeds) | deferred until after the playtest | — |
 | 6 | Concord Republic Arc (optional serial) | an option, not committed | — |
@@ -460,7 +460,7 @@ Science DB: the fever. Aftermath rumors: the Concord depot theft.
 `rear_hacked_level`) rises from Relay's hack and is readable from Lua; a wanted ship can dock at a
 Concord port (factions are not enemies; only the guard reacts).
 
-### The Bounty (`bounty`)
+### The Bounty (`bounty`) — BUILT 2026-11-24 (details: `docs/GM_BOUNTY_MISSION.md`)
 
 **Premise.** **Pell Ashby**, the bookkeeper of an Independent shipping guild, disappeared with the
 guild's payroll. The guild posts a bounty: alive, no exceptions. His side, which comes out later: the

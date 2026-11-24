@@ -248,6 +248,15 @@ function ARC.travel(label, phases, target)
             fn = function(st) ARC.shipTo(type(target) == "function" and function() return target(st) end or target) end}
 end
 
+-- Is a ship's system "down" as the crew can see it: Relay's hacking screen shows it hacked_at or more
+-- ("hacked 90%"), or Science shows its health under health_at. Used to disable a ship that must be
+-- boarded, not destroyed (the Hob Works' transport, The Bounty's Long Odds).
+function ARC.systemDown(ship, sys, hacked_at, health_at)
+    local okh, health = pcall(function() return ship:getSystemHealth(sys) end)
+    local okk, hacked = pcall(function() return ship:getSystemHackedLevel(sys) end)
+    return (okk and (hacked or 0) >= hacked_at) or (okh and (health or 1) < health_at)
+end
+
 -- Is the arc ship inside any of the named universe regions (VERSE.REGIONS)? For a chase that ends
 -- when the ship is out of Concord space (Hob Works, Cold Chain).
 function ARC.inRegions(names)
