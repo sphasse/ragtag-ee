@@ -52,7 +52,9 @@ M.CONCORD_BOARDED   = -800
 M.CONCORD_DESTROYED = -1000
 M.LATE_INDEPENDENT  = -100   -- Independent standing after a missed delivery, whatever it was
 
-local _CONCORD_ZONES = {"the Concord Core", "the Arbiter Line", "the Escrow Marches"}
+M.INTEL_MAP = "ragtag/img/convoy_route.png"   -- the convoy intel entry's image
+
+local _CONCORD_ZONES ={"the Concord Core", "the Arbiter Line", "the Escrow Marches"}
 local _LUMEN, _SENTINEL = "Lumen Exchange", "Sentinel Fleet Yard"
 local _TRANSPORT_CS = "CTS Tithe"
 local _ESCORT_CS = {"CNS Surety", "CNS Bond"}
@@ -665,8 +667,11 @@ end
 
 local function _addIntelEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["hob_intel"] then return end
-    SCIDB._entries["hob_intel"] = SCIDB.addEntry("lore", "Convoy intel: CTS Tithe", _intelText(),
+    local e = SCIDB.addEntry("lore", "Convoy intel: CTS Tithe", _intelText(),
         {["Route"] = "Lumen to Sentinel", ["Ships"] = "1 transport, 2 escorts", ["Escort sensors"] = "About 15U"})
+    SCIDB._entries["hob_intel"] = e
+    -- The route map (tools/make_convoy_map.py; EmptyEpsilon reads images from scripts/).
+    if e then pcall(function() e:setImage(M.INTEL_MAP) end) end
 end
 
 -- ── Rumors ──────────────────────────────────────────────────────────────────

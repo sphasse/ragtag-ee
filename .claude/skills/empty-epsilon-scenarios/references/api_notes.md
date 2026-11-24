@@ -164,3 +164,12 @@ punctuation (`! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ \` { | } ~`)
 - Music (ambient/combat) is chosen client-side by a threat estimator (enemy-relation armed ships within 7U, damage taken) and cannot be driven from Lua. Neutral Concord stops and warp jammers do not trigger combat music.
 - `gameGlobalInfo->playSoundOnMainScreen` (shields up/down, self-destruct voice) is engine-internal, not exposed to Lua.
 - In this repo use `RT.sound(id)` / `RT.soundLoop` (core.lua) rather than calling `playSoundFile` directly; cue ids and files are listed in `ee/ragtag/sfx/SOURCES.md`.
+
+## Science database images
+
+A ScienceDatabase entry can show one image: `entry:setImage("ragtag/img/file.png")`. EmptyEpsilon loads it
+from `resources/` or `scripts/`, so a PNG under `ee/ragtag/img/` (installed to `scripts/ragtag/img/`) works
+with the normal install. It is drawn by each client from its own copy (every bridge computer needs the
+install). On the Science screen the image fills the details panel above the text and shares its height;
+an entry with a 3D model shows the image only as a 32 px icon. Example: the Hob Works convoy intel
+(`tools/make_convoy_map.py`). `check.py` fails when a `"ragtag/img/..."` path in the Lua has no file.

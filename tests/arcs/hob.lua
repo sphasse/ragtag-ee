@@ -172,7 +172,7 @@ T.step("the heist starts", function()
     T.check("heist: briefed", T.flag("hob_briefed"))
     T.check("heist: the convoy intel entry", SCIDB._entries["hob_intel"] ~= nil)
     local intel = SCIDB._entries["hob_intel"] and SCIDB._entries["hob_intel"]:getLongDescription() or ""
-    T.check("heist: intel names the port guards' 5U", intel:find("if they see the Magpie within 5U they will come after you", 1, true) ~= nil, intel)
+    T.eq("heist: intel has the route map", SCIDB._entries["hob_intel"]:getImage(), "ragtag/img/convoy_route.png")    T.check("heist: intel names the port guards' 5U", intel:find("if they see the Magpie within 5U they will come after you", 1, true) ~= nil, intel)
     T.check("heist: and the lane pickets' 10U", intel:find("The lane pickets", 1, true) ~= nil and intel:find("see 10U", 1, true) ~= nil, intel)
     T.check("heist: the transport is out", RT.valid(transport()))
     T.eq("heist: two escorts", T.alive(escorts()), 2)

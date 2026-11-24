@@ -255,6 +255,16 @@ def check_world_tests() -> None:
                           f"(see tests/_harness.lua; run with tools/game_tests.py)")
 
 
+def check_images() -> None:
+    """Every image the Lua names ("ragtag/img/<file>", read by EmptyEpsilon from scripts/) must exist."""
+    for f in sorted((ROOT / "ee" / "ragtag").rglob("*.lua")):
+        code = f.read_text(encoding="utf-8")
+        for m in re.finditer(r'"ragtag/(img/[^"]+)"', code):
+            if not (ROOT / "ee" / "ragtag" / m.group(1)).is_file():
+                line = code.count("\n", 0, m.start()) + 1
+                errors.append(f"{f.relative_to(ROOT)}:{line}: image ee/ragtag/{m.group(1)} does not exist")
+
+
 # ── Ship records ─────────────────────────────────────────────────────────────
 # Credits, standing and upgrades are per ship (core.lua, "Per-ship records"). These calls take
 # the ship as their last argument; without it they act on the primary ship. That default is for
@@ -608,6 +618,7 @@ def main() -> int:
     check_loader_requires()
     check_arc_tests()
     check_world_tests()
+    check_images()
     check_jobs()
     check_ship_args()
     check_layers()

@@ -198,7 +198,10 @@ mid-heist, the next session starts the heist over with a fresh countdown.
 Standing: Concord −800 (boarded) or −1,000 (destroyed); Independent set to −100 on a missed delivery.
 
 Science DB: profiles of **Dr. Mara Quill** and **Anton Marchetti**; Lore → **"Lullaby (Phase II reversal
-beacon)"** (from the meeting) and **"Convoy intel: CTS Tithe"** (from the brief).
+beacon)"** (from the meeting) and **"Convoy intel: CTS Tithe"** (from the brief), with a route map
+image: the route, the escorts' 15U, Concord space, each port guard's 5U and picket's 10U, and the way
+home to Hob's Landing (`tools/make_convoy_map.py` draws it from the game data: re-run it after moving
+a station or changing a range).
 
 News (port rumors, each told once; `missions/_aftermath.lua`), after a boarding or a wreck:
 - boarded: a Treasury transport stripped inside the Core, "a training exercise";

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 833" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+<defs><pattern id="concord" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="16" height="16" fill="#6fa8ff" opacity="0.07"/><line x1="0" y1="0" x2="0" y2="16" stroke="#6fa8ff" stroke-width="3" opacity="0.22"/></pattern><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ff9a3c"/></marker></defs>
+<rect width="1024" height="833" fill="#0d1520"/>
+<line x1="-24.7" y1="0" x2="-24.7" y2="833" stroke="#1a2635"/>
+<line x1="37.0" y1="0" x2="37.0" y2="833" stroke="#1a2635"/>
+<line x1="98.7" y1="0" x2="98.7" y2="833" stroke="#1a2635"/>
+<line x1="160.4" y1="0" x2="160.4" y2="833" stroke="#1a2635"/>
+<line x1="222.1" y1="0" x2="222.1" y2="833" stroke="#1a2635"/>
+<line x1="283.8" y1="0" x2="283.8" y2="833" stroke="#1a2635"/>
+<line x1="345.4" y1="0" x2="345.4" y2="833" stroke="#1a2635"/>
+<line x1="407.1" y1="0" x2="407.1" y2="833" stroke="#1a2635"/>
+<line x1="468.8" y1="0" x2="468.8" y2="833" stroke="#1a2635"/>
+<line x1="530.5" y1="0" x2="530.5" y2="833" stroke="#1a2635"/>
+<line x1="592.2" y1="0" x2="592.2" y2="833" stroke="#1a2635"/>
+<line x1="653.9" y1="0" x2="653.9" y2="833" stroke="#1a2635"/>
+<line x1="715.6" y1="0" x2="715.6" y2="833" stroke="#1a2635"/>
+<line x1="777.3" y1="0" x2="777.3" y2="833" stroke="#1a2635"/>
+<line x1="838.9" y1="0" x2="838.9" y2="833" stroke="#1a2635"/>
+<line x1="900.6" y1="0" x2="900.6" y2="833" stroke="#1a2635"/>
+<line x1="962.3" y1="0" x2="962.3" y2="833" stroke="#1a2635"/>
+<line x1="1024.0" y1="0" x2="1024.0" y2="833" stroke="#1a2635"/>
+<line x1="0" y1="-24.7" x2="1024" y2="-24.7" stroke="#1a2635"/>
+<line x1="0" y1="37.0" x2="1024" y2="37.0" stroke="#1a2635"/>
+<line x1="0" y1="98.7" x2="1024" y2="98.7" stroke="#1a2635"/>
+<line x1="0" y1="160.4" x2="1024" y2="160.4" stroke="#1a2635"/>
+<line x1="0" y1="222.1" x2="1024" y2="222.1" stroke="#1a2635"/>
+<line x1="0" y1="283.8" x2="1024" y2="283.8" stroke="#1a2635"/>
+<line x1="0" y1="345.4" x2="1024" y2="345.4" stroke="#1a2635"/>
+<line x1="0" y1="407.1" x2="1024" y2="407.1" stroke="#1a2635"/>
+<line x1="0" y1="468.8" x2="1024" y2="468.8" stroke="#1a2635"/>
+<line x1="0" y1="530.5" x2="1024" y2="530.5" stroke="#1a2635"/>
+<line x1="0" y1="592.2" x2="1024" y2="592.2" stroke="#1a2635"/>
+<line x1="0" y1="653.9" x2="1024" y2="653.9" stroke="#1a2635"/>
+<line x1="0" y1="715.6" x2="1024" y2="715.6" stroke="#1a2635"/>
+<line x1="0" y1="777.3" x2="1024" y2="777.3" stroke="#1a2635"/>
+<circle cx="296.1" cy="219.0" r="203.6" fill="url(#concord)" stroke="#6fa8ff" stroke-width="2" stroke-opacity="0.55"/>
+<circle cx="524.3" cy="339.3" r="163.5" fill="url(#concord)" stroke="#6fa8ff" stroke-width="2" stroke-opacity="0.55"/>
+<circle cx="237.5" cy="567.5" r="222.1" fill="url(#concord)" stroke="#6fa8ff" stroke-width="2" stroke-opacity="0.55"/>
+<text x="191.2" y="43.2" fill="#6fa8ff" font-size="17" font-weight="700" text-anchor="middle" opacity="0.85">THE CONCORD CORE</text>
+<text x="592.2" y="197.4" fill="#6fa8ff" font-size="17" font-weight="700" text-anchor="middle" opacity="0.85">THE ARBITER LINE</text>
+<text x="129.5" y="684.7" fill="#6fa8ff" font-size="17" font-weight="700" text-anchor="middle" opacity="0.85">THE ESCROW MARCHES</text>
+<circle cx="305.3" cy="237.5" r="46.3" fill="#ff9a3c" fill-opacity="0.08" stroke="#ff9a3c" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="256.0" y="242.5" fill="#ff9a3c" font-size="14" text-anchor="end">escort sensors 15U</text>
+<line x1="305.3" y1="237.5" x2="225.2" y2="401.0" stroke="#ff9a3c" stroke-width="5" marker-end="url(#arrow)"/>
+<text x="277.6" y="319.2" fill="#ff9a3c" font-size="16" font-weight="700">CTS Tithe</text>
+<text x="277.6" y="338.2" fill="#ff9a3c" font-size="14">59U, no stops</text>
+<line x1="225.2" y1="401.0" x2="980.8" y2="604.5" stroke="#ffd45a" stroke-width="2" stroke-dasharray="3 7" opacity="0.6"/>
+<circle cx="499.7" cy="348.5" r="30.8" fill="#ff5a5a" fill-opacity="0.06" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="4 4"/>
+<path d="M499.7,341.5 L505.7,353.5 L493.7,353.5 z" fill="#ff5a5a"/>
+<text x="499.7" y="394.4" fill="#ff5a5a" font-size="13" text-anchor="middle">CPV Vigilant</text>
+<circle cx="545.9" cy="293.0" r="30.8" fill="#ff5a5a" fill-opacity="0.06" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="4 4"/>
+<path d="M545.9,286.0 L551.9,298.0 L539.9,298.0 z" fill="#ff5a5a"/>
+<text x="545.9" y="256.2" fill="#ff5a5a" font-size="13" text-anchor="middle">CPV Temperance</text>
+<circle cx="314.6" cy="203.6" r="30.8" fill="#ff5a5a" fill-opacity="0.06" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="4 4"/>
+<path d="M314.6,196.6 L320.6,208.6 L308.6,208.6 z" fill="#ff5a5a"/>
+<text x="279.8" y="207.6" fill="#ff5a5a" font-size="13" text-anchor="end">CNS Lawgiver / CPV Forbearance</text>
+<circle cx="379.4" cy="151.1" r="15.4" fill="none" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="3 3"/>
+<rect x="373.4" y="145.1" width="12" height="12" fill="#6fa8ff" transform="rotate(45 379.4 151.1)"/>
+<text x="391.4" y="156.1" fill="#6fa8ff" font-size="13" font-weight="400" text-anchor="start">Ostia Highport</text>
+<circle cx="305.3" cy="237.5" r="15.4" fill="none" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="3 3"/>
+<rect x="297.3" y="229.5" width="16" height="16" fill="#6fa8ff" transform="rotate(45 305.3 237.5)"/>
+<text x="317.3" y="242.5" fill="#6fa8ff" font-size="17" font-weight="700" text-anchor="start">Lumen Exchange</text>
+<circle cx="225.2" cy="401.0" r="15.4" fill="none" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="3 3"/>
+<rect x="217.2" y="393.0" width="16" height="16" fill="#6fa8ff" transform="rotate(45 225.2 401.0)"/>
+<text x="213.2" y="406.0" fill="#6fa8ff" font-size="17" font-weight="700" text-anchor="end">Sentinel Fleet Yard</text>
+<circle cx="484.2" cy="308.4" r="15.4" fill="none" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="3 3"/>
+<rect x="478.2" y="302.4" width="12" height="12" fill="#6fa8ff" transform="rotate(45 484.2 308.4)"/>
+<text x="496.2" y="313.4" fill="#6fa8ff" font-size="13" font-weight="400" text-anchor="start">Concord Waypoint Galen</text>
+<circle cx="650.8" cy="385.5" r="15.4" fill="none" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="3 3"/>
+<rect x="644.8" y="379.5" width="12" height="12" fill="#6fa8ff" transform="rotate(45 650.8 385.5)"/>
+<text x="662.8" y="390.5" fill="#6fa8ff" font-size="13" font-weight="400" text-anchor="start">Concord Station Arbiter</text>
+<rect x="709.6" y="462.8" width="12" height="12" fill="#e6e1d4" transform="rotate(45 715.6 468.8)"/>
+<text x="727.6" y="473.8" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="start">Port Vesper</text>
+<rect x="620.1" y="518.3" width="12" height="12" fill="#e6e1d4" transform="rotate(45 626.1 524.3)"/>
+<text x="638.1" y="529.3" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="start">Calder&#39;s Reach</text>
+<rect x="592.4" y="607.8" width="12" height="12" fill="#e6e1d4" transform="rotate(45 598.4 613.8)"/>
+<text x="610.4" y="618.8" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="start">Tamsin Hollow</text>
+<rect x="789.8" y="573.9" width="12" height="12" fill="#e6e1d4" transform="rotate(45 795.8 579.9)"/>
+<text x="807.8" y="584.9" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="start">Greywater Depot</text>
+<rect x="839.1" y="391.9" width="12" height="12" fill="#e6e1d4" transform="rotate(45 845.1 397.9)"/>
+<text x="833.1" y="402.9" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="end">Halcyon Rest</text>
+<rect x="972.8" y="596.5" width="16" height="16" fill="#ffd45a" transform="rotate(45 980.8 604.5)"/>
+<text x="968.8" y="609.5" fill="#ffd45a" font-size="17" font-weight="700" text-anchor="end">Hob&#39;s Landing</text>
+<rect x="931.6" y="271.6" width="12" height="12" fill="#e6e1d4" transform="rotate(45 937.6 277.6)"/>
+<text x="925.6" y="282.6" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="end">Saint Brennan&#39;s Mission</text>
+<text x="968.8" y="628.5" fill="#ffd45a" font-size="14" text-anchor="end">deliver the cash here</text>
+<text x="1008" y="30" fill="#e6e1d4" font-size="22" font-weight="700" text-anchor="end">Treasury convoy: Lumen Exchange to Sentinel</text>
+<rect x="574" y="669" width="440" height="124" fill="#0d1520" opacity="0.85" stroke="#2a3a4d"/>
+<line x1="584" y1="684" x2="604" y2="684" stroke="#ff9a3c" stroke-width="4"/>
+<text x="614" y="689" fill="#e6e1d4" font-size="15">the convoy's route; escort sensors (dashed)</text>
+<circle cx="594" cy="706" r="8" fill="none" stroke="#ff5a5a" stroke-width="1.5" stroke-dasharray="3 3"/>
+<text x="614" y="711" fill="#e6e1d4" font-size="15">Concord port guard: sees 5U once you are wanted</text>
+<path d="M594,721 L600,733 L588,733 z" fill="#ff5a5a"/>
+<text x="614" y="733" fill="#e6e1d4" font-size="15">lane picket: sees 10U once you are wanted</text>
+<rect x="586" y="742" width="16" height="16" fill="url(#concord)" stroke="#6fa8ff"/>
+<text x="614" y="755" fill="#e6e1d4" font-size="15">Concord space</text>
+<line x1="584" y1="772" x2="604" y2="772" stroke="#ffd45a" stroke-width="4"/>
+<text x="614" y="777" fill="#e6e1d4" font-size="15">the way home to Hob's Landing</text>
+<text x="1008" y="819" fill="#8fa0b3" font-size="13" text-anchor="end">Grid squares are 20U sectors.</text>
+</svg>
