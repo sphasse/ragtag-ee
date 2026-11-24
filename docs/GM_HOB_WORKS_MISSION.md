@@ -83,12 +83,15 @@ Meridian business, but he still says…". If the Ledger AI was lost: "…even af
 2. **CTS Tithe**, the transport: big, slow, armoured, one small beam aft; it won't stop. Kill its
    engines and drop its rear shield to board it; blow it up and pick cash out of the wreckage.
 3. **CNS Surety and CNS Bond**, the escorts: fast, a heavy forward beam each, they'll come for you.
-   **Their sensors reach about 15U.**
+   **Their sensors reach about 15U.** "The ships guarding the Concord ports don't go far, but once you're
+   wanted, if they see the Magpie within 5U they will come after you."
 4. The **fake transponder**: "Our engineers can wire a fake transponder into your ship, enabled when
    needed by your Engineering station." Ten minutes, once. "Once the shooting starts, the gig is up, and
    you'll have to get creative to get back out of Concord space. Bring the cash here. It only counts
-   once it is in our hands. We need the 10,000. Any extra credits are yours for the trouble." (15,000
-   without the archive.)
+   once it is in our hands. We need the 10,000. Any extra credits are yours for the trouble. We've put more
+   info in your database. You've got a long haul ahead and need to get going, so you can review it and
+   make a plan on the way." (15,000 without the archive.) The convoy intel entry also covers the
+   Concord port guards (5U, chase to 10U) and the lane pickets (10U, chase to 20U).
 
 **We'll do it.** starts the heist; **Not right now.** keeps the offer open.
 

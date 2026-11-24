@@ -472,11 +472,13 @@ local function _convoyPages()
         .. 'hack each one to 90% or shoot it below 10%. Then you can board it. '
         .. 'Blow it up and you\'ll be picking cash boxes out of the wreckage, if they survive."'
     local b3 = '"Two Navy escorts, CNS Surety and CNS Bond: fast, well shielded for their size, a heavy forward beam each. They hunt in a pair and they\'ll break off the convoy to come for you. '
-        .. 'Don\'t let them pin you while the transport gets away. Their sensors reach about 15U: sit inside that without a good code and they\'ll see you."'
+        .. 'Don\'t let them pin you while the transport gets away. Their sensors reach about 15U: sit inside that without a good code and they\'ll see you.\n\n'
+        .. 'The ships guarding the Concord ports don\'t go far, but once you\'re wanted, if they see the Magpie within 5U they will come after you."'
     local b4 = '"One more thing. The Concord is really on the lookout for the Magpie. Our engineers can wire a fake transponder into your ship, enabled when needed by your Engineering station. '
         .. 'The Concord rotates its encryption keys, so the code is good for ten minutes from when you throw the switch, and only once. '
         .. 'Use it to get close and scan the convoy before it leaves. Once the shooting starts, the gig is up, and you\'ll have to get creative to get back out of Concord space.\n\n'
-        .. 'Bring the cash here. It only counts once it is in our hands. We need the ' .. _cr(_price()) .. '. Any extra credits are yours for the trouble."'
+        .. 'Bring the cash here. It only counts once it is in our hands. We need the ' .. _cr(_price()) .. '. Any extra credits are yours for the trouble.\n\n'
+        .. 'We\'ve put more info in your database. You\'ve got a long haul ahead and need to get going, so you can review it and make a plan on the way."'
     return b1, b2, b3, b4
 end
 
@@ -646,6 +648,9 @@ local function _intelText()
         "",
         "SENSORS",
         "The escorts see about 15U. Inside that without a good code, they will see you.",
+        "",
+        "CONCORD GUARDS",
+        "Once the Concord wants you (standing below -200, which the robbery will do): the ships guarding the Concord ports don't go far, but if they see the Magpie within 5U they will come after you, and chase you up to 10U from their port. The lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) see 10U and chase up to 20U from their post.",
         "",
         "THE FAKE TRANSPONDER",
         "On Engineering. Good for ten minutes from the switch (the Concord rotates its keys), once.",
