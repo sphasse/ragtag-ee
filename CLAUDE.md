@@ -42,7 +42,8 @@ Contributors add **universe extensions** and **scenarios** independently.
   `arcs/<arc>.lua` (one per story arc), `jobs/<type>.lua` (one per job type) plus `jobs/board.lua`, `jobs/multiship.lua`
   and `jobs/credits.lua`, `world/<plugin>.lua` (one per world plugin) plus `world/engine.lua`, and `core/records.lua`
   (per-ship ownership), `core/events.lua` (event bus, beats, the director's mailbox and its observation-only guard),
-  `core/gm_console.lua` (the GM menus act on the ship picked; the GM's New delivery job), `core/primary.lua` (losing and restoring the primary ship),
+  `core/gm_console.lua` (the GM menus act on the ship picked; the GM's New delivery job), `core/travel.lua` (every arc's
+  "Ship → ..." GM travel shortcuts), `core/primary.lua` (losing and restoring the primary ship),
   `core/ship_list.lua` (the sandbox's "Create player ship" list: one Light Freighter entry per named ship),
   `core/save_version.lua` (save format versions and migrations)
   and `core/stations.lua` (ports are indestructible; a lost station is reported), `core/upgrades.lua` (the upgrade catalogue and line bases), `core/race.lua` (The Short Haul's clock, score and leaderboard), `core/platforms.lua` (gun platforms: placed, aim, fire, range)

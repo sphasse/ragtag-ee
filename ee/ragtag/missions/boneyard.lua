@@ -944,6 +944,12 @@ M.gm_states = {
 
 -- State-specific helpers: only shown in the phase they apply to.
 M.gm_actions = {
+    -- Travel shortcuts for playtesting (the arc ship to 5U from where the phase sends it). Note that
+    -- 5U from Ashgrave is inside its 8U reveal range: the Annex appears (the no-survivors way in).
+    ARC.travel("lifeboat", {"hook"}, {x = 22000, y = -72000}),
+    ARC.travel("Ashgrave", {"hook"}, {x = _ASHGRAVE_X, y = _ASHGRAVE_Y}),
+    ARC.travel("Annex", {"annex_hack", "annex_control"}, function(st) return st.annex end),
+    ARC.travel("survivors", {"report"}, function(st) return _survivorsAt() end),
     -- Finish the Relay hack: sets the Annex frontshield to fully hacked, so the annex_hack
     -- update runs its normal completion next frame (idle drones, suspend the zone, the Annex opens
     -- to docking) and moves to annex_control.

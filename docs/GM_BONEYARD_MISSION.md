@@ -146,6 +146,10 @@ the remaining combat ships are removed 2 minutes later.
 | `→ Done: Full` / `→ Done: Data` | End with archive + drones / archive only |
 
 Helpers, shown only in their phase:
+- **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → lifeboat** (hook: the
+  rescue pods' site), **Ship → Ashgrave** (hook; 5U is inside the 8U reveal range, so the Annex appears
+  the no-survivors way), **Ship → Annex** (annex hack, annex control), **Ship → survivors** (report:
+  the station the survivors were taken to).
 - **Complete hack** (annex hack): sets the front shield fully hacked; the phase finishes normally. The
   ship isn't moved.
 - **Destroy Concord** (annex control, once the fleet is out): destroys the rest of the fleet; the

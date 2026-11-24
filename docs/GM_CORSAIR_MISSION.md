@@ -132,6 +132,10 @@ cost…". The surviving Corsairs head home, and everything the battle left is re
 | `→ Done: Defended` / `→ Done: Failed` / `→ Done: Declined` | End the arc |
 
 Helpers, shown only in their phase:
+- **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → Greywater** (hook),
+  **Ship → Long Memory** (hook: the raider, or its meeting point at the Gauntlet's edge; escort),
+  **Ship → Blackwater** (escort, briefing, return; inside the mine ring), **Ship → depot** (raid),
+  **Ship → battle** (battle; close enough to the lines to start it).
 - **Raider now** (hook): *Long Memory* appears 4.5U from the crew and hails, without the barkeep's message.
 - **Kill defenders** (raid): destroys the depot guards. **Finish loading**: the guards go, the depot
   surrenders and the escorts' loading is done.

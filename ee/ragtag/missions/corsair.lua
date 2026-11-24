@@ -1141,6 +1141,14 @@ M.gm_states = {
 }
 
 M.gm_actions = {
+    -- Travel shortcuts for playtesting (the arc ship to 5U from where the phase sends it).
+    ARC.travel("Greywater", {"hook"}, "Greywater Depot"),
+    ARC.travel("Long Memory", {"hook", "escort"}, function(st)
+        return RT.valid(st.guide) and st.guide or {x = _GREYWATER_MEET_X, y = _GREYWATER_MEET_Y}
+    end),
+    ARC.travel("Blackwater", {"escort", "briefing", "return"}, "Blackwater"),
+    ARC.travel("depot", {"raid"}, {x = _DEPOT_X, y = _DEPOT_Y}),
+    ARC.travel("battle", {"battle"}, {x = _BATTLE_X, y = _BATTLE_Y}),
     {label = "Raider now", phases = {"hook"}, fn = function(st)
         local p = ARC.player()
         if not p or RT.valid(st.guide) then return end

@@ -53,6 +53,8 @@ Five story arcs unlock as the **primary ship** (the Magpie) earns standing and i
 other ships work the job boards only. **Missions...** on the GM screen shows each arc's conditions
 (**Mission criteria**: each condition met or not, "Result: ALL MET / do not start", and once it is
 over, whether it was completed and how), its state, "→" buttons to jump to any phase, and helpers.
+In every phase that sends the crew somewhere there is a travel shortcut, **Ship → <place>** (e.g. **Ship →
+Hob's**): it puts the Magpie 5U from the place, undocked and stopped, so a playtest can skip the flight.
 
 | Arc | Starts when | What it is | GM guide |
 |---|---|---|---|

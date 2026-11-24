@@ -127,6 +127,9 @@ says to lay low; ends **Data**.
 | `→ Done: Concord` / `Data` / `Destroyed` / `Escaped` | End the arc with that outcome |
 
 Helpers, shown only in their phase:
+- **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → Dustmote** (rumors,
+  card run, data run), **Ship → Rezkov** (meeting), **Ship → Galen** (hacking), **Ship → Meridian**
+  (intercept; 5U is the Meridian's hostility range).
 - **Complete hack** (M2): sets Galen's front shield fully hacked; the phase finishes normally.
 - **Disable Meridian** (M3): drops its hull to 10%, so it is disabled and hails.
 

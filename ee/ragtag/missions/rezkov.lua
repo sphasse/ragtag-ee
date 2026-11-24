@@ -600,6 +600,11 @@ M.gm_actions = {
             st.galen:setSystemHackedLevel("frontshield", 1.0)
         end
     end},
+    -- Travel shortcuts for playtesting (the arc ship to 5U from where the phase sends it).
+    ARC.travel("Dustmote", {"hook", "m2_deliver", "m3_deliver"}, "Dustmote Salvage"),
+    ARC.travel("Rezkov", {"m1_navigate"}, function(st) return st.waypoint end),
+    ARC.travel("Galen", {"m2_active"}, "Concord Waypoint Galen"),
+    ARC.travel("Meridian", {"m3_active"}, function(st) return st.meridian end),
     {label = "Disable Meridian", phases = {"m3_active"},
      fn = function(st)
         if RT.valid(st.meridian) then

@@ -307,6 +307,8 @@ add it to `_helpers.lua`, not to `core.lua` and not to both arcs.
 | `ARC.route(arc_id, rules, default)` | `init` routing by saved flags: first rule `{flag_or_fn, phase}` that holds. |
 | `ARC.jumper(arc_id)` | Builder for `M.gm_states` buttons: `_jump(phase, setup, opts)`. |
 | `ARC.resetState(M, st)` | For `M.gm_reset`: wipe `st` and refill from `M.init_state()`, in place. |
+| `ARC.travel(label, phases, target)` | A GM helper "Ship → label" for `M.gm_actions`: in those phases it puts the arc ship 5U from `target` (callsign, entity, `{x=, y=}`, or `function(st)` returning one). Every phase that sends the crew somewhere gets one (`tests/core/travel.lua` presses them all). |
+| `ARC.shipTo(target, dist)` | What `ARC.travel` calls: undock, move the arc ship `dist` (5U) from `target` on the side it came from, stop. |
 
 The skeleton they add up to:
 

@@ -599,7 +599,18 @@ M.gm_states = {
     {key = "done_lost", label = "→ Done: Lost",  fn = _done("lost", "power")},
 }
 
+-- The next fragment still out there (for the travel shortcut).
+local function _nextFragment()
+    for _, f in ipairs(_FRAGS) do
+        if not RT.flag("ledger_frag_" .. f.n) then return {x = f.x, y = f.y} end
+    end
+end
+
 M.gm_actions = {
+    -- Travel shortcuts for playtesting (the arc ship to 5U from where the phase sends it).
+    ARC.travel("Dustmote", {"hook"}, "Dustmote Salvage"),
+    ARC.travel("Rezkov", {"meet", "carry"}, function(st) return st.station end),
+    ARC.travel("fragment", {"relay_run"}, function(st) return _nextFragment() end),
     -- While waiting: count the board jobs as done, so the gate's job condition is met at once
     -- (the other triggers still apply: Rezkov over, 800 cr of upgrades).
     {label = "Satisfy done jobs", phases = {"inactive"}, fn = function(st)

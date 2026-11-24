@@ -988,6 +988,10 @@ M.gm_states = {
 }
 
 M.gm_actions = {
+    -- Travel shortcuts for playtesting (the arc ship to 5U from where the phase sends it).
+    ARC.travel("Hob's", {"hook", "deliver", "build"}, "Hob's Landing"),
+    ARC.travel("Lumen", {"heist"}, _LUMEN),
+    ARC.travel("Tithe", {"heist"}, function(st) return st.transport end),
     {label = "Satisfy done jobs", phases = {"inactive"}, fn = function(st)
         if not _phaseTwoOver() then
             addGMMessage("The Phase II arcs are not all over yet (Ledger, Boneyard with the survivors, Corsair): the job count starts then.")

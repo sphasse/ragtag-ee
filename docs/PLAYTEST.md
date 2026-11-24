@@ -5,7 +5,9 @@ clients, and the numbers left for a playtest. Tick items off, and note what felt
 (grid, phase, which station). Last updated 2026-11-19, after the round of arc fixes from the RC1 playtest (RC2).
 
 GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a phase; the helper buttons
-(e.g. **Kill fleet**) skip a fight. Use them to get to a section, then play the section for real.
+(e.g. **Kill fleet**) skip a fight. In any phase that sends the crew somewhere, **Ship → <place>** (e.g.
+**Ship → Hob's**) puts the Magpie 5U from it, undocked and stopped, to skip the flight. Use them to get to a
+section, then play the section for real.
 
 ## Before you start
 

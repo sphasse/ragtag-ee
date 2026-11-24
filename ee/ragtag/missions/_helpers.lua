@@ -203,6 +203,51 @@ function ARC.jumper(arc_id)
     end
 end
 
+-- GM travel shortcut for playtesting: put the arc ship `dist` (default 5U) from a place, on the side
+-- it is coming from, undocked and stopped. `target` is a callsign, an entity, {x = , y = } in world
+-- units, or a function returning one of those (evaluated when the button is pressed). Returns true
+-- when the ship moved; tells the GM why not otherwise. ARC.lastShipTo keeps where it went (tests).
+function ARC.shipTo(target, dist)
+    dist = dist or 5000
+    if type(target) == "function" then target = target() end
+    local p = ARC.player()
+    if not p then
+        addGMMessage("No arc ship to move.")
+        return false
+    end
+    local tx, ty
+    if type(target) == "string" then
+        local e = RT.find(target)
+        if RT.valid(e) then tx, ty = e:getPosition() end
+    elseif type(target) == "table" and target.x then
+        tx, ty = target.x, target.y
+    elseif target ~= nil and RT.valid(target) then
+        tx, ty = target:getPosition()
+    end
+    if not tx then
+        addGMMessage("Nothing to fly to right now (" .. tostring(target) .. ").")
+        return false
+    end
+    local dp = p.components.docking_port
+    if dp and dp.state ~= "not_docking" then pcall(function() p:commandUndock() end) end
+    local px, py = p:getPosition()
+    local dx, dy = px - tx, py - ty
+    local d = math.sqrt(dx * dx + dy * dy)
+    if d < 1 then dx, dy, d = 1, 0, 1 end
+    p:setPosition(tx + dx / d * dist, ty + dy / d * dist)
+    pcall(function() p:commandImpulse(0) end)
+    pcall(function() p:commandWarp(0) end)
+    ARC.lastShipTo = {x = tx, y = ty, dist = dist}
+    return true
+end
+
+-- A GM helper button for M.gm_actions: "Ship → <label>" in the listed phases, moving the arc ship
+-- 5U from `target` (see ARC.shipTo). Labels stay within the 18-character GM limit.
+function ARC.travel(label, phases, target)
+    return {label = "Ship → " .. label, phases = phases, travel = true,
+            fn = function(st) ARC.shipTo(type(target) == "function" and function() return target(st) end or target) end}
+end
+
 -- For M.gm_reset: empty the arc's state table and refill it from M.init_state(), in place (the
 -- engine and closures keep their reference to the same table).
 function ARC.resetState(M, st)

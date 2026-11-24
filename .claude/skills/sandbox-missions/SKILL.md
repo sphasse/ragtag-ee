@@ -68,6 +68,7 @@ commit; a playtest fix also gets a line under Design notes → History.
 | Paying a reward once | `ARC.once("<arc>_rewarded", fn)` |
 | `init` routing by saved flags | `ARC.route(arc_id, {{flag_or_fn, phase}, ...}, default)` |
 | GM state buttons and reset | `ARC.jumper(arc_id)`, `ARC.resetState(M, st)` |
+| GM travel shortcut ("Ship → Hob's") | `ARC.travel(label, phases, target)` in `M.gm_actions` (uses `ARC.shipTo`) |
 
 **One ship.** Arcs belong to the campaign's primary ship (the Magpie). Other player ships can be
 in the game working the job board, and an arc must not react to them. So arcs never use
@@ -184,6 +185,7 @@ crash in `enter`, `gm_reset` or a `completed` hook.
 - [ ] Arc triggers use `not_flagged` to prevent re-triggering after completion
 - [ ] Destruction callbacks registered via `RT.onKill`, never `entity:onDestruction`
 - [ ] Every `M.gm_states` / `M.gm_actions` label is ≤ 18 characters (check function labels at their longest value)
+- [ ] Every phase that sends the crew somewhere has a GM travel shortcut: `ARC.travel("Place", {phases}, target)` ("Ship → Place", 5U away), listed in the GM guide
 - [ ] Hook rumors injected in `enter` / removed in `exit`, not gated on a persistent flag
 - [ ] GM guide `docs/GM_<NAME>_MISSION.md` (Premise, Triggers, Phases, GM console, Exports, Design notes) matches the code and is linked from `docs/GM_GUIDE.md`; a change to an existing arc updated its guide
 - [ ] `tests/arcs/<name>.lua` plays the real path, every ending, every GM state and "-> Inactive"; `tools/game_tests.py` passes

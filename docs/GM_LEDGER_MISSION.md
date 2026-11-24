@@ -117,6 +117,8 @@ from the Core back to the nebula.
 | `→ Done: Full` / `→ Done: Lost` | End the arc (Lost is the `power` reason) |
 
 Helpers, shown only in their phase:
+- **Travel shortcuts** (put the Magpie 5U away, undocked and stopped): **Ship → Dustmote** (hook),
+  **Ship → Rezkov** (meet, carry), **Ship → fragment** (relay run: the next core not yet picked up).
 - **Satisfy done jobs** (waiting): the two-job count is met at once; the Rezkov and upgrade conditions
   still apply.
 - **Give fragment** (relay run): one more core collected.
