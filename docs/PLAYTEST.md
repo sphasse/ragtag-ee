@@ -115,6 +115,29 @@ GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a p
       too long under fire? Does the Concord ever get to it?
 - [ ] Losing your ship in the battle ends the arc as failed; losing Corsairs does not
 
+## 5b. Hob Works Arc (after Ledger, Boneyard with survivors, Corsair; then 5 board jobs; or GM jump)
+
+Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
+- [ ] The hook: an Independent port's news leads with Quill's message; hearing it sets "Meet Quill at Hob's".
+      Does the crew go to Hob's Landing on their own?
+- [ ] The briefing at Hob's Landing: the four pages, then the four convoy pages. Does each fit the comms
+      window without scrolling? Is the cash problem and the plan clear? The Lullaby and convoy-intel Science
+      DB entries pop up on Science
+- [ ] The 15-minute countdown: enough time to reach Lumen, pick a spot and scan? Too much?
+- [ ] The fake transponder ("Change transponder" on Engineering, "Code valid 9:59"): does Engineering notice
+      it? Do they time it to the departure? Inside 15U without it, the escorts' warning hail, then a fight
+- [ ] The run: the transport at 7.5U a minute (GM **Transport faster / slower** to tune). Does it feel like
+      chasing a train?
+- [ ] Disabling it: impulse **and** rear shield under 10% (a hack alone only gets a system to 25%). Too hard?
+      Does Relay hack while Weapons shoot? Docking to board
+- [ ] Destroying it: the three cash boxes. Does the crew find and collect them?
+- [ ] The escorts (Adder MK8, hull 100): a real fight? Do they leave a second player ship alone?
+- [ ] The way home with the cash: the Concord patrols are back. The 15-minute delivery: tight or easy?
+- [ ] Paying: "We have the cash." then "Deliver 10,000 cr to the engineers"; the 10-minute build
+- [ ] A missed delivery (GM: let it lapse): Independent standing to -100, the shaming port news for 30 min,
+      the late delivery accepted
+- [ ] Rumors afterwards: the robbery and the Concord fallout (the yard layoffs, the Senate)
+
 ## 6. Ship handling upgrades and the Hob Works
 
 - [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does

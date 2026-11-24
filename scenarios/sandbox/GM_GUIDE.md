@@ -152,11 +152,11 @@ The GM screen's buttons, top to bottom:
     A GM job is never re-offered after it is delivered or fails. Posted jobs last for the session only.
 - **Ship Upgrades...**: pick a ship, then grant or revoke upgrades on **that ship** and view its
   status sheet (see `docs/GM_SHIP_MANAGEMENT.md`)
-- **Missions...**: the story arcs (Rezkov, Boneyard, Ledger, Corsair): trigger conditions, state,
+- **Missions...**: the story arcs (Rezkov, Boneyard, Ledger, Corsair, Hob Works): trigger conditions, state,
   "→" buttons to jump an arc to any phase, and phase helpers (e.g. the Ledger's "+100 energy", and
   "Satisfy done jobs" while it waits for its two board jobs). Each arc's buttons are in its GM guide:
-  `docs/GM_REZKOV_MISSION.md`, `GM_LEDGER_MISSION.md`, `GM_BONEYARD_MISSION.md` and
-  `GM_CORSAIR_MISSION.md`. **Mission criteria** shows each condition,
+  `docs/GM_REZKOV_MISSION.md`, `GM_LEDGER_MISSION.md`, `GM_BONEYARD_MISSION.md`,
+  `GM_CORSAIR_MISSION.md` and `GM_HOB_WORKS_MISSION.md`. **Mission criteria** shows each condition,
   "Result: ALL MET" or "do not start", and once the arc is over "Mission completed" and its outcome.
   **Enable arc / Disable arc** (on any arc not running, finished ones included) first resets the
   arc to "never happened": every flag of the arc, its done flag included, and its state

@@ -15,7 +15,7 @@ Status at last update (2026-11-21):
 | 2 | Ledger Arc (accounting AI) | **BUILT** | `ee/ragtag/missions/ledger.lua` + `docs/GM_LEDGER_MISSION.md` |
 | 3 | Boneyard Arc | **BUILT** | `ee/ragtag/missions/boneyard.lua` + `docs/GM_BONEYARD_MISSION.md` |
 | 4 | Corsair Arc (redemption) | **BUILT** | `ee/ragtag/missions/corsair.lua` + `docs/GM_CORSAIR_MISSION.md` |
-| 5a | The Hob Works (engineering and heist) | planned (2026-11-21); seeds built | — |
+| 5a | The Hob Works (engineering and heist) | **BUILT** (2026-11-23) | `ee/ragtag/missions/hob.lua` + `docs/GM_HOB_WORKS_MISSION.md` |
 | 5 | Maw Arc (finale): deploy and defend a broadcast station | planned (revised 2026-11-21) | — |
 | — | The Concord's fracture (instability seeds) | deferred until after the playtest | — |
 | 6 | Concord Republic Arc (optional serial) | an option, not committed | — |
@@ -189,7 +189,9 @@ mines, then stands in the Corsair line when the fleet arrives. Linear: defend, o
 3. Declining the final battle after the raid counts as `"failed"` (the defense started and did
    not finish successfully); `"declined"` only comes from turning down the hook.
 
-## Arc 5a — The Hob Works (engineering and heist) — PLANNED (decided 2026-11-21)
+## Arc 5a — The Hob Works (engineering and heist) — BUILT 2026-11-23 (details: `docs/GM_HOB_WORKS_MISSION.md`)
+
+The design below is the plan it was built from; the GM guide is the authority on what was built.
 
 **Premise.** The Boneyard's lifeboat survivors, led by **Dr. Mara Quill** (senior researcher on the
 reversal program until the Concord shut it down), take the crew's archive to Hob's Landing, where

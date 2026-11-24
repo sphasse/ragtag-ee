@@ -75,6 +75,20 @@ AFTERMATH.ENTRIES = {
     {id = "aftermath_corsair_medals", category = "CORSAIR_DONE",
      when = function() return F("corsair_arc_done") == "failed" end,
      text = "The Concord's handing out medals for Blackwater. Half the Border stations wouldn't fly the flag for the ceremony."},
+
+    -- ── Hob Works (the Treasury convoy) ─────────────────────────────────────
+    {id = "aftermath_hob_robbed", category = "HOB_DONE",
+     when = function() return F("hob_heist") == "boarded" end,
+     text = "A Treasury transport was stopped and stripped inside the Core, two Navy escorts and all. The Concord says it was a training exercise."},
+    {id = "aftermath_hob_wreck", category = "HOB_DONE",
+     when = function() return F("hob_heist") == "destroyed" end,
+     text = "A Treasury convoy blew up on the lane to Sentinel. Fleet Command says an accident; the Senate wants to know why a payroll needed warships."},
+    {id = "aftermath_hob_yard", category = "HOB_DONE",
+     when = function() local h = F("hob_heist") return h == "boarded" or h == "destroyed" end,
+     text = "Sentinel Fleet Yard laid off half its yard crews this week. The pay from Lumen never arrived, and the new hulls are sitting unfinished."},
+    {id = "aftermath_hob_senate", category = "HOB_DONE",
+     when = function() local h = F("hob_heist") return h == "boarded" or h == "destroyed" end,
+     text = "Two senators are asking how the Treasury lost a convoy inside the Core. Somebody at Lumen is going to lose their job over it."},
 }
 
 AFTERMATH.PRIORITY      = 3

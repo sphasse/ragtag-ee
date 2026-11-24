@@ -228,6 +228,31 @@ SCIDB.PROFILES = {
               ["Current post"] = "Special Ops Investigations", ["Vessel"] = "CWS Meridian",
               ["Reputation"] = "Asks what nobody else will"},
     },
+    quill_profile = {
+        who  = "quill",
+        name = "Dr. Mara Quill",
+        desc = "Former senior researcher at the Ashgrave Annex, now working out of the Hob Works at " ..
+               "Hob's Landing.\n\n" ..
+               "Worked on the Concord's Phase II reversal program until it was shut down, and was one " ..
+               "of four Annex staff who escaped the Boneyard in a lifeboat. Precise, tired, and " ..
+               "stubborn in the way of someone who has decided a thing will get done whatever it " ..
+               "costs her.\n\n" ..
+               "Speaks for the survivors, and for the people she believes the Concord abandoned in " ..
+               "the Maw.",
+        kv = {["Role"] = "Researcher, the Hob Works", ["Formerly"] = "Ashgrave Annex",
+              ["Field"] = "Phase II reversal", ["Manner"] = "Precise, relentless"},
+    },
+    marchetti_profile = {
+        who  = "marchetti",
+        name = "Anton Marchetti",
+        desc = "Chief engineer of the Hob Works at Hob's Landing.\n\n" ..
+               "Came out of the Concord's Applied Research Division the year the Pale Sun was sealed, " ..
+               "and has never said why. Builds things other yards say cannot be built, usually on " ..
+               "time and rarely on budget. Talks fast, swears in three languages, and treats his " ..
+               "crew like family.",
+        kv = {["Role"] = "Chief engineer, Hob Works", ["Formerly"] = "Concord Applied Research",
+              ["Manner"] = "Fast, blunt, warm", ["Known for"] = "Building the impossible"},
+    },
 }
 
 -- Add a profile entry (no flag). Returns true if it was newly added.

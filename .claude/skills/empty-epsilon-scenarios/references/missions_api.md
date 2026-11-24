@@ -442,6 +442,7 @@ This makes arcs easy to disable, restart, skip, or test independently.
 | `boneyard` | Boneyard Arc  | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, annex_hack, annex_control, report |
 | `ledger`   | Ledger Arc    | no  | upgrades_min + not_flagged + requires (Rezkov) + custom (2 board jobs after Rezkov) | hook, meet, relay_run, carry |
 | `corsair`  | Corsair Arc   | no  | upgrades_min + not_flagged + requires (Rezkov) (hook on entering the Gauntlet) | hook, escort, briefing, raid, return, battle |
+| `hob`      | Hob Works Arc | no  | not_flagged + requires (Rezkov, Ledger, Boneyard with survivors, Corsair) + custom (5 board jobs after) | hook, heist, deliver, build |
 
 Retired arcs (Witness, Whistleblower) live in `ee/ragtag/missions/attic/` — kept for
 reference, never required by the loader. `check.py` errors on any file in
