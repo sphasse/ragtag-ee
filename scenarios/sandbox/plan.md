@@ -273,12 +273,23 @@ meet.
        same speed to stay with it. **Tune in a playtest** (decided 2026-11-23): during the intercept the GM
        screen has **Transport faster / Transport slower** buttons (and shows the current speed), so the run
        can be adjusted live.
-     - **Getting the cash** (decided 2026-11-23): **disable and board** is the intended way (the boarding
-       job's and the Meridian's mechanic): the full haul. **Destroying the transport** is a partial
-       success: it leaves debris with **three cash boxes of 2,500 cr each** to pick up (7,500 cr; a fourth
-       box was lost in the explosion), as `Artifact` pickups like the Ledger's data cores. Letting it reach
-       Sentinel loses everything: see "one chance" below.
-     - **Then home to Hob's Landing** with the cash; the arc ends there (the Works take their price).
+     - **Getting the cash** (decided 2026-11-23): the transport carries **four cash boxes of 3,000 cr**.
+       **Disable and board** is the intended way (the boarding job's and the Meridian's mechanic): all four,
+       **12,000 cr**. **Destroying the transport** is a partial success: its debris holds **three** boxes to
+       pick up (**9,000 cr**; the fourth was lost in the explosion), as `Artifact` pickups like the Ledger's
+       data cores. Letting it reach Sentinel loses everything: see "one chance" below. Short of the price
+       (9,000 vs 10,000; or vs 15,000 without the archive), the crew makes up the rest on the job boards
+       (more lucrative small missions may come later).
+     - **Disabled means** (decided 2026-11-23: "harder" than the Meridian's hull < 25% or impulse < 30%):
+       **impulse under 10%** *and* a second hackable system. Options:
+       (a) **rear shield** under 10%: "engines dead and the shield down, so you can board" (shields block
+       boarding; the rear arc faces a pursuer; hack or shoot it); (b) **maneuvering** under 10%: it can no
+       longer steer, dead in space; (c) **reactor** under 10%: no power anywhere, the most work. Recommended:
+       **(a) the rear shield**: it explains why boarding needs it, Relay can hack it while Weapons work on
+       the engines, and the crew can also shoot it down, so a crew bad at hacking still has a way. A system
+       "under 10%" means its effective power, health and hack together. Until it is disabled the ship can't
+       be boarded; the impulse drive slows it as it falls (EE scales impulse by the system's power).
+     - **Then home to Hob's Landing** with the cash: see "Delivering the cash" below.
      - **Insider intel in the briefing** (decided 2026-11-23): the Works give a detailed, insider-style
        rundown of the three ships, not exact stats but a real sense of what the crew is up against:
        speed, hull and shields, armament, and how each behaves (the escorts will come for you; the
@@ -341,9 +352,30 @@ meet.
      sortie from Sentinel and Lumen and chase the crew out of the Core (`BATTLE` waves, combat warp
      jammers); a picket line to slip past or break through at the edge of the Escrow Marches or the
      Arbiter Line; a jammer stop like the audit fleet's; or nothing beyond the convoy fight.
-   - **The haul:** ~**12,000 cr** to the arc ship when the freighter is boarded and the crew gets
-     clear, so the crew can pay for the beacon *and* afford some good upgrades. Concord standing
-     takes a big hit. No Audit Service.
+   - **The haul:** **12,000 cr** boarded, **9,000 cr** from the wreck. **Concord standing takes another big
+     hit** (amount to tune; whether boarding and destroying differ, open). No Audit Service.
+   - **Delivering the cash** (decided 2026-11-23): the money **counts only when delivered to Hob's
+     Landing**. Taking it starts a **15-minute delivery countdown** (objective line, e.g. "Deliver by
+     14:59"). Docked there, the crew gets the cash as credits and a button **"Deliver 10,000 cr to the
+     engineers"** (15,000 without the archive; offered while they can afford it); the rest is theirs.
+     Not delivered in time: the arc stays open, the crew's Independent standing goes down, the Works
+     pester them for a while (port news and hails at Independent ports), and eventually the arc ends
+     without the beacon. Open: the standing loss, how long the pestering lasts, whether the cash is lost
+     then.
+   - **Who the escorts care about** (decided 2026-11-23): **only the Magpie** (the arc ship). Another
+     player ship is just another Independent ship: the escorts ignore it but defend themselves. Once
+     they have spotted the Magpie they keep fighting it.
+   - **Losing the Magpie** during the heist ends the one chance (decided 2026-11-23).
+   - **Numbers** (decided 2026-11-23): start with the planned ones (escorts Adder MK8 with hull ~100;
+     the transport an Equipment Freighter 5, hull 100, shields 50/50, one weak rear beam) and playtest.
+   - **The fake code's countdown** on Engineering reads like **"Code valid 9:59"** (decided 2026-11-23).
+   - **Building the beacon** after payment takes **10 minutes, or until the next session**, whichever
+     comes first (decided 2026-11-23); then `hob_beacon_ready`.
+   - **Aftermath rumors** (decided 2026-11-23): news of the robbery in the shared aftermath list
+     (`missions/_aftermath.lua`), tied to Concord instability (e.g. the Fleet Yard's rebuild stalled for
+     want of pay, questions in the Senate about a Treasury convoy lost inside the Core).
+   - **GM helpers** (decided 2026-11-23): **Transport faster / slower**, **Depart now**, **Disable
+     transport**, **Kill escorts**, **Give cash**.
    - **The Escrow Marches** (built 2026-11-23): a permanent Concord region south of the Core and the Arbiter
      Line, centre (-155, 32), radius 72, closing the gap where they met and stopping ~3U short of the Cinder
      Fields; patrols and shakedowns as on the Arbiter Line. Sentinel Fleet Yard stays in the Core (the
