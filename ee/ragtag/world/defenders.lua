@@ -4,6 +4,11 @@
 -- explains their posting and (if the "defender_cmds_<faction>" flag is set)
 -- accepts orders from the player.
 --
+-- Concord port guards: a player ship with Concord standing below -200 (the patrols' detention
+-- line) that comes within 5U of a Concord defender is attacked by it ("Concord Hostile", attacking
+-- that ship only). It stands down when the ship is beyond 10U of the port, is lost, or its
+-- standing recovers. Tuning: hostile_below, guard_radar_u, guard_leash_u.
+--
 -- Lane pickets: the universe's garrisons with a beat (VERSE.PICKETS, from beat_u in the verse
 -- data: the Concord pickets, not tied to a port) walk a slow square round their post, holding
 -- each corner for a while before moving on. The lead flies (orderFlyTowards: it still engages
@@ -26,6 +31,14 @@ _P.defaults = {
     factions        = {"Concord", "Independent"},
     picket_dwell_secs  = 45,        -- how long a picket holds each corner of its beat
     picket_arrive_u    = 600,       -- meters: this close to a corner counts as there
+    -- Concord port guards and wanted ships: a player ship whose Concord standing is below
+    -- hostile_below (the patrols' "detention" line) and comes within guard_radar_u of a Concord
+    -- defender is attacked by it ("Concord Hostile", orderAttack on that ship only). It gives up
+    -- and goes back to its post when the ship is beyond guard_leash_u of the port, is lost, or its
+    -- standing recovers.
+    hostile_below   = -200,
+    guard_radar_u   = 5000,         -- meters: how far a guard notices a wanted ship
+    guard_leash_u   = 10000,        -- meters from its port: how far it chases
 }
 
 -- ── Name pools ──────────────────────────────────────────────────────────────
@@ -78,11 +91,16 @@ local function _nearestEnemy(ship, radius)
 end
 
 -- source: the hailing player ship; defender: the defender entity itself (never looked up by name).
-local function _defenderComms(source, defender, station_cs, fac)
+local function _defenderComms(source, defender, station_cs, fac, slot)
     local fac_slug = fac == "Concord" and "concord" or "independent"
     local can_cmd  = RT.flag("defender_cmds_" .. fac_slug)
     local ship_name = defender:getCallSign()
     local station  = RT.find(station_cs)   -- a universe place, found by name
+
+    if slot and slot.hostile_to then
+        setCommsMessage('"' .. ship_name .. '. Your vessel is wanted by the Concord. Power down and prepare to be boarded."')
+        return
+    end
 
     if fac == "Concord" then
         setCommsMessage('"' .. ship_name .. ', patrol assignment ' ..
@@ -162,14 +180,67 @@ local function _spawnDefender(state, cs, fac)
         ship:orderIdle()
     end
 
-    local cap_cs, cap_fac = cs, fac
+    local cap_cs, cap_fac, slot = cs, fac, state.slots[cs]
     ship:setCommsFunction(function(src, tgt)
-        _defenderComms(src, tgt, cap_cs, cap_fac)
+        _defenderComms(src, tgt, cap_cs, cap_fac, slot)
     end)
 
-    state.slots[cs].ship      = ship   -- the entity: the slot never looks its ship up by name
-    state.slots[cs].ship_name = name
-    state.slots[cs].respawn_at = nil
+    slot.ship      = ship   -- the entity: the slot never looks its ship up by name
+    slot.ship_name = name
+    slot.respawn_at = nil
+    slot.hostile_to = nil
+end
+
+-- ── Concord guards and wanted ships ─────────────────────────────────────────
+
+local function _wanted(p)
+    return (RT.getReputation("Concord", p) or 0) < WORLD.get("defenders", "hostile_below", -200)
+end
+
+-- Back to its post: Concord again, defending its port.
+local function _standDown(slot, cs)
+    slot.hostile_to = nil
+    if not RT.valid(slot.ship) then return end
+    slot.ship:setFaction("Concord")
+    local station = RT.find(cs)
+    if RT.valid(station) then slot.ship:orderDefendTarget(station) else slot.ship:orderIdle() end
+end
+
+-- Each Concord guard: engage the nearest wanted player ship within its radar; give up when the
+-- ship leaves the leash round the port, is lost, or is no longer wanted.
+local function _tickGuards(state)
+    local radar = WORLD.get("defenders", "guard_radar_u", 5000)
+    local leash = WORLD.get("defenders", "guard_leash_u", 10000)
+    for cs, slot in pairs(state.slots) do
+        if slot.fac == "Concord" and RT.valid(slot.ship) then
+            local g = slot.ship
+            if slot.hostile_to then
+                local p = slot.hostile_to
+                local station = RT.find(cs)
+                if not RT.valid(p) or not _wanted(p)
+                   or (RT.valid(station) and RT.dist(p, station) > leash) then
+                    _standDown(slot, cs)
+                end
+            end
+            if not slot.hostile_to then
+                local best, best_d
+                RT.forEachPlayer(function(p)
+                    if _wanted(p) then
+                        local d = RT.dist(p, g)
+                        if d <= radar and (not best_d or d < best_d) then best, best_d = p, d end
+                    end
+                end)
+                if best then
+                    slot.hostile_to = best
+                    g:setFaction("Concord Hostile")
+                    g:orderAttack(best)
+                    best:addToShipLog(string.format(
+                        "[Concord] %s: %s, you are wanted by the Concord. Power down and prepare to be boarded.",
+                        g:getCallSign(), best:getCallSign()), "#FF4444")
+                end
+            end
+        end
+    end
 end
 
 -- ── Lane pickets ─────────────────────────────────────────────────────────────
@@ -270,6 +341,10 @@ end
 function _P.update(state, delta, now)
     local respawn_secs = WORLD.get("defenders", "respawn_secs", 120)
     _tickPickets(state, now)
+    if now >= (state.next_guard or 0) then
+        state.next_guard = now + 1
+        _tickGuards(state)
+    end
 
     for cs, slot in pairs(state.slots) do
         if slot.ship then

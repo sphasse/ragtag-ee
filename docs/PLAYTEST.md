@@ -152,6 +152,9 @@ Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
 
 - [ ] The Concord lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) walk a
       slow beat round their posts and read as pickets ("Concord lane picket…"), not lost defenders
+- [ ] With Concord standing below −200, a Concord port's guard ("CPV …") turns hostile once the ship is within
+      5U of it ("…you are wanted by the Concord…" in the log), and gives up 10U from the port. Is 5U the right
+      radar? Can a wanted crew still slip in and out of a Concord port?
 - [ ] Science DB **Ship Upgrades** (top level): one entry per component with every upgrade's effect, price, prerequisite
       and the ports that fit it. Does it read well on the Science screen? Do crews use it to plan purchases?
 - [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …") and pop up on
