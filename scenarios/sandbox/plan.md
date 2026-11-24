@@ -273,8 +273,12 @@ meet.
        same speed to stay with it. **Tune in a playtest** (decided 2026-11-23): during the intercept the GM
        screen has **Transport faster / Transport slower** buttons (and shows the current speed), so the run
        can be adjusted live.
-     - **Destroying the freighter loses the money**, and so does letting it reach Sentinel: see "one
-       chance" below.
+     - **Getting the cash** (decided 2026-11-23): **disable and board** is the intended way (the boarding
+       job's and the Meridian's mechanic): the full haul. **Destroying the transport** is a partial
+       success: it leaves debris with **three cash boxes of 2,500 cr each** to pick up (7,500 cr; a fourth
+       box was lost in the explosion), as `Artifact` pickups like the Ledger's data cores. Letting it reach
+       Sentinel loses everything: see "one chance" below.
+     - **Then home to Hob's Landing** with the cash; the arc ends there (the Works take their price).
      - **Insider intel in the briefing** (decided 2026-11-23): the Works give a detailed, insider-style
        rundown of the three ships, not exact stats but a real sense of what the crew is up against:
        speed, hull and shields, armament, and how each behaves (the escorts will come for you; the
@@ -325,18 +329,18 @@ meet.
      lane. At zero the convoy undocks and runs to Sentinel whatever the crew is doing.
    - **One chance** (decided 2026-11-23): this is a **one-time, bigger transfer** to get ships built to
      replace the Concord's Boneyard and Corsair losses (if they happened; "reinforcing" otherwise). Miss
-     it, let it reach Sentinel, or destroy the transport, and the heist is over: there is no later run.
-     Then the crew **pays the Works' price from its own credits**, earned on the job boards (decided
+     it or let it reach Sentinel and the heist is over: there is no later run (destroying it still leaves
+     the three cash boxes). Whatever the heist leaves short, the crew **pays from its own credits**, earned on the job boards (decided
      2026-11-23); until it can, the beacon is stalled. Something else may be set up later.
    - **Ambient Concord patrols are off during the heist** (decided 2026-11-23): the arc suspends the Concord
      Core, Arbiter Line and Escrow Marches PROX zones (`PROX.suspendZone`) from the briefing until the heist
      ends. The danger is the arc's own: the escorts, then the response force.
    - **Real battles, one or two:** (1) the intercept itself, the two escorts then the freighter;
-     (2) the Concord response: once the convoy calls for help, **regular Concord forces** (not the
-     Audit Service: its records were purged) sortie from Sentinel and Lumen and chase the crew out
-     of the Core, with combat warp jammers (`PROX.tickCombatJammers`). Possibly a picket on the
-     Arbiter Line on the way home. Reuse `BATTLE` for the response waves and the boarding job's
-     disable-and-board for the freighter.
+     (2) the way home: **to be decided after the next playtest** (2026-11-23): the user wants to see how
+     crews handle the Ledger arc's Audit Service stop first. Options on the table: Concord forces that
+     sortie from Sentinel and Lumen and chase the crew out of the Core (`BATTLE` waves, combat warp
+     jammers); a picket line to slip past or break through at the edge of the Escrow Marches or the
+     Arbiter Line; a jammer stop like the audit fleet's; or nothing beyond the convoy fight.
    - **The haul:** ~**12,000 cr** to the arc ship when the freighter is boarded and the crew gets
      clear, so the crew can pay for the beacon *and* afford some good upgrades. Concord standing
      takes a big hit. No Audit Service.
