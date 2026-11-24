@@ -242,6 +242,16 @@ SCIDB.PROFILES = {
         kv = {["Role"] = "Researcher, the Hob Works", ["Formerly"] = "Ashgrave Annex",
               ["Field"] = "Phase II reversal", ["Manner"] = "Precise, relentless"},
     },
+    varga_profile = {
+        who  = "varga",
+        name = "Dr. Nell Varga",
+        desc = "The doctor at Tamsin Hollow, the farm depot that feeds half the Border.\n\n" ..
+               "Keeps the depot's crews alive on a clinic budget and a lot of stubbornness. Applies through " ..
+               "the proper channels first, every time, and keeps the paperwork to prove she did. When the " ..
+               "channels fail, she stops waiting for them.",
+        kv = {["Role"] = "Doctor, Tamsin Hollow", ["Manner"] = "Tired, direct, kind",
+              ["Known for"] = "Never giving up a patient"},
+    },
     marchetti_profile = {
         who  = "marchetti",
         name = "Anton Marchetti",

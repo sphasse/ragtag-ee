@@ -143,6 +143,19 @@ Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
       the late delivery accepted
 - [ ] Rumors afterwards: the robbery and the Concord fallout (the yard layoffs, the Senate)
 
+## 5c. Cold Chain (the Hob Works funded, then 3 board jobs; or GM jump)
+
+Details: [GM_COLD_CHAIN_MISSION.md](GM_COLD_CHAIN_MISSION.md).
+- [ ] The seed rumors at Independent ports (the fever, the cure, Varga asking): hearing Varga's sets
+      "Dr. Varga at Tamsin". Does the crew go?
+- [ ] Varga's three pages at Tamsin Hollow: is the plan (dock at Ostia, Relay hacks the port to 75%) clear?
+- [ ] At Ostia: does Relay find the port's shields on its hacking screen while docked? Does a wanted crew
+      use a fake code to get past the port guard, and time it?
+- [ ] With a code: "an unknown freighter", no chase. Without: Concord -300 and a patrol every 30 s until out
+      of Concord space
+- [ ] "Serum good for 14:59" on Relay: is 15 minutes tight or easy? Delivery at Tamsin: 3,000 cr in time,
+      1,000 spoiled
+
 ## 6. Ship handling upgrades and the Hob Works
 
 - [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does

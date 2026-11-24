@@ -63,6 +63,7 @@ Hob's**): it puts the Magpie 5U from the place, undocked and stopped, so a playt
 | Boneyard | Rezkov over, 800 cr of upgrades | A rescue that leads to a Concord archive and a fleet battle | [GM_BONEYARD_MISSION.md](GM_BONEYARD_MISSION.md) |
 | Corsair | Rezkov over, 1000 cr of upgrades | Blackwater asks for help against a Concord fleet | [GM_CORSAIR_MISSION.md](GM_CORSAIR_MISSION.md) |
 | Hob Works | Ledger, Boneyard (survivors rescued) and Corsair over, then 5 board jobs | The cure gets designed; the crew robs a Treasury convoy to pay for it | [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md) |
+| Cold Chain | The Hob Works funded, then 3 board jobs | One-off money job: lift the Tamsin fever cure from Ostia's depot (3,000 cr) | [GM_COLD_CHAIN_MISSION.md](GM_COLD_CHAIN_MISSION.md) |
 
 Each arc's GM guide (spoilers) covers its premise and place in the campaign, triggers, phases, GM
 buttons and what it leaves for later arcs, with design notes at the end. Arc objectives show as one

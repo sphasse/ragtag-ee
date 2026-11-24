@@ -176,17 +176,7 @@ local function _startChase(st)
 end
 
 -- Is the arc ship inside any Concord region?
-function M.inConcordSpace()
-    local p = ARC.player()
-    if not p then return false end
-    local x, y = p:getPosition()
-    for _, r in ipairs(VERSE.REGIONS) do
-        for _, z in ipairs(_CONCORD_ZONES) do
-            if r.name == z and ((x / U - r.x) ^ 2 + (y / U - r.y) ^ 2) <= r.r * r.r then return true end
-        end
-    end
-    return false
-end
+function M.inConcordSpace() return ARC.inRegions(_CONCORD_ZONES) end
 
 -- The chase ends once the Magpie is out of Concord space (or lost): patrols back to normal.
 local function _tickChase(st)

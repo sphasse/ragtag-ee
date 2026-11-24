@@ -89,6 +89,20 @@ AFTERMATH.ENTRIES = {
     {id = "aftermath_hob_senate", category = "HOB_DONE",
      when = function() local h = F("hob_heist") return h == "boarded" or h == "destroyed" end,
      text = "Two senators are asking how the Treasury lost a convoy inside the Core. Somebody at Lumen is going to lose their job over it."},
+
+    -- ── Cold Chain (the Tamsin fever) ───────────────────────────────────────
+    {id = "aftermath_coldchain_broke", category = "COLDCHAIN_DONE",
+     when = function() return F("coldchain_arc_done") == "delivered" end,
+     text = "Tamsin's fever broke. Dr. Varga's sending fresh bread to every crew that docks there."},
+    {id = "aftermath_coldchain_half", category = "COLDCHAIN_DONE",
+     when = function() return F("coldchain_arc_done") == "spoiled" end,
+     text = "Half of Tamsin's sick are back on their feet. The other half are still waiting on the Concord's proper channels."},
+    {id = "aftermath_coldchain_ghost", category = "COLDCHAIN_DONE",
+     when = function() local d = F("coldchain_arc_done") return F("coldchain_seen") == "code" and (d == "delivered" or d == "spoiled") end,
+     text = "Somebody walked into Ostia's medical depot with an approved order and walked out with a case of fever cure. The Concord says it never happened."},
+    {id = "aftermath_coldchain_notice", category = "COLDCHAIN_DONE",
+     when = function() local d = F("coldchain_arc_done") return F("coldchain_seen") == "seen" and (d == "delivered" or d == "spoiled") end,
+     text = "The Concord's posted a notice on a freighter that robbed its own medical depot at Ostia. Border captains keep buying that crew drinks."},
 }
 
 AFTERMATH.PRIORITY      = 3

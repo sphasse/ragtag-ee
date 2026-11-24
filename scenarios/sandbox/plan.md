@@ -16,6 +16,8 @@ Status at last update (2026-11-21):
 | 3 | Boneyard Arc | **BUILT** | `ee/ragtag/missions/boneyard.lua` + `docs/GM_BONEYARD_MISSION.md` |
 | 4 | Corsair Arc (redemption) | **BUILT** | `ee/ragtag/missions/corsair.lua` + `docs/GM_CORSAIR_MISSION.md` |
 | 5a | The Hob Works (engineering and heist) | **BUILT** (2026-11-23) | `ee/ragtag/missions/hob.lua` + `docs/GM_HOB_WORKS_MISSION.md` |
+| — | Cold Chain (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/coldchain.lua` + `docs/GM_COLD_CHAIN_MISSION.md` |
+| — | The Bounty (one-off contract) | planned (2026-11-24) | — |
 | 5 | Maw Arc (finale): deploy and defend a broadcast station | planned (revised 2026-11-21) | — |
 | — | The Concord's fracture (instability seeds) | deferred until after the playtest | — |
 | 6 | Concord Republic Arc (optional serial) | an option, not committed | — |
@@ -416,7 +418,7 @@ available. The job board stays open (`locks_jobs = false`). Defaults taken where
 change them: the payouts below, a clean crew at Ostia pays for being seen, a 15-minute spoil timer,
 one-time only.
 
-### Cold Chain (`coldchain`)
+### Cold Chain (`coldchain`) — BUILT 2026-11-24 (details: `docs/GM_COLD_CHAIN_MISSION.md`)
 
 **Premise.** A fever is spreading through Tamsin Hollow, the farm depot that feeds half the Border.
 The cure exists, but the only stock is in the Concord's medical depot at Ostia Highport, and the

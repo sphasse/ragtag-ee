@@ -248,6 +248,20 @@ function ARC.travel(label, phases, target)
             fn = function(st) ARC.shipTo(type(target) == "function" and function() return target(st) end or target) end}
 end
 
+-- Is the arc ship inside any of the named universe regions (VERSE.REGIONS)? For a chase that ends
+-- when the ship is out of Concord space (Hob Works, Cold Chain).
+function ARC.inRegions(names)
+    local p = ARC.player()
+    if not p then return false end
+    local x, y = p:getPosition()
+    local want = {}
+    for _, n in ipairs(names) do want[n] = true end
+    for _, r in ipairs(VERSE.REGIONS or {}) do
+        if want[r.name] and ((x / 1000 - r.x) ^ 2 + (y / 1000 - r.y) ^ 2) <= r.r * r.r then return true end
+    end
+    return false
+end
+
 -- For M.gm_reset: empty the arc's state table and refill it from M.init_state(), in place (the
 -- engine and closures keep their reference to the same table).
 function ARC.resetState(M, st)
