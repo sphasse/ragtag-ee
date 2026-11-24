@@ -259,51 +259,65 @@ meet.
        Phobos/Atlantis: those are the battle groups' and patrols' warships, and too slow to be escorts.
      - **The prize: an Equipment Freighter 5** (stock: hull 100, shields 50/50, no weapons, evasion AI,
        the largest transport model; NOT the Jump variant, which could jump away). Give it one weak rear
-       beam for "minimal defenses" and the convoy's impulse speed. Callsigns in the Concord's style,
-       e.g. CTS *Tithe* (Treasury) with CNS escorts. It runs on impulse along the lane (the escort job's convoy speed,
-     ~125 u/s ≈ 7.5U/min), so where and when to intercept is the crew's call. Destroying the freighter
-     loses the money (fail, retry: a later convoy).
+       beam for "minimal defenses". Callsigns in the Concord's style, e.g. CTS *Tithe* (Treasury) with CNS
+       escorts.
+     - **The run** (decided 2026-11-23): the transport **keeps going at half warp** whatever happens; the
+       fighters peel off to engage, but the transport does not stop or turn to fight. To slow it the crew
+       has to **hack and/or shoot its impulse drive**, then disable and board it. Half warp on the Light
+       Freighter's scale (500 a level) is 250 units/s, 15 U a minute: Lumen to Sentinel (59U) in about
+       4 minutes, and the crew catches it at warp 1 (30 U a minute). Implementation note: run it on
+       *impulse* set to that speed (script-driven, like the Corsair guide), not on a warp drive, so that
+       hacking or damaging the impulse system actually slows it (EE scales impulse by the system's
+       health and hack level; a warp drive would ignore an impulse hack). The escorts need at least the
+       same speed to stay with it. Open: is ~4 minutes the run you want, or a slower "half warp" (e.g.
+       0.3 warp, ~6.5 min) for more room?
+     - **Destroying the freighter loses the money**, and so does letting it reach Sentinel: see "one
+       chance" below.
+     - **Insider intel in the briefing** (decided 2026-11-23): the Works give a detailed, insider-style
+       rundown of the three ships, not exact stats but a real sense of what the crew is up against:
+       speed, hull and shields, armament, and how each behaves (the escorts will come for you; the
+       transport will not stop, so go for its engines). Draft, to tune with the numbers:
+       - CTS *Tithe*, Treasury transport: "a big, slow-turning hauler, armoured like a vault and about as
+         nimble. One small beam aft to discourage tailgaters. It won't stop for anything: half warp, all
+         the way to Sentinel. Kill its engines and it's yours. Blow it up and so is the money: gone."
+       - Two CNS escort fighters: "fast, well shielded for their size, a heavy forward beam each. They
+         hunt in a pair and they'll break off the convoy to come for you. Don't let them pin you while
+         the transport gets away."
+       The same intel goes into the Science database (as the beacon briefing does), so Science can check
+       it against their own scans at Lumen Exchange.
    - **Getting into position: the fake transponder** (idea 2026-11-21; **made by the Works' engineers**,
      not Rezkov, decided 2026-11-23). Sending them off, the chief
      engineer: "Your crew has all the skills to pull this mission off, but the Concord is really on
      the lookout for the Magpie. Our engineers can make a fake transponder that should be able to
      work for long enough for you to pull it off. Just act normal and don't run from any patrols."
-     (Original idea, 2026-11-21, before ambient patrols were switched off for the heist: while it is
-     fitted, Concord shakedowns judge the ship as if its standing were good, "It's an old code, but it
-     checks out…", and hostile-standing patrols spawn as ordinary shakedowns. With no patrols during the
-     heist this, and the `PROX.standingFor` hook below, may not be needed: see "Open" under Engineering.)
-     - **Engineering fits it** (decided 2026-11-23): two custom buttons on Engineering (and Engineering+):
-       **"Change transponder"**, which runs a countdown while the swap happens (time pressure; length to
-       be decided), and **"Restore transponder"** (back to the real one).
-     - **It only works for 10 minutes** (decided 2026-11-23): the Concord rotates its encryption keys, so a
-       fake code is good for about 10 minutes from when the swap finishes, then it stops checking out. The
-       convoy's run from Lumen Exchange to Sentinel is ~8 minutes, so the crew has to **time the swap to the
-       start of the money run**: too early and it lapses mid-heist, too late and the convoy is already past.
-     - Open: what the disguise fools now that **ambient Concord patrols are off during the heist** (below).
-       Recommended: the convoy itself. With a valid code the escorts read the ship as ordinary traffic and
-       let it close, so the crew picks where the fight starts. Without one (or once it lapses) the escorts
-       challenge it at ~8U, the freighter runs, and the response force is called at once. Fixed Concord
-       pickets and station defenders could read it the same way. Also open: what "Restore transponder" is
-       for in play (e.g. back to the real code before docking at an Independent port, where a Concord code
-       would draw questions), whether the key can be used twice, the swap's length, and what interrupts it.
-     - Cover breaks (the transponder is burned and real standing applies at once, a hostile patrol
-       turns hostile) if the crew runs from a shakedown, fires on a Concord ship or jammer, or when
-       it attacks the convoy.
-     - Implementation: a hook in `PROX` (`world/proximity.lua`) for the standing it uses to pick the
-       shakedown outcome and whether a patrol spawns hostile, e.g. `PROX.standingFor(ship)` that an
-       arc can override while a flag is set (`hob_transponder` = "fitted" / "burned"). Primary ship
-       only. Don't change the ship's callsign: per-ship records are keyed by callsign, and a rename
-       would save the record under the fake name. The "old code" line goes into the clean-pass branch
-       of the shakedown comms when the override is on.
+     - **What it is for** (decided 2026-11-23): getting close to the convoy **while it waits docked at
+       Lumen Exchange, to scan it before it leaves**. Once the run starts the crew is fighting anyway and
+       the gig is up. (The 2026-11-21 idea, fooling Concord shakedowns, is dropped: ambient patrols are
+       off during the heist, and so is the `PROX.standingFor` hook it needed.)
+     - **One button, one use** (decided 2026-11-23): **"Change transponder"** on Engineering (and
+       Engineering+). The swap is immediate and starts a **10:00 countdown visible on Engineering** (a
+       custom info line). No "Restore transponder": the premise is that the code works because of the
+       Concord's rotating encryption keys, so switching it on and off makes no sense. At zero the key has
+       rotated and the code no longer checks out.
+     - Open: what happens near Lumen Exchange and the docked convoy **without** a valid code (e.g. the
+       escorts warn the ship off at a few U, or Lumen's traffic control challenges it), so the
+       transponder matters; and what a crew sees when it lapses while they are still close.
+     - Don't change the ship's callsign: per-ship records are keyed by callsign, and a rename would save
+       the record under the fake name. Primary ship only.
    - **A scheduled run, not a proximity trigger** (decided 2026-11-23). At the briefing in Hob's Landing:
      "the money transfers run on a regular schedule, with a big one leaving Lumen Exchange in 30 minutes"
      (30 is the working number). That starts an objective with a **countdown to departure** (the per-job
      countdown pattern: a "Time left m:ss" line on Relay and Operations, at most 20 characters). The 30
-     minutes are a comfortable cushion to fly to the Core, pick an ambush point and **pre-scan** (e.g. the
-     convoy waiting docked at Lumen Exchange, so Science can scan the escorts and the freighter; fast
-     probes can watch the lane). At zero the convoy undocks and runs to Sentinel whatever the crew is
-     doing. Open: where the convoy waits before departure, and what happens if the crew misses it (a later
-     run on the schedule, as with a destroyed freighter).
+     minutes are a comfortable cushion to fly to the Core, pick an ambush point and **pre-scan**: the
+     convoy **waits docked at Lumen Exchange** (decided 2026-11-23), where the fake transponder lets the
+     crew come close enough for Science to scan the escorts and the transport; fast probes can watch the
+     lane. At zero the convoy undocks and runs to Sentinel whatever the crew is doing.
+   - **One chance** (decided 2026-11-23): this is a **one-time, bigger transfer** to get ships built to
+     replace the Concord's Boneyard and Corsair losses (if they happened; "reinforcing" otherwise). Miss
+     it, let it reach Sentinel, or destroy the transport, and the heist is over: there is no later run.
+     Open: how the crew then pays for the beacon. The finale needs it and there is no permanent "no" at
+     the briefing, so the likely answer is the Works' price from the crew's own credits (job work), but
+     this needs deciding.
    - **Ambient Concord patrols are off during the heist** (decided 2026-11-23): the arc suspends the Concord
      Core, Arbiter Line and Escrow Marches PROX zones (`PROX.suspendZone`) from the briefing until the heist
      ends. The danger is the arc's own: the escorts, then the response force.
@@ -649,9 +663,14 @@ If an arc module is lost, rebuild against these rails:
 
 - Built: **the Escrow Marches**, a permanent Concord buffer region south of the Core and the Arbiter Line
   (centre -155, 32, r 72), patrolled like the Arbiter Line, nearly reaching the Cinder Fields.
-- Heist: the fake transponder is fitted from **Engineering**: "Change transponder" (runs a countdown) and
-  "Restore transponder". A fake code works for 10 minutes (the Concord rotates its encryption keys), so the
-  crew times the swap to the convoy's start.
+- Heist: the fake transponder is one button on **Engineering**, "Change transponder": immediate, one use,
+  a 10:00 countdown on Engineering (the Concord rotates its encryption keys). It lets the crew close on the
+  convoy docked at Lumen Exchange and scan it before the run; once the run starts the gig is up. No
+  "Restore transponder".
+- Heist: one chance. The convoy is a one-time bigger transfer to replace the Concord's losses; missing it,
+  letting it reach Sentinel or destroying the transport ends the heist.
+- Heist: the transport keeps going at half warp; the fighters engage, the transport doesn't stop; the crew
+  hacks and shoots its impulse drive to slow it. The briefing gives insider intel on all three ships.
 - Heist: the convoy runs **on a schedule**, not on proximity: the briefing says the next big transfer
   leaves Lumen Exchange in 30 minutes, with a countdown objective; time to get in place and pre-scan.
 - Heist: ambient Concord patrols are suspended from the briefing until the heist ends.
