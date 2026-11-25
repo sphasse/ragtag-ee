@@ -869,6 +869,10 @@ If an arc module is lost, rebuild against these rails:
   asteroids round the Deep Shroud's black hole (asteroid field kind `"ring"`), and **Ice Haul**, a
   short unopposed tow of a comet fragment to Hob's Landing, to try the tow line before it becomes a job
   type. Ports stay put (scenarios place things at offsets from them).
+- **The tow job** is on the board (`jobs/tow.lua`): "We got a call...", a broken-down ship somewhere quiet,
+  towed home on the shared tow line (`TOW`, `ee/ragtag/tow.lua`, also used by Ice Haul); the acknowledge
+  button reads "We'll get 'em home". Basic work: weight 6 / 4 / 2 by tier. Achievements: We Got a Call,
+  Recovery Crew. **Later:** a second tow type with an enemy intercept, phased in as the easy tows phase out.
 
 - **Marchetti is no longer ex-Concord.** He is a young, brilliant engineer (about thirty) whose father,
   a Free Ship engineer, was killed in the Settlement War; the Works raised him. A better persona for

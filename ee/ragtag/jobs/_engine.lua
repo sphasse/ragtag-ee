@@ -255,6 +255,7 @@ function JOBS.panelLine(m)
     if t == "destroy" then return named("Destroy", m.target_cs) end
     if t == "boarding" then return named("Board", m.target_cs) end
     if t == "tailing" then return named("Tail", m.target_cs) end
+    if t == "tow" then return named("Tow", m.target_cs) end
     return tostring(m.short or "Job"):sub(1, max)
 end
 
@@ -353,9 +354,9 @@ end
 -- Weights shift with tier so higher-investment ships see more variety and fewer
 -- plain delivery/salvage offers. Falls back to mod.weight for unlisted types.
 local _TIER_WEIGHTS = {
-    [0] = {delivery=15, salvage=7},
-    [1] = {delivery=10, salvage=6, hacking=4},
-    [2] = {delivery=5,  salvage=4, hacking=5, destroy=5, boarding=5},
+    [0] = {delivery=15, salvage=7, tow=6},
+    [1] = {delivery=10, salvage=6, tow=4, hacking=4},
+    [2] = {delivery=5,  salvage=4, tow=2, hacking=5, destroy=5, boarding=5},
 }
 
 -- Weighted random draw from registered types whose tier_min <= maxTier().
@@ -1018,8 +1019,13 @@ local function _showBoard(cs, ship)
                 setCommsMessage('"You look pretty busy. I think I\'ll save my work for someone that gets stuff done."')
             else
                 JOBS.accept(cap, false, taker)   -- logs the contract line to the taker
-                local outro = (cap.type == "delivery") and "" or "\n\n\"Come back when it\'s done.\""
+                local cmod = JOBS._registry[cap.type]
+                local outro = (cmod and cmod.accept_outro)
+                    or ((cap.type == "delivery") and "" or "\n\n\"Come back when it\'s done.\"")
                 setCommsMessage(cap.brief .. outro .. "\n\nTransmitting details to your log.")
+                -- A job type may name the button under its details (the tow job: "We'll get 'em home").
+                addCommsReply((cmod and cmod.ack_label) or "Back", back)
+                return
             end
             addCommsReply("Back", back)
         end)

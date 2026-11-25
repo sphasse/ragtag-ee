@@ -53,7 +53,7 @@ Five suns span the Drift. The same map every session — learn it, because navig
 
 Dock at any station and hail them — ask **"Any work available?"** and they'll offer what they have. Each ship can carry two active contracts; Relay shows them, and what to do next ("Deliver to Halcyon", "Return to Vesper"). Every contract has a clock, longer for longer runs; Relay counts it down under the job ("Time left 12:34").
 
-Jobs range from simple deliveries and salvage recoveries to escorting convoys, shadowing ships, hacking relays, and harder contracts that pay accordingly. Pay scales with distance and how dangerous the space you're heading into. Bigger contracts open up as you invest in your ship.
+Jobs range from simple deliveries, salvage recoveries and towing broken-down ships home to escorting convoys, shadowing ships, hacking relays, and harder contracts that pay accordingly. Pay scales with distance and how dangerous the space you're heading into. Bigger contracts open up as you invest in your ship.
 
 Reputation matters, and every ship keeps its own. Finish jobs and stations offer more work; let them fail and the boards go quiet. The Concord remembers if you've been helpful or if you've run from an inspection. Shooting a ship that wasn't shooting at you costs standing with its people; fighting off pirates and hostile patrols doesn't. It carries across sessions.
 

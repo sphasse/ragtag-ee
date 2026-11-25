@@ -6,11 +6,10 @@
 -- Structure: init -> hook -> haul -> done ("delivered" | "lost")
 --   hook     a seed rumor at Independent ports; docked at Hob's Landing, the water office's
 --            [SPECIAL] reply.
---   haul     the iceberg drifts round Kestrel (the engine's orbit component). Within TOW_REACH,
---            Engineering attaches a tow line: the berg trails TOW_LENGTH behind (setOrbit(ship, 0)),
---            and moving it costs energy (TOW_DRAIN a second at full impulse or at warp). Going faster than
---            stock warp 1 (TOW_MAX_SPEED, 30U a minute, however Engineering boosts the drive) snaps the line (the berg stays
---            where it is). The berg within DELIVER_R of Hob's Landing: delivered (PAY, Independent +REP).
+--   haul     the iceberg drifts round Kestrel (the engine's orbit component). The tow line is TOW
+--            (ee/ragtag/tow.lua): within TOW.REACH Engineering attaches it, the berg trails TOW.LENGTH
+--            behind, hauling costs energy, faster than warp 1 snaps it (the berg stays where it is).
+--            The berg within DELIVER_R of Hob's Landing: delivered (PAY, Independent +REP).
 --   lost     the Magpie lost while hauling (the berg is still out there; nothing to pay).
 
 local M = {}
@@ -27,12 +26,6 @@ local U = 1000
 -- ── Tuning ──────────────────────────────────────────────────────────────────
 M.PAY         = 1500
 M.REP         = 75
-M.TOW_REACH   = 2000    -- Engineering can attach the line within this of the berg
-M.TOW_LENGTH  = 1500    -- the line's length: the berg trails this far behind
-M.TOW_DRAIN   = 3       -- extra energy a second while towing at full impulse or at warp (less at part throttle, none stopped)
-M.TOW_MAX_SPEED = 500   -- the line snaps above this speed (world units/s): stock warp 1, 30U a minute. Measured as
-                        -- speed, so Engineering pumping power into warp 1 can't cheat it
-M.TOW_SLACK   = 1.02    -- a hair over, for rounding
 M.DELIVER_R   = 4000    -- the berg this close to Hob's Landing: delivered
 -- The berg drifts round Kestrel (120, 36): ORBIT_R from the sun, starting at ORBIT_START degrees
 -- (0 = east, 90 = south), one turn in ORBIT_PERIOD s (about 1.7U a minute).
@@ -43,7 +36,6 @@ M.ORBIT_PERIOD = 3600
 
 local _HOB = "Hob's Landing"
 local _BERG_CS = "Kestrel Ice"
-local _BUTTON_STATIONS = {"engineering", "engineering+", "singlepilot"}
 
 function M.init_state()
     return {
@@ -105,107 +97,39 @@ local function _spawnBerg(st)
     return b
 end
 
-local function _warping(p)
-    local ok, cur = pcall(function() local w = p.components.warp_drive; return w and w.current or 0 end)
-    return ok and (cur or 0) > 0.01
-end
+-- The berg goes on TOW's list for the arc ship (ee/ragtag/tow.lua: the line, the energy it costs,
+-- the warp-1 limit, Engineering's button). The state mirrors whether it is on the line.
+local function _st() return MISSIONS._state["icehaul"] end
 
--- The ship's speed (world units/s).
-function M.speed(p)
-    local ok, vx, vy = pcall(function() return p:getVelocity() end)
-    if not ok or not vx then return 0 end
-    return math.sqrt(vx * vx + (vy or 0) * (vy or 0))
-end
-
--- The tow's energy cost a second right now: TOW_DRAIN at warp or at full impulse (either way), scaled
--- by the throttle the engines are actually giving; nothing while stopped.
-function M.towDrain(p)
-    if _warping(p) then return M.TOW_DRAIN end
-    local ok, actual = pcall(function() local e = p.components.impulse_engine; return e and e.actual or 0 end)
-    return M.TOW_DRAIN * math.min(1, math.abs(ok and actual or 0))
-end
-
-local function _drainInfo(p, on)
-    for _, pos in ipairs({"engineering", "engineering+"}) do
-        pcall(function()
-            if on then p:addCustomInfo(pos, "icehaul_load_" .. pos, string.format("Tow load: up to -%d energy/s", M.TOW_DRAIN), 5)
-            else p:removeCustom("icehaul_load_" .. pos) end
-        end)
-    end
-end
-
-function M.attach(st)
-    local p, b = ARC.player(), st.berg
-    if not p or not RT.valid(b) or st.towing then return false end
-    b.components.orbit = {target = p, center = {p:getPosition()}, distance = M.TOW_LENGTH, time = 0}
-    st.towing, st.tow_ship = true, p
-    _drainInfo(p, true)
-    ARC.log(string.format("[Engineering] Tow line fast. The ice trails %.1fU behind. Hauling it costs up to %d energy a second. "
-        .. "Warp 1 is as fast as the line will take: any faster and it snaps.", M.TOW_LENGTH / U, M.TOW_DRAIN), "#A0E0FF")
-    RT.setObjective("Tow it to Hob's", true, "icehaul")
-    return true
+local function _offerTow(st)
+    if not RT.valid(st.berg) then return end
+    TOW.offer(st.berg, {ship = ARC.player(), name = "The ice",
+        on_attach = function(ship, obj)
+            local s = _st()
+            if s then s.towing, s.tow_ship = true, ship end
+            if _active("haul") then RT.setObjective("Tow it to Hob's", true, "icehaul") end
+        end,
+        on_release = function(ship, obj, why)
+            local s = _st()
+            if s then s.towing, s.tow_ship = false, nil end
+            if _active("haul") and (why == "cast off" or why == "snapped") then
+                RT.setObjective("Pick up the ice", true, "icehaul")
+            end
+        end})
 end
 
 -- Let go of the berg where it is (it stops drifting round Kestrel: it is out of its orbit now).
-function M.release(st, why)
-    local b = st.berg
-    if RT.valid(b) then b.components.orbit = nil end
-    if st.tow_ship and RT.valid(st.tow_ship) then _drainInfo(st.tow_ship, false) end
-    local was = st.towing
+function M.release(st)
+    if RT.valid(st.berg) then
+        TOW.release(st.berg)
+        st.berg.components.orbit = nil
+    end
     st.towing, st.tow_ship = false, nil
-    if was and why then
-        ARC.log(why, "#FFAA40")
-        if _active("haul") then RT.setObjective("Pick up the ice", true, "icehaul") end
-    end
 end
 
-local function _bergNear(p, st)
-    if not p or not RT.valid(st.berg) then return false end
-    return RT.dist(p, st.berg) <= M.TOW_REACH
-end
-
--- Engineering's button: attach when close, release when towing.
-function M.towPressed()
-    local st = MISSIONS._state["icehaul"]
-    if not st or not _active("haul") then return end
-    if st.towing then
-        M.release(st, "[Engineering] Tow line cast off. The ice is adrift.")
-    elseif _bergNear(ARC.player(), st) then
-        M.attach(st)
-    end
-end
-
-local _shown = {}   -- the label each ship's button shows (false: none)
-
-local function _setButton(p, label)
-    if _shown[p] == label then return end
-    _shown[p] = label
-    for _, pos in ipairs(_BUTTON_STATIONS) do
-        pcall(function()
-            if label then p:addCustomButton(pos, "icehaul_tow_" .. pos, label, M.towPressed, 6)
-            else p:removeCustom("icehaul_tow_" .. pos) end
-        end)
-    end
-end
-
-local function _updateButton(st)
-    local p = ARC.player()
-    if not p then return end
-    local label = false
-    if _active("haul") then
-        if st.towing then label = "Release tow line"
-        elseif _bergNear(p, st) then label = "Attach tow line" end
-    end
-    _setButton(p, label)
-end
-M.buttonLabel = function() local p = ARC.player(); return p and _shown[p] or false end
-
-local function _clearButtons()
-    for p, label in pairs(_shown) do
-        if label and RT.valid(p) then _setButton(p, false) end
-    end
-    _shown = {}
-end
+-- For tests and the GM: what Engineering's button does, and what it reads.
+function M.towPressed() local p = ARC.player(); if p then TOW.press(p) end end
+function M.buttonLabel() return TOW.buttonLabel(ARC.player()) end
 
 local function _finish(outcome)
     RT.flag("icehaul_arc_done", outcome)
@@ -213,20 +137,10 @@ local function _finish(outcome)
 end
 
 local function _tickHaul(st, delta, now)
-    if not RT.valid(st.berg) then _spawnBerg(st) end
-    if st.towing then
-        local p = st.tow_ship
-        if not RT.valid(p) or p ~= ARC.player() then
-            M.release(st)
-        elseif M.speed(p) > M.TOW_MAX_SPEED * M.TOW_SLACK then
-            M.release(st, "[Engineering] The tow line snapped: faster than warp 1 is more than it can take. The ice is adrift: go back for it.")
-        else
-            local d = M.towDrain(p) * (delta or 0)
-            if d > 0 then p:setEnergyLevel(math.max(0, p:getEnergy() - d)) end
-        end
-    end
+    if not RT.valid(st.berg) then _spawnBerg(st); _offerTow(st) end
     local h = _hob()
     if h and RT.valid(st.berg) and RT.dist(h, st.berg) <= M.DELIVER_R then
+        TOW.withdraw(st.berg)
         M.release(st)
         ARC.once("icehaul_rewarded", function()
             RT.addCredits(M.PAY, "Ice Haul: the Kestrel ice delivered")
@@ -236,9 +150,7 @@ local function _tickHaul(st, delta, now)
             .. _cr(M.PAY) .. ' credits, and the Landing drinks this month. Thank you, Magpie."'
         if not ARC.hail(h, msg, "Hob's Landing water office") then ARC.log("[Hob's Landing] " .. msg, "#C0C0FF") end
         _finish("delivered")
-        return
     end
-    _updateButton(st)
 end
 
 -- ── Rumors ──────────────────────────────────────────────────────────────────
@@ -267,7 +179,7 @@ local function _offer()
         .. math.floor(M.DELIVER_R / U) .. 'U of the Landing, and our tugs take it from there. '
         .. _cr(M.PAY) .. ' credits."')
     addCommsReply("How do we tow it?", function()
-        setCommsMessage('"We\'ll fit a tow rig before you leave. Get within ' .. math.floor(M.TOW_REACH / U)
+        setCommsMessage('"We\'ll fit a tow rig before you leave. Get within ' .. math.floor(TOW.REACH / U)
             .. 'U of the ice and your engineer makes it fast. Hauling it eats power, and warp 1 is as fast as the line will take. '
             .. 'Any faster and it snaps, and you go back for the ice."')
         addCommsReply("We'll fetch it.", function()
@@ -305,8 +217,8 @@ function M._addJobEntry()
         "About forty thousand tonnes, drifting round Kestrel " .. M.ORBIT_R .. "U out. It shows pale blue on radar as " .. _BERG_CS .. ".",
         "",
         "THE TOW",
-        "Within " .. math.floor(M.TOW_REACH / U) .. "U of the ice, Engineering attaches the tow line. The ice trails " .. (M.TOW_LENGTH / U)
-            .. "U behind; moving it costs up to " .. M.TOW_DRAIN .. " energy a second at full impulse. Warp 1 is the line's limit (30U a minute): anything faster snaps it, however the drive is boosted. "
+        "Within " .. math.floor(TOW.REACH / U) .. "U of the ice, Engineering attaches the tow line. The ice trails " .. (TOW.LENGTH / U)
+            .. "U behind; moving it costs up to " .. TOW.DRAIN .. " energy a second at full impulse. Warp 1 is the line's limit (30U a minute): anything faster snaps it, however the drive is boosted. "
             .. "Bring the ice within " .. math.floor(M.DELIVER_R / U) .. "U of Hob's Landing.",
     }, "\n"), {["Pay"] = _cr(M.PAY) .. " cr", ["Where"] = "Round Kestrel", ["Deliver to"] = _HOB})
 end
@@ -314,8 +226,8 @@ end
 -- ── Cleanup / resolve ───────────────────────────────────────────────────────
 
 local function _clearWorld(st)
+    if st.berg then TOW.withdraw(st.berg) end
     M.release(st)
-    _clearButtons()
     ARC.kill(st.berg); st.berg = nil
     RUMORS.removeCategory("ICEHAUL_SEED")
     RUMORS.removeCategory("ICEHAUL_DONE")
@@ -325,8 +237,8 @@ end
 function M.resolve(st)
     RUMORS.removeCategory("ICEHAUL_SEED")
     RT.clearObjective("icehaul")
+    if st.berg then TOW.withdraw(st.berg) end
     M.release(st)
-    _clearButtons()
     if RT.flag("icehaul_arc_done") == "delivered" then
         -- Hob's tugs take it in.
         RT.after(20, function()
@@ -366,11 +278,12 @@ M.phases.haul = {
     enter = function(st)
         M._addJobEntry()
         _spawnBerg(st)
+        _offerTow(st)
         st.towing = false
         RT.setObjective("Pick up the ice", true, "icehaul")
         local x, y = st.berg:getPosition()
         ARC.log("[Ice Haul] The Kestrel ice is drifting round Kestrel, near " .. _sector(x, y)
-            .. ". Get within " .. math.floor(M.TOW_REACH / U) .. "U; Engineering attaches the line.", "#A0E0FF")
+            .. ". Get within " .. math.floor(TOW.REACH / U) .. "U; Engineering attaches the line.", "#A0E0FF")
     end,
     update = function(st, delta, now) _tickHaul(st, delta, now) end,
 }
@@ -438,8 +351,8 @@ M.gm_actions = {
             local bx, by = st.berg:getPosition()
             local px, py = p:getPosition()
             local d = math.max(1, ARC.dist(px, py, bx, by))
-            if d > M.TOW_REACH then st.berg:setPosition(px + (bx - px) / d * M.TOW_LENGTH, py + (by - py) / d * M.TOW_LENGTH) end
-            M.attach(st)
+            if d > TOW.REACH then st.berg:setPosition(px + (bx - px) / d * TOW.LENGTH, py + (by - py) / d * TOW.LENGTH) end
+            TOW.attach(p, st.berg)
         end
     end},
 }

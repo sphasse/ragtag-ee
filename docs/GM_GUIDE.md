@@ -106,7 +106,7 @@ See **[REPUTATION.md](REPUTATION.md)** for the full mechanics reference — rewa
 
 | Investment | Mission tier | Unlocks |
 |---|---|---|
-| 0–499 cr | Tier 0 | Delivery, salvage |
+| 0–499 cr | Tier 0 | Delivery, salvage, towing (fewer tows as the tier rises) |
 | 500–999 cr | Tier 1 | Hacking, tailing |
 | 1000 cr+ | Tier 2 | Boarding, destroy |
 

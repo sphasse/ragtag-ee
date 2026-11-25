@@ -108,12 +108,12 @@ T.step("in reach: attach", function()
     T.eq("attach: the line is on the ship", berg().components.orbit.target, T.P())
     T.eq("attach: objective", RT.objectives.icehaul, "Tow it to Hob's")
     T.check("attach: impulse unchanged", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
-    T.eq("attach: no drain while stopped", M_i.towDrain(T.P()), 0)
+    T.eq("attach: no drain while stopped", TOW.drain(T.P()), 0)
 end)
 T.wait(1)
 T.step("the line", function()
     T.eq("line: the button", M_i.buttonLabel(), "Release tow line")
-    T.check("line: the ice at the line's length", math.abs(dist(T.P(), berg()) - M_i.TOW_LENGTH) < 50,
+    T.check("line: the ice at the line's length", math.abs(dist(T.P(), berg()) - TOW.LENGTH) < 50,
         string.format("%.0f", dist(T.P(), berg())))
     -- Move the ship: the ice follows on the line.
     local x, y = T.P():getPosition()
@@ -121,7 +121,7 @@ T.step("the line", function()
 end)
 T.wait(1)
 T.step("the ice follows", function()
-    T.check("follow: still at the line's length", math.abs(dist(T.P(), berg()) - M_i.TOW_LENGTH) < 50,
+    T.check("follow: still at the line's length", math.abs(dist(T.P(), berg()) - TOW.LENGTH) < 50,
         string.format("%.0f", dist(T.P(), berg())))
     M_i.towPressed()
     T.check("cast off: not towing", not T.st().towing)
@@ -138,7 +138,7 @@ T.step("energy flying free", function()
     e_free = e_start - T.P():getEnergy()
     T.P():commandImpulse(0)
 end)
-T.waitFor("stopped", function() return M_i.towDrain(T.P()) == 0 and math.abs(T.P().components.impulse_engine.actual) < 0.01 end, 15)
+T.waitFor("stopped", function() return TOW.drain(T.P()) == 0 and math.abs(T.P().components.impulse_engine.actual) < 0.01 end, 15)
 T.step("the same with the line on", function()
     M_i.towPressed()   -- within reach still: attach again
     T.check("attach again", T.st().towing)
@@ -151,10 +151,10 @@ T.step("towing costs energy", function()
     local e_tow = e_start - T.P():getEnergy()
     T.check("drain: towing costs more energy than flying free", e_tow - e_free > 5,
         string.format("free %.1f, towing %.1f", e_free, e_tow))
-    T.check("drain: at most TOW_DRAIN a second more", e_tow - e_free <= M_i.TOW_DRAIN * 8 + 1,
+    T.check("drain: at most TOW_DRAIN a second more", e_tow - e_free <= TOW.DRAIN * 8 + 1,
         string.format("free %.1f, towing %.1f", e_free, e_tow))
-    T.check("drain: the rate follows the throttle", M_i.towDrain(T.P()) > 0)
-    T.check("drain: still on the line", math.abs(dist(T.P(), berg()) - M_i.TOW_LENGTH) < 50)
+    T.check("drain: the rate follows the throttle", TOW.drain(T.P()) > 0)
+    T.check("drain: still on the line", math.abs(dist(T.P(), berg()) - TOW.LENGTH) < 50)
     T.P():commandImpulse(0)
     T.P():commandWarp(1)
 end)
@@ -164,12 +164,12 @@ T.waitFor("up to warp 1", function()
 end, 15)
 T.wait(3)
 T.step("warp 1: the line holds", function()
-    local v = M_i.speed(T.P())
-    T.check("warp 1: about 30U a minute", math.abs(v - M_i.TOW_MAX_SPEED) < 20, string.format("%.0f", v))
+    local v = TOW.speed(T.P())
+    T.check("warp 1: about 30U a minute", math.abs(v - TOW.MAX_SPEED) < 20, string.format("%.0f", v))
     T.check("warp 1: still towing", T.st().towing)
-    T.check("warp 1: the ice on the line", math.abs(dist(T.P(), berg()) - M_i.TOW_LENGTH) < 60,
+    T.check("warp 1: the ice on the line", math.abs(dist(T.P(), berg()) - TOW.LENGTH) < 60,
         string.format("%.0f", dist(T.P(), berg())))
-    T.eq("warp 1: the full drain", M_i.towDrain(T.P()), M_i.TOW_DRAIN)
+    T.eq("warp 1: the full drain", TOW.drain(T.P()), TOW.DRAIN)
     -- Engineering pumps power into the warp drive: still warp 1, but faster.
     T.P():setSystemPower("warp", 1.5)
 end)

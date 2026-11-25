@@ -112,7 +112,8 @@ Achievement (hidden): **Water Bearer** (delivered).
 
 ### Engine notes
 
-- **The tow line** is the engine's orbit component with period 0 (`setOrbit(ship, 0)`, here set as
+- **The tow line** is `TOW` (`ee/ragtag/tow.lua`), shared with the tow job on the board: the arc offers the
+  ice to the arc ship (`TOW.offer`) and follows the line through its callbacks. It is the engine's orbit component with period 0 (`setOrbit(ship, 0)`, here set as
   `components.orbit = {target, center, distance = TOW_LENGTH, time = 0}`). Every frame the engine puts
   the ice TOW_LENGTH from the ship along its current bearing, so it trails behind like a rope; it
   moves the ice directly, so nothing knocks it off the line. Removing the component lets it go.
@@ -124,13 +125,15 @@ Achievement (hidden): **Water Bearer** (delivered).
   (1.02), not on the warp level: the engine's warp speed is level × 500 × the drive's effectiveness, so
   boosting the warp drive's power makes warp 1 faster, and that snaps it too.
 - **The button**: custom buttons on `engineering`, `engineering+` and `singlepilot`, redrawn only when
-  the label changes (`M.towPressed` is what they call; the test presses it directly).
+  the label changes (`TOW.press`; the arc's `M.towPressed` calls it for the test).
 
 ### Tuning (top of `icehaul.lua`)
 
-`PAY` 1,500, `REP` 75, `TOW_REACH` 2U, `TOW_LENGTH` 1.5U, `TOW_DRAIN` 3/s, `TOW_MAX_SPEED` 500 (30U a minute), `TOW_SLACK` 1.02,
-`DELIVER_R` 4U,
+`PAY` 1,500, `REP` 75, `DELIVER_R` 4U,
 `KESTREL`, `ORBIT_R` 16U, `ORBIT_START` 160°, `ORBIT_PERIOD` 3,600 s.
+
+The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/s, `TOW.MAX_SPEED` 500
+(30U a minute) and `TOW.SLACK` 1.02, at the top of `ee/ragtag/tow.lua`; they apply to the tow job too.
 
 ### Open for playtest
 
@@ -146,6 +149,7 @@ Achievement (hidden): **Water Bearer** (delivered).
 - 2026-11-24: built as a short, unopposed job to try out the tow line.
 - 2026-11-24: the tow no longer slows the ship (impulse 75% was dropped); it drains energy instead
   (`TOW_DRAIN`, scaled by the throttle), like the Ledger AI's drain.
+- 2026-11-24: the tow line moved into `TOW` (`ee/ragtag/tow.lua`) for the new tow job; same behaviour.
 - 2026-11-24 playtest: the mechanics all worked, but the job was a bit slow. The line now holds at warp 1
   (up to 30U a minute, measured as speed so a boosted drive can't cheat it); only faster snaps it.
 

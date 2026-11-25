@@ -345,9 +345,13 @@ STATS.update = _guard("update", function(delta)
 end)
 
 -- ── Initial achievements (derived from tracked stats and arc results) ────────
+-- How many of the board's job types (JOBS._registry) the crew has completed at least once. Only
+-- registered types count, so a type that is removed or renamed can't stand in for a new one.
 local function _typesCompleted(s)
     local n = 0
-    for _, v in pairs(s.jobs.completed) do if v > 0 then n = n + 1 end end
+    for t in pairs(JOBS and JOBS._registry or {}) do
+        if (s.jobs.completed[t] or 0) > 0 then n = n + 1 end
+    end
     return n
 end
 
@@ -366,6 +370,13 @@ ACH.define{id = "jack_of_all_trades", name = "Jack of All Trades", category = "j
         local total = JOBS and JOBS._registry and _count(JOBS._registry) or 0
         return total > 0 and _typesCompleted(s) >= total
     end}
+-- The tow job (jobs/tow.lua): broken-down ships brought home.
+ACH.define{id = "we_got_a_call", name = "We Got a Call", category = "jobs",
+    desc = "Tow a broken-down ship home.",
+    check = function(s) return (s.jobs.completed.tow or 0) >= 1 end}
+ACH.define{id = "recovery_crew", name = "Recovery Crew", category = "jobs",
+    desc = "Tow 10 broken-down ships home.",
+    check = function(s) return (s.jobs.completed.tow or 0) >= 10 end}
 ACH.define{id = "pay_day", name = "Pay Day", category = "money",
     desc = "Earn 1,000 credits in total.",
     check = function(s) return s.credits_earned >= 1000 end}

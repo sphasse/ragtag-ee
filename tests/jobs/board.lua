@@ -31,7 +31,7 @@ T.step("pay uses each variant's reward_mult", function()
         return _calc(base, type_mult, ...)
     end
     local ok, err = pcall(function()
-        for _, jtype in ipairs({"delivery", "salvage", "hacking", "destroy", "boarding", "escort", "tailing"}) do
+        for _, jtype in ipairs({"delivery", "salvage", "hacking", "destroy", "boarding", "escort", "tailing", "tow"}) do
             local mults, wrong = {}, 0
             for _ = 1, 12 do
                 seen_type_mult = nil
@@ -305,6 +305,8 @@ T.step("job lines fit the side panel", function()
         {{type = "destroy", target_cs = "Iron Gull", origin = "Port Vesper", _destroyed = true}, "Return to Vesper"},
         {{type = "boarding", target_cs = "An Extremely Long Ship Name", origin = HOME}, nil},
         {{type = "tailing", target_cs = "Grey Heron", origin = HOME}, "Tail Grey Heron"},
+        {{type = "tow", target_cs = "Old Reliable", origin = HOME}, "Tow Old Reliable"},
+        {{type = "tow", target_cs = "Old Reliable", origin = "Port Vesper", _found = true}, "Return to Vesper"},
     }
     for _, c in ipairs(cases) do
         local line = JOBS.panelLine(c[1])

@@ -189,6 +189,15 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
 - [ ] Towing at warp 1 (30U a minute) holds; faster snaps the line, a boosted warp 1 too: clear? fair? "Release tow line" leaves it where it is
 - [ ] The ice within 4U of Hob's Landing: 1,500 cr, Independent +75. Right pay for no fight?
 
+## 5h. Tow jobs (the board; tier 0, rarer later)
+
+- [ ] "We got a call..." details, then the "We'll get 'em home" button: reads right?
+- [ ] The broken-down ship is somewhere quiet (no patrols), within 60U: easy to find from the grid?
+- [ ] Engineering's "Attach tow line", warp 1 home, within 4U of the port, then dock: "Got 'em home". Pay right
+      for the effort (like salvage, 1.2×)?
+- [ ] How often they show up: common at tier 0, fewer at tiers 1 and 2?
+- [ ] Achievements: We Got a Call (first tow), Recovery Crew (ten); Jack of All Trades now needs a tow too
+
 ## 5g. The Deep Shroud's asteroid ring
 
 - [ ] Rocks circling the black hole (7-13U out, about 3.7U a minute on the inside): visible, a hazard

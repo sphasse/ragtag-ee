@@ -92,7 +92,7 @@ crew) before its own upgrades go on. Details: `docs/GM_SHIP_MANAGEMENT.md`.
 - Upgrades belong to the ship that bought them: a second player ship has its own credits,
   standing, upgrades and job tier
 - **Mission tiers are gated by a ship's total upgrade investment**, not upgrade count:
-  - **<500cr invested** — delivery and salvage only (tier 0)
+  - **<500cr invested** — delivery, salvage and towing only (tier 0; tows get rarer at higher tiers)
   - **500–999cr invested** — hacking and tailing unlock (tier 1)
   - **1000cr+ invested** — boarding and destroy unlock (tier 2)
 - Check current investment in the **Campaign Status** GM button
@@ -112,6 +112,12 @@ Types:
 | **Boarding** | 115–285 cr | −100 Corsairs on disable; +reward with origin on complete |
 | **Escort** | 90–230 cr | +reward with origin on complete |
 | **Tailing** | tier 1+ | +reward with origin on complete; −2× reward if the target is lost to the clock |
+| **Tow** | like salvage (1.2×) | +reward with origin on complete; −reward on expire |
+
+**Tow specifics:** "We got a call..." A broken-down ship is waiting somewhere quiet (no danger, no patrols), within
+60U. Within 2U of it, Engineering gets "Attach tow line"; the ship trails 1.5U behind, hauling costs up to 3 energy a
+second, and anything faster than warp 1 snaps the line. Bring it within 4U of the port, then dock: "Got 'em home".
+Common at tier 0, rarer as the crew moves up. Achievements: We Got a Call (first tow), Recovery Crew (ten).
 
 Time limits scale with distance. Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction.
 

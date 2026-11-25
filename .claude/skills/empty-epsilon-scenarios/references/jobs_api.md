@@ -345,6 +345,16 @@ Logic lives in `_repGate()` (called by `JOBS.board`) in `_engine.lua`, judged by
 | `destroy` | 3 | 0 | 1.6 | +reward (origin faction); −200 Corsairs on kill | −reward |
 | `boarding` | 3 | 0 | 1.8 | +reward (origin faction); −100 Corsairs on disable | −reward |
 | `escort` | 3 | 0 | 1.5 | +reward (origin faction) | −reward |
+| `tow` | 6 / 4 / 2 by tier | 0 | 1.2 | +reward (origin faction) | −reward |
+
+**`tow`** (`jobs/tow.lua`): a broken-down ship (no engines, can't be destroyed) somewhere quiet (danger 0, no patrol
+zone, within 60U); the crew puts a tow line on it (`TOW`, `ee/ragtag/tow.lua`: Engineering's "Attach tow line" within
+2U, for the job's ship only; up to warp 1; hauling costs energy) and brings it within 4U of the port that got the call,
+then docks to be paid. Basic work: its tier weight drops 6 → 4 → 2 as the ship's tier rises (`_TIER_WEIGHTS`).
+
+**Optional module fields for the board's text:** `M.ack_label` names the button under the job details shown after
+"Take:" (default "Back"; the tow job: "We'll get 'em home"), and `M.accept_outro` replaces the line added after the
+brief (default "Come back when it's done.", nothing for deliveries; the tow job: nothing).
 
 ---
 

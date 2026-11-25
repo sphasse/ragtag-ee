@@ -862,6 +862,7 @@ function RT.update(delta)
     RT.updateSounds()
     if STATS then STATS.update(delta) end
     if RT.tickTransponders then RT.tickTransponders() end
+    if TOW and TOW.update then TOW.update(delta) end
 
     -- Sync RT.players with EmptyEpsilon's active player ships.
     -- Catches ships spawned through GM console or other means outside RT.spawnPlayer().
@@ -930,3 +931,4 @@ require("ragtag/voice.lua")
 require("ragtag/stats.lua")
 require("ragtag/battle.lua")   -- BATTLE: set-piece battles over combat points (Battle Lab, Corsair arc)
 require("ragtag/platforms.lua")   -- PLATFORMS: gun platforms (the universe places them; Kuri148, PR #1)
+require("ragtag/tow.lua")   -- TOW: the tow line (Ice Haul, the tow job)

@@ -38,7 +38,7 @@ crews to make the most money (15, 30 or 60 minutes; nothing saved). Player and G
 - **Relic Drones**: Automated war machines from 20 years ago, still guarding the Boneyard (with its old gun platforms)
 - **The Hollow**: Unknown faction from the Maw. Extremely hostile. Don't go there.
 
-### Seven Job Types
+### Eight Job Types
 Stations offer paid contracts ("Any work available?"). Pay scales with the type:
 
 1. **Delivery** (1.0x pay): Ferry cargo between stations. Baseline income, safest option.
@@ -47,7 +47,8 @@ Stations offer paid contracts ("Any work available?"). Pay scales with the type:
 4. **Destroy** (1.6x pay): Eliminate a hostile target. Combat-focused.
 5. **Boarding** (1.8x pay): Disable and board a target ship. Highest difficulty and reward.
 
-plus **Escort** (bring a convoy through an ambush) and **Tailing** (shadow a ship to a covert meeting).
+plus **Escort** (bring a convoy through an ambush), **Tailing** (shadow a ship to a covert meeting) and **Tow**
+(bring a broken-down ship home on a tow line).
 Which types a ship is offered depends on how much that ship has invested in upgrades.
 
 **Dynamic Compensation**: Rewards scale with distance and the danger level of the region.

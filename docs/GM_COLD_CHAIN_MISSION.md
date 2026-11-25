@@ -167,7 +167,7 @@ running).
   Magpie can still dock at Ostia; only the port guard (5U, `world/defenders.lua`) and the patrols react.
 - **The chase** is `PROX.chaseZone` on the three Concord zones, ended by `ARC.inRegions` (shared with
   the Hob Works).
-- **Why not a job-board contract:** board jobs must be one of the seven job types, and this job's cargo
+- **Why not a job-board contract:** board jobs must be one of the board's job types, and this job's cargo
   is loaded at Ostia, not at the port that offers it. Varga's request is a [SPECIAL] comms reply at
   Tamsin Hollow instead, like the Hob Works meeting.
 

@@ -50,9 +50,9 @@ Contributors add **universe extensions** and **scenarios** independently.
   `core/ship_list.lua` (the sandbox's "Create player ship" list: one Light Freighter entry per named ship),
   `core/save_version.lua` (save format versions and migrations)
   and `core/stations.lua` (ports are indestructible; a lost station is reported), `core/upgrades.lua` (the upgrade catalogue and line bases), `core/transponder.lua` (the fake transponder code), `core/race.lua` (The Short Haul's clock, score and leaderboard), `core/platforms.lua` (gun platforms: placed, aim, fire, range), `core/orbit.lua` (the engine's orbit component: the
-  Deep Shroud's asteroid ring, a tow line)
+  Deep Shroud's asteroid ring, a tow line), `jobs/tow.lua` (the tow job, its achievements)
 - `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `make_convoy_map.py` (the Hob Works convoy-route map, `ee/ragtag/img/convoy_route.png`, for its Science DB entry; needs macOS to render; `check.py` fails if a `"ragtag/img/..."` the Lua names is missing), `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
-- `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse), `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements) `ee/ragtag/battle.lua` (`BATTLE`: set-piece battles over combat points, shared by the Battle Lab, the Corsair arc and, as `BATTLE.annex`, the Boneyard arc) and `ee/ragtag/platforms.lua` (`PLATFORMS`: stationary gun platforms, contributed by Kuri148 in PR #1; the universe places them from its `gun_platforms` data, three Relic ones in the Boneyard; `docs/PLATFORMS.md`), all loaded by `core.lua`
+- `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse), `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements) `ee/ragtag/battle.lua` (`BATTLE`: set-piece battles over combat points, shared by the Battle Lab, the Corsair arc and, as `BATTLE.annex`, the Boneyard arc), `ee/ragtag/tow.lua` (`TOW`: the tow line for Ice Haul and the tow job; `RT.update` ticks it) and `ee/ragtag/platforms.lua` (`PLATFORMS`: stationary gun platforms, contributed by Kuri148 in PR #1; the universe places them from its `gun_platforms` data, three Relic ones in the Boneyard; `docs/PLATFORMS.md`), all loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
 
 ## Commands
@@ -133,7 +133,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 
 ### Job Types with Progressive Compensation
 
-(Seven job modules in `ee/ragtag/jobs/`, each setting its own `M.type_mult`.)
+(Eight job modules in `ee/ragtag/jobs/`, each setting its own `M.type_mult`.)
 
 **Base multipliers** (delivery = 1.0x baseline):
 1. **Delivery** (1.0x): Ferry cargo between stations. Safest, baseline income.
@@ -143,6 +143,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 5. **Boarding** (1.8x): Disable and board target ships. Highest difficulty.
 6. **Escort** (1.5x, +90 cr munitions allowance): Shepherd a convoy to its destination; the convoy takes orders from its escort.
 7. **Tailing** (1.4x): Shadow a ship to a covert meeting and scan both vessels.
+8. **Tow** (1.2x): Bring a broken-down ship home on a tow line (`TOW`, `ee/ragtag/tow.lua`). Basic work: common at tier 0, rarer as the tier rises.
 
 **Dynamic scaling**:
 - Distance bonus: +1% per U beyond 10U
@@ -171,7 +172,7 @@ standing; only that ship is stopped, fined, jammed and attacked. Zone cooldowns 
 1. **Station offers 1–3 jobs** (by station size, less with poor standing) when a ship docks and hails "Any work available?".
    `JOBS.board(cs, ship)` decides the offers (no comms calls; testable); `_showBoard` renders them.
 2. **Type selection** via weighted random, by the asking ship's tier:
-   - tier 0: delivery 15, salvage 7 · tier 1 adds hacking · tier 2 adds destroy and boarding (`_TIER_WEIGHTS`);
+   - tier 0: delivery 15, salvage 7, tow 6 · tier 1 adds hacking (tow 4) · tier 2 adds destroy and boarding (tow 2) (`_TIER_WEIGHTS`);
      a type the table does not list (escort, tailing) uses its module's `M.weight` (3) at every tier from its `tier_min`
 3. **Archetype selection** from each job module's `_ARCHETYPES` table (tier-gated)
 4. **Legacy intercept fields** in archetypes (`intercept_types`, `intercept_chance`) are no longer used as of 2026-10-29 (proximity spawn system replaced mission-specific intercepts)

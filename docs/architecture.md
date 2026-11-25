@@ -40,7 +40,7 @@ VERSE / core         — world foundation: stations, regions, factions, comms, s
 universe is flyable without any campaign system loaded.
 
 **JOBS** adds a job board to every friendly station. Players hail "Any work available?" to get
-offers. Each contract type (delivery, salvage, hacking, boarding, destroy, escort, tailing) is a
+offers. Each contract type (delivery, salvage, hacking, boarding, destroy, escort, tailing, tow) is a
 self-contained module in `ee/ragtag/jobs/`. The engine has two halves: `JOBS.board(cs, ship)`
 decides what a station offers a ship (slots, cooldowns, the reputation gate, injected story jobs)
 without touching comms, and a small renderer shows it and wires the "Take:" replies.
