@@ -349,12 +349,13 @@ Logic lives in `_repGate()` (called by `JOBS.board`) in `_engine.lua`, judged by
 
 **`tow`** (`jobs/tow.lua`): a broken-down ship (no engines, can't be destroyed) somewhere quiet (danger 0, no patrol
 zone, within 60U); the crew puts a tow line on it (`TOW`, `ee/ragtag/tow.lua`: Engineering's "Attach tow line" within
-2U, for the job's ship only; up to warp 1; hauling costs energy) and brings it within 4U of the port that got the call,
+2U, for the job's ship only; up to half of warp 1, 15U a minute, which takes Engineering's warp power at ~50%
+and Science's "Tow speed" readout; hauling costs energy) and brings it within 4U of the port that got the call,
 then docks to be paid. Basic work: its tier weight drops 6 → 4 → 2 as the ship's tier rises (`_TIER_WEIGHTS`).
 Raiders: once the asking ship has upgraded, a tow may draw Shroud Raiders (`RAIDER_ODDS`, rolled at generation from
 `ctx.max_tier`, the ship's own `JOBS.maxTier`: none at tier 0, 0–1 at tier 1, 0–2 at tier 2; +15% pay a raider, "Raiders
 about." on the board, a warning in the brief). They show up when the job's ship comes within 10U of the stranded ship,
-8U out on her far side and heading for her (impulse 600, warp 1.2: a tow at warp 1 can't outrun them); their leader hails the crew to stand off; they open fire when the crew is
+8U out on her far side and heading for her (impulse 1.2 × `TOW.MAX_SPEED`, 300: a tow can't outrun them); their leader hails the crew to stand off; they open fire when the crew is
 within 5U of them or puts the line on, break off when the tow is home, and are removed when the job ends.
 
 **Optional module fields for the board's text:** `M.ack_label` names the button under the job details shown after

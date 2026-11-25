@@ -37,8 +37,9 @@ Docked at **Hob's Landing**, **"[SPECIAL] The water office"** opens two pages:
 1. The rationing, the comet, where the ice is (a sector name), "Tow it here, within 4U of the Landing,
    and our tugs take it from there. 1,500 credits."
 2. **How do we tow it?**: "Get within 2U of the ice and your engineer makes it fast. Hauling it eats
-   power, and warp 1 is as fast as the line will take. Any faster and it snaps, and you go back for
-   the ice."
+   power, and the line takes half of warp 1, 15U a minute, no more: warp 1 with your warp drive at half
+   power, about. Have your science officer watch the speed. Any faster and it snaps, and you go back
+   for the ice."
 
 **We'll fetch it.** goes to Haul; **Not right now.** leaves the offer open.
 
@@ -57,10 +58,11 @@ is, how the tow works).
   Objective **"Tow it to Hob's"**.
 - While towing, the button reads **"Release tow line"**: the ice stays where it is (out of its orbit
   for good). Objective back to "Pick up the ice".
-- **Warp 1 is the line's limit**: the ship may tow at up to **30U a minute** (stock warp 1). Anything
-  faster snaps the line: warp 2 or more, or warp 1 with Engineering pushing extra power into the warp
-  drive. "The tow line snapped: faster than warp 1 is more than it can take. The ice is adrift: go back
-  for it." No other cost. (Warp 1 makes the tow home about 1 minute instead of 5.)
+- **Half of warp 1 is the line's limit**: the ship may tow at up to **15U a minute** (250 units/s).
+  Stock warp 1 is twice that, so the crew tows at warp 1 with **Engineering's warp power at about 50%**,
+  while **Science** watches **"Tow speed: 14.2 of 15 U/min"** on its screen (also Operations and Single
+  Pilot). Anything faster snaps the line: "The tow line snapped: faster than half of warp 1, 15U a
+  minute, is more than it can take. The ice is adrift: go back for it." No other cost.
 - **The ice within 4U of Hob's Landing**: the water office hails: "We have it. Tugs are on their way out
   to take it in... 1,500 credits, and the Landing drinks this month." **1,500 cr, Independent +75**.
   Outcome `delivered`. The ice is taken in (removed) 20 seconds later.
@@ -121,9 +123,10 @@ Achievement (hidden): **Water Bearer** (delivered).
 - **The ice** is an `Asteroid` with `explode_on_touch` and `avoid_object` removed, size 400, a pale blue
   radar trace and a description. Its physics is a sensor: it never pushes the ship.
 - **Warp**: the Light Freighter has a warp drive (500 world units/s a level) and no jump drive. The line
-  snaps on the ship's **speed** (`getVelocity`) above `TOW_MAX_SPEED` (500, stock warp 1) × `TOW_SLACK`
+  snaps on the ship's **speed** (`getVelocity`) above `TOW_MAX_SPEED` (250, half of stock warp 1) × `TOW_SLACK`
   (1.02), not on the warp level: the engine's warp speed is level × 500 × the drive's effectiveness, so
-  boosting the warp drive's power makes warp 1 faster, and that snaps it too.
+  the warp drive's power sets warp 1's speed: about 50% power gives 250. (A player ship's power follows
+  Engineering's slider, the power request: a script setting `power_level` alone drifts back.)
 - **The button**: custom buttons on `engineering`, `engineering+` and `singlepilot`, redrawn only when
   the label changes (`TOW.press`; the arc's `M.towPressed` calls it for the test).
 
@@ -132,14 +135,15 @@ Achievement (hidden): **Water Bearer** (delivered).
 `PAY` 1,500, `REP` 75, `DELIVER_R` 4U,
 `KESTREL`, `ORBIT_R` 16U, `ORBIT_START` 160°, `ORBIT_PERIOD` 3,600 s.
 
-The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/s, `TOW.MAX_SPEED` 500
-(30U a minute) and `TOW.SLACK` 1.02, at the top of `ee/ragtag/tow.lua`; they apply to the tow job too.
+The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/s, `TOW.MAX_SPEED` 250
+(15U a minute; `TOW.LIMIT_TEXT` says it for the crew) and `TOW.SLACK` 1.02, at the top of `ee/ragtag/tow.lua`; they apply to the tow job too.
 
 ### Open for playtest
 
 - Does the tow feel like towing? Line length, the energy drain (enough to matter, not
   enough to strand the ship?), turning with the ice behind.
-- Is the warp 1 rule clear? Does Engineering try boosting the drive, and is the snap fair?
+- Is the half-warp rule clear? Do Engineering (warp power) and Science (the tow speed) find the speed
+  together, and is the snap fair?
 - Is the ice easy to find (a sector name, pale blue on radar)?
 - 1,500 cr for a job with no fight: about right?
 - Later: a tow job type (salvage hulks, lifeboats), raiders cutting the line.
@@ -152,6 +156,9 @@ The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/
 - 2026-11-24: the tow line moved into `TOW` (`ee/ragtag/tow.lua`) for the new tow job; same behaviour.
 - 2026-11-24 playtest: the mechanics all worked, but the job was a bit slow. The line now holds at warp 1
   (up to 30U a minute, measured as speed so a boosted drive can't cheat it); only faster snaps it.
+- 2026-11-25: the limit is half of warp 1 (15U a minute), so Engineering turns the warp drive down to about
+  half and Science reads "Tow speed" to tune it: towing becomes a two-station job. The tow job's raiders
+  fly 20% faster than the limit.
 
 ### Testing
 
@@ -159,6 +166,7 @@ The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/
 seed rumor (it sets the objective), the two pages, the ice drifting round Kestrel, the button only
 within reach, attaching (the line, impulse unchanged), the energy it costs at full
 impulse against flying free, the ice following a moved ship, casting off,
-warp 1 holding (about 30U a minute, the full drain), a boosted warp 1 snapping the line, the delivery and its pay and standing, the news, the achievement, the ice taken
+warp 1 at half warp power holding (about 15U a minute, the full drain, Science's tow speed), warp 1 at
+full power snapping the line, the delivery and its pay and standing, the news, the achievement, the ice taken
 in, the Magpie lost, every GM state (with next-session routing) and "-> Inactive". The tow line
 behind a ship flying on impulse is in `tests/core/orbit.lua`. Not covered: flying the tow by hand.

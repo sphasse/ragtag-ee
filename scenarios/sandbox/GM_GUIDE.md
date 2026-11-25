@@ -116,10 +116,11 @@ Types:
 
 **Tow specifics:** "We got a call..." A broken-down ship is waiting somewhere quiet (no danger, no patrols), within
 60U. Within 2U of it, Engineering gets "Attach tow line"; the ship trails 1.5U behind, hauling costs up to 3 energy a
-second, and anything faster than warp 1 snaps the line. Bring it within 4U of the port, then dock: "Got 'em home".
+second, and anything faster than half of warp 1 (15U a minute) snaps the line: warp 1 with Engineering's warp power at
+about 50%, Science reading "Tow speed". Bring it within 4U of the port, then dock: "Got 'em home".
 Common at tier 0, rarer as the crew moves up. Achievements: We Got a Call (first tow), Recovery Crew (ten).
 Once the ship has upgraded, some tows say **"Raiders about."** (tier 1: up to one raider, tier 2: up to two; +15% pay
-each). The raiders (Shroud Raiders posing as rival recovery outfits, "Jake's Towing & Salvage", "Interspace AAA" and the like: an Adder MK5 and an MT52 Hornet, with impulse as fast as warp 1.2, so a tow can't outrun them) show up as the crew comes within 10U, heading for
+each). The raiders (Shroud Raiders posing as rival recovery outfits, "Jake's Towing & Salvage", "Interspace AAA" and the like: an Adder MK5 and an MT52 Hornet, with impulse 20% above the tow line's limit, 18U a minute, so a tow can't outrun them) show up as the crew comes within 10U, heading for
 the stranded ship from her far side; their leader hails the crew to stand off. They open fire when the crew is within
 5U of them or puts the line on, and break off once the tow is home.
 

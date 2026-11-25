@@ -186,19 +186,20 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
       sector name; pale blue on radar, drifting round Kestrel)?
 - [ ] Engineering's "Attach tow line" within 2U: does the tow feel like towing (1.5U line, up to 3 energy/s at full impulse,
       turning with the ice behind)?
-- [ ] Towing at warp 1 (30U a minute) holds; faster snaps the line, a boosted warp 1 too: clear? fair? "Release tow line" leaves it where it is
+- [ ] The line takes half of warp 1 (15U a minute): warp 1 with Engineering's warp power at ~50%, Science reading "Tow speed".
+      Do the two stations find it together? Full-power warp 1 snaps it: clear? fair? "Release tow line" leaves it where it is
 - [ ] The ice within 4U of Hob's Landing: 1,500 cr, Independent +75. Right pay for no fight?
 
 ## 5h. Tow jobs (the board; tier 0, rarer later)
 
 - [ ] "We got a call..." details, then the "We'll get 'em home" button: reads right?
 - [ ] The broken-down ship is somewhere quiet (no patrols), within 60U: easy to find from the grid?
-- [ ] Engineering's "Attach tow line", warp 1 home, within 4U of the port, then dock: "Got 'em home". Pay right
+- [ ] Engineering's "Attach tow line", home at half of warp 1, within 4U of the port, then dock: "Got 'em home". Pay right
       for the effort (like salvage, 1.2×)?
 - [ ] How often they show up: common at tier 0, fewer at tiers 1 and 2?
 - [ ] After upgrading: "Raiders about." tows. The raiders show up as you arrive, head for the stranded ship, and their
       leader tells you to stand off; they open fire when you close in or put the line on. Fair at one raider (tier 1)
-      and two (tier 2)? They fly at warp 1.2 on impulse, so a tow can't outrun them: tense rather than hopeless? Hazard pay (+15% a raider) enough?
+      and two (tier 2)? They fly 20% faster than the tow line allows (18U a minute), so a tow can't outrun them: tense rather than hopeless? Hazard pay (+15% a raider) enough?
 - [ ] Achievements: We Got a Call (first tow), Recovery Crew (ten); Jack of All Trades now needs a tow too
 
 ## 5g. The Deep Shroud's asteroid ring

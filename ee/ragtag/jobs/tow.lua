@@ -1,7 +1,7 @@
 -- ee/ragtag/jobs/tow.lua
 -- Tow job type: a ship has broken down out in quiet space and called the port. The crew flies out,
 -- puts a tow line on it (TOW, ee/ragtag/tow.lua: Engineering's "Attach tow line" within 2U; up to
--- warp 1; hauling costs energy) and brings it within DELIVER_R of the port, then docks to be paid.
+-- half of warp 1; hauling costs energy) and brings it within DELIVER_R of the port, then docks to be paid.
 -- Basic work like deliveries: common at tier 0 and tapering off as the crew moves up (the engine's
 -- _TIER_WEIGHTS). The breakdown is always somewhere no patrol flies. Once the ship asking has upgraded
 -- (tier 1+), a tow may draw Shroud Raiders (RAIDER_ODDS: none at tier 0, up to one at tier 1, up to two
@@ -26,7 +26,7 @@ local RAIDER_SHIPS = {"Adder MK5", "MT52 Hornet"}   -- the first raider, the sec
 local RAIDER_TRIGGER = 10000  -- the job's ship this close to the stranded ship: the raiders show up
 local RAIDER_START   = 8000   -- this far out on the far side of her, heading for her
 local RAIDER_ENGAGE  = 5000   -- they open fire when the crew is this close, or once the line is on
-local RAIDER_SPEED   = 1.2    -- their impulse, in stock warp 1s (TOW.MAX_SPEED): a tow at warp 1 can't outrun them
+local RAIDER_SPEED   = 1.2    -- their impulse, as a multiple of the tow line's limit (TOW.MAX_SPEED): a tow can't outrun them
 local RAIDER_ACCEL   = 150    -- impulse acceleration (world units/s^2): up to speed in about 4 s
 local RAIDER_TURN    = 25     -- degrees a second, so they can come round at that speed
 -- Claim jumpers dressed up as rival recovery outfits.
@@ -168,7 +168,8 @@ function M.generate(opts)
         obj          = "Tow " .. name,
         brief        = '"We got a call. ' .. arch.call .. '"\n\n"She\'s ' .. name .. ', dead in space in ' .. where
             .. ', grid ' .. grid .. '. Get a line on her and bring her back here, within '
-            .. math.floor(DELIVER_R / 1000) .. 'U of the port. Warp 1 is as fast as a tow line takes."' .. warning,
+            .. math.floor(DELIVER_R / 1000) .. 'U of the port. A tow line takes ' .. TOW.LIMIT_TEXT .. ', no faster: '
+            .. 'warp 1 with the drive at half power, and have Science watch the speed."' .. warning,
         complete_msg = arch.recv_msg,
         distance_u   = opts.distance_u or 0,
         region_name  = opts.region_name,

@@ -6,7 +6,7 @@
 -- crew arrives, heading for the stranded ship, the leader telling the crew to stand off; opening fire
 -- once the line is on; breaking off when the tow is home, removed when paid); expiry;
 -- the type's weight tapering with tier. One ship. Movement is teleporting.
--- Not covered: flying the tow by hand (tests/core/orbit.lua), the warp-1 limit and the energy it costs
+-- Not covered: flying the tow by hand (tests/core/orbit.lua), the speed limit and the energy it costs
 -- (tests/arcs/icehaul.lua: the same TOW line).
 
 T.suite("jobs")
@@ -179,7 +179,7 @@ T.step("the crew arrives: raiders, heading for her", function()
     end
     T.eq("raiders: the first an Adder", m.raider_ships[1]:getTypeName(), "Adder MK5")
     for i, s in ipairs(m.raider_ships or {}) do
-        T.eq("raider " .. i .. ": impulse of warp 1.2", s:getImpulseMaxSpeed(), TOW.MAX_SPEED * 1.2)
+        T.eq("raider " .. i .. ": 20% over the tow limit (300)", s:getImpulseMaxSpeed(), 300)
     end
     T.check("raiders: the leader tells the crew to stand off", (m._raid_hail or ""):find("Finders keepers", 1, true) ~= nil,
         tostring(m._raid_hail))

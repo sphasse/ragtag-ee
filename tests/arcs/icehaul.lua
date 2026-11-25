@@ -1,6 +1,6 @@
 -- Ice Haul: the gate (Rezkov over), the seed rumor (it sets the objective), the water office's two
 -- pages at Hob's Landing, the berg drifting round Kestrel, Engineering's tow button (only within reach),
--- the line (the berg trails at TOW_LENGTH, impulse unchanged, flying it costs energy), warp 1 holding, a boosted warp 1 snapping it, casting off, the
+-- the line (the berg trails at TOW_LENGTH, impulse unchanged, flying it costs energy), warp 1 at half power holding (Science's tow speed), warp 1 at full power snapping it, casting off, the
 -- delivery at Hob's Landing (1,500 cr, Independent +75), the Magpie lost, every GM state and
 -- "-> Inactive".
 -- Not covered: flying the tow by hand (the ship is teleported; the berg trailing a ship on impulse
@@ -56,7 +56,7 @@ T.step("page 1: the job", function()
 end)
 T.reply({"How do we tow it?"})
 T.step("page 2: the tow", function()
-    T.check("p2: the warp rule", T.msg():find("warp 1 is as fast as the line will take", 1, true) ~= nil, T.msg())
+    T.check("p2: the warp rule", T.msg():find("the line takes half of warp 1", 1, true) ~= nil, T.msg())
 end)
 T.reply({"Not right now."})
 T.step("not right now: still the hook", function() T.eq("decline: hook", T.phase(), "hook") end)
@@ -156,24 +156,31 @@ T.step("towing costs energy", function()
     T.check("drain: the rate follows the throttle", TOW.drain(T.P()) > 0)
     T.check("drain: still on the line", math.abs(dist(T.P(), berg()) - TOW.LENGTH) < 50)
     T.P():commandImpulse(0)
-    T.P():commandWarp(1)
+    T.P():commandSetSystemPowerRequest("warp", 0.5)   -- Engineering's slider: the warp drive at half
 end)
+T.waitFor("Engineering: warp power down to half", function()
+    return T.P().components.warp_drive.power_level <= 0.51
+end, 15)
+T.step("warp 1", function() T.P():commandWarp(1) end)
 T.waitFor("up to warp 1", function()
     local w = T.P().components.warp_drive
     return w and w.current >= 0.99
 end, 15)
 T.wait(3)
-T.step("warp 1: the line holds", function()
+T.step("warp 1 at half power: the line holds", function()
     local v = TOW.speed(T.P())
-    T.check("warp 1: about 30U a minute", math.abs(v - TOW.MAX_SPEED) < 20, string.format("%.0f", v))
+    T.eq("the limit: half of stock warp 1", TOW.MAX_SPEED, 250)
+    T.check("warp 1 at half power: about 15U a minute", math.abs(v - TOW.MAX_SPEED) < 10, string.format("%.0f", v))
+    T.check("science: the tow speed", (TOW._speed_shown[T.P()] or ""):find("of 15 U/min", 1, true) ~= nil,
+        tostring(TOW._speed_shown[T.P()]))
     T.check("warp 1: still towing", T.st().towing)
     T.check("warp 1: the ice on the line", math.abs(dist(T.P(), berg()) - TOW.LENGTH) < 60,
         string.format("%.0f", dist(T.P(), berg())))
     T.eq("warp 1: the full drain", TOW.drain(T.P()), TOW.DRAIN)
-    -- Engineering pumps power into the warp drive: still warp 1, but faster.
-    T.P():setSystemPower("warp", 1.5)
+    -- Engineering puts the warp drive back to full: still warp 1, but too fast.
+    T.P():commandSetSystemPowerRequest("warp", 1.0)
 end)
-T.waitFor("a boosted warp 1 snaps the line", function() return not T.st().towing end, 10)
+T.waitFor("warp 1 at full power snaps the line", function() return not T.st().towing end, 10)
 T.step("snapped", function()
     T.P():commandWarp(0)
     T.P():setSystemPower("warp", 1.0)

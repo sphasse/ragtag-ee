@@ -8,7 +8,7 @@
 --            [SPECIAL] reply.
 --   haul     the iceberg drifts round Kestrel (the engine's orbit component). The tow line is TOW
 --            (ee/ragtag/tow.lua): within TOW.REACH Engineering attaches it, the berg trails TOW.LENGTH
---            behind, hauling costs energy, faster than warp 1 snaps it (the berg stays where it is).
+--            behind, hauling costs energy, faster than half of warp 1 snaps it (the berg stays where it is).
 --            The berg within DELIVER_R of Hob's Landing: delivered (PAY, Independent +REP).
 --   lost     the Magpie lost while hauling (the berg is still out there; nothing to pay).
 
@@ -98,7 +98,7 @@ local function _spawnBerg(st)
 end
 
 -- The berg goes on TOW's list for the arc ship (ee/ragtag/tow.lua: the line, the energy it costs,
--- the warp-1 limit, Engineering's button). The state mirrors whether it is on the line.
+-- the speed limit, Engineering's button). The state mirrors whether it is on the line.
 local function _st() return MISSIONS._state["icehaul"] end
 
 local function _offerTow(st)
@@ -180,7 +180,8 @@ local function _offer()
         .. _cr(M.PAY) .. ' credits."')
     addCommsReply("How do we tow it?", function()
         setCommsMessage('"We\'ll fit a tow rig before you leave. Get within ' .. math.floor(TOW.REACH / U)
-            .. 'U of the ice and your engineer makes it fast. Hauling it eats power, and warp 1 is as fast as the line will take. '
+            .. 'U of the ice and your engineer makes it fast. Hauling it eats power, and the line takes ' .. TOW.LIMIT_TEXT
+            .. ', no more: warp 1 with your warp drive at half power, about. Have your science officer watch the speed. '
             .. 'Any faster and it snaps, and you go back for the ice."')
         addCommsReply("We'll fetch it.", function()
             RT.flag("icehaul_briefed", true)
@@ -218,7 +219,7 @@ function M._addJobEntry()
         "",
         "THE TOW",
         "Within " .. math.floor(TOW.REACH / U) .. "U of the ice, Engineering attaches the tow line. The ice trails " .. (TOW.LENGTH / U)
-            .. "U behind; moving it costs up to " .. TOW.DRAIN .. " energy a second at full impulse. Warp 1 is the line's limit (30U a minute): anything faster snaps it, however the drive is boosted. "
+            .. "U behind; moving it costs up to " .. TOW.DRAIN .. " energy a second at full impulse. The line's limit is " .. TOW.LIMIT_TEXT .. ": warp 1 with the warp drive at about half power, Science watching the tow speed. Anything faster snaps it. "
             .. "Bring the ice within " .. math.floor(M.DELIVER_R / U) .. "U of Hob's Landing.",
     }, "\n"), {["Pay"] = _cr(M.PAY) .. " cr", ["Where"] = "Round Kestrel", ["Deliver to"] = _HOB})
 end

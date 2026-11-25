@@ -5,8 +5,10 @@
 -- period 0 (setOrbit(ship, 0)), which puts it LENGTH from the ship along its bearing every frame, so it
 -- trails like a rope and nothing knocks it off the line. While towing:
 --   * moving costs energy: up to DRAIN a second at full impulse or at warp (scaled by the throttle);
---   * the line holds up to MAX_SPEED (stock warp 1, 30U a minute) and snaps above it, measured as
---     speed, so Engineering boosting the warp drive can't cheat it. The object is left where it is.
+--   * the line holds up to MAX_SPEED (half of stock warp 1, 15U a minute) and snaps above it,
+--     measured as speed: warp 1 is only safe with Engineering's warp power turned down to about half,
+--     and Science reads the tow speed off its own screen ("Tow speed"), so the two tune it together.
+--     The object is left where it is.
 -- Used by the Ice Haul arc and the tow job (jobs/tow.lua). Loaded by core.lua; RT.update runs
 -- TOW.update. Test: tests/core/orbit.lua (the line itself), tests/jobs/tow.lua, tests/arcs/icehaul.lua.
 --
@@ -24,7 +26,8 @@ TOW = TOW or {}
 TOW.REACH     = 2000   -- the button shows within this of a towable object (world units)
 TOW.LENGTH    = 1500   -- the line's length
 TOW.DRAIN     = 3      -- extra energy a second at full impulse or at warp
-TOW.MAX_SPEED = 500    -- the line snaps above this speed (world units/s): stock warp 1
+TOW.MAX_SPEED = 250    -- the line snaps above this speed (world units/s): half of stock warp 1
+TOW.LIMIT_TEXT = "half of warp 1, 15U a minute"   -- MAX_SPEED for the crew
 TOW.SLACK     = 1.02   -- a hair over, for rounding
 
 TOW._offers = TOW._offers or {}   -- obj -> offer {obj, ship, name, on_attach, on_release}
@@ -33,6 +36,7 @@ TOW._shown  = TOW._shown or {}    -- ship -> label its button shows (false: none
 
 local _BUTTON_STATIONS = {"engineering", "engineering+", "singlepilot"}
 local _INFO_STATIONS = {"engineering", "engineering+"}
+local _SPEED_STATIONS = {"science", "operations", "singlepilot"}   -- the tow speed readout
 
 local function _valid(e) return e ~= nil and RT.valid(e) end
 
@@ -73,6 +77,23 @@ local function _info(p, on)
             else p:removeCustom("tow_load_" .. pos) end
         end)
     end
+    if not on then
+        for _, pos in ipairs(_SPEED_STATIONS) do pcall(function() p:removeCustom("tow_speed_" .. pos) end) end
+    end
+end
+
+-- "Tow speed: 14.2 of 15 U/min" for Science, redrawn when the shown value changes.
+TOW._speed_shown = TOW._speed_shown or {}
+function TOW.speedText(p)
+    return string.format("Tow speed: %.1f of %d U/min", TOW.speed(p) * 60 / 1000, math.floor(TOW.MAX_SPEED * 60 / 1000 + 0.5))
+end
+local function _showSpeed(p)
+    local text = TOW.speedText(p)
+    if TOW._speed_shown[p] == text then return end
+    TOW._speed_shown[p] = text
+    for _, pos in ipairs(_SPEED_STATIONS) do
+        pcall(function() p:addCustomInfo(pos, "tow_speed_" .. pos, text, 5) end)
+    end
 end
 
 local function _setButton(p, label)
@@ -111,6 +132,7 @@ local function _letGo(ship, why)
     if not o then return end
     TOW._lines[ship] = nil
     if _valid(o.obj) then o.obj.components.orbit = nil end
+    TOW._speed_shown[ship] = nil
     if _valid(ship) then _info(ship, false) end
     if o.on_release then
         local ok, err = pcall(o.on_release, ship, o.obj, why)
@@ -136,7 +158,8 @@ function TOW.attach(ship, obj)
     TOW._lines[ship] = o
     _info(ship, true)
     _log(ship, string.format("[Engineering] Tow line fast: %s trails %.1fU behind. Hauling costs up to %d energy a second. "
-        .. "Warp 1 is as fast as the line will take: any faster and it snaps.", o.name, TOW.LENGTH / 1000, TOW.DRAIN))
+        .. "The line takes up to %s: warp 1 only with the warp drive's power at about half. Science has the tow speed. "
+        .. "Any faster and it snaps.", o.name, TOW.LENGTH / 1000, TOW.DRAIN, TOW.LIMIT_TEXT))
     if o.on_attach then
         local ok, err = pcall(o.on_attach, ship, obj)
         if not ok then print("[TOW] on_attach error: " .. tostring(err)) end
@@ -175,12 +198,13 @@ function TOW.update(delta)
         if not _valid(ship) or not _valid(o.obj) or TOW._offers[o.obj] ~= o then
             _letGo(ship, "lost")
         elseif TOW.speed(ship) > TOW.MAX_SPEED * TOW.SLACK then
-            _log(ship, "[Engineering] The tow line snapped: faster than warp 1 is more than it can take. "
+            _log(ship, "[Engineering] The tow line snapped: faster than " .. TOW.LIMIT_TEXT .. ", is more than it can take. "
                 .. o.name .. " is adrift: go back for it.", "#FFAA40")
             _letGo(ship, "snapped")
         else
             local d = TOW.drain(ship) * (delta or 0)
             if d > 0 then ship:setEnergyLevel(math.max(0, ship:getEnergy() - d)) end
+            _showSpeed(ship)
         end
     end
     for _, p in ipairs(RT.players or {}) do
