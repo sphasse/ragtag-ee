@@ -1,6 +1,6 @@
 -- Ice Haul: the gate (Rezkov over), the seed rumor (it sets the objective), the water office's two
 -- pages at Hob's Landing, the berg drifting round Kestrel, Engineering's tow button (only within reach),
--- the line (the berg trails at TOW_LENGTH, impulse slowed), warp snapping it, casting off, the
+-- the line (the berg trails at TOW_LENGTH, impulse unchanged, flying it costs energy), warp snapping it, casting off, the
 -- delivery at Hob's Landing (1,500 cr, Independent +75), the Magpie lost, every GM state and
 -- "-> Inactive".
 -- Not covered: flying the tow by hand (the ship is teleported; the berg trailing a ship on impulse
@@ -9,7 +9,7 @@
 T.arc("icehaul")
 
 local M_i = MISSIONS._registry.icehaul
-local c0, ind0, fwd0, bx0, by0
+local c0, ind0, fwd0, bx0, by0, e_start, e_free
 
 local function berg() return T.st().berg end
 local function hob() return T.find("Hob's Landing") end
@@ -107,7 +107,8 @@ T.step("in reach: attach", function()
     T.check("attach: towing", T.st().towing)
     T.eq("attach: the line is on the ship", berg().components.orbit.target, T.P())
     T.eq("attach: objective", RT.objectives.icehaul, "Tow it to Hob's")
-    T.check("attach: impulse slowed", math.abs(T.P():getImpulseMaxSpeed() - fwd0 * M_i.TOW_DRAG) < 0.1)
+    T.check("attach: impulse unchanged", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
+    T.eq("attach: no drain while stopped", M_i.towDrain(T.P()), 0)
 end)
 T.wait(1)
 T.step("the line", function()
@@ -127,8 +128,34 @@ T.step("the ice follows", function()
     T.check("cast off: the ice holds still", berg().components.orbit == nil)
     T.check("cast off: impulse back", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
     T.eq("cast off: objective", RT.objectives.icehaul, "Pick up the ice")
+    -- 8 s at full impulse without the line, for the energy it costs on its own.
+    T.P():setEnergyLevel(T.P():getEnergyLevelMax())
+    e_start = T.P():getEnergy()
+    T.P():commandImpulse(1)
+end)
+T.wait(8)
+T.step("energy flying free", function()
+    e_free = e_start - T.P():getEnergy()
+    T.P():commandImpulse(0)
+end)
+T.waitFor("stopped", function() return M_i.towDrain(T.P()) == 0 and math.abs(T.P().components.impulse_engine.actual) < 0.01 end, 15)
+T.step("the same with the line on", function()
     M_i.towPressed()   -- within reach still: attach again
     T.check("attach again", T.st().towing)
+    T.P():setEnergyLevel(T.P():getEnergyLevelMax())
+    e_start = T.P():getEnergy()
+    T.P():commandImpulse(1)
+end)
+T.wait(8)
+T.step("towing costs energy", function()
+    local e_tow = e_start - T.P():getEnergy()
+    T.check("drain: towing costs more energy than flying free", e_tow - e_free > 5,
+        string.format("free %.1f, towing %.1f", e_free, e_tow))
+    T.check("drain: at most TOW_DRAIN a second more", e_tow - e_free <= M_i.TOW_DRAIN * 8 + 1,
+        string.format("free %.1f, towing %.1f", e_free, e_tow))
+    T.check("drain: the rate follows the throttle", M_i.towDrain(T.P()) > 0)
+    T.check("drain: still on the line", math.abs(dist(T.P(), berg()) - M_i.TOW_LENGTH) < 50)
+    T.P():commandImpulse(0)
     T.P():commandWarp(1)
 end)
 T.waitFor("warp snaps the line", function() return not T.st().towing end, 10)

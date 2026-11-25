@@ -533,7 +533,7 @@ water office pays the crew to tow the biggest piece home. No resistance: a short
 
 **Flow.** `hook` (a seed rumor; docked at Hob's Landing, the water office's [SPECIAL] offer, two
 pages) → `haul` (the ice drifts round Kestrel, 16U out; within 2U Engineering attaches the line, the
-ice trails 1.5U behind, impulse 75%; warp snaps the line) → `done`: **delivered** (the ice within 4U
+ice trails 1.5U behind, moving it drains up to 3 energy/s; warp snaps the line) → `done`: **delivered** (the ice within 4U
 of Hob's Landing: 1,500 cr, Independent +75), **lost** (the Magpie).
 
 **Trigger.** Rezkov over.

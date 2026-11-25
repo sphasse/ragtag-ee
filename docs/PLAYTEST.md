@@ -184,7 +184,7 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
 Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
 - [ ] The seed rumor sets "Hob's Landing"; the water office's two pages. Is the ice easy to find (a
       sector name; pale blue on radar, drifting round Kestrel)?
-- [ ] Engineering's "Attach tow line" within 2U: does the tow feel like towing (1.5U line, 75% impulse,
+- [ ] Engineering's "Attach tow line" within 2U: does the tow feel like towing (1.5U line, up to 3 energy/s at full impulse,
       turning with the ice behind)?
 - [ ] Warp snaps the line: clear? fun or annoying? "Release tow line" leaves it where it is
 - [ ] The ice within 4U of Hob's Landing: 1,500 cr, Independent +75. Right pay for no fight?
