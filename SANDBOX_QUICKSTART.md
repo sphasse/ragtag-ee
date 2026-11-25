@@ -100,7 +100,8 @@ or use **Say** to speak to the crew as a station yourself.
 
 **Risky Zones** (2-3 upgrades needed):
 - The Gauntlet: Corsair ambush territory, good salvage
-- The Shroud: Nebula with mysteries
+- The Shroud: Nebula with mysteries, and Shroud Raiders
+- The Deep Shroud: the biggest nebula, blind sensors, Shroud Raiders
 
 **Dangerous Zones** (5+ upgrades needed):
 - Blackwater Reach: Corsair haven

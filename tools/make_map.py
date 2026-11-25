@@ -153,8 +153,8 @@ for e in entries("regions"):
         )
 
 # ── Patrol zones (control map) ────────────────────────────────────────────────
-ZONE_FAC = {"Concord": "#6fa8ff", "Corsairs": "#ff8c3c", "Relic": "#d2c85a", "Hollow": "#e03030"}
-ZONE_WHAT = {"Concord": "inspections", "Corsairs": "raiders", "Relic": "war drones", "Hollow": "hunters"}
+ZONE_FAC = {"Concord": "#6fa8ff", "Corsairs": "#ff8c3c", "Shroud Raiders": "#c0603a", "Relic": "#d2c85a", "Hollow": "#e03030"}
+ZONE_WHAT = {"Concord": "inspections", "Corsairs": "raiders", "Shroud Raiders": "raiders", "Relic": "war drones", "Hollow": "hunters"}
 if CONTROL:
     svg.append(
         '<defs><pattern id="concord" width="14" height="14" patternUnits="userSpaceOnUse"'
@@ -267,6 +267,7 @@ for e in entries("hazards"):
 lg = [
     ("#6fa8ff",   "Concord patrol zone (inspections, hatched)"),
     ("#ff8c3c",   "Corsair raider zone"),
+    ("#c0603a",   "Shroud Raider zone"),
     ("#d2c85a",   "Relic drone zone"),
     ("#e03030",   "Hollow zone"),
     ("#6fa8ff",   "Concord station"),

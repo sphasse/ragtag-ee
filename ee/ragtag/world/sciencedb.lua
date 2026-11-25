@@ -766,7 +766,7 @@ local function _build()
         "its crews. The ones who wouldn't keep them went into the Shroud. They hide in the " ..
         "nebulae of the Shroud and the Deep Shroud and take whatever comes through. " ..
         "No arrangement with Blackwater protects you from them, and they don't negotiate.",
-        { ["Territory"] = "The Shroud, the Deep Shroud", ["Attitude"] = "Hostile to everyone", ["Note"] = "No standing to win or lose" }
+        { ["Territory"] = "The Shroud, the Deep Shroud", ["Attitude"] = "Hostile to outsiders", ["Note"] = "No standing to win or lose" }
     )
 
     SCIDB._entries["faction_independent"] = _entry(factions, "Independent",

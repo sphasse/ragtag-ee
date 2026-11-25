@@ -72,7 +72,7 @@ fake transponder code, for one, which lets a ship the Concord wants slip past it
 
 - **Start near the Core and Border.** Learn the ship before the Rim eats you.
 - **Scan everything.** Science can tell you what's worth chasing and what to run from.
-- **The Gauntlet has Corsairs.** The Boneyard has war drones. The Maw has things worse than both.
+- **The Gauntlet has Corsairs, and the Shroud has worse ones.** The Boneyard has war drones. The Maw has things worse than both.
 - **If a region says dangerous, believe it.**
 - **Don't go to the Maw.**
 

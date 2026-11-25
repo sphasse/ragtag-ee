@@ -4,6 +4,7 @@ Do jobs, get paid, keep flying. The crew runs contracts out of stations across t
 
 - Concord patrols the Core, the Arbiter Line and the Escrow Marches. Good standing means wave-throughs; bad standing means warp jammers, inspection demands, and eventually ships that shoot on sight.
 - Corsairs hold the Gauntlet and Blackwater. They don't negotiate.
+- Shroud Raiders, Corsairs who never answered to Blackwater, haunt the Shroud and the Deep Shroud.
 - Relic war drones still run Settlement War protocols in the Boneyard.
 - The Maw is past the last warnings. Nobody comes back.
 

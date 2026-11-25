@@ -353,15 +353,15 @@
 <text x="680.0" y="626.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 53u · every 12 min</text>
 <circle cx="308.0" cy="720.0" r="288.0" fill="url(#concord)" stroke="#6fa8ff" stroke-width="4"/>
 <text x="308.0" y="998.0" fill="#6fa8ff" font-size="12" text-anchor="middle" font-weight="600">CONCORD inspections · r 72u · every 12 min</text>
-<circle cx="1200.0" cy="560.0" r="136.0" fill="#ccc" opacity="0.08"/>
-<circle cx="1200.0" cy="560.0" r="136.0" fill="none" stroke="#ccc" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
-<text x="1200.0" y="686.0" fill="#ccc" font-size="12" text-anchor="middle" font-weight="600">SHROUD RAIDERS patrols · r 34u · every 4 min</text>
-<circle cx="1096.0" cy="500.0" r="36.0" fill="#ccc" opacity="0.08"/>
-<circle cx="1096.0" cy="500.0" r="36.0" fill="none" stroke="#ccc" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
-<text x="1096.0" y="526.0" fill="#ccc" font-size="12" text-anchor="middle" font-weight="600">SHROUD RAIDERS patrols · r 9u · every 4 min</text>
-<circle cx="1552.0" cy="476.0" r="176.0" fill="#ccc" opacity="0.08"/>
-<circle cx="1552.0" cy="476.0" r="176.0" fill="none" stroke="#ccc" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
-<text x="1552.0" y="642.0" fill="#ccc" font-size="12" text-anchor="middle" font-weight="600">SHROUD RAIDERS patrols · r 44u · every 4 min</text>
+<circle cx="1200.0" cy="560.0" r="136.0" fill="#c0603a" opacity="0.08"/>
+<circle cx="1200.0" cy="560.0" r="136.0" fill="none" stroke="#c0603a" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
+<text x="1200.0" y="686.0" fill="#c0603a" font-size="12" text-anchor="middle" font-weight="600">SHROUD RAIDERS raiders · r 34u · every 4 min</text>
+<circle cx="1096.0" cy="500.0" r="36.0" fill="#c0603a" opacity="0.08"/>
+<circle cx="1096.0" cy="500.0" r="36.0" fill="none" stroke="#c0603a" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
+<text x="1096.0" y="526.0" fill="#c0603a" font-size="12" text-anchor="middle" font-weight="600">SHROUD RAIDERS raiders · r 9u · every 4 min</text>
+<circle cx="1552.0" cy="476.0" r="176.0" fill="#c0603a" opacity="0.08"/>
+<circle cx="1552.0" cy="476.0" r="176.0" fill="none" stroke="#c0603a" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
+<text x="1552.0" y="642.0" fill="#c0603a" font-size="12" text-anchor="middle" font-weight="600">SHROUD RAIDERS raiders · r 44u · every 4 min</text>
 <circle cx="1020.0" cy="868.0" r="116.0" fill="#ff8c3c" opacity="0.08"/>
 <circle cx="1020.0" cy="868.0" r="116.0" fill="none" stroke="#ff8c3c" stroke-width="2" stroke-dasharray="8 6" opacity="0.8"/>
 <text x="1020.0" y="974.0" fill="#ff8c3c" font-size="12" text-anchor="middle" font-weight="600">CORSAIRS raiders · r 29u · every 3 min</text>
@@ -453,8 +453,9 @@
 <circle cx="1616.0" cy="580.0" r="7" fill="none" stroke="#fff" stroke-width="2"/>
 <text x="1626.0" y="584.0" fill="#fff" font-size="11">rift</text>
 <line x1="1616.0" y1="580.0" x2="1448.0" y2="924.0" stroke="#ffffff" stroke-width="1" stroke-dasharray="4 4" opacity="0.4"/>
-<rect x="16" y="1108" width="12" height="12" fill="#6fa8ff"/><text x="34" y="1118" fill="#d9d4c7" font-size="12">Concord patrol zone (inspections, hatched)</text>
-<rect x="16" y="1126" width="12" height="12" fill="#ff8c3c"/><text x="34" y="1136" fill="#d9d4c7" font-size="12">Corsair raider zone</text>
+<rect x="16" y="1090" width="12" height="12" fill="#6fa8ff"/><text x="34" y="1100" fill="#d9d4c7" font-size="12">Concord patrol zone (inspections, hatched)</text>
+<rect x="16" y="1108" width="12" height="12" fill="#ff8c3c"/><text x="34" y="1118" fill="#d9d4c7" font-size="12">Corsair raider zone</text>
+<rect x="16" y="1126" width="12" height="12" fill="#c0603a"/><text x="34" y="1136" fill="#d9d4c7" font-size="12">Shroud Raider zone</text>
 <rect x="16" y="1144" width="12" height="12" fill="#d2c85a"/><text x="34" y="1154" fill="#d9d4c7" font-size="12">Relic drone zone</text>
 <rect x="16" y="1162" width="12" height="12" fill="#e03030"/><text x="34" y="1172" fill="#d9d4c7" font-size="12">Hollow zone</text>
 <rect x="16" y="1180" width="12" height="12" fill="#6fa8ff"/><text x="34" y="1190" fill="#d9d4c7" font-size="12">Concord station</text>
@@ -466,9 +467,9 @@
 <text x="1452" y="56" fill="#6fa8ff" font-size="12">the Concord Core · Concord · r 66u · cooldown 600 s</text>
 <text x="1452" y="73" fill="#6fa8ff" font-size="12">the Arbiter Line · Concord · r 53u · cooldown 720 s</text>
 <text x="1452" y="90" fill="#6fa8ff" font-size="12">the Escrow Marches · Concord · r 72u · cooldown 720 s</text>
-<text x="1452" y="107" fill="#ccc" font-size="12">the Shroud · Shroud Raiders · r 34u · cooldown 240 s</text>
-<text x="1452" y="124" fill="#ccc" font-size="12">Halcyon Rest · Shroud Raiders · r 9u · cooldown 240 s</text>
-<text x="1452" y="141" fill="#ccc" font-size="12">the Deep Shroud · Shroud Raiders · r 44u · cooldown 240 s</text>
+<text x="1452" y="107" fill="#c0603a" font-size="12">the Shroud · Shroud Raiders · r 34u · cooldown 240 s</text>
+<text x="1452" y="124" fill="#c0603a" font-size="12">Halcyon Rest · Shroud Raiders · r 9u · cooldown 240 s</text>
+<text x="1452" y="141" fill="#c0603a" font-size="12">the Deep Shroud · Shroud Raiders · r 44u · cooldown 240 s</text>
 <text x="1452" y="158" fill="#ff8c3c" font-size="12">the Gauntlet · Corsairs · r 29u · cooldown 180 s</text>
 <text x="1452" y="175" fill="#ff8c3c" font-size="12">Blackwater Reach · Corsairs · r 21u · cooldown 180 s</text>
 <text x="1452" y="192" fill="#d2c85a" font-size="12">the Boneyard · Relic · r 29u · cooldown 180 s</text>

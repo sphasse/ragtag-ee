@@ -193,8 +193,9 @@ The scenario's GM button cycles four modes via `PROX.cycleMode()` / `PROX.getMod
 | the Concord Core | Concord | shakedown |
 | the Arbiter Line | Concord | shakedown |
 | the Escrow Marches | Concord | shakedown |
-| the Shroud | Corsairs | taunt |
-| Halcyon Rest | Corsairs | taunt |
+| the Shroud | Shroud Raiders | taunt |
+| Halcyon Rest | Shroud Raiders | taunt |
+| the Deep Shroud | Shroud Raiders | taunt |
 | the Gauntlet | Corsairs | taunt |
 | Blackwater Reach | Corsairs | taunt |
 | the Boneyard | Relic | silent |

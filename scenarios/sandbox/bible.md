@@ -43,7 +43,8 @@ The Drift spans five suns from the rich Concord Core to the deadly Maw. Money is
 ### Factions
 - **Independent**: The crew and most traders. Neutral to each other.
 - **Concord**: The law. Neutral at good standing; inspections and fines at bad standing; hostile and attacks on sight when reputation drops below −200.
-- **Corsairs**: Pirates. Hostile to traders, avoid strong targets.
+- **Corsairs**: Pirates. Hostile to traders, avoid strong targets. Blackwater's crews keep rules, and can be won as allies.
+- **Shroud Raiders**: Corsair crews who never answered to Blackwater, hiding in the Shroud and the Deep Shroud. Always hostile, no standing.
 - **Relic**: War drones from the Settlement War. Hostile to all.
 - **Hollow**: Unknown faction from the Maw. Hostile, mysterious.
 - **Derelict**: Dead ships, salvageable.

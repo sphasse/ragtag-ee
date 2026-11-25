@@ -72,7 +72,7 @@ Combined tier maps to a ship group: scout → light → medium → heavy (capped
 |---|---|---|---|
 | Concord Core | Concord | Comms-first shake-down (see below) | 10 min |
 | Arbiter Line | Concord | Comms-first shake-down | 12 min |
-| the Shroud, Halcyon Rest | Corsairs | Attack | 4 min |
+| the Shroud, Halcyon Rest, the Deep Shroud | Shroud Raiders (hostile whatever the Corsair standing; no standing of their own) | Attack | 4 min |
 | the Gauntlet, Blackwater Reach | Corsairs | Attack | 3 min |
 | the Boneyard | Relic | Attack on sight, don't negotiate, WX-Lindworm/Stalker templates | 3 min |
 | the Maw | Hollow | Attack on sight, no comms | 2 min |

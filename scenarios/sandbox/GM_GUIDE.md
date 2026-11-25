@@ -122,6 +122,8 @@ Gull", "Return to Vesper"); arc objectives are one short line each too.
 
 ### Combat
 - **Corsairs** ambush in the Gauntlet and Blackwater
+- **Shroud Raiders** (Corsairs who never answered to Blackwater) ambush in the Shroud, Halcyon Rest and the Deep
+  Shroud: always hostile, whatever the Corsair standing, and no standing lost for destroying them
 - **Relic drones** guard the Boneyard (war machines, hostile to all), with three old **gun platforms**
   (two lances, one barrage) well away from the Ashgrave Annex. The platforms fire HVLI shells at any
   crew in range (6-7U), can be destroyed, and come back each session. The Boneyard arc's Annex hack

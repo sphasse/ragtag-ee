@@ -16,7 +16,8 @@ DANGER = {0: "safe", 1: "risky", 2: "dangerous", 3: "DEADLY"}
 FACTIONS = [
     ("Independent", "the crew, independent stations and freighters. Friendly but mercenary."),
     ("Concord", "the law. Customs patrols, permits, inspections. Concord stations refuse service to ships flagged wanted."),
-    ("Corsairs", "pirate crews of the risky and dangerous zones. Greedy and theatrical."),
+    ("Corsairs", "pirate crews of the Gauntlet and Blackwater. Greedy and theatrical. The crew can win them as allies."),
+    ("Shroud Raiders", "Corsair crews who never answered to Blackwater, hiding in the Shroud and the Deep Shroud. Always hostile, no standing."),
     ("Hollow", "raiders from beyond the Pale Sun. They never talk. Keep stories about them frightening, never explicit. Never spawn or summon them."),
     ("Relic", "automated war drones that still guard old battlefields."),
     ("Unknown", "silent ships with no transponder that spacers call 'the Ghosts'. Only tones. Not hostile."),

@@ -79,7 +79,7 @@ Required order in `init()`: `VERSE.setupFactions()` first (before any entity use
 
 | Function / table | What it does |
 |---|---|
-| `VERSE.setupFactions()` | Creates Concord, Corsairs, Hollow, Relic, Unknown, Derelict and their relations |
+| `VERSE.setupFactions()` | Creates Concord, Corsairs, Shroud Raiders, Hollow, Relic, Unknown, Derelict and their relations |
 | `VERSE.build({session, transports})` | Builds everything; `transports = false` skips traffic (testing) |
 | `VERSE.at(name, dx_u, dy_u)` | World position of a named station/planet/star plus an offset in units. Use this instead of hard-coded coordinates |
 | `VERSE.places[name]` | `{x, y}` of every named place |
@@ -95,7 +95,7 @@ Map facts for writing sessions: Port Vesper is at (0, 0). The Core is to the nor
 
 Events VERSE emits: `region_entered` {region, danger, first_visit}, `transport_destroyed` {callsign, route, by, region}, `wreck_scanned`, `pickup` (with kind, value, tier, region).
 
-Factions available to sessions: player "Independent"; "Concord" (law, neutral); "Corsairs" (pirates, hostile); "Hollow" (deadly raiders, hostile to everyone); "Relic" (war drones, hostile to everyone); "Unknown" (silent watchers, neutral); "Derelict" (dead hulls). Don't use the stock Human Navy/Exuari/Ghosts factions in campaign sessions.
+Factions available to sessions: player "Independent"; "Concord" (law, neutral); "Corsairs" (pirates, hostile; the Corsair arc can make them allies); "Shroud Raiders" (Corsairs of the Shroud, always hostile, no standing); "Hollow" (deadly raiders, hostile to everyone); "Relic" (war drones, hostile to everyone); "Unknown" (silent watchers, neutral); "Derelict" (dead hulls). Don't use the stock Human Navy/Exuari/Ghosts factions in campaign sessions.
 
 ## 2. DIR
 The mailbox to the AI director. It only listens: it subscribes to the event bus, queues what

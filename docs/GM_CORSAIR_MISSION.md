@@ -60,7 +60,8 @@ Drift, and we know you are someone who is not intimidated by the Concord… Foll
 ### Escort
 
 Corsair territory turns friendly for now: the Gauntlet and Blackwater garrisons and Blackwater itself
-become `Corsair Friendly`, and Corsair patrols in the Gauntlet and Blackwater are suspended.
+become `Corsair Friendly`, and Corsair patrols in the Gauntlet and Blackwater are suspended. (The Shroud Raiders in the Shroud,
+Halcyon Rest and the Deep Shroud are a separate faction and stay hostile.)
 
 The crew follows *Long Memory*. It paces them: more than 5.5U behind, it holds (and defends itself);
 within 4.5U, it leads on. It has no warp but cruises at warp-1 speed (30 U/min), so the crew follows at

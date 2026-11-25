@@ -10,7 +10,7 @@ There are three factions that matter:
 
 **The Concord** — the law, such as it is out here. They run inspections in the Core, on the Arbiter Line and in the Escrow Marches south of them. A good record means they wave you through without stopping. A bad one means more scrutiny, then fines, then warrants, and eventually — well past the point a reasonable crew would have cleared their name — their patrols stop hailing and start shooting.
 
-**The Corsairs** — pirates, toll-takers, opportunists. They don't offer work and they're not interested in your reputation the way the other factions are. What they're interested in is whether you look like easy money. Where they spawn and how much trouble they give you depends on where you fly; your standing with them mostly determines what jobs you can pick up at their-adjacent ports, and how few other options the job board shows you when things go south.
+**The Corsairs** — pirates, toll-takers, opportunists. They don't offer work and they're not interested in your reputation the way the other factions are. What they're interested in is whether you look like easy money. Where they spawn and how much trouble they give you depends on where you fly; your standing with them mostly determines what jobs you can pick up at their-adjacent ports, and how few other options the job board shows you when things go south. (The **Shroud Raiders**, the Corsair crews of the Shroud who never answered to Blackwater, keep no reckoning at all: they're hostile whatever your standing, and destroying them costs nothing.)
 
 Reputation is kept **per ship**: with several crews flying, each ship has its own standing. It carries across sessions. The Drift doesn't forget.
 
