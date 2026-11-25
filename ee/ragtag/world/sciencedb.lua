@@ -542,9 +542,9 @@ local function _buildUpgrades()
             local levels = {}
             for _, u in ipairs(ups) do
                 lo, hi = math.min(lo, u.cost), math.max(hi, u.cost)
-                local need = u.requires and RT.upgradeById(u.requires)
+                local need = RT.upgradeNeedsText(u)
                 levels[#levels + 1] = u.name .. ", " .. _fmtCr(u.cost) ..
-                    (need and (" (needs " .. need.name .. ")") or "") .. "\n" .. u.desc
+                    (need and (" (needs " .. need .. ")") or "") .. "\n" .. u.desc
             end
             local title = SCIDB.UPGRADE_LINE_TITLES[line.id] or _cap(line.name)
             local desc = "FITTED AT\n" .. (#where > 0 and (table.concat(where, ", ") .. ".") or "No shipwright in the Drift fits these.") ..

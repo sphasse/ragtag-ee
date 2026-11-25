@@ -155,6 +155,32 @@ T.step("the levels add up", function()
     T.eq("reverse acceleration doubles too", math.floor(B.components.impulse_engine.acceleration_reverse + 0.5), 20)
 end)
 
+-- The forward mount is a choice: the forward beam mount or the sniper beam, never both.
+T.step("the sniper beam: a choice with the forward beam", function()
+    local sn = RT.upgradeById("sniper_beam")
+    T.check("sniper: in the beam line", sn and sn.line == "beams")
+    T.check("sniper: ruled out by the forward beam", RT.upgradeExcludedBy(sn, B) == RT.upgradeById("forward_beams"))
+    T.check("sniper: not open with the forward beam", not RT.upgradeOpen(sn, B))
+    T.check("sniper: not granted alongside it", not RT.grantUpgrade("sniper_beam", "test", B))
+    T.check("sniper: not in the record", not RT.hasUpgrade("sniper_beam", B))
+    T.eq("forward beam still 50 degrees", B:getBeamWeaponArc(2), 50)
+    T.eq("coils need either mount", RT.upgradeNeedsText(RT.upgradeById("beam_coils")), "Forward beam mount or Sniper beam")
+    T.check("shipwright: sniper sold where beams are", RT.stocks(station("Port Vesper") or {shop = true}, "sniper_beam")
+        == RT.stocks(station("Port Vesper") or {shop = true}, "forward_beams"))
+    RT.revokeUpgrade("forward_beams", B)
+    T.check("forward beam off: sniper open", RT.upgradeOpen(sn, B))
+    T.check("coils still count with either mount", RT.upgradeNeedsMet(RT.upgradeById("beam_coils_2"), B))
+    T.check("sniper: granted", RT.grantUpgrade("sniper_beam", "test", B))
+    T.eq("sniper: 5 degree arc", B:getBeamWeaponArc(2), 5)
+    T.eq("sniper: 3U range", B:getBeamWeaponRange(2), 3000)
+    T.eq("sniper: dead ahead", B:getBeamWeaponDirection(2), 0)
+    T.check("forward beam now ruled out", not RT.upgradeOpen(RT.upgradeById("forward_beams"), B))
+    T.check("forward beam: not granted alongside", not RT.grantUpgrade("forward_beams", "test", B))
+    RT.revokeUpgrade("sniper_beam", B)
+    T.check("both off: no forward beam", (B:getBeamWeaponRange(2) or 0) == 0,
+        string.format("arc %s range %s", tostring(B:getBeamWeaponArc(2)), tostring(B:getBeamWeaponRange(2))))
+end)
+
 -- ── Probes, for real: launched from the ship and timed in flight ─────────────
 -- The catalogue check above only shows the upgrade asks for the right speed. Here each probe is
 -- launched through the engine (commandLaunchProbe, the Relay/Science launch path, which runs the

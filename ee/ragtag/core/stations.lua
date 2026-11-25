@@ -103,7 +103,7 @@ function RT.shipwrightMenu(source, target)
     local lines = {"Shipwright. Balance: " .. RT.credits(source) .. " credits.\n"}
     local any = false
     for _, u in ipairs(RT.UPGRADES) do
-        if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id, source) and (u.requires == nil or RT.hasUpgrade(u.requires, source))
+        if RT.stocks(info, u.id) and not RT.hasUpgrade(u.id, source) and RT.upgradeOpen(u, source)
            and (u.available == nil or u.available(source)) then
             any = true
             table.insert(lines, string.format("%s (%d cr): %s", u.name, u.cost, u.desc))

@@ -74,8 +74,8 @@ T.step("the Ship Upgrades section", function()
                 T.check("upgrades: " .. u.id .. " with its price and effect", has, text)
                 if has then listed[u.id] = true end
                 if u.requires then
-                    local need = RT.upgradeById(u.requires)
-                    T.check("upgrades: " .. u.id .. " says what it needs", text:find("(needs " .. need.name .. ")", 1, true) ~= nil)
+                    T.check("upgrades: " .. u.id .. " says what it needs",
+                        text:find("(needs " .. RT.upgradeNeedsText(u) .. ")", 1, true) ~= nil)
                 end
                 for _, d in ipairs(VERSE.STATIONS) do
                     if RT.stocks(d, u.id) and not SCIDB.PORT_EXCLUDE_FACTIONS[d.fac] then

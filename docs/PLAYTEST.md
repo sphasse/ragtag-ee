@@ -212,6 +212,9 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
       each level feel like a step? Is double the stock turn and acceleration too much?
 - [ ] Hob's Landing's shipwright (the Hob Works) sells sensors, engines, thrusters, reactor, shields
       and probes; its Science DB Ports entry has the new lore
+- [ ] **Sniper beam** (350 cr, at beam shipwrights): the other choice for the forward mount, never both. A 5° arc
+      that reaches 3U, 8 damage every 8 s. Can Helm hold a target in 5°? Worth giving up the 50° forward beam?
+      Coils and heavy emitters apply to it too (heavy: 3.4U). Shipwright hides the other mount once one is fitted
 
 ## 7. The world
 

@@ -8,6 +8,9 @@
 -- Every upgrade belongs to a component `line`. A station's shipwright is a base for whole lines
 -- (drift.lua `shop = {"hull", "reactor"}`): it sells every level of those lines, so a new level
 -- is on sale wherever the levels below it are. RT.UPGRADE_LINES names them for the crew.
+-- `requires` is the id it needs, or a list of ids any one of which will do; `excludes` is an id (or a
+-- list) it can't be fitted alongside: a choice between two (the forward beam mount or the sniper
+-- beam). RT.upgradeOpen(u, ship) checks both; RT.upgradeNeedsText / RT.upgradeExcludedBy say why not.
 --------------------------------------------------------------------------------
 
 RT.UPGRADE_LINES = {
@@ -27,9 +30,16 @@ RT.UPGRADES = {
      desc = "Shields to 100 / 100.",
      apply = function(p) p:setShieldsMax(100, 100); p:setShields(100, 100) end},
     {id = "forward_beams", line = "beams", name = "Forward beam mount", gm_name = "Fwd beams", cost = 300,
-     desc = "Adds a forward-firing beam. Finally something pointing where you're going.",
+     excludes = "sniper_beam",
+     desc = "Adds a forward-firing beam. Finally something pointing where you're going. (Instead of the sniper beam.)",
      apply = function(p) p:setBeamWeapon(2, 50, 0, 1000, 6, 6) end},
-    {id = "beam_coils", line = "beams", name = "Overclocked beam coils", gm_name = "Beam coils", cost = 250, requires = "forward_beams",
+    -- The other choice for the forward mount (same beam slot): a 5 degree arc that reaches 3U.
+    {id = "sniper_beam", line = "beams", name = "Sniper beam", gm_name = "Sniper beam", gm_label = "Beams: sniper", cost = 350,
+     excludes = "forward_beams",
+     desc = "A forward beam with a 5 degree arc and a 3U reach, hitting harder and slower (8 damage every 8 s). "
+         .. "Helm lines it up, Weapons does the rest. (Instead of the forward beam mount.)",
+     apply = function(p) p:setBeamWeapon(2, 5, 0, 3000, 8, 8) end},
+    {id = "beam_coils", line = "beams", name = "Overclocked beam coils", gm_name = "Beam coils", cost = 250, requires = {"forward_beams", "sniper_beam"},
      desc = "+2 damage on every beam.",
      apply = function(p)
         for i = 0, 15 do
@@ -186,6 +196,49 @@ function RT.upgradeById(id)
     return nil
 end
 
+local function _ids(v)
+    if v == nil then return {} end
+    if type(v) == "table" then return v end
+    return {v}
+end
+
+-- Does the ship have what `u` needs (any one of its `requires`)?
+function RT.upgradeNeedsMet(u, ship)
+    local req = _ids(u.requires)
+    if #req == 0 then return true end
+    for _, id in ipairs(req) do if RT.hasUpgrade(id, ship) then return true end end
+    return false
+end
+
+-- The upgrade the ship has that rules `u` out (`excludes`, either way round), or nil.
+function RT.upgradeExcludedBy(u, ship)
+    for _, id in ipairs(_ids(u.excludes)) do
+        if RT.hasUpgrade(id, ship) then return RT.upgradeById(id) end
+    end
+    for _, other in ipairs(RT.UPGRADES) do
+        for _, id in ipairs(_ids(other.excludes)) do
+            if id == u.id and RT.hasUpgrade(other.id, ship) then return other end
+        end
+    end
+    return nil
+end
+
+-- Can `u` be fitted to the ship now (needs met, nothing excluding it; not whether it is owned)?
+function RT.upgradeOpen(u, ship)
+    return RT.upgradeNeedsMet(u, ship) and RT.upgradeExcludedBy(u, ship) == nil
+end
+
+-- "Forward beam mount or Sniper beam": what `u` needs, for the crew; nil when it needs nothing.
+function RT.upgradeNeedsText(u)
+    local names = {}
+    for _, id in ipairs(_ids(u.requires)) do
+        local r = RT.upgradeById(id)
+        names[#names + 1] = r and r.name or id
+    end
+    if #names == 0 then return nil end
+    return table.concat(names, " or ")
+end
+
 function RT.applyUpgrade(p, id)
     local u = RT.upgradeById(id)
     if u == nil then return false end
@@ -224,7 +277,9 @@ end
 function RT.installUpgrade(id, ship)
     local rec = RT.shipRecord(ship)
     local p = RT.playerShip(ship) or RT.player
-    if rec == nil or RT.upgradeById(id) == nil or RT.hasUpgrade(id, p) then return false end
+    local u = RT.upgradeById(id)
+    if rec == nil or u == nil or RT.hasUpgrade(id, p) then return false end
+    if RT.upgradeExcludedBy(u, p) then return false end   -- the other half of a choice is fitted
     table.insert(rec.upgrades, id)
     if RT.valid(p) then RT.applyUpgrade(p, id) end
     RT.saveCampaign()
@@ -252,6 +307,9 @@ function RT.rebuildHull(p)
     if not RT.valid(p) then return end
     local x, y = p:getPosition()
     local rot, cs, fac, tmpl = p:getRotation(), p:getCallSign(), p:getFaction(), p:getTypeName()
+    -- setTemplate sets the template's own beams but leaves any extra slot as it was (the forward
+    -- mount, slot 2): clear them all first.
+    for i = 0, 15 do pcall(function() p:setBeamWeapon(i, 0, 0, 0, 0, 0) end) end
     p:setTemplate(tmpl or RT.PLAYER_TEMPLATE)
     p:setCallSign(cs):setFaction(fac):setPosition(x, y):setRotation(rot)
     RT.provision(p)   -- the stock freighter loadout again (setTemplate brought the nuke back)

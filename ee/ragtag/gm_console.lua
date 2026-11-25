@@ -528,7 +528,7 @@ function GMCONSOLE.add(opts)
     local _UPGRADE_GROUPS = {
         {label = "Hull",      ids = {"hull_plating", "hull_plating_2", "hull_plating_3"}},
         {label = "Shields",   ids = {"shield_mk2", "shield_mk3", "shield_mk4"}},
-        {label = "Beams",     ids = {"forward_beams", "beam_coils", "beam_coils_2", "heavy_beams"}},
+        {label = "Beams",     ids = {"forward_beams", "beam_coils", "beam_coils_2", "heavy_beams", "sniper_beam"}},
         {label = "Missiles",  ids = {"missile_racks", "missile_racks_2"}},
         {label = "Tubes",     ids = {"front_tube", "side_tubes"}},
         {label = "Impulse",   ids = {"engine_tune", "engine_tune_2"}},
@@ -541,7 +541,7 @@ function GMCONSOLE.add(opts)
 
     -- Upgrades are per ship: every function below works on `p`, the ship picked in the list.
     local function _upgradeLabel(group_label, idx, u, p)
-        local locked = u.requires ~= nil and not RT.hasUpgrade(u.requires, p)
+        local locked = not RT.hasUpgrade(u.id, p) and not RT.upgradeOpen(u, p)
         local glyph
         if locked then
             glyph = "×"
@@ -563,9 +563,10 @@ function GMCONSOLE.add(opts)
             if not u then return end
             if RT.hasUpgrade(id, p) then
                 return string.format("  ■ %s (%dcr)", u.name, u.cost)
-            elseif u.requires and not RT.hasUpgrade(u.requires, p) then
-                local req = RT.upgradeById(u.requires)
-                return string.format("  × %s (%dcr)  needs: %s", u.name, u.cost, req and req.name or u.requires)
+            elseif RT.upgradeExcludedBy(u, p) then
+                return string.format("  × %s (%dcr)  instead of: %s", u.name, u.cost, RT.upgradeExcludedBy(u, p).name)
+            elseif not RT.upgradeNeedsMet(u, p) then
+                return string.format("  × %s (%dcr)  needs: %s", u.name, u.cost, RT.upgradeNeedsText(u))
             else
                 return string.format("  □ %s (%dcr)", u.name, u.cost)
             end
@@ -593,7 +594,7 @@ function GMCONSOLE.add(opts)
         end
 
         sec("BEAMS")
-        add(uline("forward_beams")); add(uline("beam_coils")); add(uline("beam_coils_2")); add(uline("heavy_beams"))
+        add(uline("forward_beams")); add(uline("beam_coils")); add(uline("beam_coils_2")); add(uline("heavy_beams")); add(uline("sniper_beam"))
         for i = 0, 7 do
             local range = p:getBeamWeaponRange(i)
             if range ~= nil and range > 0 then
@@ -653,10 +654,9 @@ function GMCONSOLE.add(opts)
                 local u = RT.upgradeById(uid)
                 if u then
                     local cap_id   = uid
-                    local cap_req  = u.requires
                     local cap_crew = u.crew
                     addGMFunction(_upgradeLabel(group.label, idx, u, p), function()
-                        local prereq_ok = cap_req == nil or RT.hasUpgrade(cap_req, p)
+                        local prereq_ok = RT.upgradeOpen(u, p)
                         if cap_crew then
                             if prereq_ok and RT.valid(p) and p:getRepairCrewCount() < 8 then
                                 if RT.hasUpgrade(cap_id, p) then
