@@ -167,6 +167,18 @@ Details: [GM_BOUNTY_MISSION.md](GM_BOUNTY_MISSION.md).
 - [ ] Ashby's offer (crypto credits, the keys in his head): do they read it? Do they argue? Dustmote for 3,000 and
       Independent +100, or Saint Brennan's for 4,500 and Independent -150
 
+## 5e. The Holdout (Rezkov over, 1,500 cr of upgrades; or GM jump)
+
+Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
+- [ ] The seed rumors: hearing "Breaker's Claim is hiring guns" sets "Breaker's Claim". Do they find the new port
+      (south of the Shroud, 18U north of Hob's Landing)?
+- [ ] Calloway's two pages, then "We'll stay.": is a minute enough to get in position?
+- [ ] Three waves out of the Shroud from two gates, ~19U north: half go for the Claim, half for the Magpie. Too
+      easy, too hard? (Wave hulls, the Claim's 500 hull and cutting lasers, the 45 s gap: top of `holdout.lua`)
+- [ ] Does the Claim's fighter help? Does the Claim fall if the crew leaves? 3,000 cr and Independent +150 when held
+- [ ] Shroud Raiders in the Shroud, Halcyon Rest and now the Deep Shroud: still hostile after the Corsair arc's
+      alliance? Their taunt ("Blackwater's rules don't reach in here") reads right? Too many in the Bounty's hunt?
+
 ## 6. Ship handling upgrades and the Hob Works
 
 - [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does

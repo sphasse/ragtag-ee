@@ -193,12 +193,14 @@ T.step("next corner", function()
 end)
 
 -- ── Pickets turn on wanted ships within 10U, chase to 20U from their post ────
-T.step("a wanted ship 13U from the Lawgiver group", function()
+-- 16U from the post: both ships walk a 4U beat round it, so neither is within 10U (13U from the lead
+-- alone could put the escort inside its radar).
+T.step("a wanted ship 16U from the Lawgiver group's post", function()
     setRep(-300)
-    T.moveNear(law.ships[1], 13000)
+    T.moveTo(law.x + 16000, law.y)
 end)
 T.wait(2)
-T.step("not noticed at 13U", function()
+T.step("not noticed beyond 10U", function()
     T.check("picket: no target", law.hostile_to == nil)
     T.eq("picket: still Concord", law.ships[1]:getFaction(), "Concord")
     T.moveNear(law.ships[1], 8000)

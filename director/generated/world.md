@@ -21,7 +21,7 @@ The nebula patches between Port Vesper and Dustmote aren't dense enough to hide 
 - The Far Reach [safe]: Past the edge of the charts. Nothing here but silence and distance.
 - The Long Dark [safe]: Past the edge of the charts. Nothing here but silence and distance.
 - The Outer Dark [safe]: Past the edge of the charts. Nothing here but silence and distance.
-- The Rim [safe]: The Rim: frontier worlds, long lanes, and law that arrives late or not at all. Stations: Lastchance Outpost (shipwright).
+- The Rim [safe]: The Rim: frontier worlds, long lanes, and law that arrives late or not at all. Stations: Breaker's Claim (shipwright), Lastchance Outpost (shipwright).
 - The Shroud [safe]: The Shroud: a vast nebula where sensors fail and ships go missing. Spacers tell stories.
 - The Deep Shroud [risky]: The Deep Shroud. Uncharted. Your sensors pick up tones that aren't quite noise.
 - The Gauntlet [risky]: The Gauntlet: an asteroid belt where Corsair crews wait for freighters. Rich pickings, if you can keep them.

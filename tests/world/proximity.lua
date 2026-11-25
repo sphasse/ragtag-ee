@@ -131,12 +131,17 @@ T.step("setup", function()
     A = T.P()
     st = T.world("proximity")
     T.check("setup: the plugin is running", WORLD.isEnabled("proximity") and st and st._initialized)
-    for _, zone in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches", "the Shroud", "the Gauntlet",
-                           "Blackwater Reach", "the Boneyard", "the Maw"}) do
+    for _, zone in ipairs({"the Concord Core", "the Arbiter Line", "the Escrow Marches", "the Shroud", "the Deep Shroud",
+                           "the Gauntlet", "Blackwater Reach", "the Boneyard", "the Maw"}) do
         T.check("setup: zone " .. zone, st.regions[zone] ~= nil and PROX.zones[zone] ~= nil)
     end
     T.eq("setup: nothing spawned at Port Vesper", #groups(), 0)
     T.eq("setup: zones start on Medium", PROX.getZoneMode("the Gauntlet"), 3)
+    -- The Shroud's own raiders, not Blackwater's Corsairs: hostile whatever the Corsair standing.
+    for _, zone in ipairs({"the Shroud", "Halcyon Rest", "the Deep Shroud"}) do
+        T.eq("setup: " .. zone .. " sends Shroud Raiders", PROX.zones[zone].faction, "Shroud Raiders")
+    end
+    T.eq("setup: the Gauntlet sends Corsairs", PROX.zones["the Gauntlet"].faction, "Corsairs")
 end)
 
 -- ── The Escrow Marches: Concord space south of the Core and the Arbiter Line ──
@@ -235,6 +240,8 @@ T.waitFor("names: a patrol in the Shroud", function() return #groups() == 2 end,
 T.step("same callsign, then one dies", function()
     g2 = groups()[2]
     T.eq("names: the second is the Shroud's", g2.region_name, "the Shroud")
+    T.eq("shroud: a Shroud Raiders patrol", g2.ships[1]:getFaction(), "Shroud Raiders")
+    T.check("shroud: hostile to the crew", g2.ships[1]:isEnemy(A))
     local name = g1.ships[1]:getCallSign()
     for _, s in ipairs(g2.ships) do s:setCallSign(name) end
     for _, s in ipairs(g2.ships) do s:destroy() end

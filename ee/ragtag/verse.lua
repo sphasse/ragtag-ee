@@ -69,12 +69,14 @@ VERSE.FACTIONS = {
     drones = "Relic",
     mystery = "Unknown",
     wreck = "Derelict",
+    shroud = "Shroud Raiders",
 }
 
 -- Factions whose ships count as ambient threats to the player (density checks,
 -- hostile counting). Keep in sync when adding a faction that attacks Independents.
 VERSE.HOSTILE_FACTIONS = {
     Corsairs = true, Relic = true, Hollow = true, ["Concord Hostile"] = true, Fugitive = true,
+    ["Shroud Raiders"] = true,
 }
 
 function VERSE.setupFactions()
@@ -109,24 +111,35 @@ function VERSE.setupFactions()
     -- Independent ships, so the crew can fight it; no standing is lost for it (not a real faction).
     local fugitive = make("Fugitive", 200, 200, 200,
         "A ship running from somebody. Transponder spoofed, flight plan blank, guns warm.")
+    -- Shroud Raiders: Corsair crews of the Shroud and the Deep Shroud who never took Blackwater's
+    -- terms. Always hostile, whatever the crew's Corsair standing (Blackwater can become a friend;
+    -- these can't), and not a faction with standing: destroying one costs nothing.
+    local shroud = make("Shroud Raiders", 230, 110, 50,
+        "Corsair crews who never answered to Blackwater. They hide in the Shroud's nebulae and take whatever comes through.")
 
     fugitive:setEnemy(ind)
+    shroud:setEnemy(ind)
+    shroud:setEnemy(concord)
+    shroud:setEnemy(corsair_friendly)
     corsairs:setEnemy(ind)
     corsairs:setEnemy(concord)
     hollow:setEnemy(ind)
     hollow:setEnemy(concord)
     hollow:setEnemy(corsairs)
     hollow:setEnemy(unknown)
+    hollow:setEnemy(shroud)
     relic:setEnemy(ind)
     relic:setEnemy(concord)
     relic:setEnemy(corsairs)
     relic:setEnemy(hollow)
+    relic:setEnemy(shroud)
 
     concord_hostile:setEnemy(ind)
     concord_hostile:setEnemy(corsairs)
     concord_hostile:setEnemy(relic)
     concord_hostile:setEnemy(hollow)
     concord_hostile:setEnemy(corsair_friendly)
+    concord_hostile:setEnemy(shroud)
     concord_hostile:setFriendly(concord)
 
     corsair_friendly:setFriendly(ind)

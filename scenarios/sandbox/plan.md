@@ -18,6 +18,7 @@ Status at last update (2026-11-21):
 | 5a | The Hob Works (engineering and heist) | **BUILT** (2026-11-23) | `ee/ragtag/missions/hob.lua` + `docs/GM_HOB_WORKS_MISSION.md` |
 | — | Cold Chain (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/coldchain.lua` + `docs/GM_COLD_CHAIN_MISSION.md` |
 | — | The Bounty (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/bounty.lua` + `docs/GM_BOUNTY_MISSION.md` |
+| — | The Holdout (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/holdout.lua` + `docs/GM_HOLDOUT_MISSION.md` |
 | 5 | Maw Arc (finale): deploy and defend a broadcast station | planned (revised 2026-11-21) | — |
 | — | The Concord's fracture (instability seeds) | deferred until after the playtest | — |
 | 6 | Concord Republic Arc (optional serial) | an option, not committed | — |
@@ -503,6 +504,26 @@ way to the drop: "Hand him over and nobody gets hurt", fought or bribed (1,000 c
 **Numbers for playtest:** Long Odds' template, hull and shields (tough: something like a Phobos T3
 with more hull); the escorts (two lighter ships, e.g. Adder MK5s); how fast they run once found.
 
+### The Holdout (`holdout`) — BUILT 2026-11-24 (details: `docs/GM_HOLDOUT_MISSION.md`)
+
+**Premise** (The Mandalorian's "Sanctuary", Seven Samurai). The Shroud Raiders mean to take Breaker's
+Claim, a mining camp on the southern edge of the Shroud, for good. Foreman Ines Calloway hires the crew
+to stand with the camp through the raid. Just a fight for now: no negotiation.
+
+**Where.** **Breaker's Claim**, a new permanent Independent port (`verse/drift.lua`, 80, 27) on the
+rocks south of the Shroud, in the Rim. The raiders come out of the Shroud's nebulae from two gates
+about 19U north.
+
+**Flow.** `hook` (seed rumors at Independent ports; docked at the Claim, Calloway's [SPECIAL] offer,
+two pages) → `defend` (a minute to get in position; three waves, the next 45 s after the last raider
+of a wave is gone; half of each wave goes for the Claim, half for the Magpie; the Claim reinforced to
+500 hull with two cutting lasers) → `done`: **defended** (3,000 cr, Independent +150), **fallen**
+(the Claim's hull at 15%), **lost** (the Magpie).
+
+**Trigger.** Rezkov over and 1,500 cr of upgrades (a ship with some fight in it).
+
+**Later (kept, not built now):** negotiating with the raiders (half the ore for a peaceful leave).
+
 ---
 
 ## Arc 5 — Maw Arc (finale) — PLANNED (revised 2026-11-21: a broadcast station, not a warhead)
@@ -820,6 +841,13 @@ If an arc module is lost, rebuild against these rails:
   calling an arc done.
 
 ## Decisions made (2026-11-24)
+
+- **The Shroud Raiders** are a separate Corsair faction: the crews of the Shroud and the Deep Shroud who
+  never took Blackwater's terms. Blackwater can become the crew's friend (the Corsair arc); these
+  can't. Always hostile, not a faction with standing (destroying one costs nothing; Corsair standing
+  doesn't change their patrol rate). The Shroud, Halcyon Rest and (new) the Deep Shroud patrol zones
+  send them. Not strictly separate in the lore: they are Corsairs by origin.
+- **The Holdout** is built as just a fight (no negotiation yet), at a new port, **Breaker's Claim**.
 
 - **Marchetti is no longer ex-Concord.** He is a young, brilliant engineer (about thirty) whose father,
   a Free Ship engineer, was killed in the Settlement War; the Works raised him. A better persona for

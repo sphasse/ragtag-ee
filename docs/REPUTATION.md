@@ -156,7 +156,10 @@ Requires docking. No limit on number of donations per session.
 Concord zones cap at **1 active ship** regardless of mode (zone-level override), with per-zone cooldowns of 600s (Core) and 720s (Arbiter Line, Escrow Marches).
 
 Corsair zone cooldowns by region at Medium mode:
-- Shroud, Halcyon Rest: 240s
-- Gauntlet, Blackwater Reach: 180s
+- Gauntlet, Blackwater Reach: 180s (shorter with bad Corsair standing)
+
+Shroud Raider zone cooldowns (the Shroud, Halcyon Rest, the Deep Shroud): 240s. The Shroud Raiders are
+Corsair crews who never answered to Blackwater: hostile whatever the crew's Corsair standing, and not a
+faction with standing (destroying one costs nothing, and Corsair standing does not change their rate).
 
 **In session:** Watch for the Relay console logging a threshold crossing — it's the right moment to have the Director lean in with flavour (a Concord patrol commenting on your record, a Corsair backing off after a job goes wrong). The rep logging happens immediately when the trigger fires, so the crew will see it before you do if you're not watching.

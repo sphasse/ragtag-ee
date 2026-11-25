@@ -252,6 +252,17 @@ SCIDB.PROFILES = {
         kv = {["Role"] = "Doctor, Tamsin Hollow", ["Manner"] = "Tired, direct, kind",
               ["Known for"] = "Never giving up a patient"},
     },
+    calloway_profile = {
+        who  = "calloway",
+        name = "Ines Calloway",
+        desc = "Foreman of Breaker's Claim, the mining camp on the southern edge of the Shroud.\n\n" ..
+               "Worked other people's claims for twenty years before she filed her own. Pays her crews " ..
+               "first and herself last, keeps the claim's papers in order, and has run off two raider " ..
+               "crews with nothing but cutting lasers and bad language. Doesn't ask for help often. " ..
+               "Remembers who gave it.",
+        kv = {["Role"] = "Foreman, Breaker's Claim", ["Manner"] = "Gruff, fair, unafraid",
+              ["Known for"] = "Never giving up the claim"},
+    },
     marchetti_profile = {
         who  = "marchetti",
         name = "Anton Marchetti",
@@ -685,8 +696,9 @@ local function _build()
     SCIDB._entries["region_shroud"] = _entry(regions, "The Shroud",
         "A vast nebula cutting through the mid-Drift. Sensors degrade inside it. " ..
         "Ships go missing. Spacers tell stories. Navigation relies on signal buoys " ..
-        "that sometimes go offline without explanation.",
-        { ["Hazard"] = "Sensor interference", ["Danger"] = "Moderate to high" }
+        "that sometimes go offline without explanation. The Shroud Raiders hunt inside it, " ..
+        "and in the Deep Shroud beyond.",
+        { ["Hazard"] = "Blind sensors, raiders", ["Danger"] = "Moderate to high" }
     )
 
     SCIDB._entries["region_gauntlet"] = _entry(regions, "The Gauntlet",
@@ -746,6 +758,15 @@ local function _build()
         "More organised than they appear — attacks in Concord-patrolled space " ..
         "suggest coordination and insider knowledge.",
         { ["Territory"] = "Blackwater Reach, Gauntlet", ["Attitude"] = "Hostile to unknown ships", ["Note"] = "Rep affects spawn rate" }
+    )
+
+    SCIDB._entries["faction_shroud_raiders"] = _entry(factions, "Shroud Raiders",
+        "Corsair crews who never answered to Blackwater. When the Settlement War ended, " ..
+        "Blackwater made its peace with what was left of the Free Ships and set rules for " ..
+        "its crews. The ones who wouldn't keep them went into the Shroud. They hide in the " ..
+        "nebulae of the Shroud and the Deep Shroud and take whatever comes through. " ..
+        "No arrangement with Blackwater protects you from them, and they don't negotiate.",
+        { ["Territory"] = "The Shroud, the Deep Shroud", ["Attitude"] = "Hostile to everyone", ["Note"] = "No standing to win or lose" }
     )
 
     SCIDB._entries["faction_independent"] = _entry(factions, "Independent",

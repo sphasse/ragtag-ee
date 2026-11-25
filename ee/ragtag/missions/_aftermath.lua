@@ -117,6 +117,17 @@ AFTERMATH.ENTRIES = {
     {id = "aftermath_bounty_backpay", category = "BOUNTY_DONE",
      when = function() return F("bounty_arc_done") == "released" end,
      text = "Some Rimward Haulers crews got back pay this month from an account nobody can trace. The guild says it wasn't them."},
+
+    -- ── The Holdout (Breaker's Claim) ───────────────────────────────────────
+    {id = "aftermath_holdout_held", category = "HOLDOUT_DONE",
+     when = function() return F("holdout_arc_done") == "defended" end,
+     text = "Breaker's Claim held off the Shroud Raiders. Calloway's crews are back on the rocks, and they've put a new name on their wall."},
+    {id = "aftermath_holdout_fog", category = "HOLDOUT_DONE",
+     when = function() return F("holdout_arc_done") == "defended" end,
+     text = "The Shroud Raiders lost three waves of ships at Breaker's Claim. They're quieter in the fog these days."},
+    {id = "aftermath_holdout_fallen", category = "HOLDOUT_DONE",
+     when = function() local d = F("holdout_arc_done") return d == "fallen" or d == "lost" end,
+     text = "The Shroud Raiders burned Breaker's Claim. Calloway's crews got out in the lifeboats. She says they'll be back on the rocks by spring."},
 }
 
 AFTERMATH.PRIORITY      = 3

@@ -161,6 +161,7 @@ Achievements (hidden): **Bring Him In** (bounty), **Everyone Has a Price** (rele
 - Long Odds has `setCanBeDestroyed(false)`; its hull can be shot to nothing, but it stays. The
   disable rule is `ARC.systemDown` (shared with the Hob Works).
 - The Deep Shroud's nebulae block long-range radar: the crew needs probes and Science's scan.
+- Since 2026-11-24 the Deep Shroud is a patrol zone: Shroud Raiders (always hostile) may join the hunt.
 - Ashby's offer comes from an `RT.voice` (no ship), so it can reach the crew anywhere.
 - The choice is made by docking, not by a reply, so the arc stays linear: one Deliver phase, two
   endings.

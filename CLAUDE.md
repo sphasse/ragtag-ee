@@ -191,13 +191,15 @@ with `JOBS.build("delivery"|"salvage", opts)`; remove by category in `M.on_unloa
 
 **Zone-based spawns**:
 - **Concord Core / Arbiter Line / Escrow Marches**: Concord shake-downs (comms-first, not immediate attack)
-- **Shroud / Gauntlet / Blackwater**: Corsairs (attack on sight)
+- **Gauntlet / Blackwater**: Corsairs (attack on sight)
+- **Shroud / Halcyon Rest / Deep Shroud**: Shroud Raiders (Corsairs who never answered to Blackwater: hostile whatever
+  the Corsair standing, no standing of their own; attack on sight)
 - **Boneyard**: Relic war drones (no comms, attack)
 - **Maw**: Hollow (no comms, attack)
 
 **Spawn conditions** (checked every 8 s, for each player ship, in the zone that ship is deepest in; per-zone GM mode None/Low/Medium/High;
 a zone sends at most one patrol per check, after one ship picked at random, so ships flying together draw no more patrols than one):
-- Zone cooldown expired (Concord 600/720 s, Corsairs 180–240 s, Boneyard 180 s, Maw 120 s; divided by the mode's frequency,
+- Zone cooldown expired (Concord 600/720 s, Corsairs 180 s, Shroud Raiders 240 s, Boneyard 180 s, Maw 120 s; divided by the mode's frequency,
   shorter with bad Corsair standing)
 - Zone ship cap not reached (mode: 6 / 12 / 24; Concord zones: 1)
 - Fewer hostiles within 10U than the mode's density limit (3 / 6 / 12)

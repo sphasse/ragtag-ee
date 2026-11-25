@@ -116,6 +116,13 @@ VERSE.extend({
          flavor = "Saint Brennan's Mission. Whoever you are, whatever you've done, you're welcome here.",
          desc = "A clinic and shelter run by a quiet order. Neutral ground; even Corsairs leave it alone.",
          lore = "A clinic and shelter run by a quiet religious order, founded during the Settlement War to care for the wounded and the orphaned of both sides. The Sisters still take anyone who needs them, Border farmers, Concord deserters and wounded Corsairs alike, and even the Corsairs leave the Mission alone.\n\nThe Saint Brennan's Children's Fund cares for the orphans of the war's last bitter year, many of them grown now and working the Mission's clinic themselves. Donations are accepted when docked, and word of a generous crew travels fast among independents."},
+        -- Added 2026-11-24 (the Holdout arc): a mining camp south of the Shroud, on the rocks at
+        -- (78, 16); 6U clear of the Shroud's nebulae, in the Rim, not the Shroud region.
+        {cs = "Breaker's Claim", tmpl = "Small Station", fac = "Independent", x = 80, y = 27,
+         shop = {"repair"},
+         flavor = "Breaker's Claim. Ore's for sale, the coffee isn't, and keep your guns pointed at the Shroud.",
+         desc = "A mining camp breaking rock on the edge of the Shroud.",
+         lore = "Breaker's Claim is a handful of rock crews working a cluster of asteroids just south of the Shroud. The ore is good and the claim is legal, filed at Hob's Landing and paid up every year, which counts for very little this close to the nebula. Foreman Ines Calloway runs the camp, keeps the books, and settles arguments with a cutting torch close at hand.\n\nThe Shroud Raiders come out of the fog every few months to take a cut. The miners have bolted cutting lasers to the hull and put a name on every crew that has helped them. The list is short."},
         {cs = "Lastchance Outpost", tmpl = "Small Station", fac = "Independent", x = 135, y = 65,
          shop = {"beams", "missiles"},
          flavor = "Lastchance Outpost. Last fuel before the Pale Sun. Turn back while you still can.",

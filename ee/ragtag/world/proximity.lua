@@ -54,6 +54,12 @@ local _PATROL_NAMES = {
         "Chain Breaker","Gravel Voice",  "Broken Wing",   "Rust & Bone",   "Border Watch",
         "Razorbill",    "Red Watch",     "Scar Tissue",   "Grim Patrol",   "Hard Collection",
     },
+    -- The Shroud's own crews, who never took Blackwater's terms.
+    ["Shroud Raiders"] = {
+        "Fog Bank",     "Blind Corner",  "No Return Fare","Grey Wolf",     "Low Visibility",
+        "Smoke Signal", "Lost Bearing",  "Static Bite",   "The Undertow",  "Pale Rider",
+        "Wrong Turn",   "Cold Wake",     "Mist Walker",   "Silent Partner","Dead Reckoning",
+    },
     Hollow = {
         "The Patience", "Null Signal",   "What Remains",  "Absent Light",  "The Quiet",
         "Echo Null",    "No Return",     "The Hunger",    "Empty Passage", "Far Signal",
@@ -87,8 +93,10 @@ PROX.zones = {
     ["the Concord Core"]  = {faction = "Concord",  comms = "shakedown", cooldown = 600, groups = _CONCORD_GROUPS, max_active = 1},
     ["the Arbiter Line"]  = {faction = "Concord",  comms = "shakedown", cooldown = 720, groups = _CONCORD_GROUPS, max_active = 1},
     ["the Escrow Marches"] = {faction = "Concord", comms = "shakedown", cooldown = 720, groups = _CONCORD_GROUPS, max_active = 1},
-    ["the Shroud"]        = {faction = "Corsairs",                       cooldown = 240},
-    ["Halcyon Rest"]      = {faction = "Corsairs",                       cooldown = 240},
+    -- The Shroud and the Deep Shroud: the Shroud Raiders, hostile whatever the Corsair standing.
+    ["the Shroud"]        = {faction = "Shroud Raiders",                 cooldown = 240},
+    ["Halcyon Rest"]      = {faction = "Shroud Raiders",                 cooldown = 240},
+    ["the Deep Shroud"]   = {faction = "Shroud Raiders",                 cooldown = 240},
     ["the Gauntlet"]      = {faction = "Corsairs",                       cooldown = 180},
     ["Blackwater Reach"]  = {faction = "Corsairs",                       cooldown = 180},
     ["the Boneyard"]      = {faction = "Relic",    groups = _RELIC_GROUPS, comms = "none", cooldown = 180},
@@ -640,6 +648,8 @@ local function _spawnGroup(st, region_name, player, px, py)
             s:setCommsScript(""):setCommsFunction(function(src, tgt)
                 if zfac == "Corsairs" then
                     setCommsMessage('"Corsair space. Move along or stay forever."')
+                elseif zfac == "Shroud Raiders" then
+                    setCommsMessage('"Blackwater\'s rules don\'t reach in here. Cut your engines and open your hold."')
                 elseif zfac == "Concord" then
                     setCommsMessage('"Concord patrol. Your standing with Concord is hostile. Stand down."')
                 else
@@ -1141,7 +1151,7 @@ end
 
 local _ZONE_ORDER = {
     "the Concord Core", "the Arbiter Line", "the Escrow Marches",
-    "the Shroud", "Halcyon Rest", "the Gauntlet", "Blackwater Reach",
+    "the Shroud", "Halcyon Rest", "the Deep Shroud", "the Gauntlet", "Blackwater Reach",
     "the Boneyard", "the Maw",
 }
 local _ZONE_LABEL = {
@@ -1150,6 +1160,7 @@ local _ZONE_LABEL = {
     ["the Escrow Marches"] = "Escrow Marches",
     ["the Shroud"]        = "The Shroud",
     ["Halcyon Rest"]      = "Halcyon Rest",
+    ["the Deep Shroud"]   = "Deep Shroud",
     ["the Gauntlet"]      = "The Gauntlet",
     ["Blackwater Reach"]  = "Blackwater Reach",
     ["the Boneyard"]      = "The Boneyard",
