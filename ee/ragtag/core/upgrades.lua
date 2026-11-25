@@ -22,6 +22,17 @@ RT.UPGRADE_LINES = {
 
 RT.PROBE_SPEED_STOCK = 1000   -- EE's stock scan probe speed, world units/s (60 U a minute)
 
+-- Beam upgrades work on every beam, whenever it was fitted. A mount (`beam_slot`) adds a beam; a
+-- beam upgrade (`beam_mod(p, i)`, more damage or range) changes beam i, and its apply runs it on every
+-- beam the ship has. RT.applyUpgrades puts the mounts on before the beam upgrades, and a mount fitted
+-- later gets the beam upgrades the ship already has (RT.installUpgrade).
+local function _beamAdd(p, i, damage, range)
+    local r = p:getBeamWeaponRange(i)
+    if r == nil or r <= 0 then return end
+    p:setBeamWeapon(i, p:getBeamWeaponArc(i), p:getBeamWeaponDirection(i), r + range,
+        p:getBeamWeaponCycleTime(i), p:getBeamWeaponDamage(i) + damage)
+end
+
 RT.UPGRADES = {
     {id = "hull_plating", line = "hull", name = "Salvaged hull plating", gm_name = "Hull armor", cost = 200,
      desc = "+50 hull.",
@@ -32,35 +43,19 @@ RT.UPGRADES = {
     {id = "forward_beams", line = "beams", name = "Forward beam mount", gm_name = "Fwd beams", cost = 300,
      excludes = "sniper_beam",
      desc = "Adds a forward-firing beam. Finally something pointing where you're going. (Instead of the sniper beam.)",
-     apply = function(p) p:setBeamWeapon(2, 50, 0, 1000, 6, 6) end},
+     beam_slot = 2, apply = function(p) p:setBeamWeapon(2, 50, 0, 1000, 6, 6) end},
     -- The other choice for the forward mount (same beam slot): a 5 degree arc that reaches 3U.
     {id = "sniper_beam", line = "beams", name = "Sniper beam", gm_name = "Sniper beam", gm_label = "Beams: sniper", cost = 350,
      excludes = "forward_beams",
      desc = "A forward beam with a 5 degree arc and a 3U reach, hitting harder and slower (8 damage every 8 s). "
          .. "Helm lines it up, Weapons does the rest. (Instead of the forward beam mount.)",
-     apply = function(p) p:setBeamWeapon(2, 5, 0, 3000, 8, 8) end},
+     beam_slot = 2, apply = function(p) p:setBeamWeapon(2, 5, 0, 3000, 8, 8) end},
     {id = "beam_coils", line = "beams", name = "Overclocked beam coils", gm_name = "Beam coils", cost = 250, requires = {"forward_beams", "sniper_beam"},
-     desc = "+2 damage on every beam.",
-     apply = function(p)
-        for i = 0, 15 do
-            local range = p:getBeamWeaponRange(i)
-            if range ~= nil and range > 0 then
-                p:setBeamWeapon(i, p:getBeamWeaponArc(i), p:getBeamWeaponDirection(i), range,
-                    p:getBeamWeaponCycleTime(i), p:getBeamWeaponDamage(i) + 2)
-            end
-        end
-     end},
+     desc = "+2 damage on every beam, including any fitted later.",
+     beam_mod = function(p, i) _beamAdd(p, i, 2, 0) end},
     {id = "beam_coils_2", line = "beams", name = "Superconducting beam coils", gm_name = "Beam coils 2", cost = 800, requires = "beam_coils",
-     desc = "+2 more damage on every beam (8 -> 10).",
-     apply = function(p)
-        for i = 0, 15 do
-            local range = p:getBeamWeaponRange(i)
-            if range ~= nil and range > 0 then
-                p:setBeamWeapon(i, p:getBeamWeaponArc(i), p:getBeamWeaponDirection(i), range,
-                    p:getBeamWeaponCycleTime(i), p:getBeamWeaponDamage(i) + 2)
-            end
-        end
-     end},
+     desc = "+2 more damage on every beam, including any fitted later.",
+     beam_mod = function(p, i) _beamAdd(p, i, 2, 0) end},
     {id = "engine_tune", line = "engines", name = "Black-market engine tune", gm_name = "Eng tune", cost = 200,
      desc = "Impulse 60 -> 75.",
      apply = function(p) p:setImpulseMaxSpeed(75, 37) end},
@@ -165,16 +160,8 @@ RT.UPGRADES = {
      desc = "+150 hull (400 in all).",
      apply = function(p) p:setHullMax(p:getHullMax() + 150); p:setHull(p:getHullMax()) end},
     {id = "heavy_beams", line = "beams", name = "Heavy beam emitters", gm_name = "Heavy beams", cost = 400, requires = "beam_coils",
-     desc = "+400 range on every beam.",
-     apply = function(p)
-        for i = 0, 15 do
-            local range = p:getBeamWeaponRange(i)
-            if range ~= nil and range > 0 then
-                p:setBeamWeapon(i, p:getBeamWeaponArc(i), p:getBeamWeaponDirection(i), range + 400,
-                    p:getBeamWeaponCycleTime(i), p:getBeamWeaponDamage(i))
-            end
-        end
-     end},
+     desc = "+400 range on every beam, including any fitted later.",
+     beam_mod = function(p, i) _beamAdd(p, i, 0, 400) end},
     {id = "shield_mk3", line = "shields", name = "Military shield generators", gm_name = "Shield III", cost = 600, requires = "shield_mk2",
      desc = "Shields to 160 / 160. Concord military surplus, officially.",
      apply = function(p) p:setShieldsMax(160, 160); p:setShields(160, 160) end},
@@ -182,6 +169,13 @@ RT.UPGRADES = {
      desc = "Shields to 220 / 220. Meant for a ship three times this size.",
      apply = function(p) p:setShieldsMax(220, 220); p:setShields(220, 220) end},
 }
+
+for _, u in ipairs(RT.UPGRADES) do
+    if u.beam_mod and not u.apply then
+        local mod = u.beam_mod
+        u.apply = function(p) for i = 0, 15 do mod(p, i) end end
+    end
+end
 
 -- The crew-facing name of a component line ("hull" -> "hull"), or the id itself.
 function RT.upgradeLineName(line)
@@ -239,6 +233,17 @@ function RT.upgradeNeedsText(u)
     return table.concat(names, " or ")
 end
 
+-- Apply a list of upgrade ids to a fresh ship: in order, but every beam upgrade after every mount,
+-- so it reaches the beams bought after it too.
+function RT.applyUpgrades(p, ids)
+    local later = {}
+    for _, id in ipairs(ids) do
+        local u = RT.upgradeById(id)
+        if u and u.beam_mod then later[#later + 1] = id else RT.applyUpgrade(p, id) end
+    end
+    for _, id in ipairs(later) do RT.applyUpgrade(p, id) end
+end
+
 function RT.applyUpgrade(p, id)
     local u = RT.upgradeById(id)
     if u == nil then return false end
@@ -281,7 +286,15 @@ function RT.installUpgrade(id, ship)
     if rec == nil or u == nil or RT.hasUpgrade(id, p) then return false end
     if RT.upgradeExcludedBy(u, p) then return false end   -- the other half of a choice is fitted
     table.insert(rec.upgrades, id)
-    if RT.valid(p) then RT.applyUpgrade(p, id) end
+    if RT.valid(p) then
+        RT.applyUpgrade(p, id)
+        if u.beam_slot then   -- a new beam gets the beam upgrades the ship already has
+            for _, other in ipairs(rec.upgrades) do
+                local o = RT.upgradeById(other)
+                if o and o.beam_mod then pcall(o.beam_mod, p, u.beam_slot) end
+            end
+        end
+    end
     RT.saveCampaign()
     return true
 end
@@ -329,7 +342,7 @@ function RT.revokeUpgrade(id, ship)
     rec.upgrades = kept
     if RT.valid(p) then
         RT.rebuildHull(p)
-        for _, uid in ipairs(kept) do RT.applyUpgrade(p, uid) end
+        RT.applyUpgrades(p, kept)
         local u = RT.upgradeById(id)
         if u then p:addToShipLog("Upgrade removed: " .. u.name, "#FF8080") end
     end

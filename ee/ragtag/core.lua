@@ -734,7 +734,7 @@ function RT.outfit(ship)
     local st = RT.shipState(ship)
     if st == nil or st.outfitted then return end
     st.outfitted = true
-    for _, id in ipairs(RT.upgrades(ship)) do RT.applyUpgrade(st.ship, id) end
+    RT.applyUpgrades(st.ship, RT.upgrades(ship))
     local rec = RT.shipRecord(st.ship)
     if rec and rec.loss_note and RT.valid(st.ship) then
         st.ship:addToShipLog(string.format("Insurance didn't cover it: losing the last hull cost %d credits. Balance: %d",
