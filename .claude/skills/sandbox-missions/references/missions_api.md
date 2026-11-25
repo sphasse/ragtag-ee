@@ -450,6 +450,7 @@ This makes arcs easy to disable, restart, skip, or test independently.
 | `coldchain` | Cold Chain   | no  | not_flagged + requires (Hob Works funded) + custom (3 board jobs after) | hook, approach, run |
 | `bounty`   | The Bounty    | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, hunt, deliver |
 | `holdout`  | The Holdout   | no  | upgrades_min + not_flagged + requires (Rezkov) | hook, defend |
+| `icehaul`  | Ice Haul      | no  | not_flagged + requires (Rezkov) | hook, haul |
 
 Retired arcs (Witness, Whistleblower) live in `ee/ragtag/missions/attic/` — kept for
 reference, never required by the loader. `check.py` errors on any file in

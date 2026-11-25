@@ -179,6 +179,21 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
 - [ ] Shroud Raiders in the Shroud, Halcyon Rest and now the Deep Shroud: still hostile after the Corsair arc's
       alliance? Their taunt ("Blackwater's rules don't reach in here") reads right? Too many in the Bounty's hunt?
 
+## 5f. Ice Haul (Rezkov over; or GM jump)
+
+Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
+- [ ] The seed rumor sets "Hob's Landing"; the water office's two pages. Is the ice easy to find (a
+      sector name; pale blue on radar, drifting round Kestrel)?
+- [ ] Engineering's "Attach tow line" within 2U: does the tow feel like towing (1.5U line, 75% impulse,
+      turning with the ice behind)?
+- [ ] Warp snaps the line: clear? fun or annoying? "Release tow line" leaves it where it is
+- [ ] The ice within 4U of Hob's Landing: 1,500 cr, Independent +75. Right pay for no fight?
+
+## 5g. The Deep Shroud's asteroid ring
+
+- [ ] Rocks circling the black hole (7-13U out, about 3.7U a minute on the inside): visible, a hazard
+      worth flying round, fun in the Bounty's hunt? Too many, too fast?
+
 ## 6. Ship handling upgrades and the Hob Works
 
 - [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does

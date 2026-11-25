@@ -300,9 +300,38 @@ local function blocked(zones, x, y)
     return false
 end
 
+-- A ring of asteroids orbiting a point (kind = "ring"): x, y, r1..r2 (U), count, visual, and
+-- period (seconds per turn at r1; slower further out, period * (r / r1)^1.5). The engine's orbit
+-- component moves each rock every frame (setOrbit without a target entity). Its own random stream,
+-- so adding a ring never moves anything else the map seed places.
+VERSE.rings = {}
+local function buildRing(f)
+    local rng = VERSE.rng(VERSE.SEED + 4111 + math.floor(f.x * 31 + f.y * 17))
+    local ring = {x = f.x, y = f.y, rocks = {}}
+    local function place(ctor, n)
+        for _ = 1, n do
+            local r = rng.float(f.r1, f.r2)
+            local a = rng.float(0, 360)
+            local dx, dy = vectorFromAngle(a, r * U, true)
+            local o = ctor():setPosition(f.x * U + dx, f.y * U + dy)
+            if ctor == Asteroid then o:setSize(rng.float(80, 260)) end
+            local period = (f.period or 900) * (r / f.r1) ^ 1.5
+            o.components.orbit = {center = {f.x * U, f.y * U}, distance = r * U, time = period}
+            if ctor == Asteroid then table.insert(ring.rocks, o) end
+        end
+    end
+    place(Asteroid, f.count or 0)
+    place(VisualAsteroid, f.visual or 0)
+    table.insert(VERSE.rings, ring)
+end
+
 local function buildAsteroids(rng)
     local zones = keepOutZones()
+    VERSE.rings = {}
     for _, f in ipairs(VERSE.ASTEROID_FIELDS) do
+      if f.kind == "ring" then
+        buildRing(f)
+      else
         local function place(ctor, n)
             for i = 1, n do
               for attempt = 1, 6 do
@@ -332,6 +361,7 @@ local function buildAsteroids(rng)
         end
         place(Asteroid, f.count)
         place(VisualAsteroid, f.visual or 0)
+      end
     end
 end
 

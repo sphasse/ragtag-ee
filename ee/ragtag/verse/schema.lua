@@ -15,6 +15,8 @@
 --                  -- shipwright is a base for: "hull", "shields", "beams", ... see RT.UPGRADE_LINES), flavor
 --       regions = { ... }, planets = { ... }, stars = { ... },
 --       nebula_fields = { ... }, asteroid_fields = { ... }, garrisons = { ... },
+--                  -- asteroid_fields kinds: "blob" (x, y, r), "belt" (x1, y1, x2, y2, width), "ring"
+--                  -- (x, y, r1, r2, period: rocks orbiting the point, `period` s per turn at r1)
 --       minefields = { ... }, hazards = { ... }, wreck_fields = { ... },
 --       salvage = { ... }, routes = { ... }, rumors = { "..." },
 --       gun_platforms = { {kind = "lance", fac = "Relic", x = 12, y = -95, max_range = 7} },
@@ -105,6 +107,14 @@ function VERSE.validate()
     end
     for _, s in ipairs(VERSE.SALVAGE) do
         needNum("salvage", s, "x", "y", "tier")
+    end
+    for _, f in ipairs(VERSE.ASTEROID_FIELDS) do
+        if f.kind == "ring" then
+            needNum("asteroid ring", f, "x", "y", "r1", "r2")
+            if type(f.r1) == "number" and type(f.r2) == "number" and not (f.r1 > 0 and f.r2 >= f.r1) then
+                bad("asteroid ring at (%s, %s) from %s: needs 0 < r1 <= r2", tostring(f.x), tostring(f.y), tostring(f.source))
+            end
+        end
     end
     for _, g in ipairs(VERSE.GUN_PLATFORMS) do
         needNum("gun platform", g, "x", "y")

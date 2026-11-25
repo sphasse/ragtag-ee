@@ -19,6 +19,7 @@ Status at last update (2026-11-21):
 | — | Cold Chain (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/coldchain.lua` + `docs/GM_COLD_CHAIN_MISSION.md` |
 | — | The Bounty (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/bounty.lua` + `docs/GM_BOUNTY_MISSION.md` |
 | — | The Holdout (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/holdout.lua` + `docs/GM_HOLDOUT_MISSION.md` |
+| — | Ice Haul (one-off contract) | **BUILT** (2026-11-24) | `ee/ragtag/missions/icehaul.lua` + `docs/GM_ICEHAUL_MISSION.md` |
 | 5 | Maw Arc (finale): deploy and defend a broadcast station | planned (revised 2026-11-21) | — |
 | — | The Concord's fracture (instability seeds) | deferred until after the playtest | — |
 | 6 | Concord Republic Arc (optional serial) | an option, not committed | — |
@@ -524,6 +525,22 @@ of a wave is gone; half of each wave goes for the Claim, half for the Magpie; th
 
 **Later (kept, not built now):** negotiating with the raiders (half the ore for a peaceful leave).
 
+### Ice Haul (`icehaul`) — BUILT 2026-11-24 (details: `docs/GM_ICEHAUL_MISSION.md`)
+
+**Premise.** Hob's Landing's water reclaimers are failing; a comet broke up passing Kestrel. The
+water office pays the crew to tow the biggest piece home. No resistance: a short job to try out the
+**tow line** (the engine's orbit component, `setOrbit(ship, 0)`).
+
+**Flow.** `hook` (a seed rumor; docked at Hob's Landing, the water office's [SPECIAL] offer, two
+pages) → `haul` (the ice drifts round Kestrel, 16U out; within 2U Engineering attaches the line, the
+ice trails 1.5U behind, impulse 75%; warp snaps the line) → `done`: **delivered** (the ice within 4U
+of Hob's Landing: 1,500 cr, Independent +75), **lost** (the Magpie).
+
+**Trigger.** Rezkov over.
+
+**Later:** a tow job type on the board (salvage hulks, lifeboats), and a haul the raiders try to cut
+loose.
+
 ---
 
 ## Arc 5 — Maw Arc (finale) — PLANNED (revised 2026-11-21: a broadcast station, not a warhead)
@@ -848,6 +865,10 @@ If an arc module is lost, rebuild against these rails:
   doesn't change their patrol rate). The Shroud, Halcyon Rest and (new) the Deep Shroud patrol zones
   send them. Not strictly separate in the lore: they are Corsairs by origin.
 - **The Holdout** is built as just a fight (no negotiation yet), at a new port, **Breaker's Claim**.
+- **Orbits.** The engine's orbit component (`setOrbit`) works on anything. First uses: a ring of
+  asteroids round the Deep Shroud's black hole (asteroid field kind `"ring"`), and **Ice Haul**, a
+  short unopposed tow of a comet fragment to Hob's Landing, to try the tow line before it becomes a job
+  type. Ports stay put (scenarios place things at offsets from them).
 
 - **Marchetti is no longer ex-Concord.** He is a young, brilliant engineer (about thirty) whose father,
   a Free Ship engineer, was killed in the Settlement War; the Works raised him. A better persona for

@@ -76,6 +76,14 @@ Everything here was checked against the EmptyEpsilon source and a running headle
 - Two CpuShips flying opposite directions along the same line can deadlock nose to nose at zero speed indefinitely. Any long-running AI traffic needs a stall watchdog (`ee/ragtag/verse.lua` nudges a freighter sideways if it moves under 0.8u in 60 s). Small stations dock one ship at a time; others circle and wait, which is normal.
 - `orderDefendLocation(x, y)` keeps a ship near a point and engages enemies that come close: ideal for zone garrisons that shouldn't wander. `orderRoaming()` lets ships wander the whole map.
 - Planets: `Planet():setPosition():setPlanetRadius(r):setPlanetSurfaceTexture("planets/planet-1.png")`, optional `setPlanetCloudTexture`, `setPlanetAtmosphereTexture("planets/atmosphere.png")` + `setPlanetAtmosphereColor(r, g, b)`, `setDistanceFromMovementPlane(-r * 0.4)`. A sun is a planet with only `setPlanetAtmosphereTexture("planets/star-1.png")` and a colour. Textures: planet-1..5, planet-earth, gas-1..3, moon-1..3, clouds-1..3, atmosphere, star-1. Avoid `setOrbit` near stations: orbiting bodies collide with whatever is on their path.
+- **Orbits** (`components.orbit`, `src/systems/basicmovement.cpp`): works on ANY entity, not just planets. Every frame the
+  engine puts the entity `distance` from the target (or from the fixed `center` when there is no target) along its current
+  bearing, then turns it by `delta / time * 360` degrees. It moves the entity directly (no velocity), so impulse, thrust and
+  collisions can't pull it off; clients run the same system, so it costs no network traffic. `setOrbit(target, time)` takes
+  the distance from the current position; set the component yourself for a chosen distance or a fixed centre:
+  `e.components.orbit = {center = {x, y}, distance = d, time = t}`. `time = 0` keeps the distance without circling: a
+  **tow line** (the entity trails the target like a rope; Ice Haul). `components.orbit = nil` lets go (it stays put).
+  Used for the Deep Shroud's asteroid ring (`asteroid_fields` kind `"ring"`). Test: `tests/core/orbit.lua`.
 - Freighter templates: `"<Personnel|Goods|Garbage|Equipment|Fuel> Freighter <1-5>"` and `"... Jump Freighter <3-5>"`. Higher numbers are bigger and slower.
 - `setBeamWeapon(index, arc, direction, range, cycle_time, damage)`: indices are 0-based, and setting a higher index adds new beam mounts. Direction 0 is forward, 180 rear.
 - `setWeaponTubeCount(n)` **rebuilds every tube**, wiping their directions and settings. Re-apply `setWeaponTubeDirection(i, deg)` for all tubes afterwards.

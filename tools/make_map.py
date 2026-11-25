@@ -127,6 +127,15 @@ for e in entries("asteroid_fields"):
                 f'<circle cx="{px(ax):.1f}" cy="{py(ay):.1f}"'
                 f' r="2" fill="#b0a080" opacity="0.75"/>'
             )
+    elif kind == "ring":
+        cx, cy, r1, r2 = num(e, "x"), num(e, "y"), num(e, "r1"), num(e, "r2")
+        for _ in range(n):
+            ang = _rng.uniform(0, 2 * math.pi)
+            rad = _rng.uniform(r1, r2)
+            svg.append(
+                f'<circle cx="{px(cx + math.cos(ang) * rad):.1f}" cy="{py(cy + math.sin(ang) * rad):.1f}"'
+                f' r="2" fill="#b0a080" opacity="0.75"/>'
+            )
     else:
         cx, cy, r = num(e, "x"), num(e, "y"), num(e, "r")
         for _ in range(n):

@@ -128,6 +128,9 @@ AFTERMATH.ENTRIES = {
     {id = "aftermath_holdout_fallen", category = "HOLDOUT_DONE",
      when = function() local d = F("holdout_arc_done") return d == "fallen" or d == "lost" end,
      text = "The Shroud Raiders burned Breaker's Claim. Calloway's crews got out in the lifeboats. She says they'll be back on the rocks by spring."},
+    {id = "aftermath_icehaul_water", category = "ICEHAUL_DONE",
+     when = function() return F("icehaul_arc_done") == "delivered" end,
+     text = "Hob's Landing lifted the water rationing. Somebody towed in a whole chunk of the Kestrel comet, and the Landing's drinking it."},
 }
 
 AFTERMATH.PRIORITY      = 3

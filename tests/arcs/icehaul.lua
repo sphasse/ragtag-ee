@@ -1,0 +1,221 @@
+-- Ice Haul: the gate (Rezkov over), the seed rumor (it sets the objective), the water office's two
+-- pages at Hob's Landing, the berg drifting round Kestrel, Engineering's tow button (only within reach),
+-- the line (the berg trails at TOW_LENGTH, impulse slowed), warp snapping it, casting off, the
+-- delivery at Hob's Landing (1,500 cr, Independent +75), the Magpie lost, every GM state and
+-- "-> Inactive".
+-- Not covered: flying the tow by hand (the ship is teleported; the berg trailing a ship on impulse
+-- is in tests/core/orbit.lua), what the button looks like on the consoles.
+
+T.arc("icehaul")
+
+local M_i = MISSIONS._registry.icehaul
+local c0, ind0, fwd0, bx0, by0
+
+local function berg() return T.st().berg end
+local function hob() return T.find("Hob's Landing") end
+local function dist(a, b)
+    local ax, ay = a:getPosition()
+    local bx, by = b:getPosition()
+    return math.sqrt((ax - bx) ^ 2 + (ay - by) ^ 2)
+end
+local function nearBerg(d)
+    local bx, by = berg():getPosition()
+    T.moveTo(bx + d, by)
+    T.P():setImpulseMaxSpeed(fwd0, fwd0 / 2)
+end
+
+-- ── The gate ─────────────────────────────────────────────────────────────────
+T.step("the gate", function()
+    RT.clearFlag("rezkov_arc_done")
+    RT.clearFlag("rezkov_declined")
+    T.check("gate: closed before Rezkov", not M_i.triggers.requires())
+    RT.flag("rezkov_declined", true)
+    T.check("gate: Rezkov declined opens it", M_i.triggers.requires())
+end)
+T.waitFor("gate: the arc starts on its own", function() return T.status() == "active" end, 3)
+
+-- ── Hook ─────────────────────────────────────────────────────────────────────
+T.step("hook", function()
+    T.jump("hook")
+    T.eq("hook: phase", T.phase(), "hook")
+    T.eq("hook: one seed rumor", T.rumors("ICEHAUL_SEED"), 1)
+    T.check("hook: no objective yet", RT.objectives.icehaul == nil)
+    T.check("hook: no ice yet", berg() == nil)
+    local r
+    for _, x in ipairs(RUMORS._injected) do if x.category == "ICEHAUL_SEED" then r = x end end
+    T.eq("hook: Independent ports", r.faction, "Independent")
+    r.on_heard()
+    T.eq("hook: hearing it sets the objective", RT.objectives.icehaul, "Hob's Landing")
+end)
+T.dock("Hob's Landing")
+T.talk("Hob's Landing", {"[SPECIAL] The water office"})
+T.step("page 1: the job", function()
+    T.check("p1: rationing", T.msg():find("We're rationing", 1, true) ~= nil, T.msg())
+    T.check("p1: the pay", T.msg():find("1,500 credits", 1, true) ~= nil, T.msg())
+    T.check("p1: a sector", T.msg():find("near %u+%d+") ~= nil, T.msg())
+end)
+T.reply({"How do we tow it?"})
+T.step("page 2: the tow", function()
+    T.check("p2: the warp warning", T.msg():find("don't touch the warp drive", 1, true) ~= nil, T.msg())
+end)
+T.reply({"Not right now."})
+T.step("not right now: still the hook", function() T.eq("decline: hook", T.phase(), "hook") end)
+T.talk("Hob's Landing", {"[SPECIAL] The water office", "How do we tow it?", "We'll fetch it."})
+T.step("haul", function()
+    T.eq("haul: phase", T.phase(), "haul")
+    T.check("haul: briefed", T.flag("icehaul_briefed"))
+    T.eq("haul: seed gone", T.rumors("ICEHAUL_SEED"), 0)
+    T.eq("haul: objective", RT.objectives.icehaul, "Pick up the ice")
+    T.check("haul: the job entry", SCIDB._entries["icehaul_job"] ~= nil)
+    T.check("haul: the ice", RT.valid(berg()))
+    T.eq("haul: its callsign", berg():getCallSign(), "Kestrel Ice")
+    T.check("haul: it doesn't explode on touch", berg().components.explode_on_touch == nil)
+    local x, y = berg():getPosition()
+    local d = math.sqrt((x - 120000) ^ 2 + (y - 36000) ^ 2)
+    T.check("haul: 16U from Kestrel", math.abs(d - 16000) < 50, string.format("%.0f", d))
+    local r = VERSE.regionAt(x, y)
+    T.eq("haul: in the Rim (no patrols)", r and r.name, "the Rim")
+    T.check("haul: no offer now", not T.hasReply("[SPECIAL] The water office"))
+    bx0, by0 = x, y
+    fwd0 = T.P():getImpulseMaxSpeed()
+end)
+T.closeComms()
+T.wait(3)
+T.step("the ice drifts round Kestrel", function()
+    local x, y = berg():getPosition()
+    T.check("drift: it moved", math.sqrt((x - bx0) ^ 2 + (y - by0) ^ 2) > 30)
+    local d = math.sqrt((x - 120000) ^ 2 + (y - 36000) ^ 2)
+    T.check("drift: still 16U from Kestrel", math.abs(d - 16000) < 50)
+end)
+
+-- ── The tow button ───────────────────────────────────────────────────────────
+T.step("too far: no button", function()
+    T.undock()
+    nearBerg(5000)
+end)
+T.wait(1)
+T.step("far", function()
+    T.check("far: no button", not M_i.buttonLabel())
+    M_i.towPressed()
+    T.check("far: pressing does nothing", not T.st().towing)
+    nearBerg(1200)
+end)
+T.wait(1)
+T.step("in reach: attach", function()
+    T.eq("reach: the button", M_i.buttonLabel(), "Attach tow line")
+    M_i.towPressed()
+    T.check("attach: towing", T.st().towing)
+    T.eq("attach: the line is on the ship", berg().components.orbit.target, T.P())
+    T.eq("attach: objective", RT.objectives.icehaul, "Tow it to Hob's")
+    T.check("attach: impulse slowed", math.abs(T.P():getImpulseMaxSpeed() - fwd0 * M_i.TOW_DRAG) < 0.1)
+end)
+T.wait(1)
+T.step("the line", function()
+    T.eq("line: the button", M_i.buttonLabel(), "Release tow line")
+    T.check("line: the ice at the line's length", math.abs(dist(T.P(), berg()) - M_i.TOW_LENGTH) < 50,
+        string.format("%.0f", dist(T.P(), berg())))
+    -- Move the ship: the ice follows on the line.
+    local x, y = T.P():getPosition()
+    T.moveTo(x - 8000, y)
+end)
+T.wait(1)
+T.step("the ice follows", function()
+    T.check("follow: still at the line's length", math.abs(dist(T.P(), berg()) - M_i.TOW_LENGTH) < 50,
+        string.format("%.0f", dist(T.P(), berg())))
+    M_i.towPressed()
+    T.check("cast off: not towing", not T.st().towing)
+    T.check("cast off: the ice holds still", berg().components.orbit == nil)
+    T.check("cast off: impulse back", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
+    T.eq("cast off: objective", RT.objectives.icehaul, "Pick up the ice")
+    M_i.towPressed()   -- within reach still: attach again
+    T.check("attach again", T.st().towing)
+    T.P():commandWarp(1)
+end)
+T.waitFor("warp snaps the line", function() return not T.st().towing end, 10)
+T.step("snapped", function()
+    T.P():commandWarp(0)
+    T.check("snap: the ice adrift", berg().components.orbit == nil)
+    T.check("snap: impulse back", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
+    T.eq("snap: objective", RT.objectives.icehaul, "Pick up the ice")
+end)
+T.wait(2)
+
+-- ── The delivery ─────────────────────────────────────────────────────────────
+T.step("tow it home", function()
+    T.P():commandWarp(0)
+    nearBerg(1000)
+    M_i.towPressed()
+    T.check("home: towing", T.st().towing)
+    -- 7U out from Hob's Landing: not yet.
+    local hx, hy = hob():getPosition()
+    T.moveTo(hx + 7000, hy)
+end)
+T.wait(1)
+T.step("not there yet", function()
+    T.eq("home: still hauling", T.phase(), "haul")
+    T.check("home: GM state shows the tow", M_i.gm_state_fn():find("Towing", 1, true) ~= nil, M_i.gm_state_fn())
+    c0, ind0 = T.credits(), T.rep("Independent")
+    local hx, hy = hob():getPosition()
+    T.moveTo(hx + 2500, hy)
+end)
+T.waitFor("delivered", function() return T.status() == "done" end, 3)
+T.step("delivered", function()
+    T.eq("delivered: outcome", T.flag("icehaul_arc_done"), "delivered")
+    T.eq("delivered: +1,500", T.credits() - c0, 1500)
+    T.eq("delivered: Independent +75", T.rep("Independent") - ind0, 75)
+    T.check("delivered: no objective", RT.objectives.icehaul == nil)
+    T.check("delivered: line off", not T.st().towing)
+    T.check("delivered: impulse back", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
+    T.check("delivered: no button", not M_i.buttonLabel())
+end)
+T.waitFor("achievement: Water Bearer", function() return ACH.has("water_bearer") end, 7)
+T.step("news", function() T.eq("news: one line", T.rumors("ICEHAUL_DONE"), 1) end)
+T.waitFor("the tugs take the ice", function() return not RT.valid(berg()) end, 25)
+
+-- ── The Magpie lost ──────────────────────────────────────────────────────────
+T.step("haul, then the Magpie is lost", function()
+    T.jump("haul")
+    RT.emit("ship_lost", {ship = T.P():getCallSign(), primary = true, credits_lost = 0, credits = 0}, "high")
+end)
+T.wait(1)
+T.step("lost", function()
+    T.eq("lost: outcome", T.flag("icehaul_arc_done"), "lost")
+    T.eq("lost: done", T.status(), "done")
+    T.check("lost: no pay flag", not T.flag("icehaul_rewarded"))
+end)
+
+-- ── GM states ────────────────────────────────────────────────────────────────
+T.gmWalk({
+    {key = "hook", phase = "hook", check = function()
+        T.eq("GM hook: the seed again", T.rumors("ICEHAUL_SEED"), 1)
+        T.check("GM hook: no ice", berg() == nil)
+    end},
+    {key = "haul", phase = "haul", check = function()
+        T.check("GM haul: briefed replayed", T.flag("icehaul_briefed"))
+        T.check("GM haul: the ice", RT.valid(berg()))
+        T.action("Ship → Ice")
+        T.action("Attach the line")
+        T.check("GM haul: Attach the line", T.st().towing)
+        T.restart()
+        T.eq("next session: hauling again", T.phase(), "haul")
+        T.check("next session: not towing", not T.st().towing)
+        T.check("next session: impulse back", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
+    end},
+    {key = "done_delivered", done = true, check = function()
+        T.eq("GM delivered: outcome", T.flag("icehaul_arc_done"), "delivered")
+    end},
+    {key = "done_lost", done = true, check = function()
+        T.eq("GM lost: outcome", T.flag("icehaul_arc_done"), "lost")
+        T.restart()
+        T.eq("next session: done", T.status(), "done")
+    end},
+})
+
+T.deactivate({
+    check = function()
+        T.check("inactive: no job entry", SCIDB._entries["icehaul_job"] == nil)
+        T.eq("inactive: no seed", T.rumors("ICEHAUL_SEED"), 0)
+        T.check("inactive: no ice", berg() == nil)
+        T.check("inactive: impulse back", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
+    end,
+})

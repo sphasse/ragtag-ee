@@ -211,6 +211,9 @@ VERSE.extend({
         {kind = "blob", x = -91, y = 6, r = 10, count = 25, visual = 15},
         {kind = "blob", x = 125, y = 78, r = 10, count = 25, visual = 15},
         {kind = "blob", x = 78, y = 16, r = 8, count = 18, visual = 10},
+        -- Added 2026-11-24: rocks circling the Deep Shroud's black hole (177, -52), outside its 5U
+        -- pull. A turn takes `period` s at r1 (about 3.7U a minute), longer further out.
+        {kind = "ring", x = 177, y = -52, r1 = 7, r2 = 13, count = 40, visual = 30, period = 720},
     },
 
     -- Garrisons hold a location (orderDefendLocation) and don't wander.
