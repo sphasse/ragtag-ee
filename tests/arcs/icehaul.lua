@@ -2,7 +2,7 @@
 -- pages at Hob's Landing, the berg drifting round Kestrel, Engineering's tow button (only within reach),
 -- the line (the berg trails at TOW_LENGTH, impulse unchanged, flying it costs energy), two raiders coming 10U out on the first hook-up (and no more after), breaking off
 -- on delivery and gone with the ice, removed when the Magpie is lost; warp 1 at half power holding (Science's tow speed), warp 1 at full power snapping it, casting off, the
--- delivery at Hob's Landing (1,500 cr, Independent +75), the Magpie lost, every GM state and
+-- delivery at Hob's Landing (2,000 cr, Independent +75), the Magpie lost, every GM state and
 -- "-> Inactive".
 -- Not covered: flying the tow by hand (the ship is teleported; the berg trailing a ship on impulse
 -- is in tests/core/orbit.lua), what the button looks like on the consoles.
@@ -53,7 +53,7 @@ T.dock("Hob's Landing")
 T.talk("Hob's Landing", {"[SPECIAL] The water office"})
 T.step("page 1: the job", function()
     T.check("p1: rationing", T.msg():find("We're rationing", 1, true) ~= nil, T.msg())
-    T.check("p1: the pay", T.msg():find("1,500 credits", 1, true) ~= nil, T.msg())
+    T.check("p1: the pay", T.msg():find("2,000 credits", 1, true) ~= nil, T.msg())
     T.check("p1: a sector", T.msg():find("near %u+%d+") ~= nil, T.msg())
 end)
 T.reply({"How do we tow it?"})
@@ -232,7 +232,7 @@ end)
 T.waitFor("delivered", function() return T.status() == "done" end, 3)
 T.step("delivered", function()
     T.eq("delivered: outcome", T.flag("icehaul_arc_done"), "delivered")
-    T.eq("delivered: +1,500", T.credits() - c0, 1500)
+    T.eq("delivered: +2,000", T.credits() - c0, 2000)
     T.eq("delivered: Independent +75", T.rep("Independent") - ind0, 75)
     T.check("delivered: no objective", RT.objectives.icehaul == nil)
     T.check("delivered: line off", not T.st().towing)

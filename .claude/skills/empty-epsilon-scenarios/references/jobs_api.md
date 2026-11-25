@@ -353,7 +353,7 @@ zone, within 60U); the crew puts a tow line on it (`TOW`, `ee/ragtag/tow.lua`: E
 and Science's "Tow speed" readout; hauling costs energy) and brings it within 4U of the port that got the call,
 then docks to be paid. Basic work: its tier weight drops 6 → 4 → 2 as the ship's tier rises (`_TIER_WEIGHTS`).
 Raiders: once the asking ship has upgraded, a tow may draw Shroud Raiders (`RAIDER_ODDS`, rolled at generation from
-`ctx.max_tier`, the ship's own `JOBS.maxTier`: none at tier 0, 0–1 at tier 1, 0–2 at tier 2; +15% pay a raider, "Raiders
+`ctx.max_tier`, the ship's own `JOBS.maxTier`: none at tier 0, 0–1 at tier 1, 0–2 at tier 2; +15% pay a raider and a 100 cr munitions allowance, "Raiders
 about." on the board, a warning in the brief). They are `TOW.intercept` (`ee/ragtag/tow.lua`, shared with Ice Haul):
 the first time the line goes on they appear 10U out (impulse 1.2 × `TOW.MAX_SPEED`, 300: a tow can't outrun them), their
 leader hails the crew to cut her loose, and they attack at once; they break off when the tow is home (`TOW.breakOff`) and

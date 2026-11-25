@@ -66,7 +66,7 @@ Hob's**): it puts the Magpie 5U from the place, undocked and stopped, so a playt
 | Cold Chain | The Hob Works funded, then 3 board jobs | One-off money job: lift the Tamsin fever cure from Ostia's depot (3,000 cr) | [GM_COLD_CHAIN_MISSION.md](GM_COLD_CHAIN_MISSION.md) |
 | The Bounty | Rezkov over, 1,000 cr of upgrades | One-off money job: catch a fugitive bookkeeper in the Deep Shroud, alive (3,000 cr, or 4,500 to let him go) | [GM_BOUNTY_MISSION.md](GM_BOUNTY_MISSION.md) |
 | The Holdout | Rezkov over, 1,500 cr of upgrades | One-off money job: hold Breaker's Claim against three waves of Shroud Raiders (3,000 cr) | [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md) |
-| Ice Haul | Rezkov over | One-off money job: tow a comet fragment, with two raiders coming for it, from round Kestrel to Hob's Landing (1,500 cr); the first tow line | [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md) |
+| Ice Haul | Rezkov over | One-off money job: tow a comet fragment, with two raiders coming for it, from round Kestrel to Hob's Landing (2,000 cr); the first tow line | [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md) |
 
 Each arc's GM guide (spoilers) covers its premise and place in the campaign, triggers, phases, GM
 buttons and what it leaves for later arcs, with design notes at the end. Arc objectives show as one

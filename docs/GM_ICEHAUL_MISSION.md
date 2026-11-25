@@ -11,7 +11,7 @@ tow rig and pays them to bring it home.
 
 Where it sits in the campaign:
 
-- **A short one-off money job**: 1,500 cr for the tow. It can come at any time after Rezkov.
+- **A short one-off money job**: 2,000 cr for the tow. It can come at any time after Rezkov.
 - **Two raiders**: the ice drifts in the Rim, where nothing patrols, but the first time the line goes on
   two Shroud Raiders posing as rival recovery outfits come for it (the same intercept as the tow job's).
 - **It tries out the tow line** (the engine's orbit component: `setOrbit(ship, 0)`), which could later
@@ -36,7 +36,7 @@ fit you one." Hearing it sets the objective **"Hob's Landing"**.
 
 Docked at **Hob's Landing**, **"[SPECIAL] The water office"** opens two pages:
 1. The rationing, the comet, where the ice is (a sector name), "Tow it here, within 4U of the Landing,
-   and our tugs take it from there. 1,500 credits."
+   and our tugs take it from there. 2,000 credits."
 2. **How do we tow it?**: "Get within 2U of the ice and your engineer makes it fast. Hauling it eats
    power, and the line takes half of warp 1, 15U a minute, no more: warp 1 with your warp drive at half
    power, about. Have your science officer watch the speed. Any faster and it snaps, and you go back
@@ -74,7 +74,7 @@ is, how the tow works).
   Pilot). Anything faster snaps the line: "The tow line snapped: faster than half of warp 1, 15U a
   minute, is more than it can take. The ice is adrift: go back for it." No other cost.
 - **The ice within 4U of Hob's Landing**: the water office hails: "We have it. Tugs are on their way out
-  to take it in... 1,500 credits, and the Landing drinks this month." **1,500 cr, Independent +75**.
+  to take it in... 2,000 credits, and the Landing drinks this month." **2,000 cr, Independent +75**.
   Outcome `delivered`. Any raiders left break off and fly away. The ice (and the raiders) are taken in
   (removed) 20 seconds later.
 - **The Magpie lost** while hauling: outcome `lost` (nothing paid; the raiders are removed).
@@ -143,7 +143,7 @@ Achievement (hidden): **Water Bearer** (delivered).
 
 ### Tuning (top of `icehaul.lua`)
 
-`PAY` 1,500, `REP` 75, `DELIVER_R` 4U, `RAIDERS` 2,
+`PAY` 2,000, `REP` 75, `DELIVER_R` 4U, `RAIDERS` 2,
 `KESTREL`, `ORBIT_R` 16U, `ORBIT_START` 160°, `ORBIT_PERIOD` 3,600 s.
 
 The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/s, `TOW.MAX_SPEED` 250
@@ -156,8 +156,7 @@ The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/
 - Is the half-warp rule clear? Do Engineering (warp power) and Science (the tow speed) find the speed
   together, and is the snap fair?
 - Is the ice easy to find (a sector name, pale blue on radar)?
-- 1,500 cr for a job with no fight: about right?
-- Two raiders always: too much for a crew that has just finished Rezkov? Is 1,500 cr still right with a fight?
+- Two raiders always: too much for a crew that has just finished Rezkov? Is 2,000 cr right for it?
 
 ### History
 
@@ -172,7 +171,7 @@ The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/
   fly 20% faster than the limit.
 - 2026-11-25: two raiders come for the ice the first time the line goes on (`TOW.intercept`, `M.RAIDERS`),
   10U out, hailing and attacking at once; the water office warns about them. The tow job's raiders now
-  come the same way (on the first hook-up, not as the crew arrives).
+  come the same way (on the first hook-up, not as the crew arrives). Pay 1,500 -> 2,000 cr for the fight.
 
 ### Testing
 

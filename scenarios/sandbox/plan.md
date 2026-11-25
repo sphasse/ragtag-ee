@@ -535,7 +535,7 @@ the line first goes on (`TOW.intercept`).
 **Flow.** `hook` (a seed rumor; docked at Hob's Landing, the water office's [SPECIAL] offer, two
 pages) → `haul` (the ice drifts round Kestrel, 16U out; within 2U Engineering attaches the line, the
 ice trails 1.5U behind, moving it drains up to 3 energy/s; it holds at half of warp 1 (warp power ~50%, Science reads the tow speed), faster snaps the line) → `done`: **delivered** (the ice within 4U
-of Hob's Landing: 1,500 cr, Independent +75), **lost** (the Magpie).
+of Hob's Landing: 2,000 cr, Independent +75), **lost** (the Magpie).
 
 **Trigger.** Rezkov over.
 

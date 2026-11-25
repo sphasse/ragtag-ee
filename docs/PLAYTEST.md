@@ -190,7 +190,7 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
       warning reads right? Too much right after Rezkov? Do they break off on delivery?
 - [ ] The line takes half of warp 1 (15U a minute): warp 1 with Engineering's warp power at ~50%, Science reading "Tow speed".
       Do the two stations find it together? Full-power warp 1 snaps it: clear? fair? "Release tow line" leaves it where it is
-- [ ] The ice within 4U of Hob's Landing: 1,500 cr, Independent +75. Right pay for no fight?
+- [ ] The ice within 4U of Hob's Landing: 2,000 cr, Independent +75. Right pay with the two raiders?
 
 ## 5h. Tow jobs (the board; tier 0, rarer later)
 
@@ -201,7 +201,7 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
 - [ ] How often they show up: common at tier 0, fewer at tiers 1 and 2?
 - [ ] After upgrading: "Raiders about." tows. The raiders show up 10U out just after you hook up, their leader tells
       you to cut her loose, and they attack. Fair at one raider (tier 1)
-      and two (tier 2)? They fly 20% faster than the tow line allows (18U a minute), so a tow can't outrun them: tense rather than hopeless? Hazard pay (+15% a raider) enough?
+      and two (tier 2)? They fly 20% faster than the tow line allows (18U a minute), so a tow can't outrun them: tense rather than hopeless? Hazard pay (+15% a raider, +100 cr for missiles) enough?
 - [ ] Achievements: We Got a Call (first tow), Recovery Crew (ten); Jack of All Trades now needs a tow too
 
 ## 5g. The Deep Shroud's asteroid ring

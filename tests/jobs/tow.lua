@@ -147,11 +147,12 @@ T.step("a tow with raiders", function()
             R = M_t.generate(opts)
             local plain = JOBS.calcReward(JOBS.ECONOMY.base_reward[0], JOBS.ECONOMY.type_mult.tow * R.reward_mult,
                 opts.distance_u, 2, opts.distance_min_u, opts.distance_max_u, 1.0)
-            T.eq("raiders: hazard pay (+15% a raider)", R.reward, plain)
+            T.eq("raiders: hazard pay (+15% a raider) and 100 cr for missiles", R.reward, plain + 100)
             break
         end
     end
     T.check("raiders: the brief warns", R.brief:find("expect company", 1, true) ~= nil, R.brief)
+    T.check("raiders: the brief names the missile money", R.brief:find("100 cr for the missiles", 1, true) ~= nil, R.brief)
     T.check("raiders: the board says so", M_t.offerText(R, ""):find("Raiders about.", 1, true) ~= nil)
     T.check("no raiders: the board doesn't", M_t.offerText(m, ""):find("Raiders", 1, true) == nil)
     m = T.postJob(R)

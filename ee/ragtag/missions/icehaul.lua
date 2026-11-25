@@ -25,7 +25,7 @@ M.no_auto_cancel = true
 local U = 1000
 
 -- ── Tuning ──────────────────────────────────────────────────────────────────
-M.PAY         = 1500
+M.PAY         = 2000
 M.REP         = 75
 M.DELIVER_R   = 4000    -- the berg this close to Hob's Landing: delivered
 -- The berg drifts round Kestrel (120, 36): ORBIT_R from the sun, starting at ORBIT_START degrees

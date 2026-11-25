@@ -5,7 +5,8 @@
 -- Basic work like deliveries: common at tier 0 and tapering off as the crew moves up (the engine's
 -- _TIER_WEIGHTS). The breakdown is always somewhere no patrol flies. Once the ship asking has upgraded
 -- (tier 1+), a tow may draw Shroud Raiders (RAIDER_ODDS: none at tier 0, up to one at tier 1, up to two
--- at tier 2), rolled when the job is posted: the board says "Raiders about." and pays +15% a raider.
+-- at tier 2), rolled when the job is posted: the board says "Raiders about." and pays +15% a raider,
+-- plus a MUNITIONS_ALLOWANCE (100 cr) for the missiles.
 -- They show up 10U out just after the line first goes on (TOW.intercept), their leader hails to cut
 -- her loose, and they attack at once, faster than a tow can run; they break off when the tow is home. The board text borrows the voice of a roadside recovery crew: "We got a
 -- call...", and the acknowledge button reads "We'll get 'em home".
@@ -16,6 +17,7 @@ local MAX_DIST  = 60000     -- breakdowns are at most this far out (world units)
 -- Raiders: once the crew has upgraded (job tier 1+, JOBS.maxTier of the ship asking), some tows draw
 -- Shroud Raiders who come for the easy mark once the line is on. Odds of 0, 1, 2 raiders by tier;
 -- rolled when the job is posted, so the board can say so and pay for it (+15% a raider).
+local MUNITIONS_ALLOWANCE = 100   -- added to a tow with raiders: the missiles the crew will spend
 local RAIDER_ODDS = {
     [0] = {1.0},
     [1] = {0.5, 0.5},
@@ -71,6 +73,7 @@ M.weight    = 6         -- tier weights: jobs/_engine.lua _TIER_WEIGHTS
 M.tier_min  = 0
 M.type_mult = 1.2
 M.DELIVER_R = DELIVER_R
+M.MUNITIONS_ALLOWANCE = MUNITIONS_ALLOWANCE
 M.ack_label    = "We'll get 'em home"   -- the button under the job details (jobs/_engine.lua _showBoard)
 M.accept_outro = ""                      -- the brief ends on its own line
 
@@ -131,12 +134,13 @@ function M.generate(opts)
         JOBS.ECONOMY.type_mult["tow"] * (arch.reward_mult or 1),
         opts.distance_u, raiders,
         opts.distance_min_u, opts.distance_max_u, 1.0)
+    if raiders > 0 then reward = reward + MUNITIONS_ALLOWANCE end
     local where = opts.region_name or "open space"
     local grid = getSectorName and getSectorName(opts.wx, opts.wy) or "?"
     local warning = ""
     if raiders > 0 then
         warning = '\n\n"One more thing. Raiders have been working that patch, and a ship that can\'t move is '
-            .. 'an easy mark. Once she\'s on your line, expect company. We\'ve added hazard pay."'
+            .. 'an easy mark. Once she\'s on your line, expect company. We\'ve added hazard pay, and ' .. MUNITIONS_ALLOWANCE .. ' cr for the missiles you\'ll spend."'
     end
     return {
         id           = JOBS.nextId(),
