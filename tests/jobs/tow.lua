@@ -178,6 +178,9 @@ T.step("the crew arrives: raiders, heading for her", function()
             string.format("%.0f", dist(T.P(), s)))
     end
     T.eq("raiders: the first an Adder", m.raider_ships[1]:getTypeName(), "Adder MK5")
+    for i, s in ipairs(m.raider_ships or {}) do
+        T.eq("raider " .. i .. ": impulse of warp 1.2", s:getImpulseMaxSpeed(), TOW.MAX_SPEED * 1.2)
+    end
     T.check("raiders: the leader tells the crew to stand off", (m._raid_hail or ""):find("Finders keepers", 1, true) ~= nil,
         tostring(m._raid_hail))
     T.check("raiders: not shooting yet", not m._raid_attack)

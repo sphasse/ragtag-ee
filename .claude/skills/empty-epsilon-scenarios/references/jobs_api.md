@@ -354,7 +354,7 @@ then docks to be paid. Basic work: its tier weight drops 6 → 4 → 2 as the sh
 Raiders: once the asking ship has upgraded, a tow may draw Shroud Raiders (`RAIDER_ODDS`, rolled at generation from
 `ctx.max_tier`, the ship's own `JOBS.maxTier`: none at tier 0, 0–1 at tier 1, 0–2 at tier 2; +15% pay a raider, "Raiders
 about." on the board, a warning in the brief). They show up when the job's ship comes within 10U of the stranded ship,
-8U out on her far side and heading for her; their leader hails the crew to stand off; they open fire when the crew is
+8U out on her far side and heading for her (impulse 600, warp 1.2: a tow at warp 1 can't outrun them); their leader hails the crew to stand off; they open fire when the crew is
 within 5U of them or puts the line on, break off when the tow is home, and are removed when the job ends.
 
 **Optional module fields for the board's text:** `M.ack_label` names the button under the job details shown after

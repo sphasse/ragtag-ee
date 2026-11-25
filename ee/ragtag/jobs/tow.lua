@@ -26,6 +26,9 @@ local RAIDER_SHIPS = {"Adder MK5", "MT52 Hornet"}   -- the first raider, the sec
 local RAIDER_TRIGGER = 10000  -- the job's ship this close to the stranded ship: the raiders show up
 local RAIDER_START   = 8000   -- this far out on the far side of her, heading for her
 local RAIDER_ENGAGE  = 5000   -- they open fire when the crew is this close, or once the line is on
+local RAIDER_SPEED   = 1.2    -- their impulse, in stock warp 1s (TOW.MAX_SPEED): a tow at warp 1 can't outrun them
+local RAIDER_ACCEL   = 150    -- impulse acceleration (world units/s^2): up to speed in about 4 s
+local RAIDER_TURN    = 25     -- degrees a second, so they can come round at that speed
 -- Claim jumpers dressed up as rival recovery outfits.
 local _RAIDER_NAMES = {
     "Jake's Towing & Salvage", "Interspace AAA", "Finders Keepers Recovery", "No Questions Towing",
@@ -194,6 +197,9 @@ function M.spawnRaiders(m)
     for i = 1, m.raiders do
         local s = CpuShip():setTemplate(RAIDER_SHIPS[i] or RAIDER_SHIPS[#RAIDER_SHIPS]):setFaction("Shroud Raiders")
         s:setCallSign(JOBS.uniqueName(_RAIDER_NAMES))
+        s:setImpulseMaxSpeed(TOW.MAX_SPEED * RAIDER_SPEED, 100)
+        s:setAcceleration(RAIDER_ACCEL, RAIDER_ACCEL)
+        s:setRotationMaxSpeed(RAIDER_TURN)
         s:setPosition(sx - dy * (i - 1) * 800, sy + dx * (i - 1) * 800)
         s:setDescriptions("Salvage outfit.", "Calls itself a recovery service. Its licence is a Shroud Raider's guns: they hunt the quiet lanes for ships that can't run and claim them as salvage.")
         s:setCommsScript(""):setCommsFunction(function()
