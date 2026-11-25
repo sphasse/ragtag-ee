@@ -1,7 +1,8 @@
 -- ee/ragtag/missions/icehaul.lua
 -- Ice Haul: a short one-off job, and the first use of a tow line. Hob's Landing's water reclaimers
 -- are failing and a comet broke up passing Kestrel; the Landing's water office pays for the biggest
--- piece, towed home. No resistance: the job is the tow. GM guide: docs/GM_ICEHAUL_MISSION.md
+-- piece, towed home. The first time the line goes on, two raiders (TOW.intercept, posing as rival
+-- recovery outfits) come for the ice from 10U out. GM guide: docs/GM_ICEHAUL_MISSION.md
 --
 -- Structure: init -> hook -> haul -> done ("delivered" | "lost")
 --   hook     a seed rumor at Independent ports; docked at Hob's Landing, the water office's
@@ -33,6 +34,7 @@ M.KESTREL      = {x = 120, y = 36}
 M.ORBIT_R      = 16
 M.ORBIT_START  = 160
 M.ORBIT_PERIOD = 3600
+M.RAIDERS      = 2      -- raiders who come for the ice when the line first goes on (TOW.intercept)
 
 local _HOB = "Hob's Landing"
 local _BERG_CS = "Kestrel Ice"
@@ -42,6 +44,8 @@ function M.init_state()
         berg     = nil,    -- the iceberg (the entity)
         towing   = false,
         tow_ship = nil,    -- the ship it is tied to
+        raided   = false,  -- the raiders have come (once a session)
+        raiders  = nil,    -- their ships
     }
 end
 
@@ -108,6 +112,13 @@ local function _offerTow(st)
             local s = _st()
             if s then s.towing, s.tow_ship = true, ship end
             if _active("haul") then RT.setObjective("Tow it to Hob's", true, "icehaul") end
+            if s and _active("haul") and not s.raided then
+                s.raided = true
+                s.raiders = TOW.intercept(ship, obj, M.RAIDERS, {hail =
+                    '"That\'s a lot of ice for one little freighter. Here\'s how this goes: you cut it loose, we tow it '
+                    .. 'somewhere that pays better than Hob\'s, and you fly home with all your paint. Finders keepers, '
+                    .. 'and we saw that comet break up first."'})
+            end
         end,
         on_release = function(ship, obj, why)
             local s = _st()
@@ -142,6 +153,7 @@ local function _tickHaul(st, delta, now)
     if h and RT.valid(st.berg) and RT.dist(h, st.berg) <= M.DELIVER_R then
         TOW.withdraw(st.berg)
         M.release(st)
+        TOW.breakOff(st.raiders)
         ARC.once("icehaul_rewarded", function()
             RT.addCredits(M.PAY, "Ice Haul: the Kestrel ice delivered")
             RT.addReputation("Independent", M.REP, "Ice Haul: the Kestrel ice delivered")
@@ -182,7 +194,8 @@ local function _offer()
         setCommsMessage('"We\'ll fit a tow rig before you leave. Get within ' .. math.floor(TOW.REACH / U)
             .. 'U of the ice and your engineer makes it fast. Hauling it eats power, and the line takes ' .. TOW.LIMIT_TEXT
             .. ', no more: warp 1 with your warp drive at half power, about. Have your science officer watch the speed. '
-            .. 'Any faster and it snaps, and you go back for the ice."')
+            .. 'Any faster and it snaps, and you go back for the ice."\n\n"And watch yourselves. Every scavenger '
+            .. 'in the Rim saw that comet break up. Once the ice is on your line, somebody\'s going to want it."')
         addCommsReply("We'll fetch it.", function()
             RT.flag("icehaul_briefed", true)
             MISSIONS.phase("icehaul", "haul")
@@ -230,6 +243,7 @@ local function _clearWorld(st)
     if st.berg then TOW.withdraw(st.berg) end
     M.release(st)
     ARC.kill(st.berg); st.berg = nil
+    TOW.removeRaiders(st.raiders); st.raiders = nil
     RUMORS.removeCategory("ICEHAUL_SEED")
     RUMORS.removeCategory("ICEHAUL_DONE")
     RT.clearObjective("icehaul")
@@ -244,8 +258,13 @@ function M.resolve(st)
         -- Hob's tugs take it in.
         RT.after(20, function()
             local cur = MISSIONS._state["icehaul"]
-            if cur then ARC.kill(cur.berg); cur.berg = nil end
+            if cur then
+                ARC.kill(cur.berg); cur.berg = nil
+                TOW.removeRaiders(cur.raiders); cur.raiders = nil
+            end
         end, "icehaul_cleanup")
+    else
+        TOW.removeRaiders(st.raiders); st.raiders = nil
     end
     AFTERMATH.sync()
 end

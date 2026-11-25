@@ -12,9 +12,10 @@ tow rig and pays them to bring it home.
 Where it sits in the campaign:
 
 - **A short one-off money job**: 1,500 cr for the tow. It can come at any time after Rezkov.
-- **No resistance**: the job is the tow itself. The ice drifts in the Rim, where nothing patrols.
+- **Two raiders**: the ice drifts in the Rim, where nothing patrols, but the first time the line goes on
+  two Shroud Raiders posing as rival recovery outfits come for it (the same intercept as the tow job's).
 - **It tries out the tow line** (the engine's orbit component: `setOrbit(ship, 0)`), which could later
-  become a job type of its own (salvage tows, a lifeboat, an iceberg chased by raiders).
+  became the tow job on the board (`jobs/tow.lua`).
 
 ## Triggers
 
@@ -39,7 +40,8 @@ Docked at **Hob's Landing**, **"[SPECIAL] The water office"** opens two pages:
 2. **How do we tow it?**: "Get within 2U of the ice and your engineer makes it fast. Hauling it eats
    power, and the line takes half of warp 1, 15U a minute, no more: warp 1 with your warp drive at half
    power, about. Have your science officer watch the speed. Any faster and it snaps, and you go back
-   for the ice."
+   for the ice." "And watch yourselves. Every scavenger in the Rim saw that comet break up. Once the
+   ice is on your line, somebody's going to want it."
 
 **We'll fetch it.** goes to Haul; **Not right now.** leaves the offer open.
 
@@ -56,6 +58,14 @@ is, how the tow works).
   it costs energy: up to **3 energy a second** on top of the engines, at full impulse or at warp (less
   at part throttle, nothing stopped). Engineering sees "Tow load: up to -3 energy/s".
   Objective **"Tow it to Hob's"**.
+- **The raiders** (`TOW.intercept`), the first time the line goes on (once a session): two Shroud Raiders
+  with recovery-outfit names ("Jake's Towing & Salvage", "Interspace AAA", ...; an Adder MK5 and an MT52
+  Hornet) appear **10U** from the Magpie on a random bearing. The log: "[Science] Contacts closing fast,
+  10U out: <name> and friends. They're coming for the tow." Their leader hails: "That's a lot of ice for
+  one little freighter. Here's how this goes: you cut it loose, we tow it somewhere that pays better than
+  Hob's, and you fly home with all your paint..." They attack at once, at **18U a minute** (20% over the
+  line's limit), so the tow can't outrun them: fight, or cast off and fight. Casting off and back on
+  brings no more.
 - While towing, the button reads **"Release tow line"**: the ice stays where it is (out of its orbit
   for good). Objective back to "Pick up the ice".
 - **Half of warp 1 is the line's limit**: the ship may tow at up to **15U a minute** (250 units/s).
@@ -65,8 +75,9 @@ is, how the tow works).
   minute, is more than it can take. The ice is adrift: go back for it." No other cost.
 - **The ice within 4U of Hob's Landing**: the water office hails: "We have it. Tugs are on their way out
   to take it in... 1,500 credits, and the Landing drinks this month." **1,500 cr, Independent +75**.
-  Outcome `delivered`. The ice is taken in (removed) 20 seconds later.
-- **The Magpie lost** while hauling: outcome `lost` (nothing paid).
+  Outcome `delivered`. Any raiders left break off and fly away. The ice (and the raiders) are taken in
+  (removed) 20 seconds later.
+- **The Magpie lost** while hauling: outcome `lost` (nothing paid; the raiders are removed).
 
 ## GM console
 
@@ -106,7 +117,7 @@ Achievement (hidden): **Water Bearer** (delivered).
 
 ### State (`st.*`)
 
-`berg` (the ice), `towing`, `tow_ship` (the ship it is tied to).
+`berg` (the ice), `towing`, `tow_ship` (the ship it is tied to), `raided` (the raiders came), `raiders` (their ships).
 
 ### Saved flags
 
@@ -132,7 +143,7 @@ Achievement (hidden): **Water Bearer** (delivered).
 
 ### Tuning (top of `icehaul.lua`)
 
-`PAY` 1,500, `REP` 75, `DELIVER_R` 4U,
+`PAY` 1,500, `REP` 75, `DELIVER_R` 4U, `RAIDERS` 2,
 `KESTREL`, `ORBIT_R` 16U, `ORBIT_START` 160°, `ORBIT_PERIOD` 3,600 s.
 
 The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/s, `TOW.MAX_SPEED` 250
@@ -146,7 +157,7 @@ The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/
   together, and is the snap fair?
 - Is the ice easy to find (a sector name, pale blue on radar)?
 - 1,500 cr for a job with no fight: about right?
-- Later: a tow job type (salvage hulks, lifeboats), raiders cutting the line.
+- Two raiders always: too much for a crew that has just finished Rezkov? Is 1,500 cr still right with a fight?
 
 ### History
 
@@ -159,12 +170,16 @@ The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/
 - 2026-11-25: the limit is half of warp 1 (15U a minute), so Engineering turns the warp drive down to about
   half and Science reads "Tow speed" to tune it: towing becomes a two-station job. The tow job's raiders
   fly 20% faster than the limit.
+- 2026-11-25: two raiders come for the ice the first time the line goes on (`TOW.intercept`, `M.RAIDERS`),
+  10U out, hailing and attacking at once; the water office warns about them. The tow job's raiders now
+  come the same way (on the first hook-up, not as the crew arrives).
 
 ### Testing
 
 `tools/game_tests.py --ee <EE dir> arcs/icehaul` (`tests/arcs/icehaul.lua`) covers the gate, the
 seed rumor (it sets the objective), the two pages, the ice drifting round Kestrel, the button only
-within reach, attaching (the line, impulse unchanged), the energy it costs at full
+within reach, attaching (two raiders 10U out, attacking; no more on re-attach; breaking off on
+delivery and gone with the ice; removed when the Magpie is lost) (the line, impulse unchanged), the energy it costs at full
 impulse against flying free, the ice following a moved ship, casting off,
 warp 1 at half warp power holding (about 15U a minute, the full drain, Science's tow speed), warp 1 at
 full power snapping the line, the delivery and its pay and standing, the news, the achievement, the ice taken

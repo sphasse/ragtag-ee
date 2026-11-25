@@ -120,9 +120,8 @@ second, and anything faster than half of warp 1 (15U a minute) snaps the line: w
 about 50%, Science reading "Tow speed". Bring it within 4U of the port, then dock: "Got 'em home".
 Common at tier 0, rarer as the crew moves up. Achievements: We Got a Call (first tow), Recovery Crew (ten).
 Once the ship has upgraded, some tows say **"Raiders about."** (tier 1: up to one raider, tier 2: up to two; +15% pay
-each). The raiders (Shroud Raiders posing as rival recovery outfits, "Jake's Towing & Salvage", "Interspace AAA" and the like: an Adder MK5 and an MT52 Hornet, with impulse 20% above the tow line's limit, 18U a minute, so a tow can't outrun them) show up as the crew comes within 10U, heading for
-the stranded ship from her far side; their leader hails the crew to stand off. They open fire when the crew is within
-5U of them or puts the line on, and break off once the tow is home.
+each). The raiders (Shroud Raiders posing as rival recovery outfits, "Jake's Towing & Salvage", "Interspace AAA" and the like: an Adder MK5 and an MT52 Hornet, with impulse 20% above the tow line's limit, 18U a minute, so a tow can't outrun them) show up 10U out just after the line first goes on;
+their leader hails the crew to cut her loose, and they attack at once. They break off once the tow is home.
 
 Time limits scale with distance. Failing or letting a mission expire costs the crew the **full reward amount** in reputation with the issuing faction.
 

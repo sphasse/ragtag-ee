@@ -528,8 +528,9 @@ of a wave is gone; half of each wave goes for the Claim, half for the Magpie; th
 ### Ice Haul (`icehaul`) — BUILT 2026-11-24 (details: `docs/GM_ICEHAUL_MISSION.md`)
 
 **Premise.** Hob's Landing's water reclaimers are failing; a comet broke up passing Kestrel. The
-water office pays the crew to tow the biggest piece home. No resistance: a short job to try out the
-**tow line** (the engine's orbit component, `setOrbit(ship, 0)`).
+water office pays the crew to tow the biggest piece home. A short job that tried out the **tow line**
+(the engine's orbit component, `setOrbit(ship, 0)`); since 2026-11-25 two raiders come for the ice when
+the line first goes on (`TOW.intercept`).
 
 **Flow.** `hook` (a seed rumor; docked at Hob's Landing, the water office's [SPECIAL] offer, two
 pages) → `haul` (the ice drifts round Kestrel, 16U out; within 2U Engineering attaches the line, the
@@ -538,8 +539,7 @@ of Hob's Landing: 1,500 cr, Independent +75), **lost** (the Magpie).
 
 **Trigger.** Rezkov over.
 
-**Later:** a tow job type on the board (salvage hulks, lifeboats), and a haul the raiders try to cut
-loose.
+Built since: the tow job on the board, and the raiders.
 
 ---
 
@@ -873,8 +873,8 @@ If an arc module is lost, rebuild against these rails:
   towed home on the shared tow line (`TOW`, `ee/ragtag/tow.lua`, also used by Ice Haul); the acknowledge
   button reads "We'll get 'em home". Basic work: weight 6 / 4 / 2 by tier. Achievements: We Got a Call,
   Recovery Crew. **Raiders** (2026-11-25): once the crew has upgraded, a tow may draw Shroud Raiders who want the
-  salvage (none at tier 0, up to one at tier 1, up to two at tier 2; hazard pay, flagged on the board). They head
-  for the stranded ship as the crew arrives, hail to stand off, and fight once the line goes on.
+  salvage (none at tier 0, up to one at tier 1, up to two at tier 2; hazard pay, flagged on the board). They show up
+  10U out just after the line first goes on, hail to cut her loose, and attack (`TOW.intercept`, shared with Ice Haul).
 
 - **Marchetti is no longer ex-Concord.** He is a young, brilliant engineer (about thirty) whose father,
   a Free Ship engineer, was killed in the Settlement War; the Works raised him. A better persona for

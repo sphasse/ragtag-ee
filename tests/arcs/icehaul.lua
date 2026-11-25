@@ -1,6 +1,7 @@
 -- Ice Haul: the gate (Rezkov over), the seed rumor (it sets the objective), the water office's two
 -- pages at Hob's Landing, the berg drifting round Kestrel, Engineering's tow button (only within reach),
--- the line (the berg trails at TOW_LENGTH, impulse unchanged, flying it costs energy), warp 1 at half power holding (Science's tow speed), warp 1 at full power snapping it, casting off, the
+-- the line (the berg trails at TOW_LENGTH, impulse unchanged, flying it costs energy), two raiders coming 10U out on the first hook-up (and no more after), breaking off
+-- on delivery and gone with the ice, removed when the Magpie is lost; warp 1 at half power holding (Science's tow speed), warp 1 at full power snapping it, casting off, the
 -- delivery at Hob's Landing (1,500 cr, Independent +75), the Magpie lost, every GM state and
 -- "-> Inactive".
 -- Not covered: flying the tow by hand (the ship is teleported; the berg trailing a ship on impulse
@@ -10,6 +11,7 @@ T.arc("icehaul")
 
 local M_i = MISSIONS._registry.icehaul
 local c0, ind0, fwd0, bx0, by0, e_start, e_free
+local raiders = {}
 
 local function berg() return T.st().berg end
 local function hob() return T.find("Hob's Landing") end
@@ -57,6 +59,7 @@ end)
 T.reply({"How do we tow it?"})
 T.step("page 2: the tow", function()
     T.check("p2: the warp rule", T.msg():find("the line takes half of warp 1", 1, true) ~= nil, T.msg())
+    T.check("p2: the raiders warning", T.msg():find("somebody's going to want it", 1, true) ~= nil, T.msg())
 end)
 T.reply({"Not right now."})
 T.step("not right now: still the hook", function() T.eq("decline: hook", T.phase(), "hook") end)
@@ -109,6 +112,23 @@ T.step("in reach: attach", function()
     T.eq("attach: objective", RT.objectives.icehaul, "Tow it to Hob's")
     T.check("attach: impulse unchanged", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
     T.eq("attach: no drain while stopped", TOW.drain(T.P()), 0)
+    -- The raiders: two, 10U out, attacking at once, faster than the line allows.
+    local r = T.st().raiders or {}
+    T.eq("raiders: two", #r, 2)
+    local names = {}
+    for _, n in ipairs(TOW.INTERCEPT_NAMES) do names[n] = true end
+    for i, s in ipairs(r) do
+        T.check("raider " .. i .. ": about 10U out", math.abs(dist(T.P(), s) - TOW.INTERCEPT_DIST) < 1000,
+            string.format("%.0f", dist(T.P(), s)))
+        T.eq("raider " .. i .. ": Shroud Raiders", s:getFaction(), "Shroud Raiders")
+        T.eq("raider " .. i .. ": attacking", s:getOrder(), "Attack")
+        T.eq("raider " .. i .. ": the Magpie", s:getOrderTarget(), T.P())
+        T.eq("raider " .. i .. ": 20% over the line's limit", s:getImpulseMaxSpeed(), TOW.MAX_SPEED * 1.2)
+        T.check("raider " .. i .. ": a recovery outfit's name", names[s:getCallSign()], s:getCallSign())
+    end
+    raiders = r
+    -- Park them out of the way for the rest of the haul (the test measures energy and speed).
+    for i, s in ipairs(r) do s:orderIdle(); s:setPosition(-300000, -300000 + i * 2000) end
 end)
 T.wait(1)
 T.step("the line", function()
@@ -142,6 +162,7 @@ T.waitFor("stopped", function() return TOW.drain(T.P()) == 0 and math.abs(T.P().
 T.step("the same with the line on", function()
     M_i.towPressed()   -- within reach still: attach again
     T.check("attach again", T.st().towing)
+    T.eq("attach again: no more raiders", #T.st().raiders, 2)
     T.P():setEnergyLevel(T.P():getEnergyLevelMax())
     e_start = T.P():getEnergy()
     T.P():commandImpulse(1)
@@ -217,14 +238,22 @@ T.step("delivered", function()
     T.check("delivered: line off", not T.st().towing)
     T.check("delivered: impulse back", math.abs(T.P():getImpulseMaxSpeed() - fwd0) < 0.1)
     T.check("delivered: no button", not M_i.buttonLabel())
+    for i, s in ipairs(raiders) do T.eq("delivered: raider " .. i .. " breaks off", s:getOrder(), "Fly towards") end
 end)
 T.waitFor("achievement: Water Bearer", function() return ACH.has("water_bearer") end, 7)
 T.step("news", function() T.eq("news: one line", T.rumors("ICEHAUL_DONE"), 1) end)
 T.waitFor("the tugs take the ice", function() return not RT.valid(berg()) end, 25)
+T.step("the raiders gone", function()
+    for i, s in ipairs(raiders) do T.check("raider " .. i .. ": gone", not RT.valid(s)) end
+end)
 
 -- ── The Magpie lost ──────────────────────────────────────────────────────────
 T.step("haul, then the Magpie is lost", function()
     T.jump("haul")
+    T.action("Ship → Ice")
+    T.action("Attach the line")
+    raiders = T.st().raiders or {}
+    T.eq("lost: raiders came", #raiders, 2)
     RT.emit("ship_lost", {ship = T.P():getCallSign(), primary = true, credits_lost = 0, credits = 0}, "high")
 end)
 T.wait(1)
@@ -232,6 +261,7 @@ T.step("lost", function()
     T.eq("lost: outcome", T.flag("icehaul_arc_done"), "lost")
     T.eq("lost: done", T.status(), "done")
     T.check("lost: no pay flag", not T.flag("icehaul_rewarded"))
+    for i, s in ipairs(raiders) do T.check("lost: raider " .. i .. " removed", not RT.valid(s)) end
 end)
 
 -- ── GM states ────────────────────────────────────────────────────────────────

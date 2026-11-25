@@ -2,9 +2,9 @@
 -- got a call...") and its "We'll get 'em home" button; the ship (no engines, can't be destroyed);
 -- Engineering's tow button only for the job's own ship and only within reach; the ship trails on the
 -- line; home within 4U of the port (off the line), then paid on docking; the achievements; raiders
--- (none at tier 0, up to one at tier 1, two at tier 2; hazard pay and the warning; two showing up as the
--- crew arrives, heading for the stranded ship, the leader telling the crew to stand off; opening fire
--- once the line is on; breaking off when the tow is home, removed when paid); expiry;
+-- (none at tier 0, up to one at tier 1, two at tier 2; hazard pay and the warning; two showing up 10U
+-- out when the line first goes on, attacking at once; breaking off when the tow is home, removed when
+-- paid); expiry;
 -- the type's weight tapering with tier. One ship. Movement is teleporting.
 -- Not covered: flying the tow by hand (tests/core/orbit.lua), the speed limit and the energy it costs
 -- (tests/arcs/icehaul.lua: the same TOW line).
@@ -151,47 +151,33 @@ T.step("a tow with raiders", function()
             break
         end
     end
-    T.check("raiders: the brief warns", R.brief:find("Expect company", 1, true) ~= nil, R.brief)
+    T.check("raiders: the brief warns", R.brief:find("expect company", 1, true) ~= nil, R.brief)
     T.check("raiders: the board says so", M_t.offerText(R, ""):find("Raiders about.", 1, true) ~= nil)
     T.check("no raiders: the board doesn't", M_t.offerText(m, ""):find("Raiders", 1, true) == nil)
     m = T.postJob(R)
 end)
 T.takeJob(function() return m end)
-T.step("no raiders before the crew gets there", function()
+T.step("no raiders before the line goes on", function()
     T.undock()
-    local p = T.P()
-    p:setPosition(m.wx + 30000, m.wy)
-end)
-T.wait(0.5)
-T.step("far off: no raiders yet", function()
-    T.eq("30U off: no raiders", m.raider_ships, nil)
     T.moveTo(m.wx + 1500, m.wy)
 end)
-T.wait(0.5)
-T.step("the crew arrives: raiders, heading for her", function()
+T.wait(1)
+T.step("in reach, no line: no raiders yet", function()
+    T.eq("before the line: no raiders", m.raider_ships, nil)
+    TOW.press(T.P())
+    T.check("line on", TOW.towedBy(m.target) == T.P())
+end)
+T.step("the line goes on: raiders, 10U out, attacking", function()
     T.eq("raiders: two", #(m.raider_ships or {}), 2)
     for i, s in ipairs(m.raider_ships or {}) do
         T.eq("raider " .. i .. ": Shroud Raiders", s:getFaction(), "Shroud Raiders")
         T.check("raider " .. i .. ": hostile", s:isEnemy(T.P()))
-        T.eq("raider " .. i .. ": heading for the stranded ship", s:getOrder(), "Fly towards")
-        T.check("raider " .. i .. ": on her far side", dist(T.P(), s) > dist(T.P(), m.target) + 5000,
+        T.check("raider " .. i .. ": about 10U out", math.abs(dist(T.P(), s) - TOW.INTERCEPT_DIST) < 1000,
             string.format("%.0f", dist(T.P(), s)))
-    end
-    T.eq("raiders: the first an Adder", m.raider_ships[1]:getTypeName(), "Adder MK5")
-    for i, s in ipairs(m.raider_ships or {}) do
+        T.eq("raider " .. i .. ": attacking", s:getOrder(), "Attack")
         T.eq("raider " .. i .. ": 20% over the tow limit (300)", s:getImpulseMaxSpeed(), 300)
     end
-    T.check("raiders: the leader tells the crew to stand off", (m._raid_hail or ""):find("Finders keepers", 1, true) ~= nil,
-        tostring(m._raid_hail))
-    T.check("raiders: not shooting yet", not m._raid_attack)
-end)
-T.step("the line goes on: they open fire", function()
-    TOW.press(T.P())
-    T.check("line on", TOW.towedBy(m.target) == T.P())
-end)
-T.wait(0.3)
-T.step("raiders attack", function()
-    for i, s in ipairs(m.raider_ships) do T.eq("raider " .. i .. ": attacking", s:getOrder(), "Attack") end
+    T.eq("raiders: the first an Adder", m.raider_ships[1]:getTypeName(), "Adder MK5")
     -- Casting off and back on brings no more.
     TOW.press(T.P())
     TOW.press(T.P())

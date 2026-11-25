@@ -20,6 +20,13 @@
 --   TOW.towedBy(obj)        -- the ship towing it, or nil
 --   TOW.press(ship)         -- what the button does: attach the nearest in reach, or cast off
 --   TOW.buttonLabel(ship)   -- the label the ship's button shows now, or false
+--   TOW.intercept(ship, obj, count, {hail = "..."})  -- raiders come for it: returns their ships
+--   TOW.breakOff(raiders)   -- they give up and fly off;  TOW.removeRaiders(raiders) -- gone
+--
+-- Raiders (TOW.intercept): Shroud Raiders posing as rival recovery outfits ("Jake's Towing &
+-- Salvage"). The caller spawns them when the line first goes on; they appear INTERCEPT_DIST out,
+-- the leader hails the crew to cut the prize loose, and they attack at once, at INTERCEPT_SPEED times
+-- the line's limit, so a tow can't outrun them. Used by the tow job (some jobs, by tier) and Ice Haul.
 
 TOW = TOW or {}
 
@@ -29,6 +36,18 @@ TOW.DRAIN     = 3      -- extra energy a second at full impulse or at warp
 TOW.MAX_SPEED = 250    -- the line snaps above this speed (world units/s): half of stock warp 1
 TOW.LIMIT_TEXT = "half of warp 1, 15U a minute"   -- MAX_SPEED for the crew
 TOW.SLACK     = 1.02   -- a hair over, for rounding
+
+TOW.INTERCEPT_DIST  = 10000   -- raiders appear this far from the towing ship
+TOW.INTERCEPT_SPEED = 1.2     -- their impulse, as a multiple of MAX_SPEED
+TOW.INTERCEPT_ACCEL = 150     -- impulse acceleration (world units/s^2): up to speed in a couple of seconds
+TOW.INTERCEPT_TURN  = 25      -- degrees a second
+TOW.INTERCEPT_SHIPS = {"Adder MK5", "MT52 Hornet"}   -- the first raider, the second
+TOW.INTERCEPT_NAMES = {
+    "Jake's Towing & Salvage", "Interspace AAA", "Finders Keepers Recovery", "No Questions Towing",
+    "Honest Abe's Salvage", "Repo Rick's", "Grab & Go Recovery", "Second Owner Salvage",
+    "24-Hour Hook & Haul", "Bargain Bin Recovery", "Totally Legit Towing", "Lien Machine",
+    "Midnight Recovery Co.", "Dibs Salvage", "Cut Rate Towing", "Big Earl's Roadside",
+}
 
 TOW._offers = TOW._offers or {}   -- obj -> offer {obj, ship, name, on_attach, on_release}
 TOW._lines  = TOW._lines or {}    -- ship -> offer it is towing
@@ -214,5 +233,73 @@ function TOW.update(delta)
             elseif _inReach(p) then label = "Attach tow line" end
             _setButton(p, label)
         end
+    end
+end
+
+-- ── Raiders ──────────────────────────────────────────────────────────────────
+
+local function _raiderNames(count)
+    local pool = {}
+    for _, n in ipairs(TOW.INTERCEPT_NAMES) do pool[#pool + 1] = n end
+    for i = #pool, 2, -1 do
+        local j = math.random(i); pool[i], pool[j] = pool[j], pool[i]
+    end
+    return pool
+end
+
+-- `count` raiders come for `obj` on `ship`'s line: INTERCEPT_DIST out on a random bearing, attacking at
+-- once; the first hails `opts.hail` (or a stock line). Returns the list of their ships.
+function TOW.intercept(ship, obj, count, opts)
+    opts = opts or {}
+    local out = {}
+    if not _valid(ship) or (count or 0) <= 0 then return out end
+    local px, py = ship:getPosition()
+    local a = math.random() * 2 * math.pi
+    local dx, dy = math.cos(a), math.sin(a)
+    local sx, sy = px + dx * TOW.INTERCEPT_DIST, py + dy * TOW.INTERCEPT_DIST
+    local names = _raiderNames(count)
+    for i = 1, count do
+        local s = CpuShip():setTemplate(TOW.INTERCEPT_SHIPS[i] or TOW.INTERCEPT_SHIPS[#TOW.INTERCEPT_SHIPS])
+        s:setFaction("Shroud Raiders"):setCallSign(names[i] or ("Recovery " .. i))
+        s:setPosition(sx - dy * (i - 1) * 800, sy + dx * (i - 1) * 800)
+        s:setHeading((math.deg(a) + 270) % 360)   -- facing the ship
+        s:setImpulseMaxSpeed(TOW.MAX_SPEED * TOW.INTERCEPT_SPEED, 100)
+        s:setAcceleration(TOW.INTERCEPT_ACCEL, TOW.INTERCEPT_ACCEL)
+        s:setRotationMaxSpeed(TOW.INTERCEPT_TURN)
+        s:setDescriptions("Salvage outfit.", "Calls itself a recovery service. Its licence is a Shroud Raider's guns: "
+            .. "they hunt the quiet lanes for ships that can't run and claim what they're hauling as salvage.")
+        s:setCommsScript(""):setCommsFunction(function()
+            setCommsMessage('"Still here? Last chance, tow truck. Cut it loose and run, and you keep your ship."')
+        end)
+        RT.register(s)
+        RT.reportKills(s)
+        s:orderAttack(ship)
+        out[#out + 1] = s
+    end
+    local lead = out[1]
+    local who = lead:getCallSign() .. (count > 1 and " and friends" or "")
+    _log(ship, "[Science] Contacts closing fast, " .. math.floor(TOW.INTERCEPT_DIST / 1000) .. "U out: "
+        .. who .. ". They're coming for the tow.", "#FF8040")
+    local hail = opts.hail or ('"Well, well. Somebody sent a tow truck. Listen close, friend: what you\'ve got on '
+        .. 'that line is ours. Finders keepers, and we found it first. Cut it loose, turn your nose around, and nobody '
+        .. 'needs to get scratched."')
+    local ok, sent = pcall(function() return lead:sendCommsMessage(ship, hail) end)
+    if not (ok and sent) then _log(ship, "[" .. lead:getCallSign() .. "] " .. hail, "#FF8040") end
+    return out
+end
+
+-- The raiders give up and fly off (whoever is left).
+function TOW.breakOff(raiders)
+    for _, s in ipairs(raiders or {}) do
+        if _valid(s) then
+            local x, y = s:getPosition()
+            s:orderFlyTowards(x + math.random(-40000, 40000), y + math.random(-40000, 40000))
+        end
+    end
+end
+
+function TOW.removeRaiders(raiders)
+    for _, s in ipairs(raiders or {}) do
+        if _valid(s) then s:destroy() end
     end
 end
