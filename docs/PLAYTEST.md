@@ -196,6 +196,9 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
 - [ ] Engineering's "Attach tow line", warp 1 home, within 4U of the port, then dock: "Got 'em home". Pay right
       for the effort (like salvage, 1.2×)?
 - [ ] How often they show up: common at tier 0, fewer at tiers 1 and 2?
+- [ ] After upgrading: "Raiders about." tows. The raiders show up as you arrive, head for the stranded ship, and their
+      leader tells you to stand off; they open fire when you close in or put the line on. Fair at one raider (tier 1)
+      and two (tier 2)? Does warp 1 with them on you feel tense rather than hopeless? Hazard pay (+15% a raider) enough?
 - [ ] Achievements: We Got a Call (first tow), Recovery Crew (ten); Jack of All Trades now needs a tow too
 
 ## 5g. The Deep Shroud's asteroid ring

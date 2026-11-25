@@ -1,7 +1,10 @@
 -- Tow jobs: a broken-down ship out in quiet space (no danger, no patrol zone); the board's text ("We
 -- got a call...") and its "We'll get 'em home" button; the ship (no engines, can't be destroyed);
 -- Engineering's tow button only for the job's own ship and only within reach; the ship trails on the
--- line; home within 4U of the port (off the line), then paid on docking; the achievements; expiry;
+-- line; home within 4U of the port (off the line), then paid on docking; the achievements; raiders
+-- (none at tier 0, up to one at tier 1, two at tier 2; hazard pay and the warning; two showing up as the
+-- crew arrives, heading for the stranded ship, the leader telling the crew to stand off; opening fire
+-- once the line is on; breaking off when the tow is home, removed when paid); expiry;
 -- the type's weight tapering with tier. One ship. Movement is teleporting.
 -- Not covered: flying the tow by hand (tests/core/orbit.lua), the warp-1 limit and the energy it costs
 -- (tests/arcs/icehaul.lua: the same TOW line).
@@ -113,6 +116,100 @@ end)
 T.closeComms()
 T.waitFor("achievement: We Got a Call", function() return ACH.has("we_got_a_call") end, 7)
 T.step("not yet Recovery Crew", function() T.check("one tow: no Recovery Crew yet", not ACH.has("recovery_crew")) end)
+
+-- Raiders: none before the first upgrade tier, up to one at tier 1, up to two at tier 2.
+T.step("raider odds by tier", function()
+    local most, some = {[0] = 0, [1] = 0, [2] = 0}, {[0] = 0, [1] = 0, [2] = 0}
+    for tier = 0, 2 do
+        for _ = 1, 300 do
+            local n = M_t.rollRaiders(tier)
+            if n > most[tier] then most[tier] = n end
+            if n > 0 then some[tier] = some[tier] + 1 end
+        end
+    end
+    T.eq("tier 0: never raiders", most[0], 0)
+    T.eq("tier 1: at most one", most[1], 1)
+    T.eq("tier 2: up to two", most[2], 2)
+    T.check("tier 1: sometimes none", some[1] < 300 and some[1] > 0, tostring(some[1]))
+    T.check("tier 2: more often than tier 1", some[2] > some[1], some[2] .. " vs " .. some[1])
+    T.eq("no ship tier: no raiders", M_t.rollRaiders(nil), 0)
+    T.eq("the first tow drew none", m.raider_ships, nil)
+end)
+
+local R   -- a tow with two raiders
+T.step("a tow with raiders", function()
+    for _ = 1, 20 do
+        local ctx = JOBS.offerContext(HOME)
+        ctx.tier, ctx.max_tier = 0, 2
+        local opts = M_t.prepareOpts(ctx)
+        if opts then
+            opts.raiders = 2
+            R = M_t.generate(opts)
+            local plain = JOBS.calcReward(JOBS.ECONOMY.base_reward[0], JOBS.ECONOMY.type_mult.tow * R.reward_mult,
+                opts.distance_u, 2, opts.distance_min_u, opts.distance_max_u, 1.0)
+            T.eq("raiders: hazard pay (+15% a raider)", R.reward, plain)
+            break
+        end
+    end
+    T.check("raiders: the brief warns", R.brief:find("Expect company", 1, true) ~= nil, R.brief)
+    T.check("raiders: the board says so", M_t.offerText(R, ""):find("Raiders about.", 1, true) ~= nil)
+    T.check("no raiders: the board doesn't", M_t.offerText(m, ""):find("Raiders", 1, true) == nil)
+    m = T.postJob(R)
+end)
+T.takeJob(function() return m end)
+T.step("no raiders before the crew gets there", function()
+    T.undock()
+    local p = T.P()
+    p:setPosition(m.wx + 30000, m.wy)
+end)
+T.wait(0.5)
+T.step("far off: no raiders yet", function()
+    T.eq("30U off: no raiders", m.raider_ships, nil)
+    T.moveTo(m.wx + 1500, m.wy)
+end)
+T.wait(0.5)
+T.step("the crew arrives: raiders, heading for her", function()
+    T.eq("raiders: two", #(m.raider_ships or {}), 2)
+    for i, s in ipairs(m.raider_ships or {}) do
+        T.eq("raider " .. i .. ": Shroud Raiders", s:getFaction(), "Shroud Raiders")
+        T.check("raider " .. i .. ": hostile", s:isEnemy(T.P()))
+        T.eq("raider " .. i .. ": heading for the stranded ship", s:getOrder(), "Fly towards")
+        T.check("raider " .. i .. ": on her far side", dist(T.P(), s) > dist(T.P(), m.target) + 5000,
+            string.format("%.0f", dist(T.P(), s)))
+    end
+    T.eq("raiders: the first an Adder", m.raider_ships[1]:getTypeName(), "Adder MK5")
+    T.check("raiders: the leader tells the crew to stand off", (m._raid_hail or ""):find("Finders keepers", 1, true) ~= nil,
+        tostring(m._raid_hail))
+    T.check("raiders: not shooting yet", not m._raid_attack)
+end)
+T.step("the line goes on: they open fire", function()
+    TOW.press(T.P())
+    T.check("line on", TOW.towedBy(m.target) == T.P())
+end)
+T.wait(0.3)
+T.step("raiders attack", function()
+    for i, s in ipairs(m.raider_ships) do T.eq("raider " .. i .. ": attacking", s:getOrder(), "Attack") end
+    -- Casting off and back on brings no more.
+    TOW.press(T.P())
+    TOW.press(T.P())
+    T.eq("re-attach: still two", #m.raider_ships, 2)
+    local hx, hy = T.find(HOME):getPosition()
+    T.moveTo(hx + 2000, hy)
+end)
+T.waitFor("raiders: home", function() return m._found end, 3)
+T.step("home: raiders break off", function()
+    for i, s in ipairs(m.raider_ships) do
+        T.check("raider " .. i .. ": breaks off", RT.valid(s) and s:getOrder() == "Fly towards", s:getOrder())
+    end
+    R = m.raider_ships
+end)
+T.dock(HOME)
+T.talk(HOME, {function() return string.format("Got 'em home (+%d cr)", m.reward) end})
+T.step("paid: raiders gone", function()
+    T.check("paid: done", T.activeEntry(m) == nil)
+    for i, s in ipairs(R) do T.check("raider " .. i .. ": removed", not RT.valid(s)) end
+end)
+T.closeComms()
 
 -- Expiry: the ship is removed and the line let go.
 T.step("a second job runs out of time", function() m = T.postJob(T.makeJob("tow", HOME)) end)

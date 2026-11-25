@@ -3,12 +3,36 @@
 -- puts a tow line on it (TOW, ee/ragtag/tow.lua: Engineering's "Attach tow line" within 2U; up to
 -- warp 1; hauling costs energy) and brings it within DELIVER_R of the port, then docks to be paid.
 -- Basic work like deliveries: common at tier 0 and tapering off as the crew moves up (the engine's
--- _TIER_WEIGHTS). No resistance: the breakdown is always somewhere no patrol flies (a later variant
--- may add an intercept). The board text borrows the voice of a roadside recovery crew: "We got a
+-- _TIER_WEIGHTS). The breakdown is always somewhere no patrol flies. Once the ship asking has upgraded
+-- (tier 1+), a tow may draw Shroud Raiders (RAIDER_ODDS: none at tier 0, up to one at tier 1, up to two
+-- at tier 2), rolled when the job is posted: the board says "Raiders about." and pays +15% a raider.
+-- They show up as the crew arrives, heading for the stranded ship (their leader hails: stand off,
+-- she's ours), open fire when the crew comes close or puts the line on, and break off when the tow is
+-- home. The board text borrows the voice of a roadside recovery crew: "We got a
 -- call...", and the acknowledge button reads "We'll get 'em home".
 
 local DELIVER_R = 4000      -- the towed ship this close to the port: home
 local MAX_DIST  = 60000     -- breakdowns are at most this far out (world units)
+
+-- Raiders: once the crew has upgraded (job tier 1+, JOBS.maxTier of the ship asking), some tows draw
+-- Shroud Raiders who come for the easy mark once the line is on. Odds of 0, 1, 2 raiders by tier;
+-- rolled when the job is posted, so the board can say so and pay for it (+15% a raider).
+local RAIDER_ODDS = {
+    [0] = {1.0},
+    [1] = {0.5, 0.5},
+    [2] = {0.25, 0.35, 0.40},
+}
+local RAIDER_SHIPS = {"Adder MK5", "MT52 Hornet"}   -- the first raider, the second
+local RAIDER_TRIGGER = 10000  -- the job's ship this close to the stranded ship: the raiders show up
+local RAIDER_START   = 8000   -- this far out on the far side of her, heading for her
+local RAIDER_ENGAGE  = 5000   -- they open fire when the crew is this close, or once the line is on
+-- Claim jumpers dressed up as rival recovery outfits.
+local _RAIDER_NAMES = {
+    "Jake's Towing & Salvage", "Interspace AAA", "Finders Keepers Recovery", "No Questions Towing",
+    "Honest Abe's Salvage", "Repo Rick's", "Grab & Go Recovery", "Second Owner Salvage",
+    "24-Hour Hook & Haul", "Bargain Bin Recovery", "Totally Legit Towing", "Lien Machine",
+    "Midnight Recovery Co.", "Dibs Salvage", "Cut Rate Towing", "Big Earl's Roadside",
+}
 
 local _ARCHETYPES = {
     {what = "a grain hauler", tmpl = "Goods Freighter 2", reward_mult = 1.0,
@@ -67,6 +91,17 @@ local function _safe(region)
     return not (PROX and PROX.zones and PROX.zones[region.name])
 end
 
+-- How many raiders come for a tow offered to a ship of `max_tier` (0, 1 or 2).
+function M.rollRaiders(max_tier)
+    local odds = RAIDER_ODDS[math.max(0, math.min(2, max_tier or 0))]
+    local r = math.random()
+    for n, p in ipairs(odds) do
+        r = r - p
+        if r <= 0 then return n - 1 end
+    end
+    return #odds - 1
+end
+
 -- A spot out in quiet space (no danger, no patrol zone) within MAX_DIST of the port.
 function M.prepareOpts(ctx)
     if not ctx.valid(ctx.station_e) then return nil end
@@ -81,6 +116,7 @@ function M.prepareOpts(ctx)
                 tier           = ctx.tier,
                 distance_u     = dist,
                 danger_level   = 0,
+                raiders        = M.rollRaiders(ctx.max_tier),
                 region_name    = region and region.name or nil,
                 distance_min_u = ctx.distanceRange.min,
                 distance_max_u = ctx.distanceRange.max,
@@ -100,13 +136,19 @@ function M.generate(opts)
     if #pool == 0 then pool = _ARCHETYPES end
     local arch = pool[math.random(#pool)]
     local name = JOBS.uniqueName(_NAMES)
+    local raiders = opts.raiders or 0
     local reward = JOBS.calcReward(
         JOBS.ECONOMY.base_reward[tier],
         JOBS.ECONOMY.type_mult["tow"] * (arch.reward_mult or 1),
-        opts.distance_u, opts.danger_level,
+        opts.distance_u, raiders,
         opts.distance_min_u, opts.distance_max_u, 1.0)
     local where = opts.region_name or "open space"
     local grid = getSectorName and getSectorName(opts.wx, opts.wy) or "?"
+    local warning = ""
+    if raiders > 0 then
+        warning = '\n\n"One more thing. Raiders have been working that patch, and a ship that can\'t move is '
+            .. 'an easy mark. Expect company out there. We\'ve added hazard pay."'
+    end
     return {
         id           = JOBS.nextId(),
         type         = "tow",
@@ -123,12 +165,76 @@ function M.generate(opts)
         obj          = "Tow " .. name,
         brief        = '"We got a call. ' .. arch.call .. '"\n\n"She\'s ' .. name .. ', dead in space in ' .. where
             .. ', grid ' .. grid .. '. Get a line on her and bring her back here, within '
-            .. math.floor(DELIVER_R / 1000) .. 'U of the port. Warp 1 is as fast as a tow line takes."',
+            .. math.floor(DELIVER_R / 1000) .. 'U of the port. Warp 1 is as fast as a tow line takes."' .. warning,
         complete_msg = arch.recv_msg,
         distance_u   = opts.distance_u or 0,
         region_name  = opts.region_name,
+        raiders      = raiders,
         _found       = false,
     }
+end
+
+-- The raiders: when the job's ship comes within RAIDER_TRIGGER of the stranded ship (or puts the
+-- line on first), they appear RAIDER_START out on the far side of her and head for her: they want
+-- the salvage. Their leader hails the crew to stand off. They open fire once the crew is within
+-- RAIDER_ENGAGE of them or the line goes on (M.update).
+function M.spawnRaiders(m)
+    if m._raided or (m.raiders or 0) <= 0 or not RT.valid(m.target) then return end
+    local p = JOBS.owner(m)
+    if not p then return end
+    m._raided = true
+    local tx, ty = m.target:getPosition()
+    local px, py = p:getPosition()
+    local dx, dy = tx - px, ty - py
+    local d = math.sqrt(dx * dx + dy * dy)
+    if d < 1 then dx, dy, d = 1, 0, 1 end
+    dx, dy = dx / d, dy / d
+    local sx, sy = tx + dx * RAIDER_START, ty + dy * RAIDER_START
+    m.raider_ships = {}
+    for i = 1, m.raiders do
+        local s = CpuShip():setTemplate(RAIDER_SHIPS[i] or RAIDER_SHIPS[#RAIDER_SHIPS]):setFaction("Shroud Raiders")
+        s:setCallSign(JOBS.uniqueName(_RAIDER_NAMES))
+        s:setPosition(sx - dy * (i - 1) * 800, sy + dx * (i - 1) * 800)
+        s:setDescriptions("Salvage outfit.", "Calls itself a recovery service. Its licence is a Shroud Raider's guns: they hunt the quiet lanes for ships that can't run and claim them as salvage.")
+        s:setCommsScript(""):setCommsFunction(function()
+            setCommsMessage('"Still here? Last chance, tow truck. Cut her loose and run, and you keep your ship."')
+        end)
+        RT.register(s)
+        RT.reportKills(s)
+        s:orderFlyTowards(tx, ty)
+        m.raider_ships[#m.raider_ships + 1] = s
+    end
+    local lead = m.raider_ships[1]
+    local who = lead:getCallSign()
+    if m.raiders > 1 then who = who .. " and friends" end
+    JOBS.log(m, "[Tow] Raiders: " .. who .. ", closing on " .. m.target_cs .. " from the far side.", "#FF8040")
+    m._raid_hail = '"Well, well. Somebody sent a tow truck. Listen close, friend: that hulk\'s been ours since '
+        .. 'her lights went out. Finders keepers, and we found her first. Turn your nose around and go '
+        .. 'tell ' .. m.origin .. ' she sank. Nobody needs to get scratched over a busted ' .. m.what:gsub("^an? ", "") .. '."'
+    if not JOBS.hail(m, lead, m._raid_hail) then
+        JOBS.log(m, "[" .. lead:getCallSign() .. "] " .. m._raid_hail, "#FF8040")
+    end
+end
+
+-- The raiders open fire: the crew came too close or put the line on.
+local function _raidersAttack(m)
+    if m._raid_attack then return end
+    local p = JOBS.owner(m)
+    if not p then return end
+    m._raid_attack = true
+    for _, s in ipairs(m.raider_ships or {}) do
+        if RT.valid(s) then s:orderAttack(p) end
+    end
+end
+
+-- Home: whoever is left breaks off and runs.
+local function _raidersBreakOff(m)
+    for _, s in ipairs(m.raider_ships or {}) do
+        if RT.valid(s) then
+            local x, y = s:getPosition()
+            s:orderFlyTowards(x + math.random(-40000, 40000), y + math.random(-40000, 40000))
+        end
+    end
 end
 
 function M.duration(m)
@@ -137,8 +243,10 @@ function M.duration(m)
 end
 
 function M.offerText(m, stats)
-    return string.format("* Tow %s, %s broken down in %s, back here.\n  %s",
-        m.target_cs, m.what, m.region_name or "open space", stats)
+    local raiders = ""
+    if (m.raiders or 0) > 0 then raiders = " Raiders about." end
+    return string.format("* Tow %s, %s broken down in %s, back here.%s\n  %s",
+        m.target_cs, m.what, m.region_name or "open space", raiders, stats)
 end
 
 -- The broken-down ship: no engines, can't be destroyed, on TOW's list for the job's ship only.
@@ -158,6 +266,7 @@ function M.spawn(m)
         on_attach = function()
             m.obj = "Tow " .. m.target_cs
             JOBS.updateObj()
+            M.spawnRaiders(m)
         end})
 end
 
@@ -170,11 +279,23 @@ end
 -- Home once the towed ship is within DELIVER_R of the port: off the line, and the crew docks to be paid.
 function M.update(m, entry, ctx)
     if m._found or not RT.valid(m.target) then return nil end
+    local p = JOBS.owner(m)
+    if p and (m.raiders or 0) > 0 then
+        if not m._raided and RT.dist(p, m.target) <= RAIDER_TRIGGER then M.spawnRaiders(m) end
+        if m._raided and not m._raid_attack then
+            local close = TOW.towedBy(m.target) == p
+            for _, s in ipairs(m.raider_ships or {}) do
+                if RT.valid(s) and RT.dist(p, s) <= RAIDER_ENGAGE then close = true end
+            end
+            if close then _raidersAttack(m) end
+        end
+    end
     local port = RT.find(m.origin)
     if not RT.valid(port) then return nil end
     if RT.dist(port, m.target) <= DELIVER_R then
         TOW.withdraw(m.target)
         m._found = true
+        _raidersBreakOff(m)
         m.obj = "Return to " .. m.origin
         JOBS.log(m, "[Tow] " .. m.target_cs .. " is home. The port's crew takes her from here. Dock at "
             .. m.origin .. " to get paid.", "#80FF80")
@@ -184,6 +305,10 @@ function M.update(m, entry, ctx)
 end
 
 function M.cleanup(m)
+    for _, s in ipairs(m.raider_ships or {}) do
+        if RT.valid(s) then s:destroy() end
+    end
+    m.raider_ships = nil
     if m.target then
         TOW.withdraw(m.target)
         if RT.valid(m.target) then m.target:setCanBeDestroyed(true); m.target:destroy() end

@@ -872,7 +872,9 @@ If an arc module is lost, rebuild against these rails:
 - **The tow job** is on the board (`jobs/tow.lua`): "We got a call...", a broken-down ship somewhere quiet,
   towed home on the shared tow line (`TOW`, `ee/ragtag/tow.lua`, also used by Ice Haul); the acknowledge
   button reads "We'll get 'em home". Basic work: weight 6 / 4 / 2 by tier. Achievements: We Got a Call,
-  Recovery Crew. **Later:** a second tow type with an enemy intercept, phased in as the easy tows phase out.
+  Recovery Crew. **Raiders** (2026-11-25): once the crew has upgraded, a tow may draw Shroud Raiders who want the
+  salvage (none at tier 0, up to one at tier 1, up to two at tier 2; hazard pay, flagged on the board). They head
+  for the stranded ship as the crew arrives, hail to stand off, and fight once the line goes on.
 
 - **Marchetti is no longer ex-Concord.** He is a young, brilliant engineer (about thirty) whose father,
   a Free Ship engineer, was killed in the Settlement War; the Works raised him. A better persona for

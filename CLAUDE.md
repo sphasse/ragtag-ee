@@ -143,7 +143,7 @@ Say plainly in PR descriptions what was and wasn't tested.
 5. **Boarding** (1.8x): Disable and board target ships. Highest difficulty.
 6. **Escort** (1.5x, +90 cr munitions allowance): Shepherd a convoy to its destination; the convoy takes orders from its escort.
 7. **Tailing** (1.4x): Shadow a ship to a covert meeting and scan both vessels.
-8. **Tow** (1.2x): Bring a broken-down ship home on a tow line (`TOW`, `ee/ragtag/tow.lua`). Basic work: common at tier 0, rarer as the tier rises.
+8. **Tow** (1.2x): Bring a broken-down ship home on a tow line (`TOW`, `ee/ragtag/tow.lua`). Basic work: common at tier 0, rarer as the tier rises; after the first upgrade tier some tows draw Shroud Raiders (up to one at tier 1, two at tier 2).
 
 **Dynamic scaling**:
 - Distance bonus: +1% per U beyond 10U

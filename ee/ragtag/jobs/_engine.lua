@@ -729,6 +729,7 @@ function JOBS.offerContext(cs)
         station_cs     = cs,
         station_e      = station_e,
         tier           = 0,               -- re-set per slot below
+        max_tier       = 0,               -- the asking ship's tier (JOBS.maxTier), re-set per slot below
         distanceRange  = {min=dmin, max=dmax},
         nextCandidate  = function()
             if cand_idx > #candidates then return nil end
@@ -875,6 +876,7 @@ local function _newJob(ctx, ship, seeds, offers, story)
         end
     end
     local mt = JOBS.maxTier(ship)
+    ctx.max_tier = mt   -- the asking ship's own tier (ctx.tier is the job's, at most 1)
     for _ = 1, 4 do
         ctx.tier = math.min(mt, math.random(0, 1))
         local mtype = JOBS.pickType(ship)
