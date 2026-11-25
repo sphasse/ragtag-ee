@@ -115,7 +115,7 @@ Types:
 | **Tow** | like salvage (1.2×) | +reward with origin on complete; −reward on expire |
 
 **Tow specifics:** "We got a call..." A broken-down ship is waiting somewhere quiet (no danger, no patrols), within
-60U. Within 2U of it, Engineering gets "Attach tow line"; the ship trails 1.5U behind, hauling costs up to 3 energy a
+60U. Within 2U of it, Engineering gets "Attach tow line"; the ship trails 1.5U behind on a visible pale blue line, hauling costs up to 3 energy a
 second, and anything faster than half of warp 1 (15U a minute) snaps the line: warp 1 with Engineering's warp power at
 about 50%, Science reading "Tow speed". Bring it within 4U of the port, then dock: "Got 'em home".
 Common at tier 0, rarer as the crew moves up. Achievements: We Got a Call (first tow), Recovery Crew (ten).

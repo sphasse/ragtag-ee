@@ -188,6 +188,8 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
       turning with the ice behind)?
 - [ ] Two raiders 10U out the first time the line goes on (hail, then attack at 18U a minute). The water office's
       warning reads right? Too much right after Rezkov? Do they break off on delivery?
+- [ ] The tow line shows as a pale blue beam from the ship to the tow (main screen and radar), fading when it lets go.
+      Readable at a glance? Too bright, too faint? Does it get lost among weapons fire?
 - [ ] The line takes half of warp 1 (15U a minute): warp 1 with Engineering's warp power at ~50%, Science reading "Tow speed".
       Do the two stations find it together? Full-power warp 1 snaps it: clear? fair? "Release tow line" leaves it where it is
 - [ ] The ice within 4U of Hob's Landing: 2,000 cr, Independent +75. Right pay with the two raiders?

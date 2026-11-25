@@ -84,6 +84,12 @@ Everything here was checked against the EmptyEpsilon source and a running headle
   `e.components.orbit = {center = {x, y}, distance = d, time = t}`. `time = 0` keeps the distance without circling: a
   **tow line** (the entity trails the target like a rope; `TOW` in `ee/ragtag/tow.lua`, used by Ice Haul and the tow job). `components.orbit = nil` lets go (it stays put).
   Used for the Deep Shroud's asteroid ring (`asteroid_fields` kind `"ring"`). Test: `tests/core/orbit.lua`.
+- **Drawn beams** (`components.beam_effect`, `src/systems/beamweapon.cpp`): what weapons fire uses, but any entity with
+  `transform` + `beam_effect = {source, target, lifetime, fade_speed, fire_ring, beam_texture, beam_color = {r, g, b, a}}`
+  draws a beam from `source` to `target` (both followed every frame) in 3D and on radar (a line plus a dot at the target).
+  It fades by `lifetime -= delta * fade_speed` and the engine destroys it below 0: `fade_speed = 0` holds it lit.
+  Textures: `texture/beam_{orange,blue,green,purple,yellow}.png`. It has no physics, so the combat-music threat estimate
+  (a Box2D area query) never counts it. The tow line's visible line (`TOW`, `ee/ragtag/tow.lua`) is one.
 - Freighter templates: `"<Personnel|Goods|Garbage|Equipment|Fuel> Freighter <1-5>"` and `"... Jump Freighter <3-5>"`. Higher numbers are bigger and slower.
 - `setBeamWeapon(index, arc, direction, range, cycle_time, damage)`: indices are 0-based, and setting a higher index adds new beam mounts. Direction 0 is forward, 180 rear.
 - `setWeaponTubeCount(n)` **rebuilds every tube**, wiping their directions and settings. Re-apply `setWeaponTubeDirection(i, deg)` for all tubes afterwards.

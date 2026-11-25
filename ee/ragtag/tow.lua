@@ -4,6 +4,8 @@
 -- Attached, the object hangs LENGTH behind the ship and follows it: the engine's orbit component with
 -- period 0 (setOrbit(ship, 0)), which puts it LENGTH from the ship along its bearing every frame, so it
 -- trails like a rope and nothing knocks it off the line. While towing:
+--   * the line shows: a beam (the engine's beam_effect, as weapons fire uses) from the ship to the
+--     object, on the main screen and on radar, held lit while towing and fading out when it lets go;
 --   * moving costs energy: up to DRAIN a second at full impulse or at warp (scaled by the throttle);
 --   * the line holds up to MAX_SPEED (half of stock warp 1, 15U a minute) and snaps above it,
 --     measured as speed: warp 1 is only safe with Engineering's warp power turned down to about half,
@@ -36,6 +38,9 @@ TOW.DRAIN     = 3      -- extra energy a second at full impulse or at warp
 TOW.MAX_SPEED = 250    -- the line snaps above this speed (world units/s): half of stock warp 1
 TOW.LIMIT_TEXT = "half of warp 1, 15U a minute"   -- MAX_SPEED for the crew
 TOW.SLACK     = 1.02   -- a hair over, for rounding
+TOW.BEAM_TEXTURE = "texture/beam_blue.png"   -- the visible line (3D)
+TOW.BEAM_COLOR   = {110, 190, 255, 170}      -- and on radar (alpha: how strong the line reads)
+TOW.BEAM_FADE    = 2.5                        -- let go: it fades out over 1 / this seconds
 
 TOW.INTERCEPT_DIST  = 10000   -- raiders appear this far from the towing ship
 TOW.INTERCEPT_SPEED = 1.2     -- their impulse, as a multiple of MAX_SPEED
@@ -52,6 +57,7 @@ TOW.INTERCEPT_NAMES = {
 TOW._offers = TOW._offers or {}   -- obj -> offer {obj, ship, name, on_attach, on_release}
 TOW._lines  = TOW._lines or {}    -- ship -> offer it is towing
 TOW._shown  = TOW._shown or {}    -- ship -> label its button shows (false: none)
+TOW._beams  = TOW._beams or {}    -- ship -> the beam entity drawing its line
 
 local _BUTTON_STATIONS = {"engineering", "engineering+", "singlepilot"}
 local _INFO_STATIONS = {"engineering", "engineering+"}
@@ -128,6 +134,35 @@ end
 
 function TOW.buttonLabel(p) return p and TOW._shown[p] or false end
 
+-- The visible line: a beam effect from the ship to the object. The engine moves it with both ends
+-- every frame and fades it by `lifetime`; fade_speed 0 holds it lit until we let go. It has no
+-- physics, so it adds nothing to the combat-music threat estimate (that only counts bodies).
+local function _beamOn(ship, obj)
+    local ok, e = pcall(function()
+        local e = createEntity()
+        local x, y = ship:getPosition()
+        e.components = {
+            transform = {},
+            beam_effect = {source = ship, target = obj, lifetime = 1.0, fade_speed = 0, fire_ring = false,
+                beam_texture = TOW.BEAM_TEXTURE, beam_color = TOW.BEAM_COLOR},
+        }
+        e:setPosition(x, y)
+        return e
+    end)
+    if ok and e then TOW._beams[ship] = e else print("[TOW] beam failed: " .. tostring(e)) end
+end
+
+local function _beamOff(ship)
+    local e = TOW._beams[ship]
+    TOW._beams[ship] = nil
+    if e and e:isValid() then
+        pcall(function() e.components.beam_effect.fade_speed = TOW.BEAM_FADE end)   -- the engine removes it
+    end
+end
+
+-- The beam drawing `ship`'s line, or nil.
+function TOW.beam(ship) return TOW._beams[ship] end
+
 function TOW.offer(obj, opts)
     if not _valid(obj) then return nil end
     opts = opts or {}
@@ -150,6 +185,7 @@ local function _letGo(ship, why)
     local o = TOW._lines[ship]
     if not o then return end
     TOW._lines[ship] = nil
+    _beamOff(ship)
     if _valid(o.obj) then o.obj.components.orbit = nil end
     TOW._speed_shown[ship] = nil
     if _valid(ship) then _info(ship, false) end
@@ -175,6 +211,7 @@ function TOW.attach(ship, obj)
     if not o or not _valid(ship) or not _valid(obj) or TOW._lines[ship] or TOW.towedBy(obj) then return false end
     obj.components.orbit = {target = ship, center = {ship:getPosition()}, distance = TOW.LENGTH, time = 0}
     TOW._lines[ship] = o
+    _beamOn(ship, obj)
     _info(ship, true)
     _log(ship, string.format("[Engineering] Tow line fast: %s trails %.1fU behind. Hauling costs up to %d energy a second. "
         .. "The line takes up to %s: warp 1 only with the warp drive's power at about half. Science has the tow speed. "
@@ -224,6 +261,8 @@ function TOW.update(delta)
             local d = TOW.drain(ship) * (delta or 0)
             if d > 0 then ship:setEnergyLevel(math.max(0, ship:getEnergy() - d)) end
             _showSpeed(ship)
+            local b = TOW._beams[ship]
+            if not (b and b:isValid()) then _beamOn(ship, o.obj) end   -- lost somehow: draw it again
         end
     end
     for _, p in ipairs(RT.players or {}) do

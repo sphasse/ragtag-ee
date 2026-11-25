@@ -13,7 +13,7 @@ T.suite("jobs")
 
 local HOME = "Port Vesper"
 local M_t = JOBS._registry.tow
-local m, c0, rep0
+local m, c0, rep0, beam1
 
 local function dist(a, b)
     local ax, ay = a:getPosition()
@@ -88,6 +88,16 @@ T.step("the line", function()
     T.check("line: trails at the line's length", math.abs(dist(T.P(), m.target) - TOW.LENGTH) < 60,
         string.format("%.0f", dist(T.P(), m.target)))
     T.eq("line: the button", TOW.buttonLabel(T.P()), "Release tow line")
+    local b = TOW.beam(T.P())
+    T.check("line: visible (a beam)", b ~= nil and b:isValid())
+    if b and b:isValid() then
+        local be = b.components.beam_effect
+        T.check("beam: from the ship", be.source == T.P())
+        T.check("beam: to the towed ship", be.target == m.target)
+        T.eq("beam: held lit", be.fade_speed, 0)
+        T.check("beam: lit", be.lifetime > 0.9, tostring(be.lifetime))
+    end
+    beam1 = b
     -- Not home yet: 8U from the port.
     local hx, hy = T.find(HOME):getPosition()
     T.moveTo(hx + 8000, hy)
@@ -102,9 +112,13 @@ end)
 T.waitFor("home: within 4U of the port", function() return m._found end, 3)
 T.step("home", function()
     T.check("home: off the line", TOW.towedBy(m.target) == nil)
+    T.check("home: no beam on the ship", TOW.beam(T.P()) == nil)
+    T.check("home: the beam fading", beam1 and beam1:isValid() and beam1.components.beam_effect.fade_speed > 0)
     T.check("home: the line's button gone", not TOW.buttonLabel(T.P()))
     T.eq("relay: back to the port", JOBS.panelLine(m), "Return to Vesper")
 end)
+T.wait(1)
+T.step("the beam faded out", function() T.check("home: the beam gone", not (beam1 and beam1:isValid())) end)
 T.dock(HOME)
 T.step("note credits", function() c0 = T.credits() end)
 T.talk(HOME, {function() return string.format("Got 'em home (+%d cr)", m.reward) end})

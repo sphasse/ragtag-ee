@@ -130,6 +130,8 @@ Achievement (hidden): **Water Bearer** (delivered).
   `components.orbit = {target, center, distance = TOW_LENGTH, time = 0}`). Every frame the engine puts
   the ice TOW_LENGTH from the ship along its current bearing, so it trails behind like a rope; it
   moves the ice directly, so nothing knocks it off the line. Removing the component lets it go.
+- **The visible line** is a beam (`beam_effect`, the engine's weapons-fire effect) from the ship to the ice, pale
+  blue, held lit while towing (`fade_speed` 0) and fading out when it lets go. Shown on the main screen and on radar.
 - **The drift round Kestrel** is the same component with a fixed centre and a period.
 - **The ice** is an `Asteroid` with `explode_on_touch` and `avoid_object` removed, size 400, a pale blue
   radar trace and a description. Its physics is a sensor: it never pushes the ship.
@@ -169,6 +171,7 @@ The tow line's own numbers are `TOW.REACH` 2U, `TOW.LENGTH` 1.5U, `TOW.DRAIN` 3/
 - 2026-11-25: the limit is half of warp 1 (15U a minute), so Engineering turns the warp drive down to about
   half and Science reads "Tow speed" to tune it: towing becomes a two-station job. The tow job's raiders
   fly 20% faster than the limit.
+- 2026-11-25: the tow line is visible: a pale blue beam from the ship to the tow, on screen and radar.
 - 2026-11-25: two raiders come for the ice the first time the line goes on (`TOW.intercept`, `M.RAIDERS`),
   10U out, hailing and attacking at once; the water office warns about them. The tow job's raiders now
   come the same way (on the first hook-up, not as the crew arrives). Pay 1,500 -> 2,000 cr for the fight.
