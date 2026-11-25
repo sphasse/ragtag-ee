@@ -37,7 +37,8 @@ Docked at **Hob's Landing**, **"[SPECIAL] The water office"** opens two pages:
 1. The rationing, the comet, where the ice is (a sector name), "Tow it here, within 4U of the Landing,
    and our tugs take it from there. 1,500 credits."
 2. **How do we tow it?**: "Get within 2U of the ice and your engineer makes it fast. Hauling it eats
-   power, and don't touch the warp drive with the line on: it snaps, and you go back for the ice."
+   power, and warp 1 is as fast as the line will take. Any faster and it snaps, and you go back for
+   the ice."
 
 **We'll fetch it.** goes to Haul; **Not right now.** leaves the offer open.
 
@@ -51,13 +52,15 @@ is, how the tow works).
   an hour, about 1.7U a minute, clockwise on the map (north-west at first).
 - Within **2U** of it, **Engineering** (and Single Pilot) gets an **"Attach tow line"** button. Pressed:
   the ice hangs **1.5U** behind the ship on the line and follows it. Speed is unchanged, but hauling
-  it costs energy: up to **3 energy a second** on top of the engines at full impulse (less at part
-  throttle, nothing stopped). Engineering sees "Tow load: up to -3 energy/s".
+  it costs energy: up to **3 energy a second** on top of the engines, at full impulse or at warp (less
+  at part throttle, nothing stopped). Engineering sees "Tow load: up to -3 energy/s".
   Objective **"Tow it to Hob's"**.
 - While towing, the button reads **"Release tow line"**: the ice stays where it is (out of its orbit
   for good). Objective back to "Pick up the ice".
-- **Spinning up the warp drive snaps the line**: "The tow line snapped when the warp drive spun up. The
-  ice is adrift: go back for it." No other cost.
+- **Warp 1 is the line's limit**: the ship may tow at up to **30U a minute** (stock warp 1). Anything
+  faster snaps the line: warp 2 or more, or warp 1 with Engineering pushing extra power into the warp
+  drive. "The tow line snapped: faster than warp 1 is more than it can take. The ice is adrift: go back
+  for it." No other cost. (Warp 1 makes the tow home about 1 minute instead of 5.)
 - **The ice within 4U of Hob's Landing**: the water office hails: "We have it. Tugs are on their way out
   to take it in... 1,500 credits, and the Landing drinks this month." **1,500 cr, Independent +75**.
   Outcome `delivered`. The ice is taken in (removed) 20 seconds later.
@@ -116,21 +119,24 @@ Achievement (hidden): **Water Bearer** (delivered).
 - **The drift round Kestrel** is the same component with a fixed centre and a period.
 - **The ice** is an `Asteroid` with `explode_on_touch` and `avoid_object` removed, size 400, a pale blue
   radar trace and a description. Its physics is a sensor: it never pushes the ship.
-- **Warp**: the Light Freighter has a warp drive and no jump drive; the line snaps when
-  `warp_drive.current` is above 0.
+- **Warp**: the Light Freighter has a warp drive (500 world units/s a level) and no jump drive. The line
+  snaps on the ship's **speed** (`getVelocity`) above `TOW_MAX_SPEED` (500, stock warp 1) × `TOW_SLACK`
+  (1.02), not on the warp level: the engine's warp speed is level × 500 × the drive's effectiveness, so
+  boosting the warp drive's power makes warp 1 faster, and that snaps it too.
 - **The button**: custom buttons on `engineering`, `engineering+` and `singlepilot`, redrawn only when
   the label changes (`M.towPressed` is what they call; the test presses it directly).
 
 ### Tuning (top of `icehaul.lua`)
 
-`PAY` 1,500, `REP` 75, `TOW_REACH` 2U, `TOW_LENGTH` 1.5U, `TOW_DRAIN` 3/s, `DELIVER_R` 4U,
+`PAY` 1,500, `REP` 75, `TOW_REACH` 2U, `TOW_LENGTH` 1.5U, `TOW_DRAIN` 3/s, `TOW_MAX_SPEED` 500 (30U a minute), `TOW_SLACK` 1.02,
+`DELIVER_R` 4U,
 `KESTREL`, `ORBIT_R` 16U, `ORBIT_START` 160°, `ORBIT_PERIOD` 3,600 s.
 
 ### Open for playtest
 
 - Does the tow feel like towing? Line length, the energy drain (enough to matter, not
   enough to strand the ship?), turning with the ice behind.
-- Is the warp rule clear, and is a snap annoying or fun?
+- Is the warp 1 rule clear? Does Engineering try boosting the drive, and is the snap fair?
 - Is the ice easy to find (a sector name, pale blue on radar)?
 - 1,500 cr for a job with no fight: about right?
 - Later: a tow job type (salvage hulks, lifeboats), raiders cutting the line.
@@ -140,6 +146,8 @@ Achievement (hidden): **Water Bearer** (delivered).
 - 2026-11-24: built as a short, unopposed job to try out the tow line.
 - 2026-11-24: the tow no longer slows the ship (impulse 75% was dropped); it drains energy instead
   (`TOW_DRAIN`, scaled by the throttle), like the Ledger AI's drain.
+- 2026-11-24 playtest: the mechanics all worked, but the job was a bit slow. The line now holds at warp 1
+  (up to 30U a minute, measured as speed so a boosted drive can't cheat it); only faster snaps it.
 
 ### Testing
 
@@ -147,6 +155,6 @@ Achievement (hidden): **Water Bearer** (delivered).
 seed rumor (it sets the objective), the two pages, the ice drifting round Kestrel, the button only
 within reach, attaching (the line, impulse unchanged), the energy it costs at full
 impulse against flying free, the ice following a moved ship, casting off,
-warp snapping the line, the delivery and its pay and standing, the news, the achievement, the ice taken
+warp 1 holding (about 30U a minute, the full drain), a boosted warp 1 snapping the line, the delivery and its pay and standing, the news, the achievement, the ice taken
 in, the Magpie lost, every GM state (with next-session routing) and "-> Inactive". The tow line
 behind a ship flying on impulse is in `tests/core/orbit.lua`. Not covered: flying the tow by hand.

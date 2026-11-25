@@ -8,7 +8,8 @@
 --            [SPECIAL] reply.
 --   haul     the iceberg drifts round Kestrel (the engine's orbit component). Within TOW_REACH,
 --            Engineering attaches a tow line: the berg trails TOW_LENGTH behind (setOrbit(ship, 0)),
---            and moving it costs energy (TOW_DRAIN a second at full impulse). Spinning up the warp drive snaps the line (the berg stays
+--            and moving it costs energy (TOW_DRAIN a second at full impulse or at warp). Going faster than
+--            stock warp 1 (TOW_MAX_SPEED, 30U a minute, however Engineering boosts the drive) snaps the line (the berg stays
 --            where it is). The berg within DELIVER_R of Hob's Landing: delivered (PAY, Independent +REP).
 --   lost     the Magpie lost while hauling (the berg is still out there; nothing to pay).
 
@@ -28,7 +29,10 @@ M.PAY         = 1500
 M.REP         = 75
 M.TOW_REACH   = 2000    -- Engineering can attach the line within this of the berg
 M.TOW_LENGTH  = 1500    -- the line's length: the berg trails this far behind
-M.TOW_DRAIN   = 3       -- extra energy a second while towing at full impulse (less at part throttle, none stopped)
+M.TOW_DRAIN   = 3       -- extra energy a second while towing at full impulse or at warp (less at part throttle, none stopped)
+M.TOW_MAX_SPEED = 500   -- the line snaps above this speed (world units/s): stock warp 1, 30U a minute. Measured as
+                        -- speed, so Engineering pumping power into warp 1 can't cheat it
+M.TOW_SLACK   = 1.02    -- a hair over, for rounding
 M.DELIVER_R   = 4000    -- the berg this close to Hob's Landing: delivered
 -- The berg drifts round Kestrel (120, 36): ORBIT_R from the sun, starting at ORBIT_START degrees
 -- (0 = east, 90 = south), one turn in ORBIT_PERIOD s (about 1.7U a minute).
@@ -101,9 +105,22 @@ local function _spawnBerg(st)
     return b
 end
 
--- The tow's energy cost a second right now: TOW_DRAIN at full impulse (either way), scaled by the
--- throttle the engines are actually giving; nothing while stopped.
+local function _warping(p)
+    local ok, cur = pcall(function() local w = p.components.warp_drive; return w and w.current or 0 end)
+    return ok and (cur or 0) > 0.01
+end
+
+-- The ship's speed (world units/s).
+function M.speed(p)
+    local ok, vx, vy = pcall(function() return p:getVelocity() end)
+    if not ok or not vx then return 0 end
+    return math.sqrt(vx * vx + (vy or 0) * (vy or 0))
+end
+
+-- The tow's energy cost a second right now: TOW_DRAIN at warp or at full impulse (either way), scaled
+-- by the throttle the engines are actually giving; nothing while stopped.
 function M.towDrain(p)
+    if _warping(p) then return M.TOW_DRAIN end
     local ok, actual = pcall(function() local e = p.components.impulse_engine; return e and e.actual or 0 end)
     return M.TOW_DRAIN * math.min(1, math.abs(ok and actual or 0))
 end
@@ -123,8 +140,8 @@ function M.attach(st)
     b.components.orbit = {target = p, center = {p:getPosition()}, distance = M.TOW_LENGTH, time = 0}
     st.towing, st.tow_ship = true, p
     _drainInfo(p, true)
-    ARC.log(string.format("[Engineering] Tow line fast. The ice trails %.1fU behind. Hauling it costs up to %d energy a second "
-        .. "on impulse; don't spin up the warp drive with the line on.", M.TOW_LENGTH / U, M.TOW_DRAIN), "#A0E0FF")
+    ARC.log(string.format("[Engineering] Tow line fast. The ice trails %.1fU behind. Hauling it costs up to %d energy a second. "
+        .. "Warp 1 is as fast as the line will take: any faster and it snaps.", M.TOW_LENGTH / U, M.TOW_DRAIN), "#A0E0FF")
     RT.setObjective("Tow it to Hob's", true, "icehaul")
     return true
 end
@@ -190,11 +207,6 @@ local function _clearButtons()
     _shown = {}
 end
 
-local function _warping(p)
-    local ok, cur = pcall(function() local w = p.components.warp_drive; return w and w.current or 0 end)
-    return ok and (cur or 0) > 0.01
-end
-
 local function _finish(outcome)
     RT.flag("icehaul_arc_done", outcome)
     MISSIONS.phase("icehaul", "done")
@@ -206,8 +218,8 @@ local function _tickHaul(st, delta, now)
         local p = st.tow_ship
         if not RT.valid(p) or p ~= ARC.player() then
             M.release(st)
-        elseif _warping(p) then
-            M.release(st, "[Engineering] The tow line snapped when the warp drive spun up. The ice is adrift: go back for it.")
+        elseif M.speed(p) > M.TOW_MAX_SPEED * M.TOW_SLACK then
+            M.release(st, "[Engineering] The tow line snapped: faster than warp 1 is more than it can take. The ice is adrift: go back for it.")
         else
             local d = M.towDrain(p) * (delta or 0)
             if d > 0 then p:setEnergyLevel(math.max(0, p:getEnergy() - d)) end
@@ -256,8 +268,8 @@ local function _offer()
         .. _cr(M.PAY) .. ' credits."')
     addCommsReply("How do we tow it?", function()
         setCommsMessage('"We\'ll fit a tow rig before you leave. Get within ' .. math.floor(M.TOW_REACH / U)
-            .. 'U of the ice and your engineer makes it fast. Hauling it eats power, and don\'t touch the warp drive '
-            .. 'with the line on: it snaps, and you go back for the ice."')
+            .. 'U of the ice and your engineer makes it fast. Hauling it eats power, and warp 1 is as fast as the line will take. '
+            .. 'Any faster and it snaps, and you go back for the ice."')
         addCommsReply("We'll fetch it.", function()
             RT.flag("icehaul_briefed", true)
             MISSIONS.phase("icehaul", "haul")
@@ -294,7 +306,7 @@ function M._addJobEntry()
         "",
         "THE TOW",
         "Within " .. math.floor(M.TOW_REACH / U) .. "U of the ice, Engineering attaches the tow line. The ice trails " .. (M.TOW_LENGTH / U)
-            .. "U behind; moving it costs up to " .. M.TOW_DRAIN .. " energy a second at full impulse. Spinning up the warp drive snaps the line. "
+            .. "U behind; moving it costs up to " .. M.TOW_DRAIN .. " energy a second at full impulse. Warp 1 is the line's limit (30U a minute): anything faster snaps it, however the drive is boosted. "
             .. "Bring the ice within " .. math.floor(M.DELIVER_R / U) .. "U of Hob's Landing.",
     }, "\n"), {["Pay"] = _cr(M.PAY) .. " cr", ["Where"] = "Round Kestrel", ["Deliver to"] = _HOB})
 end

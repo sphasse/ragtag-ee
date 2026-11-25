@@ -186,7 +186,7 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
       sector name; pale blue on radar, drifting round Kestrel)?
 - [ ] Engineering's "Attach tow line" within 2U: does the tow feel like towing (1.5U line, up to 3 energy/s at full impulse,
       turning with the ice behind)?
-- [ ] Warp snaps the line: clear? fun or annoying? "Release tow line" leaves it where it is
+- [ ] Towing at warp 1 (30U a minute) holds; faster snaps the line, a boosted warp 1 too: clear? fair? "Release tow line" leaves it where it is
 - [ ] The ice within 4U of Hob's Landing: 1,500 cr, Independent +75. Right pay for no fight?
 
 ## 5g. The Deep Shroud's asteroid ring
