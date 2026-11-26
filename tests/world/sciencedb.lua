@@ -65,6 +65,7 @@ T.step("Ships keeps only the ships the game uses", function()
     end
     local used = {}
     for _, shown in pairs(SCIDB.SHIPS_USED) do used[shown] = true end
+    used["Light Freighter"] = true               -- the crew's ship: its own entry (SCIDB.addFreighterEntry)
     local n = 0
     for name in pairs(ships) do
         n = n + 1
@@ -77,6 +78,32 @@ T.step("Ships keeps only the ships the game uses", function()
         T.check("ships: dropped " .. name, not ships[name])
     end
     T.check("ships: a few dozen, not EE's 150", n > 10 and n <= 40, tostring(n))
+    T.check("ships: the Light Freighter has an entry", ships["Light Freighter"])
+end)
+T.step("the Light Freighter's entry", function()
+    local e = SCIDB.addFreighterEntry()          -- already there: returns it, adds no second one
+    T.check("freighter: found", e ~= nil)
+    if not e then return end
+    T.check("freighter: the crew's ship", e:getLongDescription():find("The crew's own ship", 1, true) == 1)
+    T.check("freighter: names coolant among the upgrades", e:getLongDescription():find("reactor and coolant", 1, true) ~= nil)
+    for _, k in ipairs({"Class", "Hull", "Shield", "Move speed", "Turn speed", "Warp speed"}) do
+        local v = e:getKeyValue(k)
+        T.check("freighter: " .. k, v ~= nil and v ~= "", tostring(v))
+    end
+    local flavia
+    for _, top in ipairs(getScienceDatabases()) do
+        if top:getName() == "Ships" then
+            for _, class in ipairs(top:getEntries()) do
+                local n = 0
+                for _, s in ipairs(class:getEntries()) do
+                    if s:getName() == "Light Freighter" then n = n + 1 end
+                    if s:getName() == "Flavia P.Falcon" then flavia = s end
+                end
+                if n > 0 then T.eq("freighter: one entry, beside the Flavia P.Falcon", n, flavia and 1 or -1) end
+            end
+        end
+    end
+    T.eq("freighter: same hull as the Flavia P.Falcon", e:getKeyValue("Hull"), flavia and flavia:getKeyValue("Hull"))
 end)
 T.step("the Regions section and each region entry have a map", function()
     T.eq("maps: the Drift on the Regions section", SCIDB.get("regions"):getImage(), "ragtag/img/maps/drift.png")

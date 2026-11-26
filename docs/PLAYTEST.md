@@ -169,6 +169,9 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
 - [ ] Beam upgrades (coils, heavy emitters) apply to every beam, whenever it was bought: buy coils first, then the
       sniper beam, and the sniper still gets them (heavy: 3.4U). Removing a beam upgrade (GM) takes it off
 - [ ] Faster probes (120 and 180 U a minute): worth the price? Do they change how Science scouts?
+- [ ] **Coolant I / II** (300 / 800 cr, at reactor shipwrights): coolant 100% -> 110% -> 125%. Does Engineering use the
+      extra to run more systems hot at once? Cheap enough to matter, not so much it breaks the heat game?
+- [ ] Science DB **Ships > ... > Light Freighter**: the crew's own ship has an entry beside the Flavia P.Falcon
 - [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does
       each level feel like a step? Is double the stock turn and acceleration too much?
 - [ ] Hob's Landing's shipwright (the Hob Works) sells sensors, engines, thrusters, reactor, shields

@@ -139,6 +139,14 @@ RT.UPGRADES = {
     {id = "reactor_overhaul", line = "reactor", name = "Reactor overhaul", gm_name = "Reactor", cost = 200,
      desc = "+50% energy capacity.",
      apply = function(p) p:setMaxEnergy(p:getMaxEnergy() * 1.5); p:setEnergy(p:getMaxEnergy()) end},
+    -- Coolant: the pool Engineering shares out among the systems, stock 10 (shown as 100%). More of it lets
+    -- Engineering cool more systems at once; one system still takes at most 10. Absolute values.
+    {id = "coolant_pump", line = "reactor", name = "Uprated coolant pumps", gm_name = "Coolant I", cost = 300,
+     desc = "+10% coolant for Engineering to share among the systems (100% -> 110%).", coolant = 11,
+     apply = function(p) p:setMaxCoolant(11) end},
+    {id = "coolant_pump_2", line = "reactor", name = "Cryogenic coolant loop", gm_name = "Coolant II", cost = 800, requires = "coolant_pump",
+     desc = "+25% coolant in all (110% -> 125%): run more systems hot at once.", coolant = 12.5,
+     apply = function(p) p:setMaxCoolant(12.5) end},
     {id = "combat_thrusters", line = "thrusters", name = "Combat thrusters", gm_name = "Thrusters", cost = 300,
      desc = "Much stronger combat boost and strafe. Gets you out of trouble.",
      apply = function(p) p:setCombatManeuver(450, 300) end},

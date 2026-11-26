@@ -533,7 +533,7 @@ function GMCONSOLE.add(opts)
         {label = "Tubes",     ids = {"front_tube", "side_tubes"}},
         {label = "Impulse",   ids = {"engine_tune", "engine_tune_2"}},
         {label = "Thrusters", ids = {"combat_thrusters"}},
-        {label = "Reactor",   ids = {"reactor_overhaul"}},
+        {label = "Reactor",   ids = {"reactor_overhaul", "coolant_pump", "coolant_pump_2"}},
         {label = "Repair",    ids = {"repair_crew", "repair_crew_2", "repair_crew_3"}},
         {label = "Sensors",   ids = {"sensor_suite", "sensor_suite_2", "sensor_suite_3"}},
         {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
@@ -621,8 +621,8 @@ function GMCONSOLE.add(opts)
         add("  combat maneuver: " .. (RT.hasUpgrade("combat_thrusters", p) and "enhanced" or "default"))
 
         sec("REACTOR")
-        add(uline("reactor_overhaul"))
-        add(string.format("  energy: %.0f / %.0f", p:getEnergy(), p:getMaxEnergy()))
+        add(uline("reactor_overhaul")); add(uline("coolant_pump")); add(uline("coolant_pump_2"))
+        add(string.format("  energy: %.0f / %.0f  coolant: %.0f%%", p:getEnergy(), p:getMaxEnergy(), p:getMaxCoolant() * 10))
 
         sec("REPAIR")
         add(uline("repair_crew")); add(uline("repair_crew_2")); add(uline("repair_crew_3"))

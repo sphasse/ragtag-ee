@@ -972,6 +972,7 @@ require("ragtag/ships_used.lua")
 function SCIDB.pruneShips()
     local keep = {}
     for _, shown in pairs(SCIDB.SHIPS_USED or {}) do keep[shown] = true end
+    keep[SCIDB.FREIGHTER or "Light Freighter"] = true      -- the crew's ship (SCIDB.addFreighterEntry)
     local kept, dropped = 0, 0
     for _, top in ipairs(getScienceDatabases() or {}) do
         local ok, name = pcall(function() return top:getName() end)
@@ -993,9 +994,81 @@ function SCIDB.pruneShips()
     return kept, dropped
 end
 
+-- The crew's own ship. Its template (ragtag/ship_templates.lua) is defined after EmptyEpsilon builds the
+-- stock database, so it has no entry: add one beside the Flavia P.Falcon it is copied from, with the same
+-- facts the stock entries show (read from the live template), and what the Drift does to it.
+SCIDB.FREIGHTER = "Light Freighter"
+SCIDB.FREIGHTER_TEXT =
+    "The crew's own ship, and every independent hauler's: a Flavia-class transport running independent colors. " ..
+    "Solid, unglamorous, and surprisingly hard to kill.\n\n" ..
+    "AS SHE LEAVES THE YARD\nTwo homing missiles in the racks, no nukes or mines, and two repair crew. Everything else " ..
+    "is bought: hull, shields, beams, tubes, engines, thrusters, reactor and coolant, sensors and probes at the " ..
+    "shipwrights (see Ship Upgrades). What a ship has fitted stays with it."
+
+local function _dirLabel(d)
+    d = ((d or 0) + 180) % 360 - 180
+    if math.abs(d) <= 45 then return "Front" elseif math.abs(d) >= 135 then return "Rear" end
+    return d > 0 and "Right" or "Left"
+end
+
+function SCIDB.addFreighterEntry()
+    local t = __ship_templates and __ship_templates[SCIDB.FREIGHTER]
+    if not t then return nil end
+    local parent
+    for _, top in ipairs(getScienceDatabases() or {}) do
+        if top:getName() == "Ships" then
+            for _, class in ipairs(top:getEntries() or {}) do
+                for _, s in ipairs(class:getEntries() or {}) do
+                    if s:getName() == SCIDB.FREIGHTER then return s end      -- already there
+                    if s:getName() == "Flavia P.Falcon" then parent = class end
+                end
+            end
+            parent = parent or top:addEntry("Frigate")
+        end
+    end
+    if not parent then return nil end
+    local e = parent:addEntry(SCIDB.FREIGHTER)
+    SCIDB._paths[e] = "Ships > " .. tostring(parent:getName()) .. " > " .. SCIDB.FREIGHTER
+    e:setLongDescription(SCIDB.FREIGHTER_TEXT)
+    local function kv(k, v) pcall(function() e:addKeyValue(k, tostring(v)) end) end
+    pcall(function()
+        local dp = t.docking_port
+        kv("Class", dp and dp.dock_class or parent:getName())
+        if dp and dp.dock_subclass then kv("Sub-class", dp.dock_subclass) end
+    end)
+    pcall(function() if t.__model_data_name then e:setModelDataName(t.__model_data_name) end end)
+    pcall(function() if t.radar_trace then e:setImage(t.radar_trace.icon) end end)
+    pcall(function()
+        local sz = t.physics.size
+        kv("Size", math.floor(type(sz) == "table" and sz[1] or sz))
+    end)
+    pcall(function()
+        local sh = {}
+        for _, d in ipairs(t.shields) do sh[#sh + 1] = tostring(math.floor(d.max)) end
+        if #sh > 0 then kv("Shield", table.concat(sh, "/")) end
+    end)
+    pcall(function() kv("Hull", math.floor(t.hull.max)) end)
+    pcall(function()
+        kv("Move speed", string.format("%.1f u/min", t.impulse_engine.max_speed_forward * 60 / 1000))
+        kv("Reverse move speed", string.format("%.1f u/min", t.impulse_engine.max_speed_reverse * 60 / 1000))
+    end)
+    pcall(function() kv("Turn speed", string.format("%.1f deg/sec", t.maneuvering_thrusters.speed)) end)
+    pcall(function() kv("Warp speed", string.format("%.1f u/min", t.warp_drive.speed_per_level * 60 / 1000)) end)
+    pcall(function()
+        for _, d in ipairs(t.beam_weapons) do
+            if d.range > 0 then kv(_dirLabel(d.direction) .. " beam weapon", string.format("%.1f Dmg / %.1f sec", d.damage, d.cycle_time)) end
+        end
+    end)
+    pcall(function()
+        for _, d in ipairs(t.missile_tubes) do kv(_dirLabel(d.direction) .. " tube", string.format("%.1f sec", d.load_time)) end
+    end)
+    return e
+end
+
 function _P.init(state)
     _removeStockSections()
     SCIDB.pruneShips()
+    pcall(SCIDB.addFreighterEntry)
     SCIDB.quietly(_build)   -- the database as it stands at session start is not news
 end
 

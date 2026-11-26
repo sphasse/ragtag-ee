@@ -55,8 +55,9 @@ crew) before its own upgrades go on. Details: `docs/GM_SHIP_MANAGEMENT.md`.
 - Salvage supplements missions rather than replacing them
 
 ### Upgrade
-- **36 upgrades** in 11 component lines (hull, shields, beams, missiles, tubes, engines,
-  thrusters, reactor, engineering crew, sensors, probes), from 150 to 2,500 credits; the top levels
+- **35 upgrades** in 11 component lines (hull, shields, beams, missiles, tubes, engines,
+  thrusters, reactor (with coolant: Coolant I 300 cr, 110%; Coolant II 800 cr, 125%), engineering crew,
+  sensors, probes), from 150 to 2,500 credits; the top levels
   escalate (sensors 500 / 1,000 / 2,000, turn 200 / 800 / 2,000, acceleration 300 / 1,000 / 2,500,
   Shield IV 1,800, Armour III 1,100). Full list: `ee/ragtag/core/upgrades.lua`.
 - **Handling** (each level needs the one before; the stock Light Freighter turns at 10°/s and

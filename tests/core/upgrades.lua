@@ -32,6 +32,9 @@ T.step("the catalogue", function()
     T.eq("turn 1: 200", cost("maneuver_thrusters"), 200)
     T.eq("turn 2: 800", cost("maneuver_thrusters_2"), 800)
     T.eq("turn 3: 2000", cost("maneuver_thrusters_3"), 2000)
+    T.eq("coolant 1: 300", cost("coolant_pump"), 300)
+    T.eq("coolant 2: 800", cost("coolant_pump_2"), 800)
+    T.eq("coolant is a reactor upgrade", ids.coolant_pump and ids.coolant_pump.line, "reactor")
     T.eq("acceleration 1: 300", cost("impulse_accel"), 300)
     T.eq("acceleration 2: 1000", cost("impulse_accel_2"), 1000)
     T.eq("acceleration 3: 2500", cost("impulse_accel_3"), 2500)
@@ -63,7 +66,8 @@ T.step("the catalogue", function()
                           shield_mk4 = "shield_mk3", beam_coils_2 = "beam_coils", side_tubes = "front_tube",
                           missile_racks_2 = "missile_racks", engine_tune_2 = "engine_tune",
                           maneuver_thrusters_2 = "maneuver_thrusters", maneuver_thrusters_3 = "maneuver_thrusters_2",
-                          impulse_accel_2 = "impulse_accel", impulse_accel_3 = "impulse_accel_2"}) do
+                          impulse_accel_2 = "impulse_accel", impulse_accel_3 = "impulse_accel_2",
+                          coolant_pump_2 = "coolant_pump"}) do
         T.eq("requires: " .. id, ids[id] and ids[id].requires, req)
     end
 end)
@@ -76,7 +80,7 @@ T.step("bases sell whole lines", function()
     T.check("Calder's Reach (beam base) fits superconducting coils", RT.stocks(station("Calder's Reach"), "beam_coils_2"))
     -- Hob's Landing: the independent science and engineering port, everything Ostia Highport fits.
     for _, id in ipairs({"sensor_suite_3", "engine_tune_2", "impulse_accel_3", "maneuver_thrusters_3", "combat_thrusters",
-                         "reactor_overhaul", "shield_mk4", "ludicrous_probes"}) do
+                         "reactor_overhaul", "coolant_pump_2", "shield_mk4", "ludicrous_probes"}) do
         T.check("Hob's Landing (the Hob Works) fits " .. id, RT.stocks(station("Hob's Landing"), id))
     end
     T.check("Hob's Landing no longer sells beams", not RT.stocks(station("Hob's Landing"), "forward_beams"))
@@ -153,6 +157,14 @@ T.step("the levels add up", function()
     end
     T.eq("acceleration: 13, 16, then 20 (double)", table.concat(acc, ", "), "13, 16, 20")
     T.eq("reverse acceleration doubles too", math.floor(B.components.impulse_engine.acceleration_reverse + 0.5), 20)
+    T.eq("stock coolant: 10 (100%)", B:getMaxCoolant(), 10)
+    RT.grantUpgrade("coolant_pump", "test", B)
+    T.eq("coolant I: 11 (110%)", B:getMaxCoolant(), 11)
+    RT.grantUpgrade("coolant_pump_2", "test", B)
+    T.eq("coolant II: 12.5 (125%)", B:getMaxCoolant(), 12.5)
+    RT.revokeUpgrade("coolant_pump_2", B)
+    T.eq("coolant II removed: back to 11", B:getMaxCoolant(), 11)
+    RT.grantUpgrade("coolant_pump_2", "test", B)
 end)
 
 -- The forward mount is a choice: the forward beam mount or the sniper beam, never both.
