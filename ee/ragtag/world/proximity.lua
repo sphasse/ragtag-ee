@@ -1018,12 +1018,12 @@ end
 -- colour is: CONTROL_COLORS are muted on purpose. Zone() carries never_radar_blocked, so Relay sees
 -- it through its fog of war. No labels (the engine sizes a label to the zone: far too big).
 
-PROX.CONTROL_COLORS = {
-    Concord            = {60, 95, 165},
-    Corsairs           = {165, 90, 35},
-    ["Shroud Raiders"] = {120, 60, 35},
-    Relic              = {125, 118, 50},
-    Hollow             = {140, 30, 30},
+PROX.CONTROL_COLORS = {   -- halved after the first playtest (2026-11-25: "good, half as much")
+    Concord            = {30, 48, 82},
+    Corsairs           = {82, 45, 18},
+    ["Shroud Raiders"] = {60, 30, 18},
+    Relic              = {62, 59, 25},
+    Hollow             = {70, 15, 15},
 }
 PROX.CONTROL_STEPS = 120   -- points round each region's circle
 PROX._control = PROX._control or {}   -- the Zone entities drawn
