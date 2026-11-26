@@ -2,12 +2,27 @@
 
 Covers what the headless tests (`tools/game_tests.py`) cannot play: real fights and hacks, several
 clients, and the numbers left for a playtest. Tick items off, and note what felt wrong and *where*
-(grid, phase, which station). Last updated 2026-11-19, after the round of arc fixes from the RC1 playtest (RC2).
+(grid, phase, which station). Last updated 2026-11-25: everything built since the RC2 checklist (2026-11-19),
+in the order to play it. Sessions 1–4 are new work; the sections after them were played in RC1/RC2 and are
+regression checks if time allows.
 
 GM shortcuts: **Missions...** → an arc → `→ <phase>` jumps straight to a phase; the helper buttons
 (e.g. **Kill fleet**) skip a fight. In any phase that sends the crew somewhere, **Ship → <place>** (e.g.
 **Ship → Hob's**) puts the Magpie 5U from it, undocked and stopped, to skip the flight. Use them to get to a
 section, then play the section for real.
+
+## Order of play
+
+| Session | What | Sections |
+|---|---|---|
+| 1 | The Hob Works heist, with fake transponder codes | 1a, 1b |
+| 2 | Tow jobs at tier 0 and tier 2 (raiders), then Ice Haul with its raiders | 2a, 2b |
+| 3 | The one-off jobs: Cold Chain, The Bounty (and the asteroid ring), The Holdout | 3a–3d |
+| 4 | The sniper beam, the faction-zone tint and the other world changes | 4a, 4b |
+| Later | Regression: two ships, the older arcs, every job type | R1–R7 |
+
+Already flown in spot checks: the tow line itself (it played well), the faction-zone tint, Ice Haul before its raiders
+and the half-warp limit, the Boneyard fixes.
 
 ## Before you start
 
@@ -15,8 +30,176 @@ section, then play the section for real.
 - [ ] **Backup campaign** (GM main screen) so a bad session can be undone with **Restore campaign**
 - [ ] Two player ships: the Magpie plus one picked by name on "Create player ship" (e.g. "Light Freighter: Raven")
 - [ ] GM screen open on a separate machine or window; the director is optional
+- [ ] For session 2's raiders, the ship needs tier 1+ (an upgrade bought); GM **Upgrades...** can grant one
 
-## 1. Two ships
+---
+
+# Session 1: the heist
+
+## 1a. Hob Works Arc (after Ledger, Boneyard with survivors, Corsair; then 5 board jobs; or GM jump)
+
+Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
+- [ ] The hook: an Independent port's news leads with Quill's message; hearing it sets "Meet Quill at Hob's".
+      Does the crew go to Hob's Landing on their own?
+- [ ] The briefing at Hob's Landing: the four pages, then the four convoy pages. Does each fit the comms
+      window without scrolling? Is the cash problem and the plan clear? The Lullaby and convoy-intel Science
+      DB entries pop up on Science; the route map image in the convoy entry is readable
+- [ ] The 15-minute countdown: enough time to reach Lumen, pick a spot and scan? Too much?
+- [ ] The fake transponder ("Change transponder" on Engineering, "Code valid 9:59"): does Engineering notice
+      it? Do they time it to the departure? Inside 15U without it, the escorts' warning hail, then a fight
+- [ ] The run: the transport at 7.5U a minute (GM **Transport faster / slower** to tune). Does it feel like
+      chasing a train?
+- [ ] Disabling it: impulse **and** rear shield both down at once, each 90% hacked (Relay) or under 10%
+      health (Science). Do they divide and conquer before the hack fades (~18 s from 100%)? Too hard?
+      Does Relay hack while Weapons shoot? Docking to board
+- [ ] Destroying it: the three cash boxes. Does the crew find and collect them?
+- [ ] The escorts (Adder MK8, hull 100): a real fight? Do they leave a second player ship alone?
+- [ ] The way home with the cash: a Concord patrol every 30 s until out of Concord space (normal patrols until
+      5 minutes before the convoy leaves). The 15-minute delivery: tight or easy?
+- [ ] Paying: "We have the cash." (Quill: "...the other 2,000 is yours for the trouble.") then "Deliver 10,000 cr
+      to the engineers" ends the arc ("...it is going to take some time. We'll reach out again..."). Clear?
+- [ ] A missed delivery (GM: let it lapse): Independent standing to -100, the shaming port news for 30 min,
+      the late delivery accepted
+- [ ] Rumors afterwards: the robbery and the Concord fallout (the yard layoffs, the Senate), each told once
+
+## 1b. Wanted by the Concord, and the fake transponder
+
+- [ ] Fake transponder codes (after paying the Hob Works): Marchetti's offer, the 500 cr code at the Hob Works
+      shipwright, the pop-up on Engineering, "Change transponder" and "Code valid 9:59". With Concord standing
+      below -200, do port guards, pickets and patrols really let the ship pass for the 10 minutes?
+- [ ] With Concord standing below −200, a Concord port's guard ("CPV …") turns hostile once the ship is within
+      5U of it ("…you are wanted by the Concord…" in the log), and gives up 10U from the port. Is 5U the right
+      radius? Can a wanted crew still slip in and out of a Concord port?
+- [ ] The Concord lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) walk a
+      slow beat round their posts and read as pickets ("Concord lane picket…"), not lost defenders
+- [ ] The same pickets when wanted: hostile within 10U, they chase to 20U from their post and then go back to
+      their beat. Too much on the lanes?
+
+---
+
+# Session 2: towing
+
+Both use the same tow line (`ee/ragtag/tow.lua`): its numbers apply to each.
+
+## 2a. Tow jobs (the board; common at tier 0, rarer later)
+
+- [ ] "We got a call..." details, then the "We'll get 'em home" button: reads right?
+- [ ] The broken-down ship is somewhere quiet (no patrols), within 60U: easy to find from the grid?
+- [ ] Engineering's "Attach tow line" within 2U; the pale blue line from the ship to the tow (main screen and
+      radar), fading when it lets go. Still readable among weapons fire?
+- [ ] **The half-warp limit**: the line takes half of warp 1 (15U a minute): warp 1 with Engineering's warp power
+      at ~50%, Science (or Operations) reading "Tow speed: X of 15 U/min". Do the two stations find it together?
+      Full-power warp 1 snaps it: clear? fair?
+- [ ] The energy drain while towing (up to 3 energy/s at full impulse or warp): noticeable, not stranding?
+- [ ] Home within 4U of the port, then dock: "Got 'em home". Pay right for the effort (like salvage, 1.2×)?
+- [ ] How often they show up: common at tier 0, fewer at tiers 1 and 2? None with raiders at tier 0
+- [ ] After upgrading: "Raiders about." tows; the brief warns ("expect company", hazard pay, 100 cr for missiles).
+      The raiders show up 10U out just after you first hook up (rival-tow names: "Interspace AAA"...), their
+      leader tells you to cut her loose, and they attack. Fair at one raider (tier 1) and two (tier 2)?
+      They fly 20% faster than the line allows (18U a minute), so a tow can't outrun them: tense rather than
+      hopeless? Cast off to fight, then re-attach: no new raiders. Hazard pay (+15% a raider, +100 cr) enough?
+- [ ] Achievements: We Got a Call (first tow), Recovery Crew (ten); Jack of All Trades now needs a tow too
+
+## 2b. Ice Haul (Rezkov over; or GM jump)
+
+Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
+- [ ] The seed rumor sets "Hob's Landing"; the water office's two pages (now warning about the raiders and
+      half warp). Is the ice easy to find (a sector name; pale blue on radar, drifting round Kestrel)?
+- [ ] Does the tow feel like towing (1.5U line, turning with 40,000 tonnes behind)?
+- [ ] Two raiders 10U out the first time the line goes on (hail, then attack at 18U a minute). Too much right
+      after Rezkov? Do they break off on delivery?
+- [ ] The half-warp limit over a long haul (about 19U): tedious, or a good two-station job?
+- [ ] "Release tow line" leaves the ice where it is
+- [ ] The ice within 4U of Hob's Landing: 2,000 cr, Independent +75. Right pay with the two raiders?
+
+---
+
+# Session 3: the one-off jobs
+
+## 3a. Cold Chain (the Hob Works funded, then 3 board jobs; or GM jump)
+
+Details: [GM_COLD_CHAIN_MISSION.md](GM_COLD_CHAIN_MISSION.md).
+- [ ] The seed rumors at Independent ports (the fever, the cure, Varga asking): hearing Varga's sets
+      "Dr. Varga at Tamsin". Does the crew go?
+- [ ] Varga's three pages at Tamsin Hollow: is the plan (dock at Ostia, Relay hacks the port to 75%) clear?
+- [ ] At Ostia: does Relay find the port's shields on its hacking screen while docked? Does a wanted crew
+      use a fake code to get past the port guard, and time it?
+- [ ] With a code: "an unknown freighter", no chase. Without: Concord -300 and a patrol every 30 s until out
+      of Concord space
+- [ ] "Serum good for 14:59" on Relay: is 15 minutes tight or easy? Delivery at Tamsin: 3,000 cr in time,
+      1,000 spoiled
+
+## 3b. The Bounty (Rezkov over, 1,000 cr of upgrades; or GM jump)
+
+Details: [GM_BOUNTY_MISSION.md](GM_BOUNTY_MISSION.md).
+- [ ] The seed rumors: hearing the Dustmote notice sets "Bounty at Dustmote". Does the crew go that far east?
+- [ ] Thresh's two pages: the notice, then the trail (a real sector in the Deep Shroud) and how to stop Long Odds
+- [ ] Finding Long Odds in the nebula: probes and Science? Found within 8U: it runs, the escorts attack
+- [ ] Long Odds (Phobos T3, 300 hull, 150 shields) can't be destroyed: impulse and rear shield both down at once
+      stops it. Tough enough? Too like the heist? The escorts (Adder MK5s) a real fight?
+- [ ] Ashby's offer (crypto credits, the keys in his head): do they read it? Do they argue? Dustmote for 3,000 and
+      Independent +100, or Saint Brennan's for 4,500 and Independent -150
+
+## 3c. The Deep Shroud's asteroid ring (during the Bounty)
+
+- [ ] Rocks circling the black hole (7-13U out, about 3.7U a minute on the inside): visible, a hazard
+      worth flying round, fun in the Bounty's hunt? Too many, too fast?
+
+## 3d. The Holdout (Rezkov over, 1,500 cr of upgrades; or GM jump)
+
+Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
+- [ ] The seed rumors: hearing "Breaker's Claim is hiring guns" sets "Breaker's Claim". Do they find the new port
+      (south of the Shroud, 18U north of Hob's Landing)?
+- [ ] Calloway's two pages, then "We'll stay.": is a minute enough to get in position?
+- [ ] Three waves out of the Shroud from two gates, ~19U north: half go for the Claim, half for the Magpie. Too
+      easy, too hard? (Wave hulls, the Claim's 500 hull and cutting lasers, the 45 s gap: top of `holdout.lua`)
+- [ ] Does the Claim's fighter help? Does the Claim fall if the crew leaves? 3,000 cr and Independent +150 when held
+- [ ] Shroud Raiders in the Shroud, Halcyon Rest and now the Deep Shroud: still hostile after the Corsair arc's
+      alliance? Their taunt ("Blackwater's rules don't reach in here") reads right? Too many in the Bounty's hunt?
+
+---
+
+# Session 4: ships and the world
+
+## 4a. Upgrades
+
+- [ ] **Sniper beam** (350 cr, at beam shipwrights): the other choice for the forward mount, never both. A 5° arc
+      that reaches 3U, 8 damage every 8 s. Can Helm hold a target in 5°? Worth giving up the 50° forward beam?
+      The shipwright hides the other mount once one is fitted
+- [ ] Beam upgrades (coils, heavy emitters) apply to every beam, whenever it was bought: buy coils first, then the
+      sniper beam, and the sniper still gets them (heavy: 3.4U). Removing a beam upgrade (GM) takes it off
+- [ ] Faster probes (120 and 180 U a minute): worth the price? Do they change how Science scouts?
+- [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does
+      each level feel like a step? Is double the stock turn and acceleration too much?
+- [ ] Hob's Landing's shipwright (the Hob Works) sells sensors, engines, thrusters, reactor, shields
+      and probes; its Science DB Ports entry has the new lore
+- [ ] Science DB **Ship Upgrades** (top level): one entry per component with every upgrade's effect, price, prerequisite
+      and the ports that fit it. Does it read well on the Science screen? Do crews use it to plan purchases?
+
+## 4b. The world
+
+- [ ] Control tint: each faction's patrol zones show a faint colour on Relay's map and Science's long-range radar (Concord
+      blue, Corsair orange, Shroud Raider rust, Relic olive, Hollow red). Still readable at half strength? Does it help
+      crews plan routes? GM: World Plugins → "Faction zones: ON/OFF" (top of the list) turns it off and on
+- [ ] The Escrow Marches (new Concord region south of the Core; Sentinel Fleet Yard and Valcourt moved 25U south):
+      shake-downs there like the Core? Do old routes to Valcourt still make sense?
+- [ ] Shroud Raiders: their own always-hostile faction; the two rumors that name them
+- [ ] Aftermath news after arc outcomes: each told once across sessions, plus the Concord's reaction lines
+- [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …") and pop up on
+      Science (and Operations / Single Pilot): does Science notice them now? The Boneyard archive's three entries
+      should arrive as one pop-up
+- [ ] Each job has its own countdown on Relay, in whole minutes; side-panel lines fit
+- [ ] Salvage pods are identified with one Science scan
+- [ ] Achievements show in the ship log (Relay) as "[Achievement] Name: ...". Science DB **Achievements** (top
+      level) lists them all, earned [x] or not; hidden story ones show as ??? until earned
+- [ ] An empty job board says "check back in a while / a few / a bit"
+- [ ] GM **Enable arc / Disable arc** on a finished arc resets it (its done flag too)
+
+---
+
+# Regression (played in RC1/RC2; if time allows)
+
+## R1. Two ships
 
 - [ ] Each ship's Relay/Operations shows its own `Credits: N`; a job pays only the ship that took it
 - [ ] Arc work only reaches the Magpie: the second ship never sees `[SPECIAL]` contracts or arc seed jobs
@@ -41,7 +224,7 @@ section, then play the section for real.
       the books", with the Magpie's credits, upgrades and any active arc. *(Only tested from script.)*
 - [ ] Note: does anything look wrong on a second client (screens, custom info lines, comms)?
 
-## 2. Rezkov Arc (needs Independent ≥ 500 and 600 cr of upgrades, or GM jump)
+## R2. Rezkov Arc (needs Independent ≥ 500 and 600 cr of upgrades, or GM jump)
 
 - [ ] Hook: rumors lead to Dustmote; Thresh's job offer; declining works
 - [ ] M1 navigate to the beacon and report back
@@ -52,7 +235,7 @@ section, then play the section for real.
       clear to the crew? *(Never played in a test.)*
 - [ ] Each ending's reputation change feels proportionate (±1000 is a lot: does the board shrink as expected?)
 
-## 3. Ledger Arc (after Rezkov; 800 cr of upgrades)
+## R3. Ledger Arc (after Rezkov; 800 cr of upgrades)
 
 - [ ] The hook comes after **2 board jobs** by the Magpie once Rezkov is over (jobs done before reaching
       800 cr of upgrades count now; that was the RC1 bug). It is quiet: rumors and Thresh at Dustmote.
@@ -70,7 +253,7 @@ section, then play the section for real.
 - [ ] GM "+100 energy" helper (fragment hunt and carry) for a crew in trouble
 - [ ] At Rezkov's: "You were right, this thing runs hot." reads naturally
 
-## 4. Boneyard Arc (after Rezkov; 800 cr of upgrades)
+## R4. Boneyard Arc (after Rezkov; 800 cr of upgrades)
 
 - [ ] Find the Annex through the **lifeboat rescue job** (Port Vesper / Halcyon Rest / Saint Brennan's;
       20-minute clock): the survivors' hail and the Science DB "Boneyard Survivor Records".
@@ -88,6 +271,7 @@ section, then play the section for real.
 - [ ] First docking: the "Incoming jump detected" pop-up on every console, the Concord fleet appears
 - [ ] Download (5 min docked while the fleet is out, stops on undocking) vs drone reprogram (60 s) vs
       lasers (60 s): does the crew work out to reprogram the drones first? Does it get out into the fight?
+      The Annex lasers (halved to 16) and the operations menu's Refresh button
 - [ ] "All Concord forces in proximity have been eliminated." hail, then "Archive compressed": the
       download takes 1 min (a running one finishes within a minute); then "Report the success"
 - [ ] Leaving the Boneyard (20U outside it) ends the arc with whatever the crew has (with the archive:
@@ -95,7 +279,7 @@ section, then play the section for real.
 - [ ] Back at the rescue job's station: "Talk with the lifeboat survivors" reads well and ends the arc
 - [ ] Each ending (Full / Data) is reachable and reads clearly
 
-## 5. Corsair Arc (1000 cr of upgrades)
+## R5. Corsair Arc (1000 cr of upgrades)
 
 - [ ] Hook: only the Greywater barkeep's message brings Long Memory (not the Gauntlet); "Not right now" re-offers after 10 min
 - [ ] Escort: the guide **paces the crew** (holds past 5.5U behind, leads on within 4.5U). Stop for a
@@ -112,144 +296,14 @@ section, then play the section for real.
 - [ ] Return: the thickened mine ring round Blackwater; are the three lanes (north, ESE, WSW) findable?
 - [ ] The **battle, for real** (7 Concord vs 12 Corsairs, frozen until any player ship is within
       5U of either line): does it stay spread out? How long does it take? Does the crew matter?
-- [ ] **Magazine** (new): runs low → it hails with its grid and a "Rearm" objective appears;
+- [ ] **Magazine**: runs low → it hails with its grid and a "Rearm" objective appears;
       8 s alongside refills the racks. Is it reachable mid-battle? Is **3 loads** right? Is **8 s**
       too long under fire? Does the Concord ever get to it?
 - [ ] Losing your ship in the battle ends the arc as failed; losing Corsairs does not
 
-## 5b. Hob Works Arc (after Ledger, Boneyard with survivors, Corsair; then 5 board jobs; or GM jump)
+## R6. Jobs (all eight types, at least once each)
 
-Details: [GM_HOB_WORKS_MISSION.md](GM_HOB_WORKS_MISSION.md).
-- [ ] The hook: an Independent port's news leads with Quill's message; hearing it sets "Meet Quill at Hob's".
-      Does the crew go to Hob's Landing on their own?
-- [ ] The briefing at Hob's Landing: the four pages, then the four convoy pages. Does each fit the comms
-      window without scrolling? Is the cash problem and the plan clear? The Lullaby and convoy-intel Science
-      DB entries pop up on Science
-- [ ] The 15-minute countdown: enough time to reach Lumen, pick a spot and scan? Too much?
-- [ ] The fake transponder ("Change transponder" on Engineering, "Code valid 9:59"): does Engineering notice
-      it? Do they time it to the departure? Inside 15U without it, the escorts' warning hail, then a fight
-- [ ] The run: the transport at 7.5U a minute (GM **Transport faster / slower** to tune). Does it feel like
-      chasing a train?
-- [ ] Disabling it: impulse **and** rear shield both down at once, each 90% hacked (Relay) or under 10%
-      health (Science). Do they divide and conquer before the hack fades (~18 s from 100%)? Too hard?
-      Does Relay hack while Weapons shoot? Docking to board
-- [ ] Destroying it: the three cash boxes. Does the crew find and collect them?
-- [ ] The escorts (Adder MK8, hull 100): a real fight? Do they leave a second player ship alone?
-- [ ] The way home with the cash: a Concord patrol every 30 s until out of Concord space (normal patrols until
-      5 minutes before the convoy leaves). The 15-minute delivery: tight or easy?
-- [ ] Paying: "We have the cash." (Quill: "...the other 2,000 is yours for the trouble.") then "Deliver 10,000 cr
-      to the engineers" ends the arc ("...it is going to take some time. We'll reach out again..."). Clear?
-- [ ] A missed delivery (GM: let it lapse): Independent standing to -100, the shaming port news for 30 min,
-      the late delivery accepted
-- [ ] Rumors afterwards: the robbery and the Concord fallout (the yard layoffs, the Senate)
-
-## 5c. Cold Chain (the Hob Works funded, then 3 board jobs; or GM jump)
-
-Details: [GM_COLD_CHAIN_MISSION.md](GM_COLD_CHAIN_MISSION.md).
-- [ ] The seed rumors at Independent ports (the fever, the cure, Varga asking): hearing Varga's sets
-      "Dr. Varga at Tamsin". Does the crew go?
-- [ ] Varga's three pages at Tamsin Hollow: is the plan (dock at Ostia, Relay hacks the port to 75%) clear?
-- [ ] At Ostia: does Relay find the port's shields on its hacking screen while docked? Does a wanted crew
-      use a fake code to get past the port guard, and time it?
-- [ ] With a code: "an unknown freighter", no chase. Without: Concord -300 and a patrol every 30 s until out
-      of Concord space
-- [ ] "Serum good for 14:59" on Relay: is 15 minutes tight or easy? Delivery at Tamsin: 3,000 cr in time,
-      1,000 spoiled
-
-## 5d. The Bounty (Rezkov over, 1,000 cr of upgrades; or GM jump)
-
-Details: [GM_BOUNTY_MISSION.md](GM_BOUNTY_MISSION.md).
-- [ ] The seed rumors: hearing the Dustmote notice sets "Bounty at Dustmote". Does the crew go that far east?
-- [ ] Thresh's two pages: the notice, then the trail (a real sector in the Deep Shroud) and how to stop Long Odds
-- [ ] Finding Long Odds in the nebula: probes and Science? Found within 8U: it runs, the escorts attack
-- [ ] Long Odds (Phobos T3, 300 hull, 150 shields) can't be destroyed: impulse and rear shield both down at once
-      stops it. Tough enough? Too like the heist? The escorts (Adder MK5s) a real fight?
-- [ ] Ashby's offer (crypto credits, the keys in his head): do they read it? Do they argue? Dustmote for 3,000 and
-      Independent +100, or Saint Brennan's for 4,500 and Independent -150
-
-## 5e. The Holdout (Rezkov over, 1,500 cr of upgrades; or GM jump)
-
-Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
-- [ ] The seed rumors: hearing "Breaker's Claim is hiring guns" sets "Breaker's Claim". Do they find the new port
-      (south of the Shroud, 18U north of Hob's Landing)?
-- [ ] Calloway's two pages, then "We'll stay.": is a minute enough to get in position?
-- [ ] Three waves out of the Shroud from two gates, ~19U north: half go for the Claim, half for the Magpie. Too
-      easy, too hard? (Wave hulls, the Claim's 500 hull and cutting lasers, the 45 s gap: top of `holdout.lua`)
-- [ ] Does the Claim's fighter help? Does the Claim fall if the crew leaves? 3,000 cr and Independent +150 when held
-- [ ] Shroud Raiders in the Shroud, Halcyon Rest and now the Deep Shroud: still hostile after the Corsair arc's
-      alliance? Their taunt ("Blackwater's rules don't reach in here") reads right? Too many in the Bounty's hunt?
-
-## 5f. Ice Haul (Rezkov over; or GM jump)
-
-Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
-- [ ] The seed rumor sets "Hob's Landing"; the water office's two pages. Is the ice easy to find (a
-      sector name; pale blue on radar, drifting round Kestrel)?
-- [ ] Engineering's "Attach tow line" within 2U: does the tow feel like towing (1.5U line, up to 3 energy/s at full impulse,
-      turning with the ice behind)?
-- [ ] Two raiders 10U out the first time the line goes on (hail, then attack at 18U a minute). The water office's
-      warning reads right? Too much right after Rezkov? Do they break off on delivery?
-- [ ] The tow line shows as a pale blue beam from the ship to the tow (main screen and radar), fading when it lets go.
-      Readable at a glance? Too bright, too faint? Does it get lost among weapons fire?
-- [ ] The line takes half of warp 1 (15U a minute): warp 1 with Engineering's warp power at ~50%, Science reading "Tow speed".
-      Do the two stations find it together? Full-power warp 1 snaps it: clear? fair? "Release tow line" leaves it where it is
-- [ ] The ice within 4U of Hob's Landing: 2,000 cr, Independent +75. Right pay with the two raiders?
-
-## 5h. Tow jobs (the board; tier 0, rarer later)
-
-- [ ] "We got a call..." details, then the "We'll get 'em home" button: reads right?
-- [ ] The broken-down ship is somewhere quiet (no patrols), within 60U: easy to find from the grid?
-- [ ] Engineering's "Attach tow line", home at half of warp 1, within 4U of the port, then dock: "Got 'em home". Pay right
-      for the effort (like salvage, 1.2×)?
-- [ ] How often they show up: common at tier 0, fewer at tiers 1 and 2?
-- [ ] After upgrading: "Raiders about." tows. The raiders show up 10U out just after you hook up, their leader tells
-      you to cut her loose, and they attack. Fair at one raider (tier 1)
-      and two (tier 2)? They fly 20% faster than the tow line allows (18U a minute), so a tow can't outrun them: tense rather than hopeless? Hazard pay (+15% a raider, +100 cr for missiles) enough?
-- [ ] Achievements: We Got a Call (first tow), Recovery Crew (ten); Jack of All Trades now needs a tow too
-
-## 5g. The Deep Shroud's asteroid ring
-
-- [ ] Rocks circling the black hole (7-13U out, about 3.7U a minute on the inside): visible, a hazard
-      worth flying round, fun in the Bounty's hunt? Too many, too fast?
-
-## 6. Ship handling upgrades and the Hob Works
-
-- [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does
-      each level feel like a step? Is double the stock turn and acceleration too much?
-- [ ] Hob's Landing's shipwright (the Hob Works) sells sensors, engines, thrusters, reactor, shields
-      and probes; its Science DB Ports entry has the new lore
-- [ ] **Sniper beam** (350 cr, at beam shipwrights): the other choice for the forward mount, never both. A 5° arc
-      that reaches 3U, 8 damage every 8 s. Can Helm hold a target in 5°? Worth giving up the 50° forward beam?
-      Coils and heavy emitters apply to it too (heavy: 3.4U). Shipwright hides the other mount once one is fitted
-
-## 7. The world
-
-- [ ] Control tint: each faction's patrol zones show a faint colour on Relay's map and Science's long-range radar (Concord
-      blue, Corsair orange, Shroud Raider rust, Relic olive, Hollow red). Readable? Too strong over the stars and contacts?
-      GM: World Plugins → "Faction zones: ON/OFF" (top of the list) turns it off and on
-- [ ] Achievements show in the ship log (Relay) as "[Achievement] Name: ...". Science DB **Achievements** (top
-      level) lists them all, earned [x] or not; hidden story ones show as ??? until earned
-- [ ] Fake transponder codes (after paying the Hob Works): Marchetti's offer, the 500 cr code at the Hob Works
-      shipwright, the pop-up on Engineering, "Change transponder" and "Code valid 9:59". With Concord standing
-      below -200, do port guards, pickets and patrols really let the ship pass for the 10 minutes?
-
-- [ ] The Concord lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance) walk a
-      slow beat round their posts and read as pickets ("Concord lane picket…"), not lost defenders
-- [ ] With Concord standing below −200, a Concord port's guard ("CPV …") turns hostile once the ship is within
-      5U of it ("…you are wanted by the Concord…" in the log), and gives up 10U from the port. Is 5U the right
-      radar? Can a wanted crew still slip in and out of a Concord port?
-- [ ] The same for the lane pickets (CPV Vigilant, CPV Temperance, CNS Lawgiver and CPV Forbearance): hostile within
-      10U, they chase to 20U from their post and then go back to their beat. Too much on the lanes?
-- [ ] Science DB **Ship Upgrades** (top level): one entry per component with every upgrade's effect, price, prerequisite
-      and the ports that fit it. Does it read well on the Science screen? Do crews use it to plan purchases?
-- [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …") and pop up on
-      Science (and Operations / Single Pilot): does Science notice them now? The Boneyard archive's three entries
-      should arrive as one pop-up
-- [ ] An empty job board says "check back in a while / a few / a bit"
-- [ ] GM **Enable arc / Disable arc** on a finished arc resets it (its done flag too)
-
-## 8. Jobs (all seven types, at least once each)
-
-- [ ] Delivery · Salvage · Hacking (75% threshold, beam windows) · Destroy · Boarding · Escort · Tailing
+- [ ] Delivery · Salvage · Hacking (75% threshold, beam windows) · Destroy · Boarding · Escort · Tailing · Tow
 - [ ] Rewards feel right for the risk (boarding pays ~1.8× a delivery)
 - [ ] Standing below 0 / −200 / −400 shrinks then closes a faction's boards
 - [ ] Work cooldown on: a taken slot refills after the cooldown
