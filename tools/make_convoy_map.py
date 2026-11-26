@@ -1,6 +1,7 @@
 """Draw the Hob Works convoy-route map for the Science database (the "Convoy intel: CTS Tithe" entry).
 
     python3 tools/make_convoy_map.py          # assets/maps/convoy_route.svg and ee/ragtag/img/convoy_route.png
+    python3 tools/make_convoy_map.py --check  # exit 1 if the SVG is out of date (tools/check.py runs this)
 
 Everything on it comes from the game's data, so re-run this after moving a station, a region or a
 picket, or changing a range:
@@ -178,6 +179,11 @@ svg.append(f'<text x="{W - 16}" y="{H - 14}" fill="{DIM}" font-size="13" text-an
            f'Grid squares are 20U sectors.</text>')
 svg.append("</svg>")
 
+if "--check" in sys.argv:            # tools/check.py: is the committed SVG current?
+    current = SVG_OUT.exists() and SVG_OUT.read_text(encoding="utf-8") == "\n".join(svg)
+    if not current:
+        print(f"{SVG_OUT.relative_to(ROOT)} is out of date")
+    sys.exit(0 if current else 1)
 SVG_OUT.parent.mkdir(parents=True, exist_ok=True)
 SVG_OUT.write_text("\n".join(svg), encoding="utf-8")
 print("wrote", SVG_OUT.relative_to(ROOT))

@@ -83,6 +83,8 @@
 <text x="968.8" y="609.5" fill="#ffd45a" font-size="17" font-weight="700" text-anchor="end">Hob&#39;s Landing</text>
 <rect x="931.6" y="271.6" width="12" height="12" fill="#e6e1d4" transform="rotate(45 937.6 277.6)"/>
 <text x="925.6" y="282.6" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="end">Saint Brennan&#39;s Mission</text>
+<rect x="956.3" y="546.1" width="12" height="12" fill="#e6e1d4" transform="rotate(45 962.3 552.1)"/>
+<text x="950.3" y="557.1" fill="#e6e1d4" font-size="13" font-weight="400" text-anchor="end">Breaker&#39;s Claim</text>
 <text x="968.8" y="628.5" fill="#ffd45a" font-size="14" text-anchor="end">deliver the cash here</text>
 <text x="1008" y="30" fill="#e6e1d4" font-size="22" font-weight="700" text-anchor="end">Treasury convoy: Lumen Exchange to Sentinel</text>
 <rect x="574" y="669" width="440" height="124" fill="#0d1520" opacity="0.85" stroke="#2a3a4d"/>

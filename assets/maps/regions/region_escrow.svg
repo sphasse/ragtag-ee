@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+<rect width="1024" height="1024" fill="#0d1520"/>
+<line x1="-6.1" y1="0" x2="-6.1" y2="1024" stroke="#1c2a3a"/>
+<text x="-2.1" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">-7</text>
+<line x1="115.8" y1="0" x2="115.8" y2="1024" stroke="#1c2a3a"/>
+<text x="119.8" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">-6</text>
+<line x1="237.7" y1="0" x2="237.7" y2="1024" stroke="#1c2a3a"/>
+<text x="241.7" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">-5</text>
+<line x1="359.6" y1="0" x2="359.6" y2="1024" stroke="#1c2a3a"/>
+<text x="363.6" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">-4</text>
+<line x1="481.5" y1="0" x2="481.5" y2="1024" stroke="#1c2a3a"/>
+<text x="485.5" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">-3</text>
+<line x1="603.4" y1="0" x2="603.4" y2="1024" stroke="#1c2a3a"/>
+<text x="607.4" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">-2</text>
+<line x1="725.3" y1="0" x2="725.3" y2="1024" stroke="#1c2a3a"/>
+<text x="729.3" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">-1</text>
+<line x1="847.2" y1="0" x2="847.2" y2="1024" stroke="#1c2a3a"/>
+<text x="851.2" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">0</text>
+<line x1="969.1" y1="0" x2="969.1" y2="1024" stroke="#1c2a3a"/>
+<text x="973.1" y="1018" fill="#8fa0b3" font-size="16" opacity="0.8">1</text>
+<line x1="0" y1="-48.8" x2="1024" y2="-48.8" stroke="#1c2a3a"/>
+<text x="5" y="-30.8" fill="#8fa0b3" font-size="16" opacity="0.8">C</text>
+<line x1="0" y1="73.1" x2="1024" y2="73.1" stroke="#1c2a3a"/>
+<text x="5" y="91.1" fill="#8fa0b3" font-size="16" opacity="0.8">D</text>
+<line x1="0" y1="195.0" x2="1024" y2="195.0" stroke="#1c2a3a"/>
+<text x="5" y="213.0" fill="#8fa0b3" font-size="16" opacity="0.8">E</text>
+<line x1="0" y1="317.0" x2="1024" y2="317.0" stroke="#1c2a3a"/>
+<text x="5" y="335.0" fill="#8fa0b3" font-size="16" opacity="0.8">F</text>
+<line x1="0" y1="438.9" x2="1024" y2="438.9" stroke="#1c2a3a"/>
+<text x="5" y="456.9" fill="#8fa0b3" font-size="16" opacity="0.8">G</text>
+<line x1="0" y1="560.8" x2="1024" y2="560.8" stroke="#1c2a3a"/>
+<text x="5" y="578.8" fill="#8fa0b3" font-size="16" opacity="0.8">H</text>
+<line x1="0" y1="682.7" x2="1024" y2="682.7" stroke="#1c2a3a"/>
+<text x="5" y="700.7" fill="#8fa0b3" font-size="16" opacity="0.8">I</text>
+<line x1="0" y1="804.6" x2="1024" y2="804.6" stroke="#1c2a3a"/>
+<text x="5" y="822.6" fill="#8fa0b3" font-size="16" opacity="0.8">J</text>
+<line x1="0" y1="926.5" x2="1024" y2="926.5" stroke="#1c2a3a"/>
+<text x="5" y="944.5" fill="#8fa0b3" font-size="16" opacity="0.8">K</text>
+<circle cx="1103.2" cy="475.4" r="79.2" fill="#6a4c93" opacity="0.26"/>
+<circle cx="859.4" cy="195.0" r="79.2" fill="#6a4c93" opacity="0.26"/>
+<circle cx="931.7" cy="378.9" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="903.4" cy="334.6" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="899.2" cy="307.9" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="923.3" cy="307.3" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="881.3" cy="393.7" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="868.9" cy="306.8" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="917.5" cy="388.3" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="910.2" cy="388.3" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="929.8" cy="358.1" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="864.0" cy="311.0" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="926.8" cy="328.5" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="896.8" cy="338.2" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="904.9" cy="364.0" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="948.6" cy="328.1" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="880.3" cy="315.5" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="942.5" cy="375.0" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="933.2" cy="390.4" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="841.7" cy="358.6" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="908.3" cy="380.2" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="939.8" cy="306.7" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="878.7" cy="343.9" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="921.9" cy="300.2" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="878.5" cy="340.0" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="903.3" cy="303.2" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="934.6" cy="317.0" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="932.1" cy="358.8" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="871.0" cy="399.8" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="874.9" cy="373.6" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="905.0" cy="315.6" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="907.3" cy="359.8" r="2.4" fill="#b0a080" opacity="0.7"/>
+<circle cx="627.8" cy="-176.8" r="402.3" fill="#6fa8ff" fill-opacity="0.05" stroke="#6fa8ff" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1078.9" cy="61.0" r="323.0" fill="#6fa8ff" fill-opacity="0.05" stroke="#6fa8ff" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1505.5" cy="286.5" r="121.9" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1267.8" cy="445.0" r="85.3" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1103.2" cy="664.4" r="152.4" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1615.2" cy="536.4" r="73.1" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1597.0" cy="737.5" r="176.8" fill="#c9a227" fill-opacity="0.05" stroke="#c9a227" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1792.0" cy="920.4" r="128.0" fill="#d0662c" fill-opacity="0.05" stroke="#d0662c" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1871.2" cy="268.2" r="207.2" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1712.8" cy="176.8" r="54.9" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="2407.6" cy="140.2" r="268.2" fill="#c9a227" fill-opacity="0.05" stroke="#c9a227" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="2060.2" cy="445.0" r="347.4" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1895.6" cy="-61.0" r="54.9" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="2090.7" cy="97.5" r="73.1" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1993.1" cy="603.4" r="85.3" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="1676.2" cy="-268.2" r="176.8" fill="#d0662c" fill-opacity="0.05" stroke="#d0662c" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="2407.6" cy="981.3" r="237.7" fill="#d0403a" fill-opacity="0.05" stroke="#d0403a" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="512.0" cy="512.0" r="438.9" fill="#6fa8ff" fill-opacity="0.16" stroke="#6fa8ff" stroke-opacity="0.75" stroke-width="3"/>
+<circle cx="1017.9" cy="713.1" r="23.8" fill="#ff724c"/>
+<text x="1017.9" y="683.4" fill="#ff724c" font-size="18" text-anchor="middle">Cinder</text>
+<circle cx="426.7" cy="103.6" r="17.7" fill="#5078c8"/>
+<text x="426.7" y="140.3" fill="#9fb6cc" font-size="16" font-style="italic" text-anchor="middle">Valcourt</text>
+<text x="906.6" y="67.3" fill="#6fa8ff" font-size="19" font-weight="700" text-anchor="middle" opacity="0.6" letter-spacing="1" stroke="#0d1520" stroke-width="4" stroke-opacity="0.6" paint-order="stroke">THE ARBITER LINE</text>
+<text x="512.0" y="520.0" fill="#6fa8ff" font-size="24" font-weight="700" text-anchor="middle" opacity="0.95" letter-spacing="1" stroke="#0d1520" stroke-width="4" stroke-opacity="0.6" paint-order="stroke">THE ESCROW MARCHES</text>
+<rect x="479.6" y="174.9" width="16" height="16" fill="#6fa8ff" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 487.6 182.9)"/>
+<text x="500.6" y="189.2" fill="#6fa8ff" font-size="19" text-anchor="start" stroke="#0d1520" stroke-width="4" paint-order="stroke">Sentinel Fleet Yard</text>
+<rect x="991.6" y="-8.0" width="16" height="16" fill="#6fa8ff" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 999.6 0.0)"/>
+<text x="986.6" y="6.3" fill="#6fa8ff" font-size="19" text-anchor="end" stroke="#0d1520" stroke-width="4" paint-order="stroke">Concord Waypoint Galen</text>
+<text x="1008" y="37" fill="#e6e1d4" font-size="32" font-weight="700" text-anchor="end" stroke="#0d1520" stroke-width="5" paint-order="stroke">The Escrow Marches</text>
+<text x="1008" y="80" fill="#8fa0b3" font-size="16" text-anchor="end" stroke="#0d1520" stroke-width="4" paint-order="stroke">Grid: 20U sectors, named as on Relay</text>
+</svg>

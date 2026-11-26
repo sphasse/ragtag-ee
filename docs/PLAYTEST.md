@@ -181,6 +181,8 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
 - [ ] Control tint: each faction's patrol zones show a faint colour on Relay's map and Science's long-range radar (Concord
       blue, Corsair orange, Shroud Raider rust, Relic olive, Hollow red). Still readable at half strength? Does it help
       crews plan routes? GM: World Plugins → "Faction zones: ON/OFF" (top of the list) turns it off and on
+- [ ] Science DB **Regions**: a map of the whole Drift on the section, and one of its region on each entry, with the
+      sector letters and numbers on the edges. Readable on the Science screen? Do crews use them to find places?
 - [ ] The Escrow Marches (new Concord region south of the Core; Sentinel Fleet Yard and Valcourt moved 25U south):
       shake-downs there like the Core? Do old routes to Valcourt still make sense?
 - [ ] Shroud Raiders: their own always-hostile faction; the two rumors that name them

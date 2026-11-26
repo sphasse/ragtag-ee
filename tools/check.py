@@ -166,6 +166,20 @@ def check_generated(data: dict, fix: bool) -> None:
                 print(f"regenerated docs/{name}")
             else:
                 errors.append(f"docs/{name} is out of date: run python tools/check.py --fix")
+    # The Science DB's pictures drawn from the universe data: the region maps and the convoy route.
+    for tool in ("make_region_maps.py", "make_convoy_map.py"):
+        r = subprocess.run([sys.executable, str(ROOT / "tools" / tool), "--check"], capture_output=True, text=True)
+        if r.returncode == 0:
+            continue
+        if fix:
+            r = subprocess.run([sys.executable, str(ROOT / "tools" / tool)], capture_output=True, text=True)
+            if r.returncode != 0:
+                errors.append(f"{tool} failed: {r.stderr.strip()[-300:]}")
+            else:
+                print(r.stdout.rstrip())
+        else:
+            for line in (r.stdout.strip() or f"{tool} --check failed: {r.stderr.strip()[-300:]}").splitlines():
+                errors.append(f"{line}: run python tools/check.py --fix (on a Mac, to redraw the PNGs)")
 
 
 # Module directories whose files must be required by their loader. A file that

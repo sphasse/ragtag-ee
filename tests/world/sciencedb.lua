@@ -45,6 +45,15 @@ T.step("the Drift's sections are there", function()
     end
     T.check("factions: no stock factions", not facs["Human Navy"] and not facs["Exuari"])
 end)
+T.step("the Regions section and each region entry have a map", function()
+    T.eq("maps: the Drift on the Regions section", SCIDB.get("regions"):getImage(), "ragtag/img/maps/drift.png")
+    local n = 0
+    for key, img in pairs(SCIDB.REGION_MAPS) do
+        n = n + 1
+        T.eq("maps: " .. key, SCIDB.get(key) and SCIDB.get(key):getImage(), img)
+    end
+    T.eq("maps: ten (the Drift and nine regions)", n, 10)
+end)
 T.step("one port entry per friendly station", function()
     for _, d in ipairs(VERSE.STATIONS) do
         local hostile = (d.fac == "Corsairs" or d.fac == "Hollow")

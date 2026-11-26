@@ -22,7 +22,7 @@ Contributors add **universe extensions** and **scenarios** independently.
     `director/actions/*.lua` (the action whitelist; `index.lua` is generated)
   - `jobs/` — the job board: `_engine.lua` (`JOBS.board` decides the offers, a renderer shows them), one file per job type
   - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
-    (the Science database: the Drift's sections, Ports and Ship Upgrades built from `RT.UPGRADES` and the stations' `shop`,
+    (the Science database: the Drift's sections (Regions with maps), Ports and Ship Upgrades built from `RT.UPGRADES` and the stations' `shop`,
     and Achievements: every `ACH` achievement, earned or not; new ones are also announced in the ship log)
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs),
     `_audit.lua` (`AUDIT`: the Ledger arc's carry and audit stop, shared with the Audit Lab), `_aftermath.lua`
@@ -51,7 +51,7 @@ Contributors add **universe extensions** and **scenarios** independently.
   `core/save_version.lua` (save format versions and migrations)
   and `core/stations.lua` (ports are indestructible; a lost station is reported), `core/upgrades.lua` (the upgrade catalogue and line bases), `core/transponder.lua` (the fake transponder code), `core/race.lua` (The Short Haul's clock, score and leaderboard), `core/platforms.lua` (gun platforms: placed, aim, fire, range), `core/orbit.lua` (the engine's orbit component: the
   Deep Shroud's asteroid ring, a tow line), `jobs/tow.lua` (the tow job, its achievements)
-- `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `make_convoy_map.py` (the Hob Works convoy-route map, `ee/ragtag/img/convoy_route.png`, for its Science DB entry; needs macOS to render; `check.py` fails if a `"ragtag/img/..."` the Lua names is missing), `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
+- `tools/` — `check.py`, `install.py`, `smoke_test.py`, `game_tests.py`, `ci_headless.sh`, `make_map.py`, `make_convoy_map.py` (the Hob Works convoy-route map, `ee/ragtag/img/convoy_route.png`, for its Science DB entry; needs macOS to render; `check.py` fails if a `"ragtag/img/..."` the Lua names is missing), `make_region_maps.py` (the Science DB's maps: the whole Drift on Regions, one per region entry, `ee/ragtag/img/maps/`; `SCIDB.REGION_MAPS` names them; both map tools are drawn from the universe data, and `check.py` fails when one is stale: `check.py --fix` on a Mac redraws them), `gen_world.py`, `gen_sfx.py` (synthesizes `ee/ragtag/sfx/*.wav`), `dump_verse.lua`
 - `ee/ragtag/voice.lua` (`RT.voice`: invisible NPC voices that hail and converse), `ee/ragtag/stats.lua` (`STATS`/`ACH`: persistent statistics and achievements) `ee/ragtag/battle.lua` (`BATTLE`: set-piece battles over combat points, shared by the Battle Lab, the Corsair arc and, as `BATTLE.annex`, the Boneyard arc), `ee/ragtag/tow.lua` (`TOW`: the tow line for Ice Haul and the tow job, and `TOW.intercept`, the raiders who come for a tow; `RT.update` ticks it) and `ee/ragtag/platforms.lua` (`PLATFORMS`: stationary gun platforms, contributed by Kuri148 in PR #1; the universe places them from its `gun_platforms` data, three Relic ones in the Boneyard; `docs/PLATFORMS.md`), all loaded by `core.lua`
 - `.claude/skills/empty-epsilon-scenarios/` — EE scripting knowledge and gotchas. **Read it before writing EE Lua.**
 

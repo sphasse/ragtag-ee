@@ -644,6 +644,20 @@ end
 
 -- ─── Database construction ────────────────────────────────────────────────────
 
+-- The region maps (entry key -> image), drawn by tools/make_region_maps.py (keep its MAPS in step).
+SCIDB.REGION_MAPS = {
+    regions           = "ragtag/img/maps/drift.png",
+    region_core       = "ragtag/img/maps/region_core.png",
+    region_escrow     = "ragtag/img/maps/region_escrow.png",
+    region_border     = "ragtag/img/maps/region_border.png",
+    region_rim        = "ragtag/img/maps/region_rim.png",
+    region_shroud     = "ragtag/img/maps/region_shroud.png",
+    region_gauntlet   = "ragtag/img/maps/region_gauntlet.png",
+    region_blackwater = "ragtag/img/maps/region_blackwater.png",
+    region_boneyard   = "ragtag/img/maps/region_boneyard.png",
+    region_maw        = "ragtag/img/maps/region_maw.png",
+}
+
 local function _build()
 
     -- Root
@@ -662,7 +676,8 @@ local function _build()
     -- Weapons / Ships / Stations ones; "The Drift" above is the overview entry.
     local regions = _entry(nil, "Regions",
         "The Drift is divided into named regions with distinct hazard profiles and " ..
-        "political climates. Knowing where you are matters."
+        "political climates. Knowing where you are matters. Each region's entry has its own map; " ..
+        "the letters and numbers on the maps' edges are the sectors, as on Relay."
     )
     SCIDB._entries["regions"] = regions
 
@@ -734,6 +749,13 @@ local function _build()
         { ["Star"] = "Pale Sun (blue-white)", ["Law"] = "Concord-restricted", ["Danger"] = "Extreme" },
         "maw_full"
     )
+
+    -- Maps: the whole Drift on the section, one region on each entry. tools/make_region_maps.py draws them
+    -- from the universe data (its MAPS table matches this one); check.py fails when one is stale.
+    for key, img in pairs(SCIDB.REGION_MAPS) do
+        local e = SCIDB._entries[key]
+        if e then pcall(function() e:setImage(img) end) end
+    end
 
     -- ── Factions ─────────────────────────────────────────────────────────────
 
