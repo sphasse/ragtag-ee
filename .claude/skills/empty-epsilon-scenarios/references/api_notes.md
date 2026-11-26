@@ -84,6 +84,11 @@ Everything here was checked against the EmptyEpsilon source and a running headle
   `e.components.orbit = {center = {x, y}, distance = d, time = t}`. `time = 0` keeps the distance without circling: a
   **tow line** (the entity trails the target like a rope; `TOW` in `ee/ragtag/tow.lua`, used by Ice Haul and the tow job). `components.orbit = nil` lets go (it stays put).
   Used for the Deep Shroud's asteroid ring (`asteroid_fields` kind `"ring"`). Test: `tests/core/orbit.lua`.
+- **Zones** (`Zone():setColor(r, g, b):setPoints(x1, y1, x2, y2, ...)`, `src/systems/zone.cpp`): a polygon (any simple
+  shape, triangulated) drawn on the long-range radars only (Relay, Science's long range, GM, comms), never on Helm's short
+  range or in 3D. The fill is always alpha 64 and the outline 128 whatever alpha you set (alpha 0 hides it), so a faint tint
+  needs a dark colour. A label is sized to the zone (huge on a big one). `Zone()` adds `never_radar_blocked`, so Relay's fog
+  of war shows it. Used for the control tint (`PROX.showControl`, `world/proximity.lua`).
 - **Drawn beams** (`components.beam_effect`, `src/systems/beamweapon.cpp`): what weapons fire uses, but any entity with
   `transform` + `beam_effect = {source, target, lifetime, fade_speed, fire_ring, beam_texture, beam_color = {r, g, b, a}}`
   draws a beam from `source` to `target` (both followed every frame) in 3D and on radar (a line plus a dot at the target).

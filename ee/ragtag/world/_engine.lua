@@ -78,11 +78,18 @@ end
 -- Build the "World Plugins..." GM menu entry and its per-plugin submenus.
 -- Call once from the scenario's addSessionGMFunctions, passing a callback
 -- that re-enters the main GM menu (used by the Back button in the plugin list).
--- Only plugins that define P.gmMenu(addButton, showSelf) appear in the list.
+-- Only plugins that define P.gmMenu(addButton, showSelf) appear in the list. A plugin may also put
+-- quick switches at the top of the list: P.gmToggles = {{label = fn() -> text, fn = fn()}, ...}.
 function WORLD.addGMButton(showParent)
     local function showWorldMenu()
         clearGMFunctions()
         addGMFunction("← Back to Main", showParent)
+        for _, id in ipairs(WORLD._order) do
+            for _, t in ipairs(WORLD._registry[id].gmToggles or {}) do
+                local cap = t
+                addGMFunction(cap.label(), function() cap.fn(); showWorldMenu() end)
+            end
+        end
         for _, id in ipairs(WORLD._order) do
             local P = WORLD._registry[id]
             if P.gmMenu then

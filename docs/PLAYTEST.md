@@ -223,6 +223,9 @@ Details: [GM_ICEHAUL_MISSION.md](GM_ICEHAUL_MISSION.md).
 
 ## 7. The world
 
+- [ ] Control tint: each faction's patrol zones show a faint colour on Relay's map and Science's long-range radar (Concord
+      blue, Corsair orange, Shroud Raider rust, Relic olive, Hollow red). Readable? Too strong over the stars and contacts?
+      GM: World Plugins → "Faction zones: ON/OFF" (top of the list) turns it off and on
 - [ ] Achievements show in the ship log (Relay) as "[Achievement] Name: ...". Science DB **Achievements** (top
       level) lists them all, earned [x] or not; hidden story ones show as ??? until earned
 - [ ] Fake transponder codes (after paying the Hob Works): Marchetti's offer, the 500 cr code at the Hob Works

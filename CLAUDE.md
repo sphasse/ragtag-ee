@@ -231,7 +231,11 @@ shake-down target is stopped from scratch; a hostile patrol stays hostile).
 - Corsairs ≤ −200 rep: 30% shorter cooldowns; ≤ −400: 50% shorter (hunt you)
 - Concord shakedown outcomes (rep thresholds): ≥500 callsign recognised (clean pass with compliment); ≥200 clean pass; ≥0 nothing flagged; ≥−200 fine offer; <−200 detention threat → Concord Ops hostile
 
-**GM control**: World Plugins... → Proximity Spawns: on/off, "Trigger Spawn Now", and a mode per zone
+**Control tint**: each faction's patrol zones are tinted faintly on the long-range radars (Relay, Science, Operations, GM):
+`PROX.showControl` draws one engine `Zone` per faction outline (`PROX.controlOutlines`: overlapping same-faction
+zones merged), colours `PROX.CONTROL_COLORS` (muted: the engine fills at a fixed alpha), on by default (`control_tint`).
+
+**GM control**: World Plugins... → Proximity Spawns: on/off, "Faction zones: ON/OFF" (the tint; also at the top of World Plugins...), "Trigger Spawn Now", and a mode per zone
 (`PROX.setZoneMode(zone, 1..4)`: None / Low / Medium / High).
 
 **Key insight**: Danger is now location-based (enter the Gauntlet → Corsairs spawn) rather than mission-based (intercept at 40% route progress). Creates predictable risk zones players learn to navigate.

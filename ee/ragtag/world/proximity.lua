@@ -37,6 +37,7 @@ _P.defaults = {
     shakedown_timeout   = 60,    -- seconds of comms silence before an ignored shake-down goes hostile
     concord_despawn     = 120,   -- seconds after peaceful Concord resolution before ships vanish
     default_zone_mode   = 3,     -- starting mode for each zone (1=None 2=Low 3=Medium 4=High)
+    control_tint        = true,  -- tint each faction's patrol zones on the long-range radars (PROX.showControl)
 }
 
 -- ── Static data ──────────────────────────────────────────────────────────────
@@ -1010,6 +1011,123 @@ local function _bestZone(st, player, px, py, cell, zone_ships, now, taken)
     return best_name
 end
 
+-- ── Control tint ─────────────────────────────────────────────────────────────
+-- Who patrols where, as a faint tint on the long-range radars (Relay, Science, Operations, the GM):
+-- each faction's patrol zones (PROX.zones) merged into one outline and drawn as an engine Zone.
+-- The engine fills a zone at a fixed alpha (64), so the tint's strength comes from how dark the
+-- colour is: CONTROL_COLORS are muted on purpose. Zone() carries never_radar_blocked, so Relay sees
+-- it through its fog of war. No labels (the engine sizes a label to the zone: far too big).
+
+PROX.CONTROL_COLORS = {
+    Concord            = {60, 95, 165},
+    Corsairs           = {165, 90, 35},
+    ["Shroud Raiders"] = {120, 60, 35},
+    Relic              = {125, 118, 50},
+    Hollow             = {140, 30, 30},
+}
+PROX.CONTROL_STEPS = 120   -- points round each region's circle
+PROX._control = PROX._control or {}   -- the Zone entities drawn
+
+-- The outlines: {{faction = f, points = {{x, y}, ...}}, ...} in world units. Same-faction regions
+-- that overlap become one outline (the arcs of each circle outside the others, chained end to end),
+-- so an overlap is not tinted twice.
+function PROX.controlOutlines()
+    local by = {}
+    for _, r in ipairs(VERSE.REGIONS) do
+        local z = PROX.zones[r.name]
+        if z and PROX.CONTROL_COLORS[z.faction] then
+            by[z.faction] = by[z.faction] or {}
+            table.insert(by[z.faction], {x = r.x * U, y = r.y * U, r = r.r * U})
+        end
+    end
+    local out = {}
+    local N = PROX.CONTROL_STEPS
+    for fac, circles in pairs(by) do
+        -- Each circle's arcs outside every other circle of the faction, in the same turning direction.
+        local arcs = {}
+        for i, c in ipairs(circles) do
+            local pts, keep, all = {}, {}, true
+            for j = 1, N do
+                local a = (j - 1) / N * 2 * math.pi
+                local x, y = c.x + math.cos(a) * c.r, c.y + math.sin(a) * c.r
+                local inside = false
+                for k, o in ipairs(circles) do
+                    if k ~= i and (x - o.x) ^ 2 + (y - o.y) ^ 2 < (o.r - 1) ^ 2 then inside = true; break end
+                end
+                pts[j], keep[j] = {x, y}, not inside
+                if inside then all = false end
+            end
+            if all then
+                arcs[#arcs + 1] = {points = pts, closed = true}
+            else
+                for j = 1, N do
+                    local prev = (j - 2) % N + 1
+                    if keep[j] and not keep[prev] then
+                        local arc, k = {}, j
+                        while keep[k] do
+                            arc[#arc + 1] = pts[k]
+                            k = k % N + 1
+                            if k == j then break end
+                        end
+                        arcs[#arcs + 1] = {points = arc}
+                    end
+                end
+            end
+        end
+        -- Chain the arcs: each ends where the next (on another circle) begins.
+        local used = {}
+        for i, arc in ipairs(arcs) do
+            if not used[i] then
+                used[i] = true
+                if arc.closed then
+                    out[#out + 1] = {faction = fac, points = arc.points}
+                else
+                    local loop = {}
+                    local cur = arc
+                    for _ = 1, #arcs do
+                        for _, p in ipairs(cur.points) do loop[#loop + 1] = p end
+                        local last = cur.points[#cur.points]
+                        local best, best_d = nil, math.huge
+                        for k, other in ipairs(arcs) do
+                            if (not used[k] or k == i) and not other.closed then
+                                local f = other.points[1]
+                                local d = (f[1] - last[1]) ^ 2 + (f[2] - last[2]) ^ 2
+                                if d < best_d then best, best_d = k, d end
+                            end
+                        end
+                        if not best or best == i then break end
+                        used[best] = true
+                        cur = arcs[best]
+                    end
+                    out[#out + 1] = {faction = fac, points = loop}
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- Draw (on = true) or remove the tint.
+function PROX.showControl(on)
+    for _, z in ipairs(PROX._control) do
+        if z:isValid() then z:destroy() end
+    end
+    PROX._control = {}
+    if not on then return end
+    for _, o in ipairs(PROX.controlOutlines()) do
+        local ok, err = pcall(function()
+            local flat = {}
+            for _, p in ipairs(o.points) do flat[#flat + 1] = p[1]; flat[#flat + 1] = p[2] end
+            local c = PROX.CONTROL_COLORS[o.faction]
+            local z = Zone():setColor(c[1], c[2], c[3]):setPoints(table.unpack(flat))
+            PROX._control[#PROX._control + 1] = z
+        end)
+        if not ok then log("[PROX] control tint failed for " .. o.faction .. ": " .. tostring(err)) end
+    end
+end
+
+function PROX.controlShown() return #PROX._control > 0 end
+
 -- ── Plugin interface ──────────────────────────────────────────────────────────
 
 function _P.init(state)
@@ -1039,6 +1157,7 @@ function _P.init(state)
             table.insert(state.safe_stns, {x = wx, y = wy, r = ds_r})
         end
     end
+    if _cfg("control_tint") then PROX.showControl(true) end
 end
 
 function _P.update(state, delta, now)
@@ -1167,10 +1286,20 @@ local _ZONE_LABEL = {
     ["the Maw"]           = "The Maw",
 }
 
+-- The faction zones' tint on the radars: a switch at the top of World Plugins, and in this menu.
+local function _zonesLabel() return "Faction zones: " .. (PROX.controlShown() and "ON" or "OFF") end
+_P.gmToggles = {
+    {label = function() return _zonesLabel() end, fn = function() PROX.showControl(not PROX.controlShown()) end},
+}
+
 function _P.gmMenu(addButton, showSelf)
     local on = WORLD.isEnabled("proximity")
     addButton(_P.name .. ": " .. (on and "ON" or "OFF"), function()
         if on then WORLD.disable("proximity") else WORLD.enable("proximity") end
+        showSelf()
+    end)
+    addButton(_zonesLabel(), function()
+        PROX.showControl(not PROX.controlShown())
         showSelf()
     end)
     addButton("Trigger Spawn Now", function()

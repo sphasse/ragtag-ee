@@ -3,14 +3,16 @@
 -- the timeout) and hostile Concord groups with their combat jammers. With two ships: each patrol
 -- hunts one ship and judges it by its own standing, a second ship draws its own patrol, zones
 -- send one patrol per cooldown however many ships are in them, and a patrol whose ship leaves
--- takes another ship still in the zone.
+-- takes another ship still in the zone. The control tint: each faction's zones merged into one
+-- outline, drawn as engine Zones, switched off and on.
 --
 -- The plugin's own update does the spawning: the test only puts the ship somewhere and brings
 -- the next check forward (the real interval is 8 s). Patrol ships are moved next to the player
 -- instead of waiting for them to fly there.
 --
 -- Not covered: the patrols' flying and shooting, the loot a destroyed patrol drops, and the
--- density check against garrisons (the test picks spots with few hostiles around).
+-- density check against garrisons (the test picks spots with few hostiles around), and how the tint looks on
+-- a radar (checked by rendering the outlines to an image).
 
 T.suite("world", {proximity = true})
 
@@ -562,4 +564,60 @@ T.step("plugin off", function()
     WORLD.disable("proximity")
     T.check("off: the patrol is removed", not RT.valid(ship))
     set_rep("Concord", 0, A)
+end)
+
+-- ── The control tint: each faction's patrol zones, merged, tinted on the long-range radars ──────
+T.step("control tint", function()
+    local inside = function(x, y, fac, slack)
+        for _, r in ipairs(VERSE.REGIONS) do
+            local z = PROX.zones[r.name]
+            if z and z.faction == fac and (x - r.x * U) ^ 2 + (y - r.y * U) ^ 2 < (r.r * U - slack) ^ 2 then return true end
+        end
+        return false
+    end
+    local count, bad = {}, 0
+    for _, o in ipairs(PROX.controlOutlines()) do
+        count[o.faction] = (count[o.faction] or 0) + 1
+        for _, p in ipairs(o.points) do
+            if inside(p[1], p[2], o.faction, 50) then bad = bad + 1 end   -- on the edge, never deep inside
+        end
+    end
+    T.eq("tint: the three Concord zones merge into one outline", count.Concord, 1)
+    T.eq("tint: the Shroud and Halcyon Rest merge; the Deep Shroud apart", count["Shroud Raiders"], 2)
+    T.eq("tint: the Gauntlet and Blackwater Reach merge", count.Corsairs, 1)
+    T.eq("tint: the Boneyard", count.Relic, 1)
+    T.eq("tint: the Maw", count.Hollow, 1)
+    T.eq("tint: every outline point is on the edge of the faction's space", bad, 0)
+    T.check("tint: shown from the start", PROX.controlShown())
+    T.eq("tint: six zones drawn", #PROX._control, 6)
+    local z = PROX._control[1]
+    T.check("tint: a zone with a colour", z and z.components.zone and z.components.zone.color[4] > 0)
+    T.check("tint: seen through Relay's fog of war", z and z.components.never_radar_blocked ~= nil)
+    PROX.showControl(false)
+    T.check("tint: off", not PROX.controlShown() and not (z and z:isValid()))
+    PROX.showControl(true)
+    T.eq("tint: back on", #PROX._control, 6)
+end)
+
+-- The GM switch at the top of World Plugins...: "Faction zones: ON/OFF".
+T.step("GM: faction zones switch", function()
+    local buttons = {}
+    local add, clear = addGMFunction, clearGMFunctions
+    addGMFunction = function(label, fn) buttons[#buttons + 1] = {label = label, fn = fn} end
+    clearGMFunctions = function() buttons = {} end
+    local ok, err = pcall(function()
+        local function press(label)
+            for _, b in ipairs(buttons) do if b.label == label then b.fn(); return true end end
+            return false
+        end
+        WORLD.addGMButton(function() end)
+        T.check("GM: World Plugins...", press("World Plugins..."))
+        T.check("GM: the switch reads ON", press("Faction zones: ON"))
+        T.check("GM: zones hidden", not PROX.controlShown())
+        T.check("GM: the switch reads OFF", press("Faction zones: OFF"))
+        T.check("GM: zones shown again", PROX.controlShown())
+        T.eq("GM: six zones", #PROX._control, 6)
+    end)
+    addGMFunction, clearGMFunctions = add, clear
+    T.check("GM: no error", ok, tostring(err))
 end)

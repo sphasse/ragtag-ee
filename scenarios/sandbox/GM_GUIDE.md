@@ -151,7 +151,9 @@ The GM screen's buttons, top to bottom:
 - **Reputation...**: a ship's standing per faction, with what each level means (with several ships,
   pick the ship first). Select a faction to adjust it by +50 or −50
 - **World Plugins...**: switch each ambient system on or off and tune it: Proximity Spawns
-  (per-zone None / Low / Medium / High, "Trigger Spawn Now"), Station Defenders, Salvage Clusters
+  (per-zone None / Low / Medium / High, "Trigger Spawn Now", "Faction zones: ON/OFF": the faint faction colour over
+  each faction's patrol zones on Relay's and Science's long-range radar, on by default; the same switch is at the top of
+  World Plugins...), Station Defenders, Salvage Clusters
   (density, reward), Station Traffic (density), Rumors, Science Database
 - **Jobs...**: work cooldown on/off, job distance (short / medium / long), credits +50 / −50 (a pair
   of buttons per ship when there are several), and GM-written jobs:
