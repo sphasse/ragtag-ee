@@ -113,6 +113,7 @@ def render(D: dict, key: str, title: str, names) -> tuple[str, int, int]:
     overview = names is None
     focus = set(names or [])
     fs = 15 if overview else 19                     # base font size (px of a 1024-wide picture)
+    es = 2 * fs - 4                                 # the sector names on the edges (twice the old size)
     rng = random.Random(key)                        # deterministic scatter
 
     svg = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}"'
@@ -123,15 +124,16 @@ def render(D: dict, key: str, title: str, names) -> tuple[str, int, int]:
     gx = math.floor(x0 / 20) * 20
     while gx <= x1:
         svg.append(f'<line x1="{px(gx):.1f}" y1="0" x2="{px(gx):.1f}" y2="{H}" stroke="{GRID}"/>')
-        if px(gx) + 4 < W - 20:
-            svg.append(f'<text x="{px(gx) + 4:.1f}" y="{H - 6}" fill="{DIM}" font-size="{fs - 3}" opacity="0.8">'
-                       f'{gx // 20 + 5}</text>')
+        if 0 <= px(gx) and px(gx) + 4 < W - 2 * es:          # a sector starting off the picture: no name
+            svg.append(f'<text x="{px(gx) + 5:.1f}" y="{H - 8}" fill="{DIM}" font-size="{es}" font-weight="700"'
+                       f' opacity="0.85" stroke="{BG}" stroke-width="5" paint-order="stroke">{gx // 20 + 5}</text>')
         gx += 20
     gy = math.floor(y0 / 20) * 20
     while gy <= y1:
         svg.append(f'<line x1="0" y1="{py(gy):.1f}" x2="{W}" y2="{py(gy):.1f}" stroke="{GRID}"/>')
-        if py(gy) + fs < H - 20:
-            svg.append(f'<text x="5" y="{py(gy) + fs - 1:.1f}" fill="{DIM}" font-size="{fs - 3}" opacity="0.8">'
+        if 0 <= py(gy) and py(gy) + es < H - es - 8:
+            svg.append(f'<text x="6" y="{py(gy) + es + 2:.1f}" fill="{DIM}" font-size="{es}" font-weight="700"'
+                       f' opacity="0.85" stroke="{BG}" stroke-width="5" paint-order="stroke">'
                        f'{sector_row(gy // 20 + 5)}</text>')
         gy += 20
 
@@ -250,7 +252,7 @@ def render(D: dict, key: str, title: str, names) -> tuple[str, int, int]:
                 (DANGER[3], "box", "deadly"), (STATION["Independent"], "port", "port"),
                 (BLUE, "port", "Concord port")]
     if overview:
-        kx, ky, step = 28, H - 30 - 20 * len(key_rows), 20
+        kx, ky, step = 3 * es, H - 2 * es - 20 * len(key_rows), 20   # clear of the sector names
         svg.append(f'<rect x="{kx - 8}" y="{ky - 18}" width="170" height="{20 * len(key_rows) + 10}" fill="{BG}"'
                    f' opacity="0.85" stroke="#2a3a4d"/>')
         for i, (c, kind, text) in enumerate(key_rows):

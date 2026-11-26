@@ -268,7 +268,7 @@ end)
 
 function M._addRaidEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["holdout_raid"] then return end
-    SCIDB._entries["holdout_raid"] = SCIDB.addEntry("lore", "The raid on Breaker's Claim", table.concat({
+    SCIDB._entries["holdout_raid"] = SCIDB.addEntry("briefings", "The raid on Breaker's Claim", table.concat({
         "THE JOB",
         "Stand with Breaker's Claim until the Shroud Raiders give up. Foreman Ines Calloway pays " .. _cr(M.PAY) .. " cr: everything the camp has.",
         "",

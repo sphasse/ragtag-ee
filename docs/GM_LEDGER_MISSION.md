@@ -150,7 +150,7 @@ sessions):
   and a bigger budget.
 - The lines are in `ee/ragtag/missions/_aftermath.lua`.
 
-Science DB: Lore → "The Containment Ledger" (lock key `ledger_findings`), unlocked on full and readable
+Science DB: Records → "The Containment Ledger" (lock key `ledger_findings`), unlocked on full and readable
 exactly while `ledger_evidence` is set. It names Voss, Hale, Tan and the Standing Committee.
 
 ## Design notes

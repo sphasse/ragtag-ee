@@ -56,7 +56,7 @@ Rest and Saint Brennan's Mission (one shared job). The pods are on the Boneyard'
 (22, −72); one Science scan shows which is the lifeboat.
 - Picking it up: the log says the survivors are archive staff locked out of Ashgrave, with Ashgrave's
   grid. Mara Quill hails (an invisible voice; the ship log if comms are busy): she uploads their
-  records and asks for someone to hack the Annex and extract the research. A Science DB entry, Lore →
+  records and asks for someone to hack the Annex and extract the research. A Science DB entry, Records →
   "Boneyard Survivor Records", is added. The job's clock stops (they're aboard and breathing).
 - **Nothing more happens until they are home.** Handing the job in at the station it came from adds
   the "Hack the Annex" objective, and the Annex appears. Flying past Ashgrave with them aboard reveals

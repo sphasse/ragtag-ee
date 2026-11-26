@@ -84,7 +84,7 @@ end)
 T.closeComms()
 T.waitFor("survivors: their records are announced with where they are", function()
     local l = SCIDB.announced[#SCIDB.announced]
-    return l == "[Science] Database entry added: Lore > Boneyard Survivor Records."
+    return l == "[Science] Database entry added: Records > Boneyard Survivor Records."
 end, 7)
 T.step("their records fit the Science screen", function()
     local n = 0

@@ -214,7 +214,7 @@ use each, 10 minutes in which the Concord reads a wanted ship as clean. Science 
 Fake transponder. A GM jump or "→ Inactive" locks the sale again (codes already bought are kept); a
 save funded before the sale existed gets it at the next session.
 
-Science DB: profiles of **Dr. Mara Quill** and **Anton Marchetti**; Lore → **"Lullaby (Phase II reversal
+Science DB: profiles of **Dr. Mara Quill** and **Anton Marchetti**; Records → **"Lullaby (Phase II reversal
 beacon)"** (from the meeting) and **"Convoy intel: CTS Tithe"** (from the brief), with a route map
 image: the route, the escorts' 15U, Concord space, each port guard's 5U and picket's 10U, and the way
 home to Hob's Landing (`tools/make_convoy_map.py` draws it from the game data: re-run it after moving

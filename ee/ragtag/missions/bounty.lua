@@ -343,13 +343,13 @@ end
 
 local function _addNoticeEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["bounty_notice"] then return end
-    SCIDB._entries["bounty_notice"] = SCIDB.addEntry("lore", "Bounty: Pell Ashby", _noticeText(),
+    SCIDB._entries["bounty_notice"] = SCIDB.addEntry("briefings", "Bounty: Pell Ashby", _noticeText(),
         {["Wanted"] = "Alive", ["Reward"] = _cr(M.PAY_BOUNTY) .. " cr", ["Last seen"] = "The Deep Shroud"})
 end
 
 function M._addAshbyEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["bounty_ashby"] then return end
-    SCIDB._entries["bounty_ashby"] = SCIDB.addEntry("lore", "Pell Ashby's side", table.concat({
+    SCIDB._entries["bounty_ashby"] = SCIDB.addEntry("briefings", "Pell Ashby's side", table.concat({
         "WHAT HE SAYS",
         "The Rimward Haulers Guild has been skimming its own crews' pay for years. Ashby kept the books, so he knows by how much, and he took the payroll.",
         "",

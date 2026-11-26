@@ -155,7 +155,7 @@ function ARC.stationHook(callsign, fn)
 end
 
 -- First meeting with a Science DB profile: sets "<arc>_met_<who>" (SCIDB.meet) and adds the
--- profile; SCIDB announces it in the ship log ("Database entry added: Lore > Thresh"). Returns true
+-- profile; SCIDB announces it in the ship log ("Database entry added: People > Thresh"). Returns true
 -- the first time. `who` (the person's name) is kept for callers and readability. GM resets clear
 -- the flag with the arc's other flags and SCIDB.sync removes the profile.
 function ARC.meet(arc_id, profile_key, who)

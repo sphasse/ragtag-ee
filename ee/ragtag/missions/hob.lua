@@ -708,13 +708,13 @@ end
 
 function M._addLullabyEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["hob_lullaby"] then return end
-    SCIDB._entries["hob_lullaby"] = SCIDB.addEntry("lore", "Lullaby (Phase II reversal beacon)", _lullabyText(),
+    SCIDB._entries["hob_lullaby"] = SCIDB.addEntry("records", "Lullaby (Phase II reversal beacon)", _lullabyText(),
         {["Builder"] = "The Hob Works", ["Effect"] = "Hollow dormancy, reversal", ["Status"] = "Stalled: parts"})
 end
 
 local function _addIntelEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["hob_intel"] then return end
-    local e = SCIDB.addEntry("lore", "Convoy intel: CTS Tithe", _intelText(),
+    local e = SCIDB.addEntry("briefings", "Convoy intel: CTS Tithe", _intelText(),
         {["Route"] = "Lumen to Sentinel", ["Ships"] = "1 transport, 2 escorts", ["Escort sensors"] = "About 15U"})
     SCIDB._entries["hob_intel"] = e
     -- The route map (tools/make_convoy_map.py; EmptyEpsilon reads images from scripts/).

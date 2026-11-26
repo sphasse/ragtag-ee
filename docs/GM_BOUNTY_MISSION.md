@@ -55,7 +55,7 @@ Science DB profile is added):
 
 ### Hunt
 
-Objective **"Find Long Odds"**. The Science DB gets **Lore > Bounty: Pell Ashby** (the notice, where,
+Objective **"Find Long Odds"**. The Science DB gets **Mission Briefings > Bounty: Pell Ashby** (the notice, where,
 the ship, the disable rule, the escorts).
 
 - **Long Odds** (a Phobos T3 with 300 hull and 150/150 shields, faction **Fugitive**) and two escorts,
@@ -80,7 +80,7 @@ Objective **"Deliver Ashby"**. A few seconds in, **Pell Ashby hails** (from the 
 "...I moved it all into crypto credits and memorized the keys. They're in my head, nowhere else. The
 Independents can probably beat it out of me, but none of us want to see that happen... Drop me at Saint
 Brennan's Mission instead. The order will take me in, and 4,500 of those credits are yours." (If comms
-are busy it goes to the ship log.) The Science DB gets **Lore > Pell Ashby's side**.
+are busy it goes to the ship log.) The Science DB gets **Mission Briefings > Pell Ashby's side**.
 
 The crew chooses by where it docks:
 - **Dustmote Salvage, "Hand Ashby to the guild":** "3,000. Alive, as ordered." **3,000 cr,
@@ -126,7 +126,7 @@ one); mid-delivery, Ashby is still aboard.
 
 Standing: Independent +100 (bounty) or −150 (released).
 
-Science DB: Thresh's profile; Lore → **"Bounty: Pell Ashby"** and **"Pell Ashby's side"**.
+Science DB: Thresh's profile; Mission Briefings → **"Bounty: Pell Ashby"** and **"Pell Ashby's side"**.
 
 News (`missions/_aftermath.lua`, category `BOUNTY_DONE`, each told once):
 - Bounty: "The Rimward Haulers Guild got its bookkeeper back. Nobody's seen him since, and nobody's

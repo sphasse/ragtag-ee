@@ -47,7 +47,7 @@ Docked at **Hob's Landing**, **"[SPECIAL] The water office"** opens two pages:
 
 ### Haul
 
-Objective **"Pick up the ice"**; the Science DB gets **Lore > The Kestrel ice** (the job, where the ice
+Objective **"Pick up the ice"**; the Science DB gets **Mission Briefings > The Kestrel ice** (the job, where the ice
 is, how the tow works).
 
 - **Kestrel Ice** (a big asteroid, pale blue on radar; it doesn't explode on touch) drifts round the
@@ -106,7 +106,7 @@ flags). After a session ends mid-haul, the next session puts the ice back at its
 |---|---|
 | `icehaul_arc_done` | `"delivered"` / `"lost"` |
 
-Standing: Independent +75 when delivered. Science DB: Lore → **"The Kestrel ice"**.
+Standing: Independent +75 when delivered. Science DB: Mission Briefings → **"The Kestrel ice"**.
 
 News (`missions/_aftermath.lua`, category `ICEHAUL_DONE`, told once): "Hob's Landing lifted the water
 rationing. Somebody towed in a whole chunk of the Kestrel comet, and the Landing's drinking it."

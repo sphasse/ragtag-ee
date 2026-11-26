@@ -22,7 +22,7 @@ Contributors add **universe extensions** and **scenarios** independently.
     `director/actions/*.lua` (the action whitelist; `index.lua` is generated)
   - `jobs/` — the job board: `_engine.lua` (`JOBS.board` decides the offers, a renderer shows them), one file per job type
   - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
-    (the Science database: the Drift's sections (Regions with maps), Ports and Ship Upgrades built from `RT.UPGRADES` and the stations' `shop`,
+    (the Science database: the Drift's sections (Regions with maps; People, Records and Mission Briefings, where arcs add entries: there is no Lore section), the stock Ships section cut to the ships the game uses (`SCIDB.SHIPS_USED`, generated into `ee/ragtag/ships_used.lua` by `check.py --fix` from every template name in the Lua; `tools/ship_templates.py`), Ports and Ship Upgrades built from `RT.UPGRADES` and the stations' `shop`,
     and Achievements: every `ACH` achievement, earned or not; new ones are also announced in the ship log)
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs),
     `_audit.lua` (`AUDIT`: the Ledger arc's carry and audit stop, shared with the Audit Lab), `_aftermath.lua`
@@ -85,7 +85,7 @@ Contributors add **universe extensions** and **scenarios** independently.
 5. **Each campaign has its own save** via `RT.useCampaign("<folder name>")` and its own `scenarios/<campaign>/bible.md`.
 6. Scenario numbers must not collide with stock EmptyEpsilon or each other (`check.py` enforces; ranges in CONTRIBUTING.md).
 7. Generated files (`extensions/index.lua`, `director/actions/index.lua`, `director/generated/world.md`, `docs/verse_map.svg`,
-   `docs/verse_control_map.svg`)
+   `docs/verse_control_map.svg`, `ee/ragtag/ships_used.lua`, the map SVGs and PNGs in `assets/maps/` and `ee/ragtag/img/`)
    come from `check.py --fix`; never hand-edit.
 8. **Game code never names `DIR`.** Core, jobs, world plugins and arcs report with `RT.emit(type, data, priority)`
    (`core/events.lua`); the director's mailbox is one listener (`RT.on`). Only `director.lua`, `director/`, `gm_console.lua`

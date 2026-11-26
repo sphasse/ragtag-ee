@@ -166,6 +166,15 @@ def check_generated(data: dict, fix: bool) -> None:
                 print(f"regenerated docs/{name}")
             else:
                 errors.append(f"docs/{name} is out of date: run python tools/check.py --fix")
+    # The ships the game uses (the Science DB's Ships section keeps only these).
+    import ship_templates
+    text = ship_templates.render()
+    if not ship_templates.OUT.exists() or ship_templates.OUT.read_text(encoding="utf-8") != text:
+        if fix:
+            ship_templates.OUT.write_text(text, encoding="utf-8")
+            print("regenerated", ship_templates.OUT.relative_to(ROOT))
+        else:
+            errors.append("ee/ragtag/ships_used.lua is out of date: run python tools/check.py --fix")
     # The Science DB's pictures drawn from the universe data: the region maps and the convoy route.
     for tool in ("make_region_maps.py", "make_convoy_map.py"):
         r = subprocess.run([sys.executable, str(ROOT / "tools" / tool), "--check"], capture_output=True, text=True)

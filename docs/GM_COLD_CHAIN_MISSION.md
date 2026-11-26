@@ -58,7 +58,7 @@ with **"Go on."**:
 
 ### Approach
 
-Objective **"Hack Ostia Highport"**. The Science DB gets **Lore > The Tamsin fever**, which covers
+Objective **"Hack Ostia Highport"**. The Science DB gets **Mission Briefings > The Tamsin fever**, which covers
 everything Varga said.
 
 - Fly to **Ostia Highport**, about 166U from Tamsin, deep in the Concord Core. A wanted crew (Concord
@@ -131,7 +131,7 @@ mid-run, the next session starts the run again with a fresh 15-minute timer (the
 
 Standing: Concord −300 when identified; Independent +150 for an in-time delivery.
 
-Science DB: the profile of **Dr. Nell Varga**; Lore → **"The Tamsin fever"**.
+Science DB: the profile of **Dr. Nell Varga**; Mission Briefings → **"The Tamsin fever"**.
 
 News (`missions/_aftermath.lua`, category `COLDCHAIN_DONE`, each told once):
 - Delivered: "Tamsin's fever broke. Dr. Varga's sending fresh bread to every crew that docks there."

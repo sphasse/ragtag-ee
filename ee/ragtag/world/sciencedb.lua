@@ -3,7 +3,8 @@
 -- Runs in init(): removes the stock sections listed in SCIDB.REMOVE_STOCK (EE builds the stock
 -- database before the scenario starts), then builds the Drift's top-level sections: "The Drift"
 -- (overview), Factions, Regions, Ports (one entry per friendly/neutral universe station, from
--- VERSE.STATIONS) and Lore, beside the stock Natural, Technologies, Weapons and Ships.
+-- VERSE.STATIONS), Ship Upgrades, Achievements, People, Records and Mission Briefings, beside the stock
+-- Natural, Technologies, Weapons and Ships (Ships cut to the templates the game uses).
 --
 -- API:
 --   SCIDB.unlock(key)              -- reveal a locked entry
@@ -16,9 +17,9 @@
 --   SCIDB.quietly(fn)              -- run fn without the ship-log announcements (a restore, not news)
 --
 -- Every entry added (SCIDB.addEntry, profiles) or revealed (SCIDB.unlock) during play is announced
--- in the ship log, where Relay sees it, with where it is: "[Science] Database entry added: Lore >
+-- in the ship log, where Relay sees it, with where it is: "[Science] Database entry added: People >
 -- Thresh.", and as a pop-up on Science, Operations and Single Pilot ("Science database updated:
--- New: Lore > Thresh"; entries within a second share one pop-up). Building the database and
+-- New: People > Thresh"; entries within a second share one pop-up). Building the database and
 -- SCIDB.sync (restoring what a save already earned) are quiet: no log line, no pop-up.
 -- Arcs therefore never write their own "database updated" lines; a narrative line ("Survivor
 -- records received.") goes before the change, so it reads first.
@@ -33,7 +34,7 @@ SCIDB = SCIDB or {}
 SCIDB._entries = {}   -- key → ScienceDatabase handle
 SCIDB._locked  = {}   -- key → {entry, description, kv, locked_desc, on_unlock, unlocked}
 SCIDB._rules   = SCIDB._rules or {}   -- key → spec (see SCIDB.rule); survives _build
-SCIDB._paths   = {}   -- entry handle → where it is, "Lore > Thresh" (for the announcements)
+SCIDB._paths   = {}   -- entry handle → where it is, "People > Thresh" (for the announcements)
 SCIDB._quiet   = 0    -- > 0: no announcements (building, sync)
 SCIDB.announced = {}  -- the last announcements, newest last (tests read it: the ship log can't be)
 
@@ -131,7 +132,7 @@ function SCIDB.get(key)
 end
 
 -- Add a child entry under an existing parent at runtime.
--- parent_key : SCIDB key of the parent (e.g. "lore")
+-- parent_key : SCIDB key of the parent ("people", "records", "briefings", ...)
 -- name       : display name
 -- desc       : long description (shown immediately)
 -- kv         : table of {key=value} pairs, or nil
@@ -163,7 +164,7 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
     return entry
 end
 
--- Character profiles under Lore, added when the crew first meets someone. Deliberately
+-- Character profiles under People, added when the crew first meets someone. Deliberately
 -- character sketches: what a person is like, not what they will do later.
 -- Arcs call SCIDB.meet(arc_id, key): it sets the flag "<arc_id>_met_<who>" (cleared by that
 -- arc's GM resets like any of its flags) and adds the entry, returning true only the first time
@@ -281,8 +282,8 @@ SCIDB.PROFILES = {
 -- Add a profile entry (no flag). Returns true if it was newly added.
 function SCIDB.addProfile(key)
     local p = SCIDB.PROFILES[key]
-    if not p or SCIDB._entries[key] or not SCIDB._entries["lore"] then return false end
-    SCIDB._entries[key] = SCIDB.addEntry("lore", p.name, p.desc, p.kv)
+    if not p or SCIDB._entries[key] or not SCIDB._entries["people"] then return false end
+    SCIDB._entries[key] = SCIDB.addEntry("people", p.name, p.desc, p.kv)
     return true
 end
 
@@ -356,7 +357,7 @@ function SCIDB.sync()
 end
 
 function SCIDB._sync()
-    if not (RT and RT.campaign and SCIDB._entries["lore"]) then return end
+    if not (RT and RT.campaign and SCIDB._entries["people"]) then return end
     pcall(_migrateProfileFlags)
     for key in pairs(SCIDB.PROFILES) do
         if SCIDB.known(key) then SCIDB.addProfile(key)
@@ -597,6 +598,12 @@ end
 -- hidden one shows as "???" until it is earned. Kept current by _P.update (no announcement: the
 -- ship log already says "[Achievement] ...").
 SCIDB.ACH_TITLES = {jobs = "Jobs", money = "Money", exploration = "Exploration", story = "Story"}
+-- One column (no key/values beside it), drawn with the Science screen's formatting tags (<h2>, <color=#..>,
+-- </> back to normal): a gold diamond for an earned one, a grey hollow one for the rest. The font
+-- (Big Shoulders Display) has ◆ and ◇; it has no check marks or stars.
+SCIDB.ACH_EARNED  = "<color=#ffd45a>\u{25C6}</> "      -- ◆, gold
+SCIDB.ACH_PENDING = "<color=#7d8a99>\u{25C7} "         -- ◇, the whole line grey
+SCIDB.ACH_HEADING = "#9fc4ff"
 
 function SCIDB.achievementsText()
     local groups, order, earned, total = {}, {}, 0, 0
@@ -609,16 +616,17 @@ function SCIDB.achievementsText()
             total = total + 1
             if has then earned = earned + 1 end
             local line
-            if has then line = "[x] " .. def.name .. ": " .. (def.desc or "")
-            elseif def.hidden then line = "[ ] ???  (a secret, for now)"
-            else line = "[ ] " .. def.name .. ": " .. (def.desc or "") end
+            if has then line = SCIDB.ACH_EARNED .. def.name .. ": " .. (def.desc or "")
+            elseif def.hidden then line = SCIDB.ACH_PENDING .. "???  (a secret, for now)</>"
+            else line = SCIDB.ACH_PENDING .. def.name .. ": " .. (def.desc or "") .. "</>" end
             table.insert(groups[cat], line)
         end
     end
-    local out = {"Every achievement in the campaign, and the ones this crew has earned [x]. "
-        .. "A new one is announced in the ship log.", ""}
+    local out = {"<h2>Earned " .. earned .. " of " .. total .. "</>",
+        "Every achievement in the campaign. " .. SCIDB.ACH_EARNED .. "earned, "
+        .. SCIDB.ACH_PENDING .. "not yet</>. A new one is announced in the ship log.", ""}
     for _, cat in ipairs(order) do
-        out[#out + 1] = string.upper(SCIDB.ACH_TITLES[cat] or cat)
+        out[#out + 1] = "<color=" .. SCIDB.ACH_HEADING .. ">" .. string.upper(SCIDB.ACH_TITLES[cat] or cat) .. "</>"
         for _, l in ipairs(groups[cat]) do out[#out + 1] = l end
         out[#out + 1] = ""
     end
@@ -633,7 +641,6 @@ function SCIDB.refreshAchievements()
     if sig == SCIDB._ach_sig then return end
     SCIDB._ach_sig = sig
     e:setLongDescription(text)
-    SCIDB.setKV(e, "Earned", earned .. " of " .. total)
 end
 
 local function _buildAchievements()
@@ -672,7 +679,7 @@ local function _build()
 
     -- ── Regions ──────────────────────────────────────────────────────────────
 
-    -- Regions, Factions and Lore are top-level sections beside the stock Natural / Technologies /
+    -- Regions, Factions, People, Records and Mission Briefings are top-level sections beside the stock Natural / Technologies /
     -- Weapons / Ships / Stations ones; "The Drift" above is the overview entry.
     local regions = _entry(nil, "Regions",
         "The Drift is divided into named regions with distinct hazard profiles and " ..
@@ -824,17 +831,26 @@ local function _build()
         "hollow_true_nature"
     )
 
-    -- ── Lore ─────────────────────────────────────────────────────────────────
+    -- ── People, Records, Mission Briefings ───────────────────────────────────
+    -- What used to be one Lore section (split 2026-11-26): People are the profiles (SCIDB.PROFILES, added as
+    -- the crew meets them), Records the history and recovered documents, Mission Briefings what an arc gives
+    -- the crew for a job (its arc adds them). Arcs name the section: SCIDB.addEntry("records"|"briefings", ...).
 
     _buildPorts()
     _buildUpgrades()
     _buildAchievements()
 
-    local lore = _entry(nil, "Lore",
+    SCIDB._entries["people"] = _entry(nil, "People",
+        "People the crew has met: who they are and what they are like. Added as you meet them."
+    )
+    SCIDB._entries["records"] = _entry(nil, "Records",
         "Historical records, research summaries, and recovered documents. " ..
         "Updated as new information is retrieved."
     )
-    SCIDB._entries["lore"] = lore
+    SCIDB._entries["briefings"] = _entry(nil, "Mission Briefings",
+        "What the crew has been told about the jobs it has taken on: the task, where, the pay, and what to expect."
+    )
+    local lore = SCIDB._entries["records"]
 
     SCIDB._entries["lore_settlement_war"] = _entry(lore, "The Settlement War",
         "Twenty years ago, Border and Rim colonial worlds attempted to break from " ..
@@ -948,8 +964,38 @@ local function _removeStockSections()
     end
 end
 
+-- The stock Ships section lists every EmptyEpsilon template; keep the ones the game uses
+-- (SCIDB.SHIPS_USED, ships_used.lua: generated by check.py from every template the Lua names) and drop
+-- the rest, and any hull class left empty. A scanned ship's "Database" button still finds its entry.
+require("ragtag/ships_used.lua")
+
+function SCIDB.pruneShips()
+    local keep = {}
+    for _, shown in pairs(SCIDB.SHIPS_USED or {}) do keep[shown] = true end
+    local kept, dropped = 0, 0
+    for _, top in ipairs(getScienceDatabases() or {}) do
+        local ok, name = pcall(function() return top:getName() end)
+        if ok and name == "Ships" then
+            local _, classes = pcall(function() return top:getEntries() end)
+            for _, class in ipairs(classes or {}) do
+                local _, ships = pcall(function() return class:getEntries() end)
+                local left = 0
+                for _, ship in ipairs(ships or {}) do
+                    local _, sname = pcall(function() return ship:getName() end)
+                    if keep[sname] then left = left + 1; kept = kept + 1
+                    else _destroyTree(ship); dropped = dropped + 1 end
+                end
+                if left == 0 then _destroyTree(class) end
+            end
+        end
+    end
+    log("[SCIDB] Ships: kept " .. kept .. " the game uses, removed " .. dropped)
+    return kept, dropped
+end
+
 function _P.init(state)
     _removeStockSections()
+    SCIDB.pruneShips()
     SCIDB.quietly(_build)   -- the database as it stands at session start is not news
 end
 

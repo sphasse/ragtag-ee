@@ -89,9 +89,13 @@ to an end state, or `→ Inactive`) leaves the database matching the state it la
   `<arc_id>_met_<who>` and adds the profile, returning true the first time.
   The profile exists while any arc's met-flag is set, so it disappears when the arcs that met the
   person are reset, and stays while another arc still has met them.
+- **Where an entry goes**: `SCIDB.addEntry(section, ...)` with `"records"` (history, research, recovered
+  documents, a device's specification) or `"briefings"` (Mission Briefings: what the crew was told about
+  a job: the task, where, pay, what to expect). Profiles go to People by themselves (`SCIDB.meet`).
+  There is no Lore section any more (split 2026-11-26).
 - **Announcements**: every entry added (`SCIDB.addEntry`, profiles) or revealed (`SCIDB.unlock`)
   during play is announced in every player ship's log (Relay reads it) with where it is:
-  `[Science] Database entry added: Lore > Thresh.` / `... updated: Lore > Ashgrave Research.`, and pops up on
+  `[Science] Database entry added: People > Thresh.` / `... updated: Records > Ashgrave Research.`, and pops up on
   Science, Operations and Single Pilot ("Science database updated:" with each place; entries within a second share one pop-up).
   An arc never writes its own "database updated" line. A story line ("Survivor records
   received.") goes **before** the SCIDB call so it reads first. Building the database and

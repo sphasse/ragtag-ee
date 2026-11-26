@@ -55,7 +55,7 @@ Docked at **Breaker's Claim** (south of the Shroud, about 18U north of Hob's Lan
 
 ### Defend
 
-Objective **"Defend the Claim"**; the Science DB gets **Lore > The raid on Breaker's Claim** (the job,
+Objective **"Defend the Claim"**; the Science DB gets **Mission Briefings > The raid on Breaker's Claim** (the job,
 the waves, the Claim, the raiders). "The raiders are coming out of the Shroud, north of the Claim.
 About 60 seconds."
 
@@ -119,7 +119,7 @@ After a session ends mid-raid, the next session starts the raid over (a minute, 
 
 Standing: Independent +150 when defended.
 
-Science DB: the profile of **Ines Calloway**; Lore → **"The raid on Breaker's Claim"**. The Shroud
+Science DB: the profile of **Ines Calloway**; Mission Briefings → **"The raid on Breaker's Claim"**. The Shroud
 Raiders have a Factions entry and Breaker's Claim a Ports entry from the start (not arc entries).
 
 News (`missions/_aftermath.lua`, category `HOLDOUT_DONE`, each told once):

@@ -223,7 +223,7 @@ end)
 
 function M._addJobEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["icehaul_job"] then return end
-    SCIDB._entries["icehaul_job"] = SCIDB.addEntry("lore", "The Kestrel ice", table.concat({
+    SCIDB._entries["icehaul_job"] = SCIDB.addEntry("briefings", "The Kestrel ice", table.concat({
         "THE JOB",
         "Tow the biggest fragment of the Kestrel comet to Hob's Landing, whose water reclaimers are failing. The water office pays " .. _cr(M.PAY) .. " cr.",
         "",

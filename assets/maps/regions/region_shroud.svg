@@ -1,39 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 659" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
 <rect width="1024" height="659" fill="#0d1520"/>
 <line x1="-5.4" y1="0" x2="-5.4" y2="659" stroke="#1c2a3a"/>
-<text x="-1.4" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">6</text>
 <line x1="101.9" y1="0" x2="101.9" y2="659" stroke="#1c2a3a"/>
-<text x="105.9" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">7</text>
+<text x="106.9" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">7</text>
 <line x1="209.1" y1="0" x2="209.1" y2="659" stroke="#1c2a3a"/>
-<text x="213.1" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">8</text>
+<text x="214.1" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">8</text>
 <line x1="316.3" y1="0" x2="316.3" y2="659" stroke="#1c2a3a"/>
-<text x="320.3" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">9</text>
+<text x="321.3" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">9</text>
 <line x1="423.5" y1="0" x2="423.5" y2="659" stroke="#1c2a3a"/>
-<text x="427.5" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">10</text>
+<text x="428.5" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">10</text>
 <line x1="530.8" y1="0" x2="530.8" y2="659" stroke="#1c2a3a"/>
-<text x="534.8" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">11</text>
+<text x="535.8" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">11</text>
 <line x1="638.0" y1="0" x2="638.0" y2="659" stroke="#1c2a3a"/>
-<text x="642.0" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">12</text>
+<text x="643.0" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">12</text>
 <line x1="745.2" y1="0" x2="745.2" y2="659" stroke="#1c2a3a"/>
-<text x="749.2" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">13</text>
+<text x="750.2" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">13</text>
 <line x1="852.4" y1="0" x2="852.4" y2="659" stroke="#1c2a3a"/>
-<text x="856.4" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">14</text>
+<text x="857.4" y="651" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">14</text>
 <line x1="959.7" y1="0" x2="959.7" y2="659" stroke="#1c2a3a"/>
-<text x="963.7" y="653" fill="#8fa0b3" font-size="16" opacity="0.8">15</text>
 <line x1="0" y1="-80.4" x2="1024" y2="-80.4" stroke="#1c2a3a"/>
-<text x="5" y="-62.4" fill="#8fa0b3" font-size="16" opacity="0.8">A</text>
 <line x1="0" y1="26.8" x2="1024" y2="26.8" stroke="#1c2a3a"/>
-<text x="5" y="44.8" fill="#8fa0b3" font-size="16" opacity="0.8">B</text>
+<text x="6" y="62.8" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">B</text>
 <line x1="0" y1="134.0" x2="1024" y2="134.0" stroke="#1c2a3a"/>
-<text x="5" y="152.0" fill="#8fa0b3" font-size="16" opacity="0.8">C</text>
+<text x="6" y="170.0" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">C</text>
 <line x1="0" y1="241.3" x2="1024" y2="241.3" stroke="#1c2a3a"/>
-<text x="5" y="259.3" fill="#8fa0b3" font-size="16" opacity="0.8">D</text>
+<text x="6" y="277.3" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">D</text>
 <line x1="0" y1="348.5" x2="1024" y2="348.5" stroke="#1c2a3a"/>
-<text x="5" y="366.5" fill="#8fa0b3" font-size="16" opacity="0.8">E</text>
+<text x="6" y="384.5" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">E</text>
 <line x1="0" y1="455.7" x2="1024" y2="455.7" stroke="#1c2a3a"/>
-<text x="5" y="473.7" fill="#8fa0b3" font-size="16" opacity="0.8">F</text>
+<text x="6" y="491.7" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">F</text>
 <line x1="0" y1="562.9" x2="1024" y2="562.9" stroke="#1c2a3a"/>
-<text x="5" y="580.9" fill="#8fa0b3" font-size="16" opacity="0.8">G</text>
+<text x="6" y="598.9" fill="#8fa0b3" font-size="34" font-weight="700" opacity="0.85" stroke="#0d1520" stroke-width="5" paint-order="stroke">G</text>
 <circle cx="252.0" cy="412.8" r="166.2" fill="#6a4c93" opacity="0.26"/>
 <circle cx="723.8" cy="300.2" r="225.2" fill="#6a4c93" opacity="0.26"/>
 <circle cx="80.4" cy="-59.0" r="123.3" fill="#6a4c93" opacity="0.26"/>

@@ -91,7 +91,7 @@ end)
 T.waitFor("achievement: Nothing to See Here", function() return ACH.has("nothing_to_see") end, 7)
 T.waitFor("Science DB: achievements list it as earned", function()
     local e = SCIDB._entries["achievements"]
-    return e ~= nil and e:getLongDescription():find("[x] Nothing to See Here", 1, true) ~= nil
+    return e ~= nil and e:getLongDescription():find(SCIDB.ACH_EARNED .. "Nothing to See Here", 1, true) ~= nil
 end, 4)
 T.step("the code runs out", function()
     stateOf(A).code_until = getScenarioTime() - 1
@@ -108,7 +108,7 @@ T.waitFor("guard: notices again", function() return guard_slot.hostile_to ~= nil
 T.step("the achievements entry", function()
     local e = SCIDB._entries["achievements"]
     local text = e:getLongDescription()
-    T.check("achievements: lists one not yet earned", text:find("[ ] Old Hand: Complete 50 jobs.", 1, true) ~= nil, text)
+    T.check("achievements: lists one not yet earned", text:find(SCIDB.ACH_PENDING .. "Old Hand: Complete 50 jobs.</>", 1, true) ~= nil, text)
     local hidden_shown = false
     for _, id in ipairs(ACH.order) do
         local d = ACH.defs[id]
@@ -118,7 +118,9 @@ T.step("the achievements entry", function()
     T.check("achievements: hidden ones show as ???", text:find("???", 1, true) ~= nil)
     local n = 0
     for _ in pairs(RT.campaign.achievements) do n = n + 1 end
-    T.eq("achievements: earned count", e:getKeyValue("Earned"), n .. " of " .. #ACH.order)
+    T.check("achievements: earned count at the top", text:find("<h2>Earned " .. n .. " of " .. #ACH.order .. "</>", 1, true) == 1, text)
+    local kv = e:getKeyValue("Earned")
+    T.check("achievements: one column (no key/values)", kv == nil or kv == "", tostring(kv))
 end)
 
 -- ── Locked again (a GM reset of the Hob Works) ───────────────────────────────

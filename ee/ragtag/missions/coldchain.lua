@@ -270,7 +270,7 @@ end
 
 local function _addFeverEntry()
     if not SCIDB or not SCIDB.addEntry or SCIDB._entries["coldchain_fever"] then return end
-    SCIDB._entries["coldchain_fever"] = SCIDB.addEntry("lore", "The Tamsin fever", _feverText(),
+    SCIDB._entries["coldchain_fever"] = SCIDB.addEntry("briefings", "The Tamsin fever", _feverText(),
         {["Where"] = "Tamsin Hollow", ["Cure held at"] = "Ostia Highport", ["Pay"] = _cr(M.PAY_FRESH) .. " cr"})
 end
 

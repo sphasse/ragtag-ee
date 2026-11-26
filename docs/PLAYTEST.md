@@ -187,13 +187,14 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
       shake-downs there like the Core? Do old routes to Valcourt still make sense?
 - [ ] Shroud Raiders: their own always-hostile faction; the two rumors that name them
 - [ ] Aftermath news after arc outcomes: each told once across sessions, plus the Concord's reaction lines
-- [ ] Science DB changes show in the ship log with where they are ("Database entry added: Lore > …") and pop up on
+- [ ] Science DB changes show in the ship log with where they are ("Database entry added: People > …") and pop up on
       Science (and Operations / Single Pilot): does Science notice them now? The Boneyard archive's three entries
       should arrive as one pop-up
 - [ ] Each job has its own countdown on Relay, in whole minutes; side-panel lines fit
 - [ ] Salvage pods are identified with one Science scan
 - [ ] Achievements show in the ship log (Relay) as "[Achievement] Name: ...". Science DB **Achievements** (top
-      level) lists them all, earned [x] or not; hidden story ones show as ??? until earned
+      level) lists them all in one column, "Earned N of M" on top, a gold ◆ when earned and a grey ◇ when not;
+      hidden story ones show as ??? until earned
 - [ ] An empty job board says "check back in a while / a few / a bit"
 - [ ] GM **Enable arc / Disable arc** on a finished arc resets it (its done flag too)
 

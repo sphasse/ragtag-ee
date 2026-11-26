@@ -95,7 +95,7 @@ Built 2026-11-13; full design in `docs/GM_LEDGER_MISSION.md`. Summary:
   Concord hostility comes from the crew's own reputation (no override).
 - **Exports.** `ledger_arc_done` = `"full"` | `"lost"` (energy hit zero, or surrendered to the
   audit fleet); `ledger_evidence` on full; 600 cr, Concord −200, Independent +200 on full.
-  SCIDB Lore "The Containment Ledger" (`ledger_findings`) names the signatories: Voss
+  SCIDB Records "The Containment Ledger" (`ledger_findings`) names the signatories: Voss
   (Treasury), Hale (Fleet Logistics), Tan (Applied Research), the Council's Standing Committee.
 - **Rezkov holds the ledger.** He will not release it until it cannot be buried; the Maw
   finale's aftermath is where it goes public.
@@ -241,7 +241,7 @@ meet.
    broadcasting the right frequency throughout the Maw can reverse it; the Works can build it; parts
    cost **10,000 cr** (decided 2026-11-22) and the work is stalled. **Without the archive**
    (`boneyard_hack_done` unset) the research comes from the survivors' own notes, the work is harder
-   and the price is **15,000 cr**: the ~12,000 haul does not cover it and the crew makes up the rest. New Science DB entry for the device, Lore →
+   and the price is **15,000 cr**: the ~12,000 haul does not cover it and the crew makes up the rest. New Science DB entry for the device, Records →
    **"Lullaby (Phase II reversal beacon)"** (decided 2026-11-23: the formal name is the **Phase II
    reversal transmitter**, after the archive's "Phase II reversal protocol"; the Works call it
    **Lullaby**, because the first thing it does is put the Hollow to sleep), that **covers everything the briefing said**, so a crew that skimmed the comms can
@@ -312,7 +312,7 @@ meet.
          hunt in a pair and they'll break off the convoy to come for you. Don't let them pin you while
          the transport gets away. Their sensors reach about 15U: sit inside that without a good code and
          they'll see you."
-       The same intel goes into its **own** Science database entry (decided 2026-11-23), e.g. Lore →
+       The same intel goes into its **own** Science database entry (decided 2026-11-23), e.g. Mission Briefings →
        "Convoy intel: CTS Tithe", separate from the Lullaby entry: the three ships and the escorts' 15U
        scan range, written (as the beacon briefing does), so Science can check
        it against their own scans at Lumen Exchange.
@@ -735,7 +735,7 @@ Beside Kael", "No Wing Left Behind", "Three Wings") track it.
   (bools).
 - Rep: Concord (and so Concord Republic) reset to at least +300 at the hook and to +500 on
   success; Independent +300; Corsairs +200 per Corsair wing that flew. Credits ~1500.
-- SCIDB: unlock a locked Lore entry **"The Concord Republic"** (lock key `republic_formed`):
+- SCIDB: unlock a locked Records entry **"The Concord Republic"** (lock key `republic_formed`):
   who won, the first acts (tariffs that finally transition, the Core's shakedowns ended).
 
 **World after** (integration outside the arc module, like Arc 5): `Concord Imperial` is gone;
