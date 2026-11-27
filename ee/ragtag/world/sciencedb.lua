@@ -286,6 +286,20 @@ SCIDB.PROFILES = {
               ["Father"] = "Killed in the war",
               ["Manner"] = "Fast, blunt, warm", ["Known for"] = "Building the impossible"},
     },
+    -- Met at the Pit (world/pit.lua: the first time a crew talks to the pit boss; flag pit_met_pitboss).
+    pitboss_profile = {
+        who  = "pitboss",
+        image = "ragtag/img/people/pitboss.png",   -- tools/make_portraits.py
+        name = "Sione Taufa",
+        desc = "The pit boss at the Pit, the fighting ring south of the Deep Shroud.\n\n" ..
+               "A dockyard prize fighter before the Settlement War, and built like one still. Books the bouts, " ..
+               "keeps the odds on a battered slate and pays every purse in clean credits, the same day, every " ..
+               "time. Unhurried, friendly, and always sizing up the crew in front of him as if he might have " ..
+               "to fight them.\n\n" ..
+               "He has three rules for the ring and enforces all of them himself.",
+        kv = {["Role"] = "Pit boss, the Pit", ["Formerly"] = "Dockyard prize fighter",
+              ["Manner"] = "Easy-going, watchful", ["Known for"] = "Paying every purse"},
+    },
 }
 
 -- Add a profile entry (no flag). Returns true if it was newly added.

@@ -575,6 +575,10 @@ function PIT.hook(source, target)
         return
     end
     addCommsReply("Talk to the pit boss", function()
+        -- Meeting him: his profile goes into the Science database (People), once.
+        if SCIDB and SCIDB.meet and SCIDB.meet("pit", "pitboss_profile") then
+            log("[PIT] " .. PIT.BOSS .. "'s profile added to the Science database")
+        end
         local why = PIT.whyNot(st, ship)
         if why then
             setCommsMessage(why)
