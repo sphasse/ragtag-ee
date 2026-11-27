@@ -26,5 +26,30 @@ of upgrades? Open space, no universe, no jobs or arcs, nothing saved. The rules 
    unhacked, at 100% power with no coolant. **Reset positions** puts the ships back at the centre, facing
    north. **Clear enemies** removes what is left.
 
+## Three opponents
+**Offer three opponents** builds every group of one to four ships from the arena's types and picks one near
+each target: **Easy** (R about 2.0), **Good match** (1.3) and **Hard** (0.9). R is a race: the time the enemies
+need to destroy the crews divided by the time the crews need to destroy them (`MATCH`, `ee/ragtag/match.lua`:
+effective hit points are hull + 1.2 x shields; damage a second is beams plus missiles). **Take** one to make it
+the roster, then spawn as usual. Every spawn's R is reported and logged, whether it came from an offer or not.
+
+## The fight log (for balancing)
+Every fight, from START to its end (or Clear enemies, logged as "stopped"), writes one row per player ship to the
+**fight log**: JSON in EmptyEpsilon's `scriptstorage.json` under the key `ragtag.fightlog`. On Windows that file
+is in the EmptyEpsilon folder (next to EmptyEpsilon.exe); on macOS and Linux it is
+`~/.emptyepsilon/scriptstorage.json`. It survives restarts; nothing needs stdout.
+- **Crews...**: give each ship a crew number, 1 to 10, before fighting (the button says how many are
+  unassigned). Rows carry it, so each group's data stays separate. Numbers are remembered by ship name.
+- After each fight, Relay (and Operations / single pilot) gets three buttons: **Fight: Too easy / Good fight /
+  Too hard**. That rating is what the stats are measured against. **Rate last fight...** lets the GM rate too.
+- A row: hull lost (and %), cumulative shield damage, cumulative system damage (damage repaired mid-fight still
+  counts), fight time and time since first damage, lowest hull and shield %, seconds with a shield down, top heat
+  and seconds over 90% heat, lowest energy %, missiles fired, damage dealt, kills, the enemies and their strength,
+  the predicted R and the offer slot, the outcome and the rating.
+- **Fight log...** shows the counts by crew and the last few rows, or deletes the log (crew numbers kept).
+- Read it: `python3 tools/fight_stats.py scriptstorage.json [more.json ...] [--crew N] [--csv fights.csv]
+  [--correlate]`. Files from several machines merge without double counting. `--correlate` ranks every stat by
+  how closely it follows the crews' rating; about 30 rated fights give a first reading.
+
 Strength is `RT.shipStrength`: hull + shields, plus 30 x damage a second (beams, and missiles spread over
 30 s). A rough guide for comparing sides, not a prediction.

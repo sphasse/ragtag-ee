@@ -25,7 +25,10 @@ ARENA.MISSILES = {"Homing", "Nuke", "Mine", "EMP", "HVLI"}
 -- phase: "empty" (no enemies) -> "frozen" (spawned, idle) -> "fighting" -> "over" (one side gone).
 function ARENA.reset()
     ARENA.state = {roster = {}, dist_u = ARENA.DIST_DEFAULT, faction = ARENA.FACTIONS[1], enemies = {},
-                   phase = "empty", fights = 0}
+                   phase = "empty", fights = 0,
+                   skill_r = 1.0,     -- the crews' skill rating for MATCH (fixed at 1 until it is fitted)
+                   offers = nil,      -- MATCH.offer's three opponents, when the GM asked for them
+                   taken = nil}       -- the offer the roster came from ({slot, r_value, ...}), cleared by any edit
 end
 if not ARENA.state then ARENA.reset() end
 
@@ -60,10 +63,43 @@ function ARENA.count(name) return ARENA.state.roster[name] or 0 end
 function ARENA.add(name, n)
     local c = math.max(0, math.min(ARENA.MAX_PER_TYPE, ARENA.count(name) + (n or 1)))
     ARENA.state.roster[name] = (c > 0) and c or nil
+    ARENA.state.taken = nil   -- edited by hand: no longer one of MATCH's offers
     return c
 end
 
-function ARENA.clearRoster() ARENA.state.roster = {} end
+function ARENA.clearRoster() ARENA.state.roster = {}; ARENA.state.taken = nil end
+
+-- ── Three opponents (MATCH) ──────────────────────────────────────────────────
+-- Easy, a good match and hard, from the arena's ship types, against the live player ships.
+function ARENA.offer()
+    if not MATCH then return nil, "MATCH is not loaded." end
+    local offers = MATCH.offer(ARENA.templates(), nil, ARENA.state.skill_r)
+    if not offers then return nil, "No player ship to match against." end
+    ARENA.state.offers = offers
+    return offers
+end
+
+-- Make an offer the roster ("easy", "match" or "hard"). The bout records which one it was.
+function ARENA.takeOffer(slot)
+    for _, o in ipairs(ARENA.state.offers or {}) do
+        if o.slot == slot then
+            ARENA.clearRoster()
+            for _, name in ipairs(o.group) do ARENA.add(name, 1) end
+            ARENA.state.taken = o
+            return true
+        end
+    end
+    return false
+end
+
+function ARENA.offerText(offers)
+    local L = {"Three opponents (R: how much the numbers favour the crews; 1 is even):"}
+    for _, o in ipairs(offers or ARENA.state.offers or {}) do
+        L[#L + 1] = string.format("%s: %s  R %.2f (target %.1f); the crews need ~%ds, the enemies ~%ds",
+            o.label, MATCH.groupText(o.group), o.r_value, o.target, math.floor(o.t_crews + 0.5), math.floor(o.t_enemy + 0.5))
+    end
+    return table.concat(L, "\n")
+end
 
 function ARENA.rosterSize()
     local n = 0
@@ -149,6 +185,8 @@ function ARENA.spawn()
     st.spawn_dist_u = st.dist_u
     st.spawn_faction = st.faction
     st.roster_text = ARENA.rosterText()
+    st.spawn_slot = st.taken and st.taken.slot or "custom"
+    st.predicted_r = MATCH and MATCH.ratio(MATCH.crewPower(), list, st.skill_r) or nil
     log("[ARENA] spawned " .. n .. " (" .. st.roster_text .. ") at " .. st.dist_u .. "U, " .. st.faction)
     return n
 end
@@ -176,6 +214,14 @@ function ARENA.start()
                                    strength = RT.shipStrength(p).total}
     end
     if not st.started_at then st.started_at = _now(); st.fights = st.fights + 1 end
+    -- The fight log (BOUT): one bout from the first START to the end; a freeze in between is part of it.
+    if BOUT and not (st.bout and not st.bout.done) then
+        local ents = {}
+        for _, e in ipairs(live) do ents[#ents + 1] = e.ship end
+        st.bout = BOUT.start{source = "arena", enemies = ents, info = {
+            slot = st.spawn_slot, predicted_r = st.predicted_r and math.floor(st.predicted_r * 100 + 0.5) / 100 or nil,
+            skill_r = st.skill_r, dist_u = st.spawn_dist_u, faction = st.spawn_faction}}
+    end
     st.phase = "fighting"
     log("[ARENA] combat started")
     return true
@@ -193,6 +239,7 @@ end
 -- Remove every enemy the arena spawned.
 function ARENA.clear()
     local st = ARENA.state
+    if BOUT and st.bout and not st.bout.done then BOUT.finish(st.bout, "stopped") end   -- the GM ended it
     for _, e in ipairs(st.enemies) do
         if RT.valid(e.ship) then e.ship:destroy() end
     end
@@ -207,6 +254,7 @@ end
 -- Per frame: the fight is over when every enemy or every player ship is gone.
 function ARENA.tick(now)
     local st = ARENA.state
+    if BOUT and st.bout and not st.bout.done then BOUT.tick(st.bout, now) end
     if st.phase ~= "fighting" then return end
     local result
     if #_liveEnemies() == 0 then result = "won"
@@ -214,6 +262,12 @@ function ARENA.tick(now)
     if not result then return end
     st.phase, st.result, st.ended_at = "over", result, now or _now()
     local text = ARENA.report()
+    if BOUT and st.bout and not st.bout.done then
+        local rows = BOUT.finish(st.bout, result)
+        local lines = {}
+        for _, r in ipairs(rows) do lines[#lines + 1] = BOUT.rowText(r) end
+        if #lines > 0 then text = text .. "\n\nFight log:\n" .. table.concat(lines, "\n") end
+    end
     log("[ARENA] " .. text:gsub("\n", " | "))
     pcall(addGMMessage, text)
 end
@@ -320,6 +374,9 @@ function ARENA.report()
         for _, p in ipairs(_players()) do p_str = p_str + RT.shipStrength(p).total end
         L[#L + 1] = string.format("Enemies: %s (%s, spawned at %dU)", st.roster_text or "?", st.spawn_faction or "?", st.spawn_dist_u or 0)
         L[#L + 1] = string.format("Strength: enemies %d vs crews %d (now)", e_str, p_str)
+        if st.predicted_r then
+            L[#L + 1] = string.format("Match: %s, R %.2f at spawn (above 1 favours the crews)", st.spawn_slot or "custom", st.predicted_r)
+        end
         local t
         if st.phase == "frozen" and not st.started_at then t = "frozen, not started"
         elseif st.phase == "frozen" then t = "frozen at " .. _mmss(_now() - st.started_at)
@@ -398,10 +455,99 @@ showPicker = function(page)
     if page < pages then addGMFunction(string.format("Next page > (%d/%d)", page, pages), function() showPicker(page + 1) end) end
 end
 
+-- Three opponents from MATCH: take one as the roster.
+local function showOffers()
+    clearGMFunctions()
+    addGMFunction("← Arena", showArena)
+    addGMFunction("Offer again", function()
+        local offers, why = ARENA.offer()
+        say(offers and ARENA.offerText(offers) or why)
+        showOffers()
+    end)
+    for _, o in ipairs(ARENA.state.offers or {}) do
+        local slot = o.slot
+        addGMFunction(string.format("Take %s (R %.1f)", o.label, o.r_value), function()
+            ARENA.takeOffer(slot)
+            say("Roster: " .. ARENA.rosterText() .. "\nNow Spawn enemies (frozen).")
+            showArena()
+        end)
+    end
+end
+
+-- Crew numbers (1-10, by ship), so different groups' fights can be told apart in the fight log.
+local function showCrews()
+    clearGMFunctions()
+    addGMFunction("← Arena", showArena)
+    RT.forEachPlayer(function(p)
+        local n = BOUT.crewOf(p)
+        addGMFunction(string.format("%s: crew %s", p:getCallSign(), n > 0 and tostring(n) or "-"), function()
+            BOUT.nextCrew(p)
+            showCrews()
+        end)
+    end)
+end
+
+-- The GM's own verdict on each ship's last fight (the crews have buttons on Relay for theirs).
+local function showRate()
+    clearGMFunctions()
+    addGMFunction("← Arena", showArena)
+    RT.forEachPlayer(function(p)
+        local row = BOUT.lastRowFor(p)
+        if row then
+            for _, r in ipairs(BOUT.RATINGS) do
+                local n = r[1]
+                addGMFunction(string.format("%s: %s%s", p:getCallSign(), r[2], row.rating == n and " ■" or ""), function()
+                    BOUT.rate(row, n, "gm")
+                    BOUT.clearRating(p)
+                    showRate()
+                end)
+            end
+        end
+    end)
+end
+
+local function showLog()
+    clearGMFunctions()
+    addGMFunction("← Arena", showArena)
+    local rows = BOUT.rows()
+    addGMFunction(string.format("Show (%d rows)", #rows), function()
+        local by, rated = {}, 0
+        for _, r in ipairs(rows) do
+            local k = (r.crew and r.crew > 0) and ("crew " .. r.crew) or "unassigned"
+            by[k] = (by[k] or 0) + 1
+            if r.rating then rated = rated + 1 end
+        end
+        local keys = {}
+        for k in pairs(by) do keys[#keys + 1] = k end
+        table.sort(keys)
+        local L = {string.format("Fight log: %d rows, %d rated. In scriptstorage.json (key %s): the EmptyEpsilon " ..
+            "folder on Windows, ~/.emptyepsilon/ elsewhere. tools/fight_stats.py reads it.", #rows, rated, BOUT.LOG_KEY)}
+        local parts = {}
+        for _, k in ipairs(keys) do parts[#parts + 1] = k .. ": " .. by[k] end
+        if #parts > 0 then L[#L + 1] = table.concat(parts, ", ") end
+        for i = math.max(1, #rows - 4), #rows do L[#L + 1] = BOUT.rowText(rows[i]) end
+        say(table.concat(L, "\n"))
+    end)
+    addGMFunction("Delete the log...", function()
+        clearGMFunctions()
+        addGMFunction("← Keep it", showLog)
+        addGMFunction(string.format("Yes, delete %d rows", #BOUT.rows()), function()
+            BOUT.clearLog()
+            say("Fight log emptied (crew numbers kept).")
+            showLog()
+        end)
+    end)
+end
+
 showArena = function()
     clearGMFunctions()
     local st = ARENA.state
     addGMFunction(string.format("Enemies... (%d)", ARENA.rosterSize()), function() showPicker(1) end)
+    addGMFunction("Offer three opponents", function()
+        local offers, why = ARENA.offer()
+        say(offers and ARENA.offerText(offers) or why)
+        if offers then showOffers() end
+    end)
     addGMFunction(string.format("Distance - (%dU)", st.dist_u), function() ARENA.nudgeDistance(-1); showArena() end)
     addGMFunction(string.format("Distance + (%dU)", st.dist_u), function() ARENA.nudgeDistance(1); showArena() end)
     addGMFunction("Faction: " .. st.faction, function() ARENA.cycleFaction(); showArena() end)
@@ -426,6 +572,13 @@ showArena = function()
     end)
     addGMFunction("Reset positions", function() ARENA.resetPositions() end)
     addGMFunction("Report", function() say(ARENA.report()) end)
+    if BOUT then
+        local unassigned = 0
+        RT.forEachPlayer(function(p) if BOUT.crewOf(p) == 0 then unassigned = unassigned + 1 end end)
+        addGMFunction(unassigned > 0 and string.format("Crews... (%d unassigned)", unassigned) or "Crews...", showCrews)
+        addGMFunction("Rate last fight...", showRate)
+        addGMFunction("Fight log...", showLog)
+    end
     GMCONSOLE.addUpgradesButton(showArena)   -- Ship Upgrades...: grant or revoke any upgrade, per ship
 end
 

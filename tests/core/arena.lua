@@ -7,7 +7,11 @@
 
 T.suite("core")
 require("ragtag/ships_used.lua")
+require("ragtag/bout.lua")
+require("ragtag/match.lua")
 require("ragtag/arena.lua")
+BOUT.LOG_KEY = "ragtag.fightlog.test"   -- never the real log
+BOUT._log = nil
 
 local A
 local OPEN_X, OPEN_Y = 200000, 200000   -- open space, away from the Drift's ports and patrols
@@ -111,6 +115,17 @@ T.step("every enemy gone: the crews won", function()
     local r = ARENA.report()
     T.check("end: the report says so", r:find("OVER in", 1, true) ~= nil and r:find("won", 1, true) ~= nil, r)
     T.check("end: and lists the crew", r:find(A:getCallSign(), 1, true) ~= nil, r)
+    local rows = BOUT.rows()
+    local last = rows[#rows]
+    T.check("fight log: a row for the crew", last and last.source == "arena" and last.ship == A:getCallSign()
+        and last.outcome == "won", last and BOUT.rowText(last) or "none")
+    T.check("fight log: the enemies and the predicted R", last and last.enemies == 3 and last.predicted_r and last.predicted_r > 0
+        and last.slot == "custom", last and tostring(last.predicted_r) or "none")
+    T.check("fight log: the crews are asked", #(function()
+        local out, f = {}, A.components.custom_ship_functions
+        for i = 1, #f do if tostring(f[i].name):find("^bout_rate_relay_") then out[#out + 1] = 1 end end
+        return out end)() == 3)
+    BOUT.clearRating(A)
     T.check("end: with its shields", r:find(string.format("shields %d/%d", math.floor(A:getShieldLevel(0)),
         math.floor(A:getShieldLevel(1))), 1, true) ~= nil, r)
 end)
@@ -229,11 +244,40 @@ T.step("the arena's GM screen", function()
         T.check("gm: report", lastMsg():find("frozen at", 1, true) ~= nil, lastMsg())
         press("Restore player ships")
         T.check("gm: restored", lastMsg():find("Restored", 1, true) ~= nil, lastMsg())
+        local n_rows = #BOUT.rows()
         press("Clear enemies")
         T.eq("gm: cleared", #ARENA.state.enemies, 0)
+        T.eq("gm: a fight the GM ends is logged as stopped", BOUT.rows()[#BOUT.rows()].outcome, "stopped")
+        T.eq("gm: one row for it", #BOUT.rows(), n_rows + 1)
+        BOUT.clearRating(A)
+        -- Three opponents, and taking one.
+        press("Offer three opponents")
+        T.check("gm: the offer is shown", lastMsg():find("Good match:", 1, true) ~= nil, lastMsg())
+        local take
+        for _, b in ipairs(buttons) do if b.label:find("^Take Good match") then take = b end end
+        T.check("gm: a Take button for the good match", take ~= nil)
+        if take then
+            take.fn()
+            T.eq("gm: the roster is the offer", ARENA.state.taken and ARENA.state.taken.slot, "match")
+            T.check("gm: back on the arena screen", has("Spawn enemies (frozen)"))
+            press("Spawn enemies (frozen)")
+            T.eq("gm: spawned as the good match", ARENA.state.spawn_slot, "match")
+            press("Clear enemies")
+        end
+        -- Crew numbers and the fight log.
+        press("Crews... (1 unassigned)")
+        press(A:getCallSign() .. ": crew -")
+        T.eq("gm: crew set", BOUT.crewOf(A), 1)
+        T.check("gm: shown", has(A:getCallSign() .. ": crew 1"))
+        press("← Arena")
+        T.check("gm: none unassigned", has("Crews..."))
+        press("Fight log...")
+        press(string.format("Show (%d rows)", #BOUT.rows()))
+        T.check("gm: the log's summary", lastMsg():find("scriptstorage.json", 1, true) ~= nil, lastMsg())
+        press("← Arena")
         press("Ship Upgrades...")
         press("← Back")
-        T.check("gm: Ship Upgrades... comes back to the arena", has("Enemies... (5)"))
+        T.check("gm: Ship Upgrades... comes back to the arena", has(string.format("Enemies... (%d)", ARENA.rosterSize())))
     end)
     addGMFunction, clearGMFunctions, addGMMessage = add, clear, msg
     T.check("gm: no error", ok, tostring(err))
@@ -252,5 +296,9 @@ end)
 T.step("tidy up", function()
     ARENA.clear()
     ARENA.reset()
+    BOUT.clearRating(A)
+    BOUT.clearLog()
+    BOUT.log().crews = {}
+    BOUT.save()
     A:setPosition(home.x, home.y)
 end)
