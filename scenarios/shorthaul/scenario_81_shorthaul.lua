@@ -104,6 +104,10 @@ local function _showGM()
     GMCONSOLE.add({session = 1})
 end
 
+-- GMCONSOLE's submenus (Reputation..., Jobs..., Ship Upgrades..., World Plugins...) come back through this
+-- global; without it their Back buttons raised a Lua error.
+function addSessionGMFunctions() _showGM() end
+
 function init()
     VERSE.setupFactions()
 

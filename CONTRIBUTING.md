@@ -50,8 +50,9 @@ Stock EmptyEpsilon uses 00–62, 74, 79, 81, 88 and 99. Reserved here:
 | 75–78, 80, 82–87 | Community campaigns (claim a block in your PR) |
 | 89, 95–98 | Spare |
 
-Taken: 80 (The Drift), 81 (The Short Haul: shares 81 with stock EE's PvP scenario on purpose, listed in
-`STOCK_NUMBER_OK` in `check.py`; a new scenario should still avoid stock numbers).
+Taken: 65 (the Combat Arena), 80 (The Drift), 81 (The Short Haul: shares 81 with stock EE's PvP scenario on
+purpose, listed in `STOCK_NUMBER_OK` in `check.py`; a new scenario should still avoid stock numbers). The parked
+labs in `scenarios/_battlelab/` hold 63, 64 and 89.
 
 ## Framework and director changes
 - Director actions live in two places that must match: `DIR.ACTIONS` in `ee/ragtag/director/actions/*.lua` (the

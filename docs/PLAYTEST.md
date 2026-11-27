@@ -188,6 +188,16 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
 - [ ] Concord standing notices (`[Rep]` in the log) match what happens: at +500 the patrol still stops you but knows
       your callsign; below 0 a fee; below −200 attack on sight. A crew short of 100 cr can't pay the fee
 
+## 4c. The Combat Arena (scenario 65; for the balancing itself)
+
+Details: [scenarios/arena/README.md](../scenarios/arena/README.md).
+- [ ] Two or more crews join from "Create player ship"; the GM fits upgrades per ship (Ship Upgrades...)
+- [ ] Enemies...: the list, +1/+5/-1/-5/None, a type's info; Distance 2-10U and Faction; Spawn shows them frozen in
+      rows ahead of the crews (do they sit still and hold fire?)
+- [ ] START COMBAT, Freeze, START again; the report at the end (time, hull lost, both sides' strength): useful for
+      judging a fair fight? Restore and Reset positions between rounds
+- [ ] A ship lost in a round and made again under its name keeps the GM's upgrades
+
 ## 4b. The world
 
 - [ ] Control tint: each faction's patrol zones show a faint colour on Relay's map and Science's long-range radar (Concord

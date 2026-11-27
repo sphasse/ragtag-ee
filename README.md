@@ -10,9 +10,11 @@ Ragtag is a custom scenario script for [Empty Epsilon](https://github.com/daid/E
 
 > **Requires Empty Epsilon EE-2026.09.22PR or newer.** It has only been tested on the EE-2026.09.22PR pre-release.
 
-Two scenarios: **The Drift**, the persistent campaign, and **The Short Haul**, a timed race between
-crews to make the most money (15, 30 or 60 minutes; nothing saved). Player and GM guides are in
-[docs/](docs/).
+Three scenarios: **The Drift**, the persistent campaign; **The Short Haul**, a timed race between
+crews to make the most money (15, 30 or 60 minutes; nothing saved); and the **Combat Arena**, a GM's
+balancing range: fit the crews' upgrades, pick the enemies and their distance, spawn them frozen and start
+the fight when everyone is ready ([scenarios/arena/README.md](scenarios/arena/README.md)). Player and GM
+guides are in [docs/](docs/).
 
 ![The Drift](docs/verse_map.svg)
 

@@ -197,8 +197,6 @@ function GMCONSOLE.add(opts)
     addGMFunction("Reputation...", showReputation)
 
     local showJobsMenu
-    local showUpgradesMenu
-    local showShipUpgradesMenu
 
     WORLD.addGMButton(function()
         clearGMFunctions()
@@ -524,23 +522,34 @@ function GMCONSOLE.add(opts)
     end
     addGMFunction("Jobs...", showJobsMenu)
 
-    -- Upgrades submenu
-    local _UPGRADE_GROUPS = {
-        {label = "Hull",      ids = {"hull_plating", "hull_plating_2", "hull_plating_3"}},
-        {label = "Shields",   ids = {"shield_mk2", "shield_mk3", "shield_mk4"}},
-        {label = "Beams",     ids = {"forward_beams", "beam_coils", "beam_coils_2", "heavy_beams", "sniper_beam"}},
-        {label = "Missiles",  ids = {"missile_racks", "missile_racks_2"}},
-        {label = "Tubes",     ids = {"front_tube", "side_tubes"}},
-        {label = "Impulse",   ids = {"engine_tune", "engine_tune_2"}},
-        {label = "Accel",     ids = {"impulse_accel", "impulse_accel_2", "impulse_accel_3"}},
-        {label = "Thrusters", ids = {"combat_thrusters"}},
-        {label = "Turn",      ids = {"maneuver_thrusters", "maneuver_thrusters_2", "maneuver_thrusters_3"}},
-        {label = "Reactor",   ids = {"reactor_overhaul", "coolant_pump", "coolant_pump_2"}},
-        {label = "Repair",    ids = {"repair_crew", "repair_crew_2", "repair_crew_3"}},
-        {label = "Sensors",   ids = {"sensor_suite", "sensor_suite_2", "sensor_suite_3"}},
-        {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
-    }
-    GMCONSOLE.UPGRADE_GROUPS = _UPGRADE_GROUPS   -- tests/core/upgrades.lua: every upgrade is listed
+    GMCONSOLE.addUpgradesButton()
+end
+
+-- The upgrade lines as the GM menu shows them (tests/core/upgrades.lua: every upgrade is listed).
+GMCONSOLE.UPGRADE_GROUPS = {
+    {label = "Hull",      ids = {"hull_plating", "hull_plating_2", "hull_plating_3"}},
+    {label = "Shields",   ids = {"shield_mk2", "shield_mk3", "shield_mk4"}},
+    {label = "Beams",     ids = {"forward_beams", "beam_coils", "beam_coils_2", "heavy_beams", "sniper_beam"}},
+    {label = "Missiles",  ids = {"missile_racks", "missile_racks_2"}},
+    {label = "Tubes",     ids = {"front_tube", "side_tubes"}},
+    {label = "Impulse",   ids = {"engine_tune", "engine_tune_2"}},
+    {label = "Accel",     ids = {"impulse_accel", "impulse_accel_2", "impulse_accel_3"}},
+    {label = "Thrusters", ids = {"combat_thrusters"}},
+    {label = "Turn",      ids = {"maneuver_thrusters", "maneuver_thrusters_2", "maneuver_thrusters_3"}},
+    {label = "Reactor",   ids = {"reactor_overhaul", "coolant_pump", "coolant_pump_2"}},
+    {label = "Repair",    ids = {"repair_crew", "repair_crew_2", "repair_crew_3"}},
+    {label = "Sensors",   ids = {"sensor_suite", "sensor_suite_2", "sensor_suite_3"}},
+    {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
+}
+
+-- "Ship Upgrades...": pick a player ship, then grant or revoke its upgrades and see its status sheet.
+-- `back` is what "← Back" does: by default the campaign's main GM screen (addSessionGMFunctions);
+-- the Combat Arena passes its own.
+function GMCONSOLE.addUpgradesButton(back)
+    back = back or function() clearGMFunctions(); addSessionGMFunctions() end
+    local _UPGRADE_GROUPS = GMCONSOLE.UPGRADE_GROUPS
+    local showUpgradesMenu
+    local showShipUpgradesMenu
 
     -- Upgrades are per ship: every function below works on `p`, the ship picked in the list.
     local function _upgradeLabel(group_label, idx, u, p)
@@ -579,7 +588,7 @@ function GMCONSOLE.add(opts)
         local function add(s) L[#L+1] = s end
         local function sec(s) add("\n" .. s) end
 
-        add(string.format("Invested: %dcr  |  Job tier: %d\n", total_invested, JOBS.maxTier(p)))
+        add(string.format("Invested: %dcr  |  Job tier: %d\n", total_invested, (JOBS and JOBS.maxTier(p) or 0)))
 
         sec("HULL")
         add(uline("hull_plating")); add(uline("hull_plating_2")); add(uline("hull_plating_3"))
@@ -688,10 +697,7 @@ function GMCONSOLE.add(opts)
 
     showUpgradesMenu = function()
         clearGMFunctions()
-        addGMFunction("← Back to Main", function()
-            clearGMFunctions()
-            addSessionGMFunctions()
-        end)
+        addGMFunction("← Back", back)
         local count = 0
         RT.forEachPlayer(function(p)
             count = count + 1
