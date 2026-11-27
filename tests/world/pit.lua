@@ -295,6 +295,49 @@ T.step("docked at the Pit: repaired, recharged, restocked", function()
 end)
 T.closeComms()
 
+-- ── Skill: each ship's rating for the Pit ────────────────────────────────────
+T.step("skill: how hard a fight was", function()
+    T.eq("strain: a walkover", PIT.strain({outcome = "won", hull_lost_pct = 0, min_shield_pct = 100, energy_min_pct = 100}), 0)
+    T.eq("strain: lost", PIT.strain({outcome = "lost"}), 1)
+    T.eq("strain: a fifth of the hull counts in full", PIT.strain({outcome = "won", hull_lost_pct = 20, min_shield_pct = 100,
+        energy_min_pct = 100}), 0.7)
+    T.eq("strain: the crew's 1-5 rating comes first", PIT.strain({v = 2, rating = 1, outcome = "won", hull_lost_pct = 50}), 0)
+    T.eq("strain: an old 1-3 rating", PIT.strain({v = 1, rating = 2}), 0.5)
+    -- The first two Pit fights played (2026-11-27): an easy one rated 1, a hard one rated 2.
+    local r = PIT.nextSkill(1, {slot = "easy", v = 2, rating = 1})
+    T.check("skill: an easy fight rated 1 goes up a little", r > 1 and r < PIT.STEP_MAX, r)
+    local r2 = PIT.nextSkill(r, {slot = "hard", v = 2, rating = 2})
+    T.check("skill: a hard fight rated 2 goes up as far as a bout allows", math.abs(r2 - r * PIT.STEP_MAX) < 1e-9, r2)
+    T.check("skill: a good match that felt good barely moves",
+        math.abs(PIT.nextSkill(1.5, {slot = "match", v = 2, rating = 3}) / 1.5 - 1) < 0.05)
+    T.check("skill: a loss brings it down", PIT.nextSkill(1, {slot = "hard", outcome = "lost"}) < 1)
+    T.eq("skill: never below the floor", PIT.nextSkill(PIT.SKILL_MIN, {slot = "easy", outcome = "lost"}), PIT.SKILL_MIN)
+end)
+T.step("skill: learned from the bouts above", function()
+    local rec = RT.shipRecord(A)
+    T.check("skill: kept in the ship's record", rec.pit_skill ~= nil, tostring(rec.pit_skill))
+    local last = lastRow()
+    T.check("skill: the row has it before and after", last.skill_before ~= nil and last.skill_after ~= nil)
+    local before = last.skill_before
+    BOUT.rate(last, 5, "gm")
+    T.check("skill: rated far too hard afterwards, the step is re-done downwards", rec.pit_skill < before,
+        string.format("%.2f -> %.2f", before, rec.pit_skill))
+    local kept = rec.pit_skill
+    rec.pit_skill = nil
+    T.check("skill: replayed from the fight log when the record has none", PIT.skill(A) > 0)
+    rec.pit_skill = kept
+end)
+T.step("skill: a better crew is offered tougher cards", function()
+    local rec = RT.shipRecord(A)
+    st.offers[A] = nil; rec.pit_skill = 1
+    local low = PIT.offers(st, A)
+    st.offers[A] = nil; rec.pit_skill = 3
+    local high = PIT.offers(st, A)
+    T.check("skill: the hard card pays more (tougher opponents)", high[3].purse > low[3].purse,
+        low[3].purse .. " -> " .. high[3].purse)
+    st.offers[A] = nil; rec.pit_skill = 1
+end)
+
 T.step("the ring wears down and fills up again", function()
     for i = 1, 10 do if RT.valid(st.rocks[i]) then st.rocks[i]:destroy() end end
     T.eq("refill: back to full", PIT.fillRing(st), PIT.ASTEROIDS)
@@ -307,5 +350,6 @@ T.step("the GM's menu", function()
     T.check("gm: bout status", all:find("No bout running", 1, true) ~= nil, all)
     T.check("gm: refill", all:find("Refill the ring", 1, true) ~= nil, all)
     T.check("gm: crew numbers", all:find(A:getCallSign() .. ": crew", 1, true) ~= nil, all)
+    T.check("gm: the ship's skill, and a 1-5 rating for its last fight", all:find(A:getCallSign() .. ": skill", 1, true) ~= nil, all)
     BOUT.clearLog()
 end)

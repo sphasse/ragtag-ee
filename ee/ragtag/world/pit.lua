@@ -25,6 +25,7 @@ local U = 1000
 
 PIT.REGION      = "the Pit"
 PIT.STATION     = "The Pit"
+PIT.BOSS        = "Sione Taufa"   -- the pit boss (tools/portraits: pitboss)
 PIT.FACTION     = "Pit Fighters"
 PIT.RING_R      = 7.5        -- U: the middle of the asteroid band
 PIT.BAND_U      = 0.45       -- U: half the band's width
@@ -50,6 +51,20 @@ PIT.TYPES = {"MT52 Hornet", "Adder MK5", "Adder MK8", "Piranha F12", "Phobos T3"
 PIT.PURSE_RATE  = 1.5
 PIT.PREMIUM     = {easy = 1.0, match = 1.15, hard = 1.35}
 PIT.PURSE_MIN, PIT.PURSE_MAX = 300, 9000
+
+-- Skill: each ship's own rating for the Pit (its record's pit_skill: MATCH's r, the crews' damage scaled
+-- by it), so a crew that wins easily is offered tougher cards. After each bout that was fought, how hard it
+-- was ("strain", 0 a walkover to 1 lost) is set against what the slot should feel like (PIT.EXPECT), and
+-- the skill moves by exp(PIT.LEARN x (expected - strain)), limited to PIT.STEP_MIN..STEP_MAX a bout and
+-- PIT.SKILL_MIN..SKILL_MAX in all. Strain is the crew's 1-5 rating when given ((n - 1) / 4); else from the
+-- stats, hull above all (a little hull lost is a bad fight): 0.7 x hull lost (all of it at 20% of max)
+-- + 0.3 x the worse of shields and energy drawn down. A lost bout is strain 1. A ship with no skill yet
+-- replays its Pit bouts in the fight log.
+PIT.SKILL_DEFAULT, PIT.SKILL_MIN, PIT.SKILL_MAX = 1.0, 0.5, 4.0
+PIT.LEARN = 0.8
+PIT.STEP_MIN, PIT.STEP_MAX = 0.8, 1.3
+PIT.EXPECT = {easy = 0.25, match = 0.55, hard = 0.8}
+PIT.HULL_FULL_PCT = 20
 
 PIT.RUMORS = {
     "There's money in fighting, if you've got the hull for it. Someone runs bouts south of the Deep Shroud. Purses paid in clean credits.",
@@ -259,12 +274,73 @@ function PIT.purse(offer)
     return math.max(PIT.PURSE_MIN, math.min(PIT.PURSE_MAX, v))
 end
 
+-- ── Skill (see PIT.SKILL_DEFAULT) ────────────────────────────────────────────
+-- How hard a fight was, 0 (a walkover) to 1 (lost): the crew's rating when it has one, else the stats.
+function PIT.strain(row)
+    if row.rating then
+        local n = tonumber(row.rating) or 3
+        if (row.v or 1) < 2 then n = n + 1 end   -- version 1 rows were rated 1-3
+        return math.max(0, math.min(1, (n - 1) / 4))
+    end
+    if row.outcome ~= "won" then return 1 end
+    local hull = math.min(1, (row.hull_lost_pct or 0) / PIT.HULL_FULL_PCT)
+    local drawn = math.max((100 - (row.min_shield_pct or 100)) / 100, (100 - (row.energy_min_pct or 100)) / 100)
+    return math.max(0, math.min(1, 0.7 * hull + 0.3 * drawn))
+end
+
+-- The skill after one more bout (`row`), from `r` before it.
+function PIT.nextSkill(r, row)
+    local expect = PIT.EXPECT[row.slot] or PIT.EXPECT.match
+    local step = math.exp(PIT.LEARN * (expect - PIT.strain(row)))
+    step = math.max(PIT.STEP_MIN, math.min(PIT.STEP_MAX, step))
+    return math.max(PIT.SKILL_MIN, math.min(PIT.SKILL_MAX, r * step))
+end
+
+-- A ship's skill. The first time, its Pit bouts in the fight log are replayed (by callsign).
+function PIT.skill(ship)
+    local rec = RT.shipRecord(ship)
+    if not rec then return PIT.SKILL_DEFAULT end
+    if rec.pit_skill then return rec.pit_skill end
+    local r, name = PIT.SKILL_DEFAULT, RT.valid(ship) and ship:getCallSign() or nil
+    for _, row in ipairs(BOUT.rows()) do
+        if row.source == "pit" and row.ship == name and (row.outcome == "won" or row.outcome == "lost") then
+            r = PIT.nextSkill(r, row)
+        end
+    end
+    rec.pit_skill = r
+    return r
+end
+
+-- A bout was fought (or rated): move the ship's skill. A rating after the fact re-does that bout's step
+-- from the skill it had before (only for the ship's latest bout).
+function PIT.learn(ship, row)
+    local rec = RT.shipRecord(ship)
+    if not rec or not row then return end
+    if row.skill_before == nil then
+        row.skill_before = PIT.skill(ship)
+        rec.pit_last = row.session .. ":" .. row.seq
+    elseif rec.pit_last ~= row.session .. ":" .. row.seq then
+        return   -- an older bout: too late to change the skill by it
+    end
+    rec.pit_skill = PIT.nextSkill(row.skill_before, row)
+    row.skill_after = math.floor(rec.pit_skill * 100 + 0.5) / 100
+    BOUT.save()
+    RT.saveCampaign()
+end
+
+BOUT.on_rated[#BOUT.on_rated + 1] = function(row)
+    if row.source ~= "pit" then return end
+    for _, p in ipairs(RT.players) do
+        if RT.valid(p) and p:getCallSign() == row.ship then PIT.learn(p, row) end
+    end
+end
+
 -- The three opponents for a ship: the same three while PIT.OFFER_SECS last (no re-rolling by hailing).
 function PIT.offers(st, ship)
     st.offers = st.offers or {}
     local o = st.offers[ship]
     if o and getScenarioTime() - o.at < PIT.OFFER_SECS then return o.list end
-    local list = MATCH.offer(PIT.TYPES, {ship}, 1) or {}
+    local list = MATCH.offer(PIT.TYPES, {ship}, PIT.skill(ship)) or {}
     for _, x in ipairs(list) do x.purse = PIT.purse(x) end
     st.offers[ship] = {at = getScenarioTime(), list = list}
     return list
@@ -409,7 +485,12 @@ function PIT.finish(st, outcome, why, reason, name)
     st.leaving = st.leaving or {}
     st.leaving[#st.leaving + 1] = b
     _shipLines(b.ship, nil)
-    if b.rec then BOUT.finish(b.rec, outcome) end
+    if b.rec then
+        -- The fight log, and the ship's skill moves by it (a bout never fought, or ended by the GM, teaches nothing).
+        for _, row in ipairs(BOUT.finish(b.rec, outcome)) do
+            if RT.valid(b.ship) and (outcome == "won" or outcome == "lost") then PIT.learn(b.ship, row) end
+        end
+    end
     if outcome == "won" then
         RT.addCredits(b.purse, "the Pit: purse", b.ship)
         if ACH and ACH.award then ACH.award("pit_winner") end
@@ -451,7 +532,8 @@ function PIT.tick(st, now)
             b.phase, b.entered_at = "fighting", now
             for _, s in ipairs(_liveEnemies(b)) do s:orderAttack(b.ship) end
             b.rec = BOUT.start{source = "pit", ships = {b.ship}, enemies = _liveEnemies(b),
-                info = {slot = b.slot, predicted_r = math.floor((b.r_value or 0) * 100 + 0.5) / 100, purse = b.purse}}
+                info = {slot = b.slot, predicted_r = math.floor((b.r_value or 0) * 100 + 0.5) / 100, purse = b.purse,
+                        skill_r = math.floor(PIT.skill(b.ship) * 100 + 0.5) / 100}}
             _shipLines(b.ship, "The Pit: FIGHT")
             _log(b.ship, "The gate's shut. Fight!", "#FFD060")
             RT.emit("pit_bout", {ship = b.ship:getCallSign(), phase = "fighting"}, "normal")
@@ -500,7 +582,8 @@ function PIT.hook(source, target)
             return
         end
         local offers = PIT.offers(st, ship)
-        local lines = {'"Looking for work with your fists? I\'ve got three on the card for you."', "", PIT.RULES, ""}
+        local lines = {'"Sione Taufa. I run the Pit. Looking for work with your fists? I\'ve got three on the card '
+            .. 'for you."', "", PIT.RULES, ""}
         for _, o in ipairs(offers) do
             lines[#lines + 1] = string.format("%s: %s. Purse %d cr.", o.label, MATCH.groupText(o.group), o.purse)
         end
@@ -566,6 +649,25 @@ function P.gmMenu(add, showSelf)
     RT.forEachPlayer(function(p)
         add(string.format("%s: crew %s", p:getCallSign(), BOUT.crewOf(p) > 0 and tostring(BOUT.crewOf(p)) or "-"),
             function() BOUT.nextCrew(p); showSelf() end)
+        -- The ship's skill, and the GM's 1-5 verdict on its last Pit fight (for a GM playing alone, too).
+        local row
+        for _, r in ipairs(BOUT.rows()) do
+            if r.source == "pit" and r.ship == p:getCallSign() and r.session == BOUT.session then row = r end
+        end
+        add(string.format("%s: skill %.2f%s", p:getCallSign(), PIT.skill(p),
+            row and (row.rating and string.format(" (last fight rated %d)", row.rating) or " (rate last fight)") or ""), function()
+            if not row then return end
+            clearGMFunctions()
+            addGMFunction("← The Pit", showSelf)
+            for _, rt in ipairs(BOUT.RATINGS) do
+                local n = rt[1]
+                addGMFunction(rt[2] .. (row.rating == n and " ■" or ""), function()
+                    BOUT.rate(row, n, "gm")
+                    BOUT.clearRating(p)
+                    showSelf()
+                end)
+            end
+        end)
     end)
 end
 

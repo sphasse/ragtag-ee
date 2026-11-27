@@ -42,6 +42,16 @@ T.step("MATCH: one ship's numbers", function()
     T.check("ratio: a type that fights above its numbers is harder", MATCH.ratio(crew, {"Adder MK5"}) < r1)
     MATCH.TYPE_FACTOR["Adder MK5"] = nil
     T.eq("groups: 1-4 ships from two types", #MATCH.groups({"A", "B"}), 2 + 3 + 4 + 5)
+    -- Range: an enemy the crew out-reaches lands fewer of its beam shots (less so when much faster).
+    T.check("power: reach and speed", pw.reach > 0 and pw.speed > 0, string.format("%.0f / %.0f", pw.reach, pw.speed))
+    local e = {beam_dps = 4, reach = 800, speed = 80}
+    T.eq("kite: out-reached", MATCH.kiteFactor({reach = 1400, speed = 75}, e), MATCH.KITE)
+    T.eq("kite: not by enough", MATCH.kiteFactor({reach = 900, speed = 75}, e), 1)
+    T.eq("kite: a much faster enemy closes", MATCH.kiteFactor({reach = 1400, speed = 50}, e), MATCH.KITE_FAST)
+    T.eq("kite: no beams, nothing to dodge", MATCH.kiteFactor({reach = 1400, speed = 75}, {beam_dps = 0, reach = 0, speed = 80}), 1)
+    local short = MATCH.ratio({ehp = crew.ehp, dps = crew.dps, reach = 0, speed = crew.speed}, {"Adder MK5"})
+    local long = MATCH.ratio({ehp = crew.ehp, dps = crew.dps, reach = 5000, speed = crew.speed}, {"Adder MK5"})
+    T.check("ratio: out-reaching them favours the crew", long > short, string.format("%.2f vs %.2f", long, short))
     T.eq("group text", MATCH.groupText({"Phobos T3", "Adder MK5", "Adder MK5"}), "2 x Adder MK5, Phobos T3")
 end)
 
@@ -126,20 +136,26 @@ end
 
 T.step("BOUT: the crews' rating buttons", function()
     local buttons = customs(A, "bout_rate_relay_")
-    T.eq("rate: three on Relay", #buttons, 3)
+    T.eq("rate: five on Relay", #buttons, 5)
     local captions = {}
     for _, f in ipairs(buttons) do captions[#captions + 1] = tostring(f.caption) end
     table.sort(captions)
-    T.eq("rate: the choices", table.concat(captions, " | "), "Fight: Good fight | Fight: Too easy | Fight: Too hard")
+    T.eq("rate: the choices, 1-5", table.concat(captions, " | "),
+        "Fight 1 Far too easy | Fight 2 Easy | Fight 3 Good fight | Fight 4 Hard | Fight 5 Far too hard")
     -- The crew's answer (what the button does), and the GM's.
     local last = BOUT.lastRowFor(A)
     T.check("rate: the latest row for the ship", last ~= nil and last.seq == row.seq)
-    T.check("rate: recorded", BOUT.rate(last, 2, "crew") and last.rating == 2 and last.rated_by == "crew")
+    local told
+    BOUT.on_rated[#BOUT.on_rated + 1] = function(r) told = r end
+    T.check("rate: recorded", BOUT.rate(last, 3, "crew") and last.rating == 3 and last.rated_by == "crew")
+    table.remove(BOUT.on_rated)
+    T.eq("rate: the on_rated hooks are told", told, last)
     BOUT.clearRating(A)
     T.eq("rate: the buttons go", #customs(A, "bout_rate_"), 0)
     BOUT._log = nil
-    T.eq("rate: saved", BOUT.rows()[1].rating, 2)
-    T.check("row text", BOUT.rowText(BOUT.rows()[1]):find("rated Good fight", 1, true) ~= nil, BOUT.rowText(BOUT.rows()[1]))
+    T.eq("rate: saved", BOUT.rows()[1].rating, 3)
+    T.eq("row: the 1-5 scale's version", BOUT.rows()[1].v, 2)
+    T.check("row text", BOUT.rowText(BOUT.rows()[1]):find("rated 3 Good fight", 1, true) ~= nil, BOUT.rowText(BOUT.rows()[1]))
 end)
 
 T.step("tidy up", function()

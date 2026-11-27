@@ -12,9 +12,10 @@ VERSE.extend({
         {cs = "The Pit", tmpl = "Small Station", fac = "Independent", x = 149, y = 32, no_defender = true,
          flavor = "The Pit. You fight, you get paid. You run, you don't.",
          desc = "A fight promoter's station beside a ring of asteroids. Bouts for money, no questions asked.",
-         lore = "Nobody admits to owning the Pit. A pit boss with a gravel voice takes the sign-ups, books the "
-             .. "fights and pays the purses in clean credits, and the crews who fight there come for the money "
-             .. "and stay for the reputation.\n\n"
+         lore = "Nobody admits to owning the Pit. Sione Taufa, the pit boss, takes the sign-ups, books the fights "
+             .. "and pays the purses in clean credits, the same day, every time. He was a dockyard prize fighter "
+             .. "before the Settlement War, and he still sizes up every crew that docks as if he might have to "
+             .. "fight them. The crews who fight here come for the money and stay for the reputation.\n\n"
              .. "The ring is a fifteen-unit loop of rock with one way in. The rules are short: get inside before "
              .. "the clock runs out, don't leave until it's over, and whatever dies in the ring stays a private "
              .. "matter. The Concord would close it if it could find anyone to arrest."},

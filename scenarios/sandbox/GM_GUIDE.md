@@ -155,7 +155,11 @@ Gull", "Return to Vesper"); arc objectives are one short line each too.
   dies in there. One bout at a time; 2 min before the same ship fights
   again. The pit boss's station is a port: docked there a ship is repaired (1 hull a second),
   recharged and sold missiles (15 cr each). Every bout is logged in the fight log (`BOUT`, source "pit"). GM: World Plugins... → The Pit...: the bout
-  in progress, End bout (no result), Refill the ring, crew numbers for the fight log
+  in progress, End bout (no result), Refill the ring, crew numbers for the fight log, and each ship's **skill** with
+  a 1-5 rating for its last fight (for a GM playing alone; the crew has the same five buttons on Relay). Skill is
+  each ship's own rating for the Pit (saved with the ship): wins that cost little raise it and the next three
+  cards get tougher (and pay more); hard fights and losses lower it. It learns from the 1-5 rating when given,
+  else from hull lost (above all), the lowest shields and energy. The pit boss is Sione Taufa.
   The Pit's station has no station-defender fighter (`no_defender` in the verse data), so nothing else flies
   through the ring.
 - **Destroying a ship that was not your enemy costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a friendly Corsair counts as Corsairs), charged to the ship that made the kill. Enemies cost nothing (Corsair patrols and raiders, hostile Concord ships, job targets that turned on the crew), nor do ships in a story-arc fight, Relic or Hollow ships**

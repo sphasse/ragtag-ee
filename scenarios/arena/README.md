@@ -30,7 +30,8 @@ of upgrades? Open space, no universe, no jobs or arcs, nothing saved. The rules 
 **Offer three opponents** builds every group of one to four ships from the arena's types and picks one near
 each target: **Easy** (R about 2.0), **Good match** (1.3) and **Hard** (0.9). R is a race: the time the enemies
 need to destroy the crews divided by the time the crews need to destroy them (`MATCH`, `ee/ragtag/match.lua`:
-effective hit points are hull + 1.2 x shields; damage a second is beams plus missiles). **Take** one to make it
+effective hit points are hull + 1.2 x shields; damage a second is beams plus missiles; an enemy the crews
+out-reach with their beams lands fewer of its beam shots, 0.6, or 0.85 when it is much faster). **Take** one to make it
 the roster, then spawn as usual. Every spawn's R is reported and logged, whether it came from an offer or not.
 
 ## The fight log (for balancing)
@@ -40,8 +41,8 @@ is in the EmptyEpsilon folder (next to EmptyEpsilon.exe); on macOS and Linux it 
 `~/.emptyepsilon/scriptstorage.json`. It survives restarts; nothing needs stdout.
 - **Crews...**: give each ship a crew number, 1 to 10, before fighting (the button says how many are
   unassigned). Rows carry it, so each group's data stays separate. Numbers are remembered by ship name.
-- After each fight, Relay (and Operations / single pilot) gets three buttons: **Fight: Too easy / Good fight /
-  Too hard**. That rating is what the stats are measured against. **Rate last fight...** lets the GM rate too.
+- After each fight, Relay (and Operations / single pilot) gets five buttons: **Fight 1 Far too easy, 2 Easy,
+  3 Good fight, 4 Hard, 5 Far too hard**. That rating is what the stats are measured against. **Rate last fight...** lets the GM rate too.
 - A row: hull lost (and %), cumulative shield damage, cumulative system damage (damage repaired mid-fight still
   counts), fight time and time since first damage, lowest hull and shield %, seconds with a shield down, top heat
   and seconds over 90% heat, lowest energy %, missiles fired, damage dealt, kills, the enemies and their strength,

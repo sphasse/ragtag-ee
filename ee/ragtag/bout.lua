@@ -2,7 +2,7 @@
 -- BOUT: records fights for balancing. A bout is one fight between the player ships and a group of
 -- enemies (the Combat Arena's, and later the Pit's and the patrols'). While it runs, every player ship
 -- in it is sampled twice a second; when it ends there is one row per ship, kept in the fight log with
--- the crew's own verdict when they give it (three buttons on Relay: too easy / good fight / too hard).
+-- the crew's own verdict when they give it (five buttons on Relay: 1 far too easy ... 5 far too hard).
 --
 -- The fight log is JSON in EmptyEpsilon's script storage (scriptstorage.json: in the EmptyEpsilon
 -- folder on Windows, ~/.emptyepsilon/ elsewhere), under its own key, BOUT.LOG_KEY, apart from any
@@ -18,7 +18,7 @@
 
 BOUT = BOUT or {}
 BOUT.LOG_KEY      = "ragtag.fightlog"
-BOUT.VERSION      = 1
+BOUT.VERSION      = 2     -- 2: ratings 1-5 (version 1 rows rated 1-3: too easy / good / too hard)
 BOUT.SAMPLE_SECS  = 0.5
 BOUT.MAX_ROWS     = 2000      -- the oldest go first
 BOUT.HOT          = 0.9       -- a system this hot counts as running hot
@@ -26,7 +26,8 @@ BOUT.CREW_MAX     = 10
 BOUT.SYSTEMS = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse", "warp", "jumpdrive",
                 "frontshield", "rearshield"}
 BOUT.MISSILES = {"Homing", "Nuke", "Mine", "EMP", "HVLI"}
-BOUT.RATINGS = {{1, "Too easy"}, {2, "Good fight"}, {3, "Too hard"}}
+BOUT.RATINGS = {{1, "1 Far too easy"}, {2, "2 Easy"}, {3, "3 Good fight"}, {4, "4 Hard"}, {5, "5 Far too hard"}}
+BOUT.on_rated = BOUT.on_rated or {}   -- functions(row): a fight was rated (the Pit learns from it)
 BOUT.RATING_STATIONS = {"relay", "operations", "single"}
 
 -- This run of the game: rows from one run share it (scenario Lua has no clock or date).
@@ -253,8 +254,9 @@ function BOUT.finish(b, outcome)
 end
 
 -- ── The crew's verdict ───────────────────────────────────────────────────────
--- Three buttons on Relay (and Operations / single pilot): pressing one records 1, 2 or 3 in the
--- row and takes the buttons away. A newer bout replaces them. The GM can rate too (BOUT.rate).
+-- Five buttons on Relay (and Operations / single pilot), 1 (far too easy) to 5 (far too hard): pressing one
+-- records it in the row and takes the buttons away. A newer bout replaces them. The GM can rate too
+-- (BOUT.rate). Every BOUT.on_rated function is told.
 local function _ratingKey(station, n) return "bout_rate_" .. station .. "_" .. n end
 
 function BOUT.clearRating(p)
@@ -269,6 +271,10 @@ function BOUT.rate(row, n, by)
     row.rating = n
     row.rated_by = by or "crew"
     BOUT.save()
+    for _, fn in ipairs(BOUT.on_rated) do
+        local ok, err = pcall(fn, row)
+        if not ok then log("[BOUT] on_rated: " .. tostring(err)) end
+    end
     return true
 end
 
@@ -278,7 +284,7 @@ function BOUT.offerRating(p, row)
         for i, r in ipairs(BOUT.RATINGS) do
             local n, label = r[1], r[2]
             pcall(function()
-                p:addCustomButton(st, _ratingKey(st, n), "Fight: " .. label, function()
+                p:addCustomButton(st, _ratingKey(st, n), "Fight " .. label, function()
                     BOUT.rate(row, n, "crew")
                     BOUT.clearRating(p)
                     if RT.valid(p) then p:addToShipLog("Fight rated: " .. label .. ". Thanks.", "#C0C0C0") end

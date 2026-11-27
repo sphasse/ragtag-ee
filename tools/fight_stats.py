@@ -11,7 +11,8 @@ rows are merged (a row is its run's session id + sequence number), so the same f
   python3 tools/fight_stats.py scriptstorage.json --correlate     # which stats track the crews' rating
 
 --correlate ranks every numeric stat by its rank correlation (Spearman) with the crews' rating
-(1 too easy, 2 good fight, 3 too hard) over the rated rows: the stats near +1 or -1 say most about how
+(1 far too easy ... 3 good fight ... 5 far too hard; rows from before the 1-5 scale, rated 1-3, are read
+as 2 / 3 / 4) over the rated rows: the stats near +1 or -1 say most about how
 a fight felt. A first reading needs about 30 rated fights; under 10 it says so. Stdlib only.
 """
 import argparse
@@ -21,10 +22,11 @@ import math
 import sys
 
 KEY = "ragtag.fightlog"
-RATING = {1: "too easy", 2: "good fight", 3: "too hard"}
+RATING = {1: "far too easy", 2: "easy", 3: "good fight", 4: "hard", 5: "far too hard"}
 # Not stats: identity and context. Everything else numeric is correlated.
-NOT_STATS = {"v", "seq", "crew", "rating", "ships", "enemies", "skill_r"}
+NOT_STATS = {"v", "seq", "crew", "rating", "ships", "enemies", "skill_r", "skill_before", "skill_after"}
 FIRST = ["session", "seq", "source", "crew", "ship", "outcome", "rating", "rated_by", "slot", "predicted_r",
+         "skill_r", "skill_before", "skill_after",
          "secs", "contact_secs", "hull_lost", "hull_lost_pct", "shield_damage", "system_damage", "min_hull_pct",
          "min_shield_pct", "shield_down_secs", "heat_max", "hot_secs", "energy_min_pct", "missiles_fired",
          "damage_dealt", "kills", "enemies", "enemy_types", "enemy_strength", "ship_strength", "ships"]
@@ -45,6 +47,8 @@ def load(paths, key):
             if ident in seen:
                 continue
             seen.add(ident)
+            if r.get("rating") is not None and (r.get("v") or 1) < 2:
+                r["rating"] = r["rating"] + 1   # the old 1-3 scale onto 1-5
             rows.append(r)
     return rows
 
@@ -76,7 +80,7 @@ def summary(rows):
     by = {}
     for r in rows:
         k = r.get("crew") or 0
-        e = by.setdefault(k, {"fights": 0, "rated": 0, "won": 0, "ratings": {1: 0, 2: 0, 3: 0}})
+        e = by.setdefault(k, {"fights": 0, "rated": 0, "won": 0, "ratings": {n: 0 for n in RATING}})
         e["fights"] += 1
         e["won"] += 1 if r.get("outcome") == "won" else 0
         if r.get("rating") in RATING:
@@ -109,7 +113,7 @@ def correlate(rows):
             continue
         out.append((spearman(xs, ys), k))
     out.sort(key=lambda t: -abs(t[0]))
-    print("Rank correlation with the rating (+ : higher means it felt harder; - : easier):")
+    print("Rank correlation with the rating, 1-5 (+ : higher means it felt harder; - : easier):")
     for rho, k in out:
         bar = "#" * int(round(abs(rho) * 20))
         print(f"  {k:18s} {rho:+.2f} {bar}")

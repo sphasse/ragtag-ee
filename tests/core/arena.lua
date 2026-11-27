@@ -124,7 +124,7 @@ T.step("every enemy gone: the crews won", function()
     T.check("fight log: the crews are asked", #(function()
         local out, f = {}, A.components.custom_ship_functions
         for i = 1, #f do if tostring(f[i].name):find("^bout_rate_relay_") then out[#out + 1] = 1 end end
-        return out end)() == 3)
+        return out end)() == #BOUT.RATINGS)
     BOUT.clearRating(A)
     T.check("end: with its shields", r:find(string.format("shields %d/%d", math.floor(A:getShieldLevel(0)),
         math.floor(A:getShieldLevel(1))), 1, true) ~= nil, r)

@@ -4,6 +4,9 @@
 --   T_crews  = enemy EHP / (crew DPS x r)        r: the crews' skill rating (1 = plays as the numbers say)
 --   T_enemy  = crew EHP / (enemy DPS x f_type)   f_type: a measured per-type correction (MATCH.TYPE_FACTOR)
 --   R        = T_enemy / T_crews                 above 1 favours the crews
+-- Range: an enemy the crews out-reach with their beams gets fewer of its own beam shots in (the crews hit
+-- it on the way in and can back off): its beam DPS counts at MATCH.KITE, or MATCH.KITE_FAST when it is
+-- much faster than the crews (it closes before the reach tells). Missiles are not affected.
 -- MATCH.offer builds every group of 1-4 ships from a list of types and picks one near each target R:
 -- easy, a good match and hard. The targets and type factors are first guesses, to be fitted from the
 -- fight log (BOUT, tools/fight_stats.py). Loaded by the scenarios that use it, not by core.
@@ -26,12 +29,19 @@ MATCH.MISSILE_DAMAGE = {Homing = 35, HVLI = 10, Nuke = 160, Mine = 160, EMP = 80
 -- Measured per type: how much harder (above 1) or softer a type fights than its numbers. 1 until the
 -- fight log says otherwise.
 MATCH.TYPE_FACTOR = {}
+-- Out-reached enemies (see the top). First guesses, from the first Pit fights (2026-11-27: a ship with heavy
+-- emitters, 1.4-1.6U beams, won a "hard" bout against four short-beamed ships without losing hull).
+MATCH.KITE        = 0.6     -- an out-reached enemy's beam DPS counts at this
+MATCH.KITE_FAST   = 0.85    -- ... or this, when it is MATCH.FAST_RATIO times the crews' speed or more
+MATCH.FAST_RATIO  = 1.3
+MATCH.KITE_MARGIN = 150     -- world units: the crews' reach must beat the enemy's by this much
 
 -- ── One ship's numbers ───────────────────────────────────────────────────────
--- {ehp, dps}: effective hit points and damage a second (beams, plus missiles: as fast as the tubes
--- load, but no more than the stock spread over MATCH.FIGHT_SECS).
+-- {ehp, dps, beam_dps, reach, speed}: effective hit points; damage a second (beams, plus missiles: as fast
+-- as the tubes load, but no more than the stock spread over MATCH.FIGHT_SECS), and the beams' part of it;
+-- the longest beam's range and the impulse speed (world units).
 function MATCH.power(s)
-    local ehp, dps = s:getHullMax() or 0, 0
+    local ehp, dps, reach = s:getHullMax() or 0, 0, 0
     pcall(function()
         for i = 0, (s:getShieldCount() or 0) - 1 do ehp = ehp + MATCH.SHIELD_WEIGHT * (s:getShieldMax(i) or 0) end
     end)
@@ -40,8 +50,10 @@ function MATCH.power(s)
         if r and r > 0 then
             local cyc = s:getBeamWeaponCycleTime(i)
             if cyc and cyc > 0 then dps = dps + (s:getBeamWeaponDamage(i) or 0) / cyc end
+            reach = math.max(reach, r)
         end
     end
+    local beam_dps = dps
     local tubes = s:getWeaponTubeCount() or 0
     if tubes > 0 then
         local stock, best, count = 0, 0, 0
@@ -65,7 +77,8 @@ function MATCH.power(s)
             dps = dps + math.min(rate, stock / MATCH.FIGHT_SECS)
         end
     end
-    return {ehp = ehp, dps = dps}
+    local okv, speed = pcall(function() return s:getImpulseMaxSpeed() end)
+    return {ehp = ehp, dps = dps, beam_dps = beam_dps, reach = reach, speed = okv and speed or 0}
 end
 
 -- A type's numbers, measured once on a ship spawned out of the way (cached).
@@ -80,21 +93,31 @@ function MATCH.typePower(name)
         s:destroy()
         return pw
     end)
-    c = ok and res or {ehp = 1, dps = 0}
+    c = ok and res or {ehp = 1, dps = 0, beam_dps = 0, reach = 0, speed = 0}
     MATCH._type_cache[name] = c
     return c
 end
 
--- The crews' side: every live player ship given (default: all).
+-- The crews' side: every live player ship given (default: all). Reach and speed are the shortest and the
+-- slowest of them (a group can only kite as well as its weakest ship).
 function MATCH.crewPower(ships)
-    local ehp, dps = 0, 0
+    local ehp, dps, reach, speed, n = 0, 0, math.huge, math.huge, 0
     for _, p in ipairs(ships or RT.players) do
         if RT.valid(p) then
             local pw = MATCH.power(p)
-            ehp, dps = ehp + pw.ehp, dps + pw.dps
+            ehp, dps, n = ehp + pw.ehp, dps + pw.dps, n + 1
+            reach, speed = math.min(reach, pw.reach), math.min(speed, pw.speed)
         end
     end
-    return {ehp = ehp, dps = dps}
+    if n == 0 then reach, speed = 0, 0 end
+    return {ehp = ehp, dps = dps, reach = reach, speed = speed}
+end
+
+-- How much of an enemy type's beam fire lands on the crews (1, MATCH.KITE or MATCH.KITE_FAST).
+function MATCH.kiteFactor(crew, pw)
+    if (crew.reach or 0) < (pw.reach or 0) + MATCH.KITE_MARGIN or (pw.beam_dps or 0) <= 0 then return 1 end
+    if (crew.speed or 0) > 0 and (pw.speed or 0) >= MATCH.FAST_RATIO * crew.speed then return MATCH.KITE_FAST end
+    return MATCH.KITE
 end
 
 -- R for a group (a list of type names) against the crews' power, with skill rating r (default 1).
@@ -103,7 +126,8 @@ function MATCH.ratio(crew, group, r)
     for _, name in ipairs(group) do
         local pw = MATCH.typePower(name)
         ehp = ehp + pw.ehp
-        dps = dps + pw.dps * (MATCH.TYPE_FACTOR[name] or 1)
+        local beam = (pw.beam_dps or pw.dps) * MATCH.kiteFactor(crew, pw)
+        dps = dps + (beam + (pw.dps - (pw.beam_dps or pw.dps))) * (MATCH.TYPE_FACTOR[name] or 1)
     end
     if crew.dps <= 0 or ehp <= 0 then return 0 end
     if dps <= 0 then return math.huge end
