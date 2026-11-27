@@ -203,10 +203,11 @@ Details: [scenarios/arena/README.md](../scenarios/arena/README.md).
 - [ ] Do the rumors get the crew there ("south of the Deep Shroud ... not as far as the Maw")? Is the ring easy to
       find once close, and the opening obvious?
 - [ ] The pit boss: the three offers and purses read right; the rules are clear before signing
+- [ ] The spectators: eight yachts round the ring (Science scans: there to watch and bet; Relay can hail them)
 - [ ] 60 s to get in through the opening: enough from the station? Is the rock dense enough that going over it
       hurts (35 a rock)?
 - [ ] The fights: do the easy / good / hard labels feel right? (Rate each on Relay: it goes in the fight log.) Do
-      the opponents stay in the ring? Purses worth the risk (about 150 / 250 / 375 cr)?
+      the opponents stay in the ring? Purses worth the risk (about 450 / 750 / 1,100 cr)? Docking at the Pit between bouts: repair, energy, missiles
 - [ ] Losing: leaving the ring, yielding (hail the station: "We yield."), the 2-minute wait before the next bout
 
 ## 4b. The world

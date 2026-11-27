@@ -23,6 +23,23 @@ freighter:setDescription(
 -- getSpawnablePlayerShips), ahead of the stock ships.
 table.insert(__player_ship_templates, 1, freighter)
 
+-- ── Luxury Yacht ──────────────────────────────────────────────────────────────
+-- An AI ship, unarmed: the rich watching the fights at the Pit (world/pit.lua). The sleek Flavia hull.
+local yacht = ShipTemplate()
+yacht:setName("Luxury Yacht")
+yacht:setLocaleName("Luxury Yacht")
+yacht:setClass("Corvette", "Yacht")
+yacht:setModel("LightCorvetteGrey")
+yacht:setRadarTrace("tug.png")
+yacht:setDescription(
+    "A private yacht: polished hull, observation lounge, a crew that wears uniforms nobody issued. " ..
+    "No guns worth the name. The kind of ship that goes where the entertainment is."
+)
+yacht:setHull(120)
+yacht:setShields(80, 80)
+yacht:setSpeed(70, 10, 10)
+yacht:setWarpSpeed(750)
+
 -- ── Concord Enforcer ──────────────────────────────────────────────────────────
 -- Heavy patrol cutter in Concord service colors. Well-armored, forward-biased
 -- beam weapons, and enough missiles to mean business. Slower than the Raider

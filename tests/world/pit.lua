@@ -66,6 +66,29 @@ T.step("the ring", function()
     T.check("rumors: a rough location, no coordinates", named)
 end)
 
+T.step("the spectators", function()
+    T.eq("yachts: eight", #st.spectators, #PIT.SPECTATORS)
+    local ind, con = 0, 0
+    for i, s in ipairs(st.spectators) do
+        local d = PIT.SPECTATORS[i]
+        T.check(d.cs .. ": round the outside of the ring", dist(s) > PIT.OUTSIDE_U and dist(s) < 12, dist(s))
+        T.eq(d.cs .. ": a luxury yacht", s:getTypeName(), PIT.YACHT)
+        T.check(d.cs .. ": here to watch and bet (scan)", s:getDescription("fullscan"):find("bet", 1, true) ~= nil,
+            s:getDescription("fullscan"))
+        T.check(d.cs .. ": can't be destroyed", not s:getCanBeDestroyed())
+        T.check(d.cs .. ": not hostile", not s:isEnemy(A))
+        if s:getFaction() == "Independent" then ind = ind + 1 elseif s:getFaction() == "Concord" then con = con + 1 end
+        local x, y = s:getPosition()
+        local ang = math.deg(math.atan(x - cx, -(y - cy))) % 360
+        T.check(d.cs .. ": clear of the opening", math.abs(((ang - PIT.OPEN_ANGLE) + 180) % 360 - 180) > 30, ang)
+    end
+    T.check("yachts: Independent and Concord", ind > 0 and con > 0, ind .. " / " .. con)
+    local gone = st.spectators[1]
+    gone:destroy()
+    T.eq("yachts: a missing one comes back", PIT.placeSpectators(st), #PIT.SPECTATORS)
+    T.check("yachts: a new one", RT.valid(st.spectators[1]) and st.spectators[1] ~= gone)
+end)
+
 T.step("too small a ship", function()
     T.eq("gate: a stock freighter is tier 0", JOBS.maxTier(A), 0)
     nearStation()
@@ -86,6 +109,7 @@ T.step("three offers, with purses", function()
     local o = PIT.offers(st, A)
     T.eq("offers: the same three when asked again", PIT.offers(st, A), o)
     T.check("offers: a purse for each", o[1].purse >= PIT.PURSE_MIN and o[3].purse <= PIT.PURSE_MAX)
+    T.check("offers: worth the risk (the easy one pays 300+)", o[1].purse >= 300, o[1].purse)
     T.check("offers: the hard one pays more than the easy one", o[3].purse > o[1].purse,
         string.format("%d / %d / %d", o[1].purse, o[2].purse, o[3].purse))
 end)
@@ -192,6 +216,28 @@ T.talk(PIT.STATION, {"We yield."})
 T.step("yielded", function()
     T.check("yield: the bout is over", st.bout == nil)
     T.check("yield: the pit boss says so", T.msg():find("No purse", 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
+
+-- ── Between bouts: the pit boss's station is a port ─────────────────────────
+local hull0, energy0
+T.step("battered, low on missiles", function()
+    A:setHull(A:getHullMax() - 60)
+    A:setEnergy(A:getMaxEnergy() * 0.3)
+    A:setWeaponStorage("Homing", 0)
+    hull0, energy0 = A:getHull(), A:getEnergy()
+end)
+T.dock(PIT.STATION)
+T.talk(PIT.STATION, {})
+T.step("docked at the Pit: missiles for sale", function()
+    T.check("port: restock on offer", T.hasReply("Restock missiles"), table.concat(T.replies(), " | "))
+end)
+T.talk(PIT.STATION, {"Restock missiles", "Fill Homing"})
+T.wait(3)
+T.step("docked at the Pit: repaired, recharged, restocked", function()
+    T.eq("port: homing racks full", A:getWeaponStorage("Homing"), A:getWeaponStorageMax("Homing"))
+    T.check("port: hull being repaired", A:getHull() > hull0, string.format("%.1f -> %.1f", hull0, A:getHull()))
+    T.check("port: energy recharging", A:getEnergy() > energy0, string.format("%.0f -> %.0f", energy0, A:getEnergy()))
 end)
 T.closeComms()
 

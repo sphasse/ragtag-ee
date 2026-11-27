@@ -43,16 +43,48 @@ PIT.MIN_TIER    = 2
 PIT.TYPES = {"MT52 Hornet", "Adder MK5", "Adder MK8", "Piranha F12", "Phobos T3", "Phobos M3P", "Nirvana R5",
              "WX-Lindworm", "Stalker Q7", "Stalker R7", "Atlantis X23"}
 -- The purse: PURSE_RATE x the opponents' threat (EHP + 30 x DPS, MATCH.typePower), times the slot's
--- premium for the risk, rounded to 25 and kept within PURSE_MIN..PURSE_MAX.
-PIT.PURSE_RATE  = 0.5
+-- premium for the risk, rounded to 25 and kept within PURSE_MIN..PURSE_MAX. About 450 / 750 / 1,100 cr
+-- for a tier-2 ship (raised x3 2026-11-27: the risk, and missiles at 15 cr each to restock).
+-- Docked at the pit boss's station a ship is repaired (1 hull a second), recharged and sold missiles,
+-- like at any port.
+PIT.PURSE_RATE  = 1.5
 PIT.PREMIUM     = {easy = 1.0, match = 1.15, hard = 1.35}
-PIT.PURSE_MIN, PIT.PURSE_MAX = 100, 3000
+PIT.PURSE_MIN, PIT.PURSE_MAX = 300, 9000
 
 PIT.RUMORS = {
     "There's money in fighting, if you've got the hull for it. Someone runs bouts south of the Deep Shroud. Purses paid in clean credits.",
     "A crew I know came back from the Pit with a thousand credits and half a ship. Somewhere below the Deep Shroud, they said. Not as far as the Maw.",
     "They call it the Pit. A ring of rock out past the Rim, south of the Shroud's deep end. You fight whoever the pit boss puts in front of you.",
     "Don't take a stock freighter to the Pit. The pit boss won't even talk to you until you've spent real money on that hull.",
+}
+
+-- Spectators: luxury yachts parked round the outside of the ring (clear of the opening and the station),
+-- there to watch and bet. Indestructible and idle; one that goes missing comes back between bouts.
+PIT.SPECTATOR_U = 10.5
+PIT.YACHT = "Luxury Yacht"   -- ship_templates.lua; a Flavia stands in where that is not loaded
+PIT.SPECTATORS = {
+    {angle = 20,  fac = "Independent", cs = "Gilded Wake",
+     scan = "Registered to a Lumen shipping family. Here to watch the fights and bet on them: the observation lounge is full, and so is the bar."},
+    {angle = 65,  fac = "Concord",     cs = "Off the Record",
+     scan = "Registered to a Concord official, here to watch the fights and bet on them. Officially, it is not here. Unofficially, it has a large bet on the next bout."},
+    {angle = 110, fac = "Independent", cs = "Lady Fortune",
+     scan = "A gambling syndicate's yacht. It takes bets from the other spectators and has never been known to lose money on a night."},
+    {angle = 150, fac = "Independent", cs = "Silk Margin",
+     scan = "A trader's yacht, out to watch and bet. Its owner keeps a book on every crew that fights here."},
+    {angle = 190, fac = "Concord",     cs = "Recess",
+     scan = "Concord-registered, transponder dimmed. Senate staff on a 'fact-finding' trip, betting heavily on the house."},
+    {angle = 225, fac = "Independent", cs = "Golden Hour",
+     scan = "A Rim magnate's yacht, here to watch the fights and bet on them; the magnate's private bookmaker is aboard."},
+    {angle = 320, fac = "Concord",     cs = "Discretion",
+     scan = "A Concord diplomatic yacht that has filed no flight plan. Here to watch, bet, and not be seen doing either."},
+    {angle = 350, fac = "Independent", cs = "Second Wind",
+     scan = "A retired fighter's yacht. She fought here once; now she watches, bets, and heckles over open comms."},
+}
+PIT.SPECTATOR_LINES = {
+    '"Ten thousand on the next bout. Don\'t make me regret it."',
+    '"We\'re here for the show. Make it a good one."',
+    '"Odds are against you, friend. That\'s what makes it interesting."',
+    '"Win or lose, the drinks are on the house. The house always wins."',
 }
 
 local P = {id = "pit", name = "The Pit"}
@@ -115,6 +147,30 @@ function PIT.fillRing(st)
         end
     end
     return #st.rocks
+end
+
+-- The spectators: placed once, and any that went missing put back (between bouts).
+function PIT.placeSpectators(st)
+    st.spectators = st.spectators or {}
+    local tmpl = (__ship_templates and __ship_templates[PIT.YACHT]) and PIT.YACHT or "Flavia"
+    local n = 0
+    for i, d in ipairs(PIT.SPECTATORS) do
+        if not RT.valid(st.spectators[i]) then
+            local x, y = _at(d.angle, PIT.SPECTATOR_U)
+            local s = CpuShip():setTemplate(tmpl):setFaction(d.fac):setCallSign(d.cs):setPosition(x, y)
+            s:setHeading((d.angle + 180) % 360)   -- facing the ring
+            s:setCanBeDestroyed(false)
+            s:setScanningParameters(1, 1)
+            s:setDescriptions("A luxury yacht, parked by the ring.", d.scan)
+            s:orderIdle()
+            s:setCommsScript(""):setCommsFunction(function()
+                setCommsMessage(PIT.SPECTATOR_LINES[math.random(#PIT.SPECTATOR_LINES)])
+            end)
+            st.spectators[i] = s
+        end
+        n = n + 1
+    end
+    return n
 end
 
 -- ── Factions and money ───────────────────────────────────────────────────────
@@ -269,7 +325,7 @@ function PIT.tick(st, now)
     end
     local b = st.bout
     if not b then
-        if now > (st.next_fill or 0) then st.next_fill = now + 60; PIT.fillRing(st) end
+        if now > (st.next_fill or 0) then st.next_fill = now + 60; PIT.fillRing(st); PIT.placeSpectators(st) end
         return
     end
     if not RT.valid(b.ship) then return PIT.finish(st, "lost", "The ship was lost.") end
@@ -356,6 +412,7 @@ function P.init(st)
     _faction()
     st.offers, st.cooldown, st.leaving = {}, {}, {}
     PIT.fillRing(st)
+    PIT.placeSpectators(st)
     st.next_fill = getScenarioTime() + 60
     RT.addStationHook(PIT.STATION, PIT.hook)
     if RUMORS and RUMORS.add then
