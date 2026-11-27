@@ -56,7 +56,7 @@ standing. Then the campaign's statistics, story arcs and achievements.
 ### Ship Upgrades... → *ship* → Ship Status
 A status sheet for the ship you picked: every upgrade by group (owned ■, available □, locked ×
 with what it needs), and the ship's live numbers (hull, shields, beams, tubes and missiles,
-impulse, warp, energy, repair crew, sensor range, probe speed).
+impulse, acceleration, turn rate, warp, energy and coolant, repair crew, sensor range, probe speed).
 
 ## Changing
 
@@ -84,7 +84,10 @@ The menu lists every player ship in the game. Pick one; everything on the next s
 - Press ■ to **revoke** it. The ship is rebuilt from its template and its remaining upgrades are
   re-applied, because an upgrade's effect cannot be undone piece by piece. The ship keeps its
   position, heading, name and faction; its hull, shields, energy, missiles and crew go back to the
-  stock loadout (plus what the remaining upgrades add).
+  stock loadout (plus what the remaining upgrades add). Revoking a level also revokes every level
+  that needs it (Shield II takes Shield III and IV with it; the forward beam mount takes the beam
+  coils, unless the sniper beam is fitted): a higher level kept without the one below could be
+  undone by buying the lower level again. The ship's log names each upgrade removed.
 - Repair-crew upgrades are special: pressing one the ship already owns re-applies it (to restore
   crew that died), up to 8 crew.
 

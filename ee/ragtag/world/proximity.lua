@@ -462,6 +462,12 @@ local function _makeShakedownComms(group)
             elseif rep >= -200 then
                 setCommsMessage('"Your record raises some flags. Inspection fee: ' .. fine .. ' credits."')
                 addCommsReply("Pay the fine (" .. fine .. " cr).", function(s2, t2)
+                    if RT.credits(player) < fine then
+                        -- Can't pay: the stop is still open (pay later, refuse, or let it time out).
+                        setCommsMessage('"Your account doesn\'t cover it. Find the credits or we do this the hard way."')
+                        addCommsReply("Refuse to pay.", function(s3, t3) doThreat(doGoHostile) end)
+                        return
+                    end
                     RT.addCredits(-fine, "Concord inspection fee", player)
                     RT.addReputation("Concord", 100, "paid Concord inspection fee", player)
                     player:addToShipLog("[Concord] Inspection fee: -" .. fine .. "cr. Standing improved.", "#8888FF")

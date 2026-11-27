@@ -339,21 +339,51 @@ function RT.rebuildHull(p)
     p:onProbeLaunch(function(ship, probe) probe:setSpeed(RT.PROBE_SPEED_STOCK) end)
 end
 
+-- `ids` without `id` and without everything that needed it, however deep (Shield III goes with
+-- Shield II, Shield IV with Shield III). Levels set absolute values in purchase order, so keeping a
+-- higher level without the one below would let the lower one be bought again and undo it.
+-- Returns the ids kept and the ids removed (`id` first).
+function RT.upgradesWithout(ids, id)
+    local kept, removed = {}, {id}
+    for _, uid in ipairs(ids) do
+        if uid ~= id then kept[#kept + 1] = uid end
+    end
+    local changed = true
+    while changed do
+        changed = false
+        local have = {}
+        for _, uid in ipairs(kept) do have[uid] = true end
+        for i = #kept, 1, -1 do
+            local u = RT.upgradeById(kept[i])
+            local req = u and _ids(u.requires) or {}
+            if #req > 0 then
+                local met = false
+                for _, r in ipairs(req) do if have[r] then met = true end end
+                if not met then
+                    removed[#removed + 1] = table.remove(kept, i)
+                    changed = true
+                end
+            end
+        end
+    end
+    return kept, removed
+end
+
+-- Returns the ids removed (`id` and whatever needed it), or false when the ship does not have it.
 function RT.revokeUpgrade(id, ship)
     local rec = RT.shipRecord(ship)
     local p = RT.playerShip(ship) or RT.player
     if rec == nil or not RT.hasUpgrade(id, p) then return false end
-    local kept = {}
-    for _, uid in ipairs(rec.upgrades) do
-        if uid ~= id then kept[#kept + 1] = uid end
-    end
+    local kept, removed = RT.upgradesWithout(rec.upgrades, id)
     rec.upgrades = kept
     if RT.valid(p) then
         RT.rebuildHull(p)
         RT.applyUpgrades(p, kept)
-        local u = RT.upgradeById(id)
-        if u then p:addToShipLog("Upgrade removed: " .. u.name, "#FF8080") end
+        for _, rid in ipairs(removed) do
+            local u = RT.upgradeById(rid)
+            if u then p:addToShipLog("Upgrade removed: " .. u.name, "#FF8080") end
+        end
     end
     RT.saveCampaign()
-    return true
+    return removed
 end

@@ -118,6 +118,28 @@ T.step("expired", function()
     T.eq("expiry: no active jobs", active(), 0)
 end)
 
+-- ── A job that runs out while the hand-off menu is open is not paid ──────────
+local late
+T.step("take a delivery to let lapse at the counter", function()
+    late = T.makeJob("delivery", HOME)
+    T.check("late: taken", JOBS.accept(late, true, T.P()))
+end)
+T.dock(function() return T.find(late.dest) end)
+T.talk(function() return T.find(late.dest) end, {})
+T.step("the hand-off is on offer, then the clock runs out", function()
+    T.check("late: hand-off offered", T.hasReply("Hand off " .. late.cargo), table.concat(T.replies(), " | "))
+    c0, rep0 = T.credits(), T.rep(late.origin_faction)
+    late._expires_at = T.now() - 1
+end)
+T.waitFor("late: the job expires with the menu open", function() return T.activeEntry(late) == nil end, 3)
+T.reply({function() return "Hand off " .. late.cargo end})
+T.step("not paid for an expired job", function()
+    T.eq("late: no credits", T.credits() - c0, 0)
+    T.eq("late: only the expiry's standing loss", T.rep(late.origin_faction) - rep0, -late.reward)
+    T.check("late: told so", T.msg():find("isn't on our books", 1, true) ~= nil, T.msg())
+    T.eq("late: no active jobs", active(), 0)
+end)
+
 -- ── Story contracts ──────────────────────────────────────────────────────────
 local fired = {}
 T.step("fill the cap, then post a story contract", function()
@@ -261,6 +283,49 @@ T.step("standing decides how much is shown", function()
     b = JOBS.board(HOME, T.P())
     T.check("gate: closed below -400", #b.offers == 0 and b.closed and b.nag ~= nil)
     RT.addReputation("Independent", 100 - T.rep("Independent", T.P()), "test", T.P())
+end)
+-- A Small Station has one slot, gone at any negative standing; an arc's story contract there must
+-- still be offered (the Boneyard's is at Halcyon Rest and St. Brennan's). Only a station that
+-- refuses the ship outright (below -400) hides it.
+T.step("a small station keeps its story contract at a poor standing", function()
+    local SMALL = "Halcyon Rest"
+    T.eq("small: one slot", JOBS.stationSlots(SMALL), 1)
+    local sm = JOBS.build("delivery", {id = "test_small_story", origin = SMALL, dest = HOME, cargo = "test parcel",
+        reward = 50, story = true, brief = "A test."})
+    JOBS.inject({category = "TEST_STORY", priority = 5, origin = SMALL, record = sm})
+    local function offered(bd) for _, o in ipairs(bd.offers) do if o == sm then return true end end return false end
+    RT.addReputation("Independent", -100 - T.rep("Independent", T.P()), "test", T.P())
+    local bd = JOBS.board(SMALL, T.P())
+    T.check("small: the story contract is offered below 0", offered(bd), #bd.offers)
+    T.eq("small: and nothing else", #bd.offers, 1)
+    T.check("small: the station says why", bd.nag ~= nil)
+    RT.addReputation("Independent", -450 - T.rep("Independent", T.P()), "test", T.P())
+    bd = JOBS.board(SMALL, T.P())
+    T.check("small: refused outright below -400, story contract too", not offered(bd) and bd.closed, #bd.offers)
+    RT.addReputation("Independent", 100 - T.rep("Independent", T.P()), "test", T.P())
+    JOBS.removeCategory("TEST_STORY")
+end)
+-- A job's tier is drawn from 0 up to the asking ship's tier: a tier-2 ship gets tier-2 variants.
+T.step("a tier-2 ship is offered tier-2 work; a tier-1 ship never is", function()
+    local _maxTier, seen = JOBS.maxTier, {}
+    JOBS.config.work_cooldown_enabled = false
+    JOBS._station_work = {}   -- no offers cached by the steps above: every board is drawn fresh
+    local ok, err = pcall(function()
+        for _, want in ipairs({2, 1}) do
+            JOBS.maxTier = function() return want end
+            seen[want] = {}
+            for _ = 1, 25 do
+                for _, m in ipairs(JOBS.board(HOME, T.P()).offers) do seen[want][m.tier or -1] = true end
+            end
+        end
+    end)
+    JOBS.maxTier = _maxTier
+    JOBS.config.work_cooldown_enabled = true
+    JOBS._station_work = {}
+    if not ok then error(err) end
+    T.check("tier 2: tier-2 jobs offered", seen[2][2] == true)
+    T.check("tier 2: lower tiers still offered", seen[2][0] or seen[2][1])
+    T.check("tier 1: never a tier-2 job", not seen[1][2])
 end)
 -- The Short Haul: a taken slot refills at once (refill_secs = 0), but untaken offers still stand:
 -- hailing again does not re-roll the board.

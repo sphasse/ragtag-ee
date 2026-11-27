@@ -652,6 +652,7 @@ function JOBS.update()
             -- The ship that held the contract is gone: the job goes with it, at no cost to anyone.
             local mod = JOBS._registry[m.type]
             if mod and mod.cleanup then pcall(mod.cleanup, m) end
+            entry.phase = "failed"
             JOBS._failed(m)
             table.remove(JOBS._active, i)
             JOBS.updateObj()
@@ -666,6 +667,7 @@ function JOBS.update()
                     end
                 end
                 if mod and mod.cleanup then mod.cleanup(m) end
+                entry.phase = "failed"
                 JOBS._failed(m)
                 table.remove(JOBS._active, i)
                 JOBS.updateObj()
@@ -678,8 +680,9 @@ function JOBS.update()
                             JOBS.rep(m, m.origin_faction, -m.reward, "failed: " .. m.short)
                         end
                         if mod.cleanup then pcall(mod.cleanup, m) end
+                        entry.phase = "failed"
                         JOBS._failed(m)
-                                table.remove(JOBS._active, i)
+                        table.remove(JOBS._active, i)
                         JOBS.updateObj()
                     end
                 end
@@ -782,14 +785,15 @@ local function _setSlot(ss, sn, m, now)
     ss.slots[sn].taken_at   = nil
 end
 
--- Step 1, the reputation gate: how many offers the station will show this ship, and what it
--- says about it. Judged by the asking ship's own standing with the station's faction.
+-- Step 1, the reputation gate: how many offers the station will show this ship, what it says
+-- about it, and whether it refuses the ship outright (no story contracts either). Judged by the
+-- asking ship's own standing with the station's faction.
 local function _repGate(cs, ship, n_slots)
     local se   = RT.find(cs)
     local sfac = RT.valid(se) and se:getFaction() or nil
     local rep  = sfac and RT.getReputation(sfac, ship) or 0
     if rep < -400 then
-        return 0, '"We\'ve got nothing for someone with your reputation. Come back when you\'ve earned some trust."'
+        return 0, '"We\'ve got nothing for someone with your reputation. Come back when you\'ve earned some trust."', true
     elseif rep < -200 then
         return math.max(0, n_slots - 2), '"If you were more trustworthy, I\'d have more work for you."'
     elseif rep < 0 then
@@ -876,9 +880,9 @@ local function _newJob(ctx, ship, seeds, offers, story)
         end
     end
     local mt = JOBS.maxTier(ship)
-    ctx.max_tier = mt   -- the asking ship's own tier (ctx.tier is the job's, at most 1)
+    ctx.max_tier = mt   -- the asking ship's own tier (ctx.tier is the job's: 0 up to the ship's tier)
     for _ = 1, 4 do
-        ctx.tier = math.min(mt, math.random(0, 1))
+        ctx.tier = math.random(0, math.min(mt, 2))
         local mtype = JOBS.pickType(ship)
         local mod   = JOBS._registry[mtype]
         if not mod then return nil end
@@ -908,7 +912,7 @@ function JOBS.board(cs, ship)
     local n_slots = JOBS.stationSlots(cs)
     local ss      = _stationState(cs, n_slots)
 
-    local n_offer, nag = _repGate(cs, ship, n_slots)
+    local n_offer, nag, refused = _repGate(cs, ship, n_slots)
     local due    = _slotsDue(ss, n_slots, now)
     local offers = _cachedOffers(ss, n_slots)
     -- Everything an arc injects (story contracts and seeds alike) is for the primary ship only:
@@ -934,9 +938,11 @@ function JOBS.board(cs, ship)
         end
     end
 
-    -- The reputation cap on displayed offers; story contracts go on top of what is left.
+    -- The reputation cap on displayed offers; story contracts go on top of what is left. They
+    -- are hidden only from a ship the station refuses outright (below -400): a Small Station's
+    -- one slot is gone at any negative standing, and that must not hide an arc's contract.
     while #offers > n_offer do table.remove(offers) end
-    if n_offer > 0 then
+    if not refused then
         for i = #story, 1, -1 do table.insert(offers, 1, story[i]) end
     end
     -- Final de-duplication by summary (cached slots / injected seeds can still collide).
@@ -1050,6 +1056,14 @@ function JOBS.stationHook(source, target)
                 local ent = entry
                 local rep = mod.completeReply(m, ent)
                 addCommsReply(rep.label, function(s, t)
+                    -- The menu can stay open while the job expires or fails: pay only a live job.
+                    local live = false
+                    for _, a in ipairs(JOBS._active) do if a == ent then live = true end end
+                    if not live or ent.phase ~= "active" then
+                        setCommsMessage('"That contract isn\'t on our books any more. Nothing to pay out."')
+                        addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
+                        return
+                    end
                     JOBS.complete(ent, s)
                     setCommsMessage(rep.msg .. string.format("\n\n%d credits transferred.", ent.mission.reward))
                     addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)

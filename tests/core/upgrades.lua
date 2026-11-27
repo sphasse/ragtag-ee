@@ -118,6 +118,14 @@ T.step("bases sell whole lines", function()
     local text = entry and entry:getLongDescription() or ""
     T.check("science DB: 'Base for hull, reactor and beam upgrades'", text:find("Base for hull, reactor and beam upgrades", 1, true) ~= nil, text:sub(1, 300))
     T.eq("science DB: the shipwright line", entry and entry:getKeyValue("Shipwright"), "hull, reactor, beam")
+    -- The GM console's Ship Upgrades menu can grant and remove every upgrade.
+    local in_gm = {}
+    for _, g in ipairs(GMCONSOLE and GMCONSOLE.UPGRADE_GROUPS or {}) do
+        for _, id in ipairs(g.ids) do in_gm[id] = true end
+    end
+    local not_in_gm = {}
+    for _, u in ipairs(RT.UPGRADES) do if not in_gm[u.id] then not_in_gm[#not_in_gm + 1] = u.id end end
+    T.eq("GM console: every upgrade in the Ship Upgrades menu", table.concat(not_in_gm, ", "), "")
     B = T.secondShip()
 end)
 
@@ -167,6 +175,27 @@ T.step("the levels add up", function()
     RT.grantUpgrade("coolant_pump_2", "test", B)
 end)
 
+-- Levels set absolute values in purchase order. Removing a lower level takes the higher ones with
+-- it, so the lower level can't be bought again on top of them and undo them (Shield II after
+-- Shield III would put the shields back to 100).
+T.step("removing a level removes the levels above it", function()
+    local removed = RT.revokeUpgrade("shield_mk2", B)
+    T.eq("revoke: Shield II takes III and IV with it", table.concat(removed or {}, ","), "shield_mk2,shield_mk3,shield_mk4")
+    T.check("revoke: none of the three left", not RT.hasUpgrade("shield_mk3", B) and not RT.hasUpgrade("shield_mk4", B))
+    T.eq("revoke: stock shields", B:getShieldMax(0), 70)
+    T.check("revoke: Shield III needs Shield II again", not RT.upgradeOpen(RT.upgradeById("shield_mk3"), B))
+    for _, id in ipairs({"shield_mk2", "shield_mk3", "shield_mk4"}) do RT.grantUpgrade(id, "test", B) end
+    T.eq("re-fitted: 220", B:getShieldMax(0), 220)
+    -- The top level goes alone.
+    T.eq("revoke: Turn III alone", table.concat(RT.revokeUpgrade("maneuver_thrusters_3", B) or {}, ","), "maneuver_thrusters_3")
+    T.eq("revoke: back to Turn II", math.floor(B:getRotationMaxSpeed() + 0.5), 16)
+    RT.grantUpgrade("maneuver_thrusters_3", "test", B)
+    -- Without a ship in the game: the list alone.
+    local kept, gone = RT.upgradesWithout({"engine_tune", "hull_plating", "engine_tune_2", "hull_plating_2"}, "engine_tune")
+    T.eq("upgradesWithout: kept", table.concat(kept, ","), "hull_plating,hull_plating_2")
+    T.eq("upgradesWithout: removed", table.concat(gone, ","), "engine_tune,engine_tune_2")
+end)
+
 -- The forward mount is a choice: the forward beam mount or the sniper beam, never both.
 T.step("the sniper beam: a choice with the forward beam", function()
     local sn = RT.upgradeById("sniper_beam")
@@ -179,14 +208,17 @@ T.step("the sniper beam: a choice with the forward beam", function()
     T.eq("coils need either mount", RT.upgradeNeedsText(RT.upgradeById("beam_coils")), "Forward beam mount or Sniper beam")
     T.check("shipwright: sniper sold where beams are", RT.stocks(station("Port Vesper") or {shop = true}, "sniper_beam")
         == RT.stocks(station("Port Vesper") or {shop = true}, "forward_beams"))
-    RT.revokeUpgrade("forward_beams", B)
+    -- Taking the only mount off takes the coils with it: they need a mount.
+    local removed = RT.revokeUpgrade("forward_beams", B)
+    T.eq("forward beam off: the coils go with it", table.concat(removed or {}, ","), "forward_beams,beam_coils,beam_coils_2")
     T.check("forward beam off: sniper open", RT.upgradeOpen(sn, B))
-    T.check("coils still count with either mount", RT.upgradeNeedsMet(RT.upgradeById("beam_coils_2"), B))
+    T.check("forward beam off: no coils without a mount", not RT.upgradeOpen(RT.upgradeById("beam_coils"), B))
     T.check("sniper: granted", RT.grantUpgrade("sniper_beam", "test", B))
     T.eq("sniper: 5 degree arc", B:getBeamWeaponArc(2), 5)
     T.eq("sniper: 3U range", B:getBeamWeaponRange(2), 3000)
-    -- Bought after both coils: it gets them anyway (8 + 2 + 2).
-    T.eq("sniper after the coils: 12 damage", B:getBeamWeaponDamage(2), 12)
+    T.check("coils count with either mount", RT.upgradeOpen(RT.upgradeById("beam_coils"), B))
+    for _, id in ipairs({"beam_coils", "beam_coils_2"}) do RT.grantUpgrade(id, "test", B) end
+    T.eq("sniper with both coils: 12 damage", B:getBeamWeaponDamage(2), 12)
     local stock0 = B:getBeamWeaponDamage(0)
     RT.grantUpgrade("heavy_beams", "test", B)
     T.eq("heavy emitters: sniper 3.4U", B:getBeamWeaponRange(2), 3400)

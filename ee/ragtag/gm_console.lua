@@ -532,12 +532,15 @@ function GMCONSOLE.add(opts)
         {label = "Missiles",  ids = {"missile_racks", "missile_racks_2"}},
         {label = "Tubes",     ids = {"front_tube", "side_tubes"}},
         {label = "Impulse",   ids = {"engine_tune", "engine_tune_2"}},
+        {label = "Accel",     ids = {"impulse_accel", "impulse_accel_2", "impulse_accel_3"}},
         {label = "Thrusters", ids = {"combat_thrusters"}},
+        {label = "Turn",      ids = {"maneuver_thrusters", "maneuver_thrusters_2", "maneuver_thrusters_3"}},
         {label = "Reactor",   ids = {"reactor_overhaul", "coolant_pump", "coolant_pump_2"}},
         {label = "Repair",    ids = {"repair_crew", "repair_crew_2", "repair_crew_3"}},
         {label = "Sensors",   ids = {"sensor_suite", "sensor_suite_2", "sensor_suite_3"}},
         {label = "Probes",    ids = {"fast_probes", "ludicrous_probes"}},
     }
+    GMCONSOLE.UPGRADE_GROUPS = _UPGRADE_GROUPS   -- tests/core/upgrades.lua: every upgrade is listed
 
     -- Upgrades are per ship: every function below works on `p`, the ship picked in the list.
     local function _upgradeLabel(group_label, idx, u, p)
@@ -615,10 +618,14 @@ function GMCONSOLE.add(opts)
         add(uline("engine_tune")); add(uline("engine_tune_2"))
         local fwd, rev = p:getImpulseMaxSpeed()
         add(string.format("  fwd %.0f / rev %.0f u/s", fwd, rev))
+        add(uline("impulse_accel")); add(uline("impulse_accel_2")); add(uline("impulse_accel_3"))
+        add(string.format("  acceleration: %.0f", p:getAcceleration()))
 
         sec("THRUSTERS")
         add(uline("combat_thrusters"))
         add("  combat maneuver: " .. (RT.hasUpgrade("combat_thrusters", p) and "enhanced" or "default"))
+        add(uline("maneuver_thrusters")); add(uline("maneuver_thrusters_2")); add(uline("maneuver_thrusters_3"))
+        add(string.format("  turn rate: %.0f°/s", p:getRotationMaxSpeed()))
 
         sec("REACTOR")
         add(uline("reactor_overhaul")); add(uline("coolant_pump")); add(uline("coolant_pump_2"))

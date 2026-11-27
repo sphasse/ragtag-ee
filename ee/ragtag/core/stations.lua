@@ -114,9 +114,11 @@ function RT.shipwrightMenu(source, target)
                 if RT.credits(s) < u.cost then
                     setCommsMessage(u.crew and "\"Nobody signs on without their first month's pay up front.\""
                         or "\"Come back when you can pay for it.\"")
+                elseif not RT.installUpgrade(u.id, s) then   -- on the buying ship, and in its record only
+                    -- Fitted (or ruled out) since the menu was opened, e.g. by the GM: no charge.
+                    setCommsMessage("\"Looks like that's already been seen to. No charge.\"")
                 else
                     RT.addCredits(-u.cost, (u.crew and "hired " or "bought ") .. u.name, s)
-                    RT.installUpgrade(u.id, s)   -- on the buying ship, and in its record only
                     setCommsMessage(u.crew and ("Hired: two more engineering crew. They'll report to Engineering this shift.")
                         or ("Installed: " .. u.name .. ". Try not to scratch it."))
                     RT.emit("upgrade", {id = u.id, how = "bought", station = t:getCallSign(), ship = s:getCallSign()})

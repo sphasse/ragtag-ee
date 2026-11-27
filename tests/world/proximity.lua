@@ -322,6 +322,17 @@ T.step("the fine is offered", function()
     T.check("fine: can refuse", T.hasReply("Refuse to pay"))
     rep0, c0 = T.rep("Concord", A), T.credits(A)
     b_rep0, b_c0 = T.rep("Concord", B), T.credits(B)
+    RT.setCredits(50, A)   -- first, a crew that can't cover it
+end)
+T.talk(function() return ship end, {"Confirmed. Standing by.", "Pay the fine"}, {name = "the patrol"})
+T.step("can't pay: no standing for nothing", function()
+    T.check("broke: told the account doesn't cover it", T.msg():find("doesn't cover it", 1, true) ~= nil, T.msg())
+    T.eq("broke: nothing charged", charged("Concord inspection fee", A), 0)
+    T.check("broke: nothing taken from the balance", T.credits(A) >= 50, T.credits(A))
+    T.eq("broke: no standing for it", T.rep("Concord", A), rep0)
+    T.check("broke: the stop is still on", not group.shakedown_done)
+    T.check("broke: can still refuse", T.hasReply("Refuse to pay"))
+    RT.setCredits(500, A)
 end)
 T.talk(function() return ship end, {"Confirmed. Standing by.", "Pay the fine"}, {name = "the patrol"})
 T.step("paid", function()
@@ -620,4 +631,20 @@ T.step("GM: faction zones switch", function()
     end)
     addGMFunction, clearGMFunctions = add, clear
     T.check("GM: no error", ok, tostring(err))
+end)
+
+-- The Concord standing notices say what the patrols and ports do at each line (core/reputation.lua):
+-- inspections recognise the callsign at 500, clear without a fee from 0, charge a fee down to -200,
+-- and below -200 the patrols spawn hostile. No notice for a line that changes nothing.
+T.step("Concord standing notices match the patrols", function()
+    local lines, text = {}, {}
+    for _, t in ipairs(RT.REP_THRESHOLDS.Concord) do
+        lines[#lines + 1] = tostring(t[1])
+        text[t[1]] = t[2] .. " | " .. t[3]
+    end
+    T.eq("notices: the lines that change something", table.concat(lines, ","), "500,0,-200,-400")
+    T.check("notices: 500 is recognition, not a pass without stopping",
+        text[500]:find("callsign", 1, true) and not text[500]:find("without stopping", 1, true), text[500])
+    T.check("notices: below 0 a fee", text[0]:find("fee", 1, true) ~= nil, text[0])
+    T.check("notices: below -200 attack on sight", text[-200]:find("attack on sight", 1, true) ~= nil, text[-200])
 end)

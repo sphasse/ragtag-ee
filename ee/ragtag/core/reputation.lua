@@ -8,20 +8,19 @@
 
 -- Threshold table for rep-change notifications.
 -- Concord has inspection-specific entries; _default covers job-access thresholds for all factions.
+-- Each message says what changes at that line: Concord's from the inspection outcomes in
+-- world/proximity.lua (>= 500 recognised, >= 0 cleared without a fee, >= -200 a fee, below that a
+-- hostile patrol) and the job board's reputation gate (jobs/_engine.lua: 0 / -200 / -400).
 local _REP_THRESHOLDS = {
     Concord = {
-        { 500, "Concord will now wave you through inspections without stopping.",
-                "Concord will now conduct inspections again." },
-        { 200, "Concord now accepts cargo declarations without proof.",
-                "Concord no longer accepts cargo declarations without proof." },
-        {   0, "Concord patrols give benefit of doubt on ignored hails.",
-                "Concord patrols will now turn hostile over ignored inspections." },
-        {-200, "More work becoming available at Concord ports.",
-                "Very few jobs available at Concord ports." },
+        { 500, "Concord patrols now know your callsign: inspections are a formality.",
+                "Concord patrols no longer know your callsign on sight." },
+        {   0, "Concord inspections will clear you without a fee. Full job access at Concord ports.",
+                "Concord inspections will now charge you a fee to let you go. Fewer jobs at Concord ports." },
+        {-200, "Concord patrols will stop you for inspection again instead of attacking. More work at Concord ports.",
+                "Concord patrols will now attack on sight. Very few jobs at Concord ports." },
         {-400, "Concord ports may offer limited work again.",
                 "Concord ports will no longer offer work." },
-        {-500, "Concord inspection protocols restored.",
-                "Concord patrols will now attack on sight." },
     },
     Corsairs = {
         {   0, "Full job access restored at Corsair-adjacent ports.",
@@ -40,6 +39,7 @@ local _REP_THRESHOLDS = {
                 "This faction will no longer offer work." },
     },
 }
+RT.REP_THRESHOLDS = _REP_THRESHOLDS   -- read by tests/world/proximity.lua
 
 -- Standing is kept per ship, in the ship's record (core.lua, "Per-ship records"). The primary
 -- ship's standing is the one story arcs read; every other player ship starts at zero. Functions

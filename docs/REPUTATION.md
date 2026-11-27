@@ -8,7 +8,7 @@ There are three factions that matter:
 
 **The Independent network** — everyone who isn't Concord or Corsairs. Port operators, independent traders, the mission boards at neutral stations. High Independent standing opens doors and fills the board with better-paying work. Run enough jobs, treat people square, and stations in the rougher parts of the Drift start routing the worthwhile contracts your way. Let jobs go sideways, fail on delivery, leave people hanging — word gets out, and the board goes quiet.
 
-**The Concord** — the law, such as it is out here. They run inspections in the Core, on the Arbiter Line and in the Escrow Marches south of them. A good record means they wave you through without stopping. A bad one means more scrutiny, then fines, then warrants, and eventually — well past the point a reasonable crew would have cleared their name — their patrols stop hailing and start shooting.
+**The Concord** — the law, such as it is out here. They run inspections in the Core, on the Arbiter Line and in the Escrow Marches south of them. Every crew gets stopped and checked; a good record means the check is a formality and you're on your way. A bad one means fees to be let go, and eventually — well past the point a reasonable crew would have cleared their name — their patrols stop hailing and start shooting.
 
 **The Corsairs** — pirates, toll-takers, opportunists. They don't offer work and they're not interested in your reputation the way the other factions are. What they're interested in is whether you look like easy money. Where they spawn and how much trouble they give you depends on where you fly; your standing with them mostly determines what jobs you can pick up at their-adjacent ports, and how few other options the job board shows you when things go south. (The **Shroud Raiders**, the Corsair crews of the Shroud who never answered to Blackwater, keep no reckoning at all: they're hostile whatever your standing, and destroying them costs nothing.)
 
@@ -18,7 +18,7 @@ Reputation is kept **per ship**: with several crews flying, each ship has its ow
 
 **Practical consequences at a glance:**
 
-Concord standing high → wave-through on the Arbiter Line, no fine, no paperwork. Standing low → fines and warrants. Standing very low → they come for you.
+Concord standing high → inspections clear you, no fee. Standing low → a fee to be let go. Standing very low (below −200) → they come for you.
 
 Independent standing high → more work available, better contracts offered. Standing low → the board thins out. Standing very low → almost nothing.
 
@@ -41,7 +41,7 @@ Reputation is stored per ship and per faction in the campaign save (the primary 
 Every reputation change logs three lines to the Relay console:
 1. The change: `Concord reputation +100 — completed: Delivery run`
 2. Current standings: `Current reputation: Independent: +0 | Concord: +100 | Corsairs: +0`
-3. If a threshold was crossed: `[Rep] Concord will now wave you through inspections without stopping.`
+3. If a threshold was crossed: `[Rep] Concord patrols now know your callsign: inspections are a formality.`
 
 ### How reputation changes
 
@@ -98,19 +98,21 @@ A completed Tier 0 delivery at minimum range moves about +50 rep. A failed Tier 
 
 | Threshold | Crossing up | Crossing down |
 |---|---|---|
-| +500 | Wave through inspections — no stop, no fine | Concord resumes inspections |
-| +200 | Accept cargo declarations without proof | No longer accepts declarations without proof |
-| 0 | Benefit of doubt on ignored hails | Patrols more likely to escalate inspections |
-| −200 | More work becoming available at Concord ports | **Concord patrols now spawn as hostile and attack on sight**; Concord port guards attack a ship within 5U of them (they chase it to 10U from their port); the lane pickets within 10U (to 20U from their post) |
+| +500 | Patrols know your callsign: the inspection is a formality (they still stop you) | No longer known on sight |
+| 0 | Inspections clear you without a fee; full job access at Concord ports | Inspections charge a 100 cr fee to let you go; fewer jobs at Concord ports |
+| −200 | Patrols stop you for inspection again instead of attacking; more work at Concord ports | **Concord patrols now spawn as hostile and attack on sight**; very few jobs at Concord ports; Concord port guards attack a ship within 5U of them (they chase it to 10U from their port); the lane pickets within 10U (to 20U from their post) |
 | −400 | Concord ports may offer limited work again | Concord ports will no longer offer work |
+
+(Standing between 0 and +500 clears inspections the same way; +200 only changes what the patrol says.)
 
 **How Concord inspections work:**
 - Concord patrols spawn in the **Concord Core**, **Arbiter Line** and **Escrow Marches** zones only.
 - On spawn they fly toward the player ("approaching"). When they close to 5U and the player is more than 20U from any station, they deploy a 1U WarpJammer behind the player, broadcast a warning naming the interceptor, and hail via comms once the player has stopped.
-- Player options: comply (outcome based on rep — wave-through, clean pass, or fine), stall (up to 2 stalls; each resets the 60-second clock), or run (requires getting 10U clear of all patrol ships, −100 rep).
+- Player options: comply (outcome based on rep — recognised, clean pass, or fee), stall (up to 2 stalls; each resets the 60-second clock), or run (requires getting 10U clear of all patrol ships, −100 rep).
 - Comms timeout (60 seconds of silence after hail): patrol goes hostile, −100 rep, "You were warned" broadcast.
-- Rep ≥ +500: immediate wave-through, no jammer, no fine.
-- Rep ≥ +200: Concord accepts a cargo declaration without a scan.
+- Rep ≥ +500: the patrol recognises the callsign and clears the ship with a compliment (it is still stopped and jammed first).
+- Rep 0 to +499: clean pass, no fee.
+- Rep −1 to −200: a 100 cr fee (+100 rep when paid; a crew that can't cover it can only refuse or let the clock run out).
 - Rep < −200: no shake-down — Concord ships spawn as **Concord Hostile** (targetable) and immediately attack.
 
 ### Independent and Corsair thresholds
