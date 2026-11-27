@@ -209,10 +209,21 @@ T.step("a locked entry added at run time", function()
 end)
 
 -- ── Profiles: people the crew has met ────────────────────────────────────────
+-- Every profile has its portrait, ragtag/img/people/<who>.png (check.py: the file exists; made with
+-- tools/make_portraits.py from tools/portraits/portraits.json).
+T.step("every profile has a portrait", function()
+    local wrong = {}
+    for key, p in pairs(SCIDB.PROFILES) do
+        if p.image ~= "ragtag/img/people/" .. tostring(p.who) .. ".png" then wrong[#wrong + 1] = key end
+    end
+    table.sort(wrong)
+    T.eq("portraits: every profile has one", table.concat(wrong, ", "), "")
+end)
 T.step("meeting someone", function()
     T.check("profile: unknown before the meeting", SCIDB.get("thresh_profile") == nil and not SCIDB.known("thresh_profile"))
     T.check("profile: first meeting adds the entry", SCIDB.meet("rezkov", "thresh_profile") == true)
     T.check("profile: under People", child_names("people")["Thresh"])
+    T.eq("profile: Thresh's portrait", SCIDB.get("thresh_profile"):getImage(), "ragtag/img/people/thresh.png")
     T.eq("announce: a profile", last(), "[Science] Database entry added: People > Thresh.")
     T.check("profile: remembered in a campaign flag", T.flag("rezkov_met_thresh") == true)
     T.check("profile: meeting again adds nothing", SCIDB.meet("rezkov", "thresh_profile") == false)
@@ -231,6 +242,7 @@ T.step("the database follows the flags", function()
     local n = count()
     SCIDB.sync()
     T.check("sync: a flag set elsewhere (a loaded save) brings the profile back", SCIDB.get("thresh_profile") ~= nil)
+    T.eq("sync: with its portrait", SCIDB.get("thresh_profile"):getImage(), "ragtag/img/people/thresh.png")
     T.eq("announce: sync restores quietly", count(), n)
     RT.clearFlag("rezkov_met_thresh")
     SCIDB.sync()

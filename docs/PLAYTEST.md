@@ -178,6 +178,8 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
       and probes; its Science DB Ports entry has the new lore
 - [ ] Science DB **Ship Upgrades** (top level): one entry per component with every upgrade's effect, price, prerequisite
       and the ports that fit it. Does it read well on the Science screen? Do crews use it to plan purchases?
+- [ ] Science DB **People**: each profile shows its portrait beside the description. Readable at the Science
+      screen's size? Do the faces fit the people as the crew meets them?
 - [ ] GM **Ship Upgrades**: Accel and Turn are listed; revoking a level (e.g. Shield II) also revokes the levels above
       it, and the status sheet shows acceleration and turn rate
 - [ ] **Tier-2 work** (1,000 cr of upgrades): the board now offers tier-2 variants (about a third of jobs), paying

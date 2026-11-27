@@ -165,13 +165,15 @@ function SCIDB.addEntry(parent_key, name, desc, kv, lock_key, locked_desc)
 end
 
 -- Character profiles under People, added when the crew first meets someone. Deliberately
--- character sketches: what a person is like, not what they will do later.
+-- character sketches: what a person is like, not what they will do later. Each has a portrait
+-- (`image`), made from tools/portraits/portraits.json, whose `look` is how the person appears.
 -- Arcs call SCIDB.meet(arc_id, key): it sets the flag "<arc_id>_met_<who>" (cleared by that
 -- arc's GM resets like any of its flags) and adds the entry, returning true only the first time
 -- (so callers can log "records added"). A profile exists while any arc's met-flag is set.
 SCIDB.PROFILES = {
     thresh_profile = {
         who  = "thresh",
+        image = "ragtag/img/people/thresh.png",   -- tools/make_portraits.py
         name = "Thresh",
         desc = "Proprietor of Dustmote Salvage, and the usual way to reach people who don't answer " ..
                "hails.\n\n" ..
@@ -186,6 +188,7 @@ SCIDB.PROFILES = {
     },
     rezkov_profile = {
         who  = "rezkov",
+        image = "ragtag/img/people/rezkov.png",   -- tools/make_portraits.py
         name = "Orlan Rezkov",
         desc = "Independent operator, and the head of a small network of couriers, salvagers and " ..
                "informants working the lanes around Dustmote.\n\n" ..
@@ -200,6 +203,7 @@ SCIDB.PROFILES = {
     },
     reva_profile = {
         who  = "reva",
+        image = "ragtag/img/people/reva.png",   -- tools/make_portraits.py
         name = "Reva Okonkwo",
         desc = "Quartermaster of Blackwater, which in practice means she runs it.\n\n" ..
                "Served as a gunnery chief on Free Ship cruisers in the Settlement War and was still " ..
@@ -215,6 +219,7 @@ SCIDB.PROFILES = {
     },
     kael_profile = {
         who  = "kael",
+        image = "ragtag/img/people/kael.png",   -- tools/make_portraits.py
         name = "Commander Kael",
         desc = "Concord Intelligence, Special Operations Investigations.\n\n" ..
                "Flew for the Concord in the Settlement War, and was one of a handful of officers " ..
@@ -231,6 +236,7 @@ SCIDB.PROFILES = {
     },
     quill_profile = {
         who  = "quill",
+        image = "ragtag/img/people/quill.png",   -- tools/make_portraits.py
         name = "Dr. Mara Quill",
         desc = "Former senior researcher at the Ashgrave Annex, now working out of the Hob Works at " ..
                "Hob's Landing.\n\n" ..
@@ -245,6 +251,7 @@ SCIDB.PROFILES = {
     },
     varga_profile = {
         who  = "varga",
+        image = "ragtag/img/people/varga.png",   -- tools/make_portraits.py
         name = "Dr. Nell Varga",
         desc = "The doctor at Tamsin Hollow, the farm depot that feeds half the Border.\n\n" ..
                "Keeps the depot's crews alive on a clinic budget and a lot of stubbornness. Applies through " ..
@@ -255,6 +262,7 @@ SCIDB.PROFILES = {
     },
     calloway_profile = {
         who  = "calloway",
+        image = "ragtag/img/people/calloway.png",   -- tools/make_portraits.py
         name = "Ines Calloway",
         desc = "Foreman of Breaker's Claim, the mining camp on the southern edge of the Shroud.\n\n" ..
                "Worked other people's claims for twenty years before she filed her own. Pays her crews " ..
@@ -266,6 +274,7 @@ SCIDB.PROFILES = {
     },
     marchetti_profile = {
         who  = "marchetti",
+        image = "ragtag/img/people/marchetti.png",   -- tools/make_portraits.py
         name = "Anton Marchetti",
         desc = "Chief engineer of the Hob Works at Hob's Landing, and young for it.\n\n" ..
                "His father, an engineer on the Free Ships, was killed in the last year of the Settlement " ..
@@ -283,7 +292,10 @@ SCIDB.PROFILES = {
 function SCIDB.addProfile(key)
     local p = SCIDB.PROFILES[key]
     if not p or SCIDB._entries[key] or not SCIDB._entries["people"] then return false end
-    SCIDB._entries[key] = SCIDB.addEntry("people", p.name, p.desc, p.kv)
+    local e = SCIDB.addEntry("people", p.name, p.desc, p.kv)
+    SCIDB._entries[key] = e
+    -- The portrait (tools/portraits/: one style for all, 512x512) beside the description.
+    if e and p.image then pcall(function() e:setImage(p.image) end) end
     return true
 end
 
