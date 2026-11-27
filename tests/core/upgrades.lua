@@ -158,7 +158,7 @@ T.step("the levels add up", function()
     for _, id in ipairs({"maneuver_thrusters", "maneuver_thrusters_2", "maneuver_thrusters_3"}) do
         RT.grantUpgrade(id, "test", B); turn[#turn + 1] = math.floor(B:getRotationMaxSpeed() + 0.5)
     end
-    T.eq("turn rate: 13, 16, then 20 (double)", table.concat(turn, ", "), "13, 16, 20")
+    T.eq("turn rate: 13, 16, then 18 (under the fighters' 20)", table.concat(turn, ", "), "13, 16, 18")
     local acc = {}
     for _, id in ipairs({"impulse_accel", "impulse_accel_2", "impulse_accel_3"}) do
         RT.grantUpgrade(id, "test", B); acc[#acc + 1] = math.floor(B:getAcceleration() + 0.5)

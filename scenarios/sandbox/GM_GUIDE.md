@@ -61,13 +61,14 @@ crew) before its own upgrades go on. Details: `docs/GM_SHIP_MANAGEMENT.md`.
   escalate (sensors 500 / 1,000 / 2,000, turn 200 / 800 / 2,000, acceleration 300 / 1,000 / 2,500,
   Shield IV 1,800, Armour III 1,100). Full list: `ee/ragtag/core/upgrades.lua`.
 - **Handling** (each level needs the one before; the stock Light Freighter turns at 10°/s and
-  accelerates at 10, forward and reverse; the top level doubles both):
+  accelerates at 10, forward and reverse; the top levels reach turn 18, above every stock frigate's 15
+  and below the fighters', and acceleration 20, double the stock):
 
   | Upgrade | Line | Cost | Effect | Where |
   |---|---|---|---|---|
   | Re-bored maneuvering jets (Turn I) | thrusters | 200 | turn 10 → 13°/s | Ostia Highport, Hob's Landing |
   | Twin-nozzle thruster clusters (Turn II) | thrusters | 800 | turn 13 → 16°/s | Ostia Highport, Hob's Landing |
-  | Vectored thruster array (Turn III) | thrusters | 2,000 | turn 16 → 20°/s | Ostia Highport, Hob's Landing |
+  | Vectored thruster array (Turn III) | thrusters | 2,000 | turn 16 → 18°/s | Ostia Highport, Hob's Landing |
   | Rewound impulse coils (Accel I) | engines | 300 | acceleration 10 → 13 | Ostia Highport, Port Vesper, Hob's Landing |
   | High-flow plasma injectors (Accel II) | engines | 1,000 | acceleration 13 → 16 | Ostia Highport, Port Vesper, Hob's Landing |
   | Courier-grade impulse drive (Accel III) | engines | 2,500 | acceleration 16 → 20 | Ostia Highport, Port Vesper, Hob's Landing |

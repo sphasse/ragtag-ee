@@ -150,8 +150,9 @@ RT.UPGRADES = {
     {id = "combat_thrusters", line = "thrusters", name = "Combat thrusters", gm_name = "Thrusters", cost = 300,
      desc = "Much stronger combat boost and strafe. Gets you out of trouble.",
      apply = function(p) p:setCombatManeuver(450, 300) end},
-    -- Maneuvering thrusters: the turn rate, stock 10 degrees/s on the Light Freighter; three levels
-    -- to double it. Absolute values.
+    -- Maneuvering thrusters: the turn rate, stock 10 degrees/s on the Light Freighter; three levels to
+    -- 18 (capped there 2026-11-26: above the nimblest stock frigates' 15, below the fighters' 20 and 32).
+    -- Absolute values.
     {id = "maneuver_thrusters", line = "thrusters", name = "Re-bored maneuvering jets", gm_name = "Turn I", cost = 200,
      desc = "Turn rate 10 -> 13 degrees a second.",
      apply = function(p) p:setRotationMaxSpeed(13) end},
@@ -159,8 +160,8 @@ RT.UPGRADES = {
      desc = "Turn rate 13 -> 16 degrees a second.",
      apply = function(p) p:setRotationMaxSpeed(16) end},
     {id = "maneuver_thrusters_3", line = "thrusters", name = "Vectored thruster array", gm_name = "Turn III", cost = 2000, requires = "maneuver_thrusters_2",
-     desc = "Turn rate 16 -> 20 degrees a second: twice the stock freighter's. She turns like a fighter now.",
-     apply = function(p) p:setRotationMaxSpeed(20) end},
+     desc = "Turn rate 16 -> 18 degrees a second: quicker than any frigate in the Drift. Only fighters turn faster.",
+     apply = function(p) p:setRotationMaxSpeed(18) end},
     {id = "hull_plating_2", line = "hull", name = "Armoured hull", gm_name = "Armor II", cost = 450, requires = "hull_plating",
      desc = "+100 hull.",
      apply = function(p) p:setHullMax(p:getHullMax() + 100); p:setHull(p:getHullMax()) end},

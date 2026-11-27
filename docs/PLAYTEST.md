@@ -173,7 +173,8 @@ Details: [GM_HOLDOUT_MISSION.md](GM_HOLDOUT_MISSION.md).
       extra to run more systems hot at once? Cheap enough to matter, not so much it breaks the heat game?
 - [ ] Science DB **Ships > ... > Light Freighter**: the crew's own ship has an entry beside the Flavia P.Falcon
 - [ ] Turn I–III (200 / 800 / 2,000) and Accel I–III (300 / 1,000 / 2,500) at Hob's Landing: does
-      each level feel like a step? Is double the stock turn and acceleration too much?
+      each level feel like a step? Turn III now stops at 18°/s (above every stock frigate, below the fighters):
+      still worth 2,000 cr for the last +2? Is double the stock acceleration too much?
 - [ ] Hob's Landing's shipwright (the Hob Works) sells sensors, engines, thrusters, reactor, shields
       and probes; its Science DB Ports entry has the new lore
 - [ ] Science DB **Ship Upgrades** (top level): one entry per component with every upgrade's effect, price, prerequisite
