@@ -158,6 +158,83 @@ T.step("BOUT: the crews' rating buttons", function()
     T.check("row text", BOUT.rowText(BOUT.rows()[1]):find("rated 3 Good fight", 1, true) ~= nil, BOUT.rowText(BOUT.rows()[1]))
 end)
 
+-- ── Mobility: fixed numbers, arcs, range, missiles ───────────────────────────
+local E2, b2, b3
+T.step("BOUT: mobility numbers", function()
+    local m = BOUT.mobility(A)
+    T.check("mobility: speed, turn and acceleration", m.speed > 0 and m.turn > 0 and m.accel > 0,
+        string.format("%.0f / %.0f / %.0f", m.speed, m.turn, m.accel))
+    T.check("mobility: beam coverage is a share of the circle", m.arc_pct > 0 and m.arc_pct < 100, m.arc_pct)
+    T.check("mobility: reach and combat thrusters", m.reach > 0 and m.boost > 0, m.reach .. " / " .. m.boost)
+    local e = BOUT.mobility(CpuShip():setTemplate("MT52 Hornet"):setPosition(-800000, -800000))
+    T.check("mobility: an AI ship has numbers too", e.speed > 0 and e.turn > 0, e.speed .. " / " .. e.turn)
+end)
+T.step("BOUT: who can fire on whom", function()
+    -- The crew ship faces west, so its aft beams (the Light Freighter's are at 170 and 190 degrees) point east,
+    -- at an Adder 0.6U east of it, facing west: each has the other in its arcs.
+    A:setPosition(230000, 200000)
+    A:setRotation(180)
+    E2 = CpuShip():setTemplate("Adder MK5"):setFaction("Corsairs"):setPosition(230600, 200000)
+    E2:setRotation(180)
+    E2:orderIdle()
+    local mine, theirs = {}, {}
+    for i = 0, 15 do
+        local r = A:getBeamWeaponRange(i)
+        if r and r > 0 then mine[#mine + 1] = {dir = A:getBeamWeaponDirection(i), arc = A:getBeamWeaponArc(i), range = r} end
+        local r2 = E2:getBeamWeaponRange(i)
+        if r2 and r2 > 0 then theirs[#theirs + 1] = {dir = E2:getBeamWeaponDirection(i), arc = E2:getBeamWeaponArc(i), range = r2} end
+    end
+    T.check("arcs: the Adder can fire on the crew", BOUT.canHit(E2, theirs, A))
+    T.check("arcs: the crew's aft beams can fire on the Adder", BOUT.canHit(A, mine, E2))
+    E2:setRotation(0)
+    T.check("arcs: turned away, the Adder can't", not BOUT.canHit(E2, theirs, A))
+    E2:setRotation(180)
+    b2 = BOUT.start{source = "test", enemies = {E2}}
+    A:setHull(A:getHull() - 5)   -- contact
+    BOUT.tick(b2, b2.last_sample + 1)
+    BOUT.tick(b2, b2.last_sample + 1)
+    local row = BOUT.finish(b2, "stopped")[1]
+    T.check("row: exposed (in their arcs)", (row.exposed_pct or 0) > 0, tostring(row.exposed_pct))
+    T.check("row: firing (they were in ours)", (row.firing_pct or 0) > 0, tostring(row.firing_pct))
+    T.check("row: the range kept", row.avg_range_u and math.abs(row.avg_range_u - 0.6) < 0.05, tostring(row.avg_range_u))
+    T.check("row: both sides' mobility", row.my_speed > 0 and row.en_speed > 0 and row.speed_ratio and row.turn_ratio,
+        string.format("%s / %s", tostring(row.speed_ratio), tostring(row.turn_ratio)))
+    T.check("row: the model's damage rates beside what landed", row.my_dps_model and row.enemy_dps_model)
+    T.check("row text: arcs", BOUT.rowText(row):find("in their arcs", 1, true) ~= nil, BOUT.rowText(row))
+    BOUT.clearRating(A)
+end)
+
+-- A real missile: the crew ship fires a homing missile at the Adder (2U east) from its aft tube.
+T.step("missile: load", function()
+    E2:setPosition(232000, 200000)
+    A:setHull(A:getHullMax())
+    A:setWeaponStorage("Homing", 2)
+    A:setTubeLoadTime(0, 1)
+    A:commandLoadTube(0, "Homing")
+end)
+T.wait(2.5)
+T.step("missile: fire", function()
+    b3 = BOUT.start{source = "test", enemies = {E2}}
+    A:commandSetTarget(E2)
+    A:commandFireTubeAtTarget(0, E2)
+end)
+T.waitFor("missile: seen in flight", function()
+    BOUT.tick(b3, T.now())
+    return b3.trackers[1].missiles_out >= 1
+end, 5)
+T.waitFor("missile: judged when it is gone", function()
+    BOUT.tick(b3, T.now())
+    return b3.missiles ~= nil and next(b3.missiles) == nil
+end, 10)
+T.step("missile: counted as fired and landed", function()
+    local row = BOUT.finish(b3, "stopped")[1]
+    T.eq("missile: fired", row.missiles_out, 1)
+    T.eq("missile: hit", row.missiles_landed, 1)
+    T.eq("missile: hit rate", row.missile_hit_pct, 100)
+    BOUT.clearRating(A)
+    if RT.valid(E2) then E2:destroy() end
+end)
+
 T.step("tidy up", function()
     if RT.valid(E) then E:destroy() end
     BOUT.clearLog()

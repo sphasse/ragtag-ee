@@ -102,6 +102,65 @@ local function _missiles(p)
     return out
 end
 
+-- ── Mobility ─────────────────────────────────────────────────────────────────
+-- What lets a ship dodge and bring its guns to bear. Fixed numbers (BOUT.mobility), and in the fight,
+-- sampled with everything else: whether the crew is inside an enemy's beam envelope (arc and range:
+-- it could be fired on) and whether an enemy is inside the crew's, the distance to the nearest enemy,
+-- seconds of combat boost or strafe, and every missile seen in flight: who fired it, at whom, and whether
+-- it hit (approximate: it vanished within BOUT.MISSILE_HIT_U of its target in a sample where the target
+-- took damage; anything else is a miss, dodged, shot down or run out of fuel).
+BOUT.MISSILE_HIT_U  = 1.2
+BOUT.MISSILE_LOOK_U = 12    -- missiles are looked for this far from each crew ship
+
+local function _beamList(e)
+    local out = {}
+    for i = 0, 15 do
+        local ok, r = pcall(function() return e:getBeamWeaponRange(i) end)
+        if ok and r and r > 0 then
+            out[#out + 1] = {dir = e:getBeamWeaponDirection(i) or 0, arc = e:getBeamWeaponArc(i) or 0, range = r}
+        end
+    end
+    return out
+end
+
+local function _angDiff(a, b) return math.abs((a - b + 180) % 360 - 180) end
+
+-- {speed, turn, accel, boost, strafe, arc_pct, reach}: impulse speed, turn rate (degrees a second),
+-- acceleration, combat boost and strafe speeds, the share of the circle round the ship its beams can fire
+-- into (5-degree steps, overlaps counted once), and the longest beam's range (world units).
+function BOUT.mobility(e)
+    local m = {speed = 0, turn = 0, accel = 0, boost = 0, strafe = 0, arc_pct = 0, reach = 0}
+    pcall(function() m.speed = (e:getImpulseMaxSpeed()) or 0 end)
+    pcall(function() m.turn = e:getRotationMaxSpeed() or 0 end)
+    pcall(function() m.accel = (e:getAcceleration()) or 0 end)
+    pcall(function()
+        local c = e.components.combat_maneuvering_thrusters
+        if c then m.boost, m.strafe = c.boost_speed or 0, c.strafe_speed or 0 end
+    end)
+    local beams, covered = _beamList(e), 0
+    for _, bm in ipairs(beams) do m.reach = math.max(m.reach, bm.range) end
+    for a = 0, 355, 5 do
+        for _, bm in ipairs(beams) do
+            if _angDiff(a, bm.dir) <= bm.arc / 2 then covered = covered + 1; break end
+        end
+    end
+    m.arc_pct = covered / 72 * 100
+    return m
+end
+
+-- Could `from` fire a beam at `to` right now (inside one beam's arc and range)?
+function BOUT.canHit(from, beams, to)
+    local fx, fy = from:getPosition()
+    local tx, ty = to:getPosition()
+    local d = math.sqrt((tx - fx) ^ 2 + (ty - fy) ^ 2)
+    local bearing = math.deg(math.atan(ty - fy, tx - fx))
+    local rot = from:getRotation()
+    for _, bm in ipairs(beams) do
+        if d <= bm.range and _angDiff(bearing, rot + bm.dir) <= bm.arc / 2 then return true end
+    end
+    return false
+end
+
 local function _newTracker(p)
     local t = {
         ship = p, name = p:getCallSign(), crew = BOUT.crewOf(p),
@@ -111,6 +170,10 @@ local function _newTracker(p)
         min_hull_pct = 100, min_shield_pct = 100, shield_down_secs = 0,
         heat_max = 0, hot_secs = 0, energy_min = p:getEnergy(), energy_max = p:getMaxEnergy(),
         destroyed = false, strength = RT.shipStrength(p).total,
+        kind = "crew", beams = _beamList(p), mob = BOUT.mobility(p),
+        fight_secs = 0, exposed_secs = 0, firing_secs = 0, range_sum = 0, range_n = 0, in_their_reach_secs = 0,
+        boost_secs = 0, missiles_at = 0, missiles_hit = 0, missiles_out = 0, missiles_landed = 0,
+        dps_model = MATCH and MATCH.power and MATCH.power(p).dps or nil,
     }
     for _, sys in ipairs(BOUT.SYSTEMS) do
         local ok, has = pcall(function() return p:hasSystem(sys) end)
@@ -124,15 +187,18 @@ end
 -- in the middle of the fight still counts), and keeps the lows and highs.
 local function _sampleShip(t, dt, b)
     local p = t.ship
+    t.damaged_now = false
     if not RT.valid(p) then t.destroyed = true; return end
     local h = p:getHull()
-    if h < t.last_hull then t.hull_lost = t.hull_lost + (t.last_hull - h); b.contact = true end
+    if h < t.last_hull then t.hull_lost = t.hull_lost + (t.last_hull - h); b.contact = true; t.damaged_now = true end
     t.last_hull = h
     if t.hull_max > 0 then t.min_hull_pct = math.min(t.min_hull_pct, h / t.hull_max * 100) end
     local now_sh, down = _shieldLevels(p), false
     for i, s in ipairs(now_sh) do
         local before = t.last_shields[i]
-        if before and s[1] < before[1] then t.shield_damage = t.shield_damage + (before[1] - s[1]); b.contact = true end
+        if before and s[1] < before[1] then
+            t.shield_damage = t.shield_damage + (before[1] - s[1]); b.contact = true; t.damaged_now = true
+        end
         if s[2] > 0 then t.min_shield_pct = math.min(t.min_shield_pct, s[1] / s[2] * 100) end
         if s[1] < 1 then down = true end
     end
@@ -154,19 +220,119 @@ end
 -- The enemies: the damage the crews dealt (every drop in hull and shields).
 local function _sampleEnemies(b)
     for _, e in ipairs(b.enemies) do
+        e.damaged_now = false
         if RT.valid(e.ship) then
             local h = e.ship:getHull()
-            if h < e.last_hull then b.dealt = b.dealt + (e.last_hull - h); b.contact = true end
+            if h < e.last_hull then b.dealt = b.dealt + (e.last_hull - h); b.contact = true; e.damaged_now = true end
             e.last_hull = h
             local sh = _shieldLevels(e.ship)
             for i, s in ipairs(sh) do
                 local before = e.last_shields[i]
-                if before and s[1] < before[1] then b.dealt = b.dealt + (before[1] - s[1]); b.contact = true end
+                if before and s[1] < before[1] then
+                    b.dealt = b.dealt + (before[1] - s[1]); b.contact = true; e.damaged_now = true
+                end
             end
             e.last_shields = sh
         elseif not e.gone then
             e.gone = true
             b.kills = b.kills + 1
+        end
+    end
+end
+
+-- Who can fire on whom, how close, and the combat thrusters (from the first damage on).
+local function _sampleGeometry(b, dt)
+    if not b.contact then return end
+    for _, t in ipairs(b.trackers) do
+        local p = t.ship
+        if RT.valid(p) then
+            t.fight_secs = t.fight_secs + dt
+            local exposed, firing, nearest, their_reach = false, false, math.huge, 0
+            for _, e in ipairs(b.enemies) do
+                if RT.valid(e.ship) then
+                    local d = RT.dist(p, e.ship)
+                    if d < nearest then nearest, their_reach = d, e.mob.reach end
+                    if not exposed and BOUT.canHit(e.ship, e.beams, p) then exposed = true end
+                    if not firing and BOUT.canHit(p, t.beams, e.ship) then firing = true end
+                end
+            end
+            if exposed then t.exposed_secs = t.exposed_secs + dt end
+            if firing then t.firing_secs = t.firing_secs + dt end
+            if nearest < math.huge then
+                t.range_sum, t.range_n = t.range_sum + nearest, t.range_n + 1
+                if nearest <= their_reach then t.in_their_reach_secs = t.in_their_reach_secs + dt end
+            end
+            pcall(function()
+                local c = p.components.combat_maneuvering_thrusters
+                if c and ((c.boost_request or 0) ~= 0 or (c.strafe_request or 0) ~= 0) then t.boost_secs = t.boost_secs + dt end
+            end)
+        end
+    end
+end
+
+local function _nearestOf(list, x, y)
+    local best, bd = nil, math.huge
+    for _, r in ipairs(list) do
+        if RT.valid(r.ship) then
+            local rx, ry = r.ship:getPosition()
+            local d = (rx - x) ^ 2 + (ry - y) ^ 2
+            if d < bd then best, bd = r, d end
+        end
+    end
+    return best
+end
+
+-- Missiles: new ones are counted against the side they were fired at; one that is gone since the last look
+-- is judged a hit or a miss (see BOUT.MISSILE_HIT_U).
+local function _sampleMissiles(b)
+    b.missiles = b.missiles or {}
+    local side = {}
+    for _, t in ipairs(b.trackers) do if RT.valid(t.ship) then side[t.ship] = t end end
+    for _, e in ipairs(b.enemies) do if RT.valid(e.ship) then side[e.ship] = e end end
+    local seen = {}
+    for _, t in ipairs(b.trackers) do
+        if RT.valid(t.ship) then
+            local x, y = t.ship:getPosition()
+            for _, o in ipairs(getObjectsInRadius(x, y, BOUT.MISSILE_LOOK_U * 1000)) do
+                local ok, flying = pcall(function() return o.components.missile_flight ~= nil end)
+                if ok and flying and not seen[o] then
+                    seen[o] = true
+                    local ox, oy = o:getPosition()
+                    local m = b.missiles[o]
+                    if not m then
+                        local owner, target
+                        pcall(function() owner = o.components.explode_on_touch.owner end)
+                        pcall(function() target = o.components.missile_homing.target end)
+                        local by = owner and side[owner]
+                        if by then
+                            local victims = (by.kind == "crew") and b.enemies or b.trackers
+                            local at = (target and side[target] and side[target].kind ~= by.kind) and side[target]
+                                or _nearestOf(victims, ox, oy)
+                            if at then
+                                m = {by = by, at = at}
+                                b.missiles[o] = m
+                                if by.kind == "crew" then by.missiles_out = by.missiles_out + 1
+                                else at.missiles_at = at.missiles_at + 1 end
+                            end
+                        end
+                    end
+                    if m then m.x, m.y = ox, oy end
+                end
+            end
+        end
+    end
+    for o, m in pairs(b.missiles) do
+        if not seen[o] then
+            b.missiles[o] = nil
+            local hit = false
+            if RT.valid(m.at.ship) and m.at.damaged_now and m.x then
+                local tx, ty = m.at.ship:getPosition()
+                hit = (tx - m.x) ^ 2 + (ty - m.y) ^ 2 <= (BOUT.MISSILE_HIT_U * 1000) ^ 2
+            end
+            if hit then
+                if m.by.kind == "crew" then m.by.missiles_landed = m.by.missiles_landed + 1
+                else m.at.missiles_hit = m.at.missiles_hit + 1 end
+            end
         end
     end
 end
@@ -185,7 +351,9 @@ function BOUT.start(opts)
     local types, e_str = {}, 0
     for _, s in ipairs(opts.enemies or {}) do
         if RT.valid(s) then
-            b.enemies[#b.enemies + 1] = {ship = s, last_hull = s:getHull(), last_shields = _shieldLevels(s)}
+            b.enemies[#b.enemies + 1] = {ship = s, last_hull = s:getHull(), last_shields = _shieldLevels(s),
+                kind = "enemy", beams = _beamList(s), mob = BOUT.mobility(s),
+                dps_model = MATCH and MATCH.power and MATCH.power(s).dps or nil}
             local ok, tn = pcall(function() return s:getTypeName() end)
             types[#types + 1] = ok and tn or "?"
             e_str = e_str + RT.shipStrength(s).total
@@ -208,9 +376,55 @@ function BOUT.tick(b, now)
     for _, t in ipairs(b.trackers) do _sampleShip(t, dt, b) end
     _sampleEnemies(b)
     if b.contact and not had_contact then b.contact_at = now end
+    _sampleGeometry(b, dt)
+    _sampleMissiles(b)
 end
 
 local function _r1(x) return math.floor((x or 0) * 10 + 0.5) / 10 end
+local function _r2(x) return math.floor((x or 0) * 100 + 0.5) / 100 end
+
+-- The mobility part of a row (see "Mobility"): the crew ship's fixed numbers (my_*), the enemies' (en_*:
+-- averages, en_speed_max and en_reach the largest), their ratios, and what the fight showed.
+function BOUT.mobilityFields(row, t, b)
+    local m = t.mob
+    row.my_speed, row.my_turn, row.my_accel = _r1(m.speed), _r1(m.turn), _r1(m.accel)
+    row.my_boost, row.my_strafe, row.my_arc_pct, row.my_reach = _r1(m.boost), _r1(m.strafe), _r1(m.arc_pct), math.floor(m.reach)
+    local n, sum = 0, {speed = 0, turn = 0, accel = 0, boost = 0, strafe = 0, arc_pct = 0}
+    local speed_max, reach_max, dps_model = 0, 0, 0
+    for _, e in ipairs(b.enemies) do
+        n = n + 1
+        for k in pairs(sum) do sum[k] = sum[k] + (e.mob[k] or 0) end
+        speed_max, reach_max = math.max(speed_max, e.mob.speed), math.max(reach_max, e.mob.reach)
+        dps_model = dps_model + (e.dps_model or 0)
+    end
+    if n > 0 then
+        row.en_speed, row.en_turn, row.en_accel = _r1(sum.speed / n), _r1(sum.turn / n), _r1(sum.accel / n)
+        row.en_boost, row.en_strafe, row.en_arc_pct = _r1(sum.boost / n), _r1(sum.strafe / n), _r1(sum.arc_pct / n)
+        row.en_speed_max, row.en_reach = _r1(speed_max), math.floor(reach_max)
+        if row.en_speed > 0 then row.speed_ratio = _r2(m.speed / (sum.speed / n)) end
+        if row.en_turn > 0 then row.turn_ratio = _r2(m.turn / (sum.turn / n)) end
+        if reach_max > 0 then row.reach_ratio = _r2(m.reach / reach_max) end
+    end
+    local fs = t.fight_secs
+    row.fight_sample_secs = _r1(fs)
+    if fs > 0 then
+        row.exposed_pct = _r1(t.exposed_secs / fs * 100)       -- inside an enemy's beam arc and range
+        row.firing_pct = _r1(t.firing_secs / fs * 100)         -- an enemy inside ours
+        row.aim_edge = _r1(row.firing_pct - row.exposed_pct)    -- above 0: on them more than they were on us
+        row.in_their_reach_pct = _r1(t.in_their_reach_secs / fs * 100)
+    end
+    if t.range_n > 0 then row.avg_range_u = _r2(t.range_sum / t.range_n / 1000) end
+    row.boost_secs = _r1(t.boost_secs)
+    row.missiles_at_me, row.missiles_hit_me = t.missiles_at, t.missiles_hit
+    if t.missiles_at > 0 then row.dodge_pct = _r1((1 - t.missiles_hit / t.missiles_at) * 100) end
+    row.missiles_out, row.missiles_landed = t.missiles_out, t.missiles_landed
+    if t.missiles_out > 0 then row.missile_hit_pct = _r1(t.missiles_landed / t.missiles_out * 100) end
+    -- Damage that landed for the time each side could fire, against what the model expects.
+    if t.exposed_secs > 0 then row.realized_enemy_dps = _r2((t.hull_lost + t.shield_damage) / t.exposed_secs) end
+    if t.firing_secs > 0 then row.realized_my_dps = _r2(b.dealt / t.firing_secs) end
+    if dps_model > 0 then row.enemy_dps_model = _r2(dps_model) end
+    if t.dps_model then row.my_dps_model = _r2(t.dps_model) end
+end
 
 -- The fight is over: one row per player ship, saved. outcome: "won", "lost" or "stopped" (the GM ended
 -- it). Offers each crew the rating buttons. Returns the rows.
@@ -243,6 +457,7 @@ function BOUT.finish(b, outcome)
             enemy_types = b.enemy_types, enemy_strength = b.enemy_strength, ship_strength = t.strength,
             ships = #b.trackers, rating = nil,
         }
+        BOUT.mobilityFields(row, t, b)
         for k, v in pairs(b.info) do if row[k] == nil then row[k] = v end end
         rows[#rows + 1] = row
         BOUT.log().rows[#BOUT.log().rows + 1] = row
@@ -308,8 +523,15 @@ end
 function BOUT.rowText(r)
     local rated = "not rated"
     for _, x in ipairs(BOUT.RATINGS) do if x[1] == r.rating then rated = "rated " .. x[2] end end
-    return string.format("%s (crew %s): %s in %d:%02d, hull -%.0f%%, shields -%.0f, systems -%.1f, %s",
+    local mob = ""
+    if r.exposed_pct then
+        mob = string.format(", in their arcs %.0f%% / ours on them %.0f%%", r.exposed_pct, r.firing_pct or 0)
+    end
+    if (r.missiles_at_me or 0) > 0 then
+        mob = mob .. string.format(", missiles dodged %d/%d", r.missiles_at_me - (r.missiles_hit_me or 0), r.missiles_at_me)
+    end
+    return string.format("%s (crew %s): %s in %d:%02d, hull -%.0f%%, shields -%.0f, systems -%.1f%s, %s",
         tostring(r.ship), (r.crew and r.crew > 0) and tostring(r.crew) or "unassigned", tostring(r.outcome),
         math.floor(r.secs // 60), math.floor(r.secs % 60), r.hull_lost_pct or 0, r.shield_damage or 0,
-        r.system_damage or 0, rated)
+        r.system_damage or 0, mob, rated)
 end

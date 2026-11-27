@@ -47,6 +47,13 @@ is in the EmptyEpsilon folder (next to EmptyEpsilon.exe); on macOS and Linux it 
   counts), fight time and time since first damage, lowest hull and shield %, seconds with a shield down, top heat
   and seconds over 90% heat, lowest energy %, missiles fired, damage dealt, kills, the enemies and their strength,
   the predicted R and the offer slot, the outcome and the rating.
+- **Mobility** (each row): both sides' speed, turn rate, acceleration, combat boost and strafe, beam coverage (share
+  of the circle) and reach, and their ratios; and from the fight: the share of it the crew spent inside an enemy's
+  beam arc and range (`exposed_pct`) and with an enemy inside its own (`firing_pct`; `aim_edge` is the difference),
+  the average distance to the nearest enemy, seconds of combat boost or strafe, missiles fired at the crew and how
+  many hit (`dodge_pct`), the crew's missiles and how many landed, and the damage that landed per second each side
+  could fire, beside what the model expects. Missile hits are judged approximately: a missile that vanishes within
+  1.2U of its target in a half-second where the target took damage.
 - **Fight log...** shows the counts by crew and the last few rows, or deletes the log (crew numbers kept).
 - Read it: `python3 tools/fight_stats.py scriptstorage.json [more.json ...] [--crew N] [--csv fights.csv]
   [--correlate]`. Files from several machines merge without double counting. `--correlate` ranks every stat by
