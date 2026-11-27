@@ -230,6 +230,7 @@
 <circle cx="359.2" cy="707.7" r="75.1" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="80.4" cy="-59.0" r="155.5" fill="#d0662c" fill-opacity="0.05" stroke="#d0662c" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="723.8" cy="1040.1" r="209.1" fill="#d0403a" fill-opacity="0.05" stroke="#d0403a" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="734.5" cy="627.3" r="64.3" fill="#c9a227" fill-opacity="0.05" stroke="#c9a227" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="252.0" cy="412.8" r="182.3" fill="#a58fd0" fill-opacity="0.16" stroke="#a58fd0" stroke-opacity="0.75" stroke-width="3"/>
 <circle cx="112.6" cy="332.4" r="48.3" fill="#a58fd0" fill-opacity="0.16" stroke="#a58fd0" stroke-opacity="0.75" stroke-width="3"/>
 <circle cx="723.8" cy="300.2" r="235.9" fill="#c9a227" fill-opacity="0.16" stroke="#c9a227" stroke-opacity="0.75" stroke-width="3"/>
@@ -252,6 +253,8 @@
 <text x="286.4" y="129.6" fill="#e6e1d4" font-size="19" text-anchor="start" stroke="#0d1520" stroke-width="4" paint-order="stroke">Saint Brennan&#39;s Mission</text>
 <rect x="308.3" y="592.5" width="16" height="16" fill="#e6e1d4" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 316.3 600.5)"/>
 <text x="329.3" y="606.8" fill="#e6e1d4" font-size="19" text-anchor="start" stroke="#0d1520" stroke-width="4" paint-order="stroke">Breaker&#39;s Claim</text>
+<rect x="678.2" y="619.3" width="16" height="16" fill="#e6e1d4" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 686.2 627.3)"/>
+<text x="699.2" y="633.6" fill="#e6e1d4" font-size="19" text-anchor="start" stroke="#0d1520" stroke-width="4" paint-order="stroke">The Pit</text>
 <text x="1008" y="37" fill="#e6e1d4" font-size="32" font-weight="700" text-anchor="end" stroke="#0d1520" stroke-width="5" paint-order="stroke">The Shroud</text>
 <text x="1008" y="80" fill="#8fa0b3" font-size="16" text-anchor="end" stroke="#0d1520" stroke-width="4" paint-order="stroke">Grid: 20U sectors, named as on Relay</text>
 </svg>

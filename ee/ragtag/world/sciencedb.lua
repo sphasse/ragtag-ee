@@ -609,7 +609,7 @@ end
 -- A top-level entry listing every achievement (ACH, stats.lua) and which the campaign has. A
 -- hidden one shows as "???" until it is earned. Kept current by _P.update (no announcement: the
 -- ship log already says "[Achievement] ...").
-SCIDB.ACH_TITLES = {jobs = "Jobs", money = "Money", exploration = "Exploration", story = "Story"}
+SCIDB.ACH_TITLES = {jobs = "Jobs", money = "Money", exploration = "Exploration", combat = "Combat", story = "Story"}
 -- One column (no key/values beside it), drawn with the Science screen's formatting tags (<h2>, <color=#..>,
 -- </> back to normal): a gold diamond for an earned one, a grey hollow one for the rest. The font
 -- (Big Shoulders Display) has ◆ and ◇; it has no check marks or stars.

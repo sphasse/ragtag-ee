@@ -422,6 +422,7 @@
 <circle cx="748.8" cy="466.5" r="32.7" fill="#a58fd0" fill-opacity="0.1" stroke="#a58fd0" stroke-opacity="0.75" stroke-width="2"/>
 <circle cx="627.5" cy="133.0" r="67.6" fill="#d0662c" fill-opacity="0.1" stroke="#d0662c" stroke-opacity="0.75" stroke-width="2"/>
 <circle cx="907.4" cy="611.1" r="91.0" fill="#d0403a" fill-opacity="0.1" stroke="#d0403a" stroke-opacity="0.75" stroke-width="2"/>
+<circle cx="912.0" cy="431.5" r="28.0" fill="#c9a227" fill-opacity="0.1" stroke="#c9a227" stroke-opacity="0.75" stroke-width="2"/>
 <circle cx="193.6" cy="137.6" r="12.1" fill="#ffffff"/>
 <text x="193.6" y="119.5" fill="#ffffff" font-size="14" text-anchor="middle">Lumen</text>
 <circle cx="422.2" cy="338.2" r="9.1" fill="#ffeaa5"/>
@@ -486,6 +487,8 @@
 <text x="847.4" y="513.5" fill="#e6e1d4" font-size="15" text-anchor="end" stroke="#0d1520" stroke-width="4" paint-order="stroke">Lastchance Outpost</text>
 <rect x="665.8" y="581.8" width="12" height="12" fill="#ff8c3c" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 671.8 587.8)"/>
 <text x="682.8" y="592.8" fill="#ff8c3c" font-size="15" text-anchor="start" stroke="#0d1520" stroke-width="4" paint-order="stroke">Blackwater</text>
+<rect x="885.0" y="425.5" width="12" height="12" fill="#e6e1d4" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 891.0 431.5)"/>
+<text x="880.0" y="436.5" fill="#e6e1d4" font-size="15" text-anchor="end" stroke="#0d1520" stroke-width="4" paint-order="stroke">The Pit</text>
 <text x="1008" y="33" fill="#e6e1d4" font-size="28" font-weight="700" text-anchor="end" stroke="#0d1520" stroke-width="5" paint-order="stroke">The Drift</text>
 <rect x="70" y="526" width="170" height="130" fill="#0d1520" opacity="0.85" stroke="#2a3a4d"/>
 <rect x="78" y="533" width="13" height="13" fill="#6fa8ff" fill-opacity="0.3" stroke="#6fa8ff"/>

@@ -25,6 +25,7 @@ The nebula patches between Port Vesper and Dustmote aren't dense enough to hide 
 - The Shroud [safe]: The Shroud: a vast nebula where sensors fail and ships go missing. Spacers tell stories.
 - The Deep Shroud [risky]: The Deep Shroud. Uncharted. Your sensors pick up tones that aren't quite noise.
 - The Gauntlet [risky]: The Gauntlet: an asteroid belt where Corsair crews wait for freighters. Rich pickings, if you can keep them.
+- The Pit [risky]: The Pit. A ring of rock south of the Deep Shroud, and crews who fight in it for money. Stations: The Pit.
 - Blackwater Reach [dangerous]: Blackwater Reach: the Corsairs' home, wrapped in dark nebula and minefields. Stations: Blackwater.
 - The Boneyard [dangerous]: The Boneyard: the Settlement War battlefield around dead Ashgrave. Wrecks everywhere, and the drones never stopped fighting.
 - The Maw [DEADLY]: The Maw. Hollow space. Nobody comes back from here in a ship like yours. Stations: The Maw.

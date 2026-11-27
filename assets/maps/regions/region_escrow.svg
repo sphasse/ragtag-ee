@@ -82,6 +82,7 @@
 <circle cx="1993.1" cy="603.4" r="85.3" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="1676.2" cy="-268.2" r="176.8" fill="#d0662c" fill-opacity="0.05" stroke="#d0662c" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="2407.6" cy="981.3" r="237.7" fill="#d0403a" fill-opacity="0.05" stroke="#d0403a" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="2419.8" cy="512.0" r="73.1" fill="#c9a227" fill-opacity="0.05" stroke="#c9a227" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="512.0" cy="512.0" r="438.9" fill="#6fa8ff" fill-opacity="0.16" stroke="#6fa8ff" stroke-opacity="0.75" stroke-width="3"/>
 <circle cx="1017.9" cy="713.1" r="23.8" fill="#ff724c"/>
 <text x="1017.9" y="683.4" fill="#ff724c" font-size="18" text-anchor="middle">Cinder</text>

@@ -21,7 +21,8 @@ Contributors add **universe extensions** and **scenarios** independently.
   - `director.lua` (DIR: the mailbox to the AI director and nothing else: it listens to the event bus) +
     `director/actions/*.lua` (the action whitelist; `index.lua` is generated)
   - `jobs/` — the job board: `_engine.lua` (`JOBS.board` decides the offers, a renderer shows them), one file per job type
-  - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`
+  - `world/` — ambient plugins: `_engine.lua` (WORLD), `proximity`, `defenders`, `salvage`, `traffic`, `rumors`, `sciencedb`, `pit` (the Pit: a fighting ring south of the Deep Shroud, the station and region in
+    `verse/extensions/the_pit.lua`; tier-2 bouts for purses, three offers from `MATCH`, logged by `BOUT`)
     (the Science database: the Drift's sections (Regions with maps; People, Records and Mission Briefings, where arcs add entries: there is no Lore section), the stock Ships section cut to the ships the game uses (`SCIDB.SHIPS_USED`, generated into `ee/ragtag/ships_used.lua` by `check.py --fix` from every template name in the Lua; `tools/ship_templates.py`), Ports and Ship Upgrades built from `RT.UPGRADES` and the stations' `shop`,
     and Achievements: every `ACH` achievement, earned or not; new ones are also announced in the ship log)
   - `missions/` — story arcs: `_engine.lua` (MISSIONS phase machine), `_helpers.lua` (`ARC`: helpers shared by arcs),

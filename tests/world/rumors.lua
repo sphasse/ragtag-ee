@@ -16,7 +16,10 @@ local function fresh_source() n = n + 1; return "Test Source " .. n end
 T.step("setup", function()
     T.check("setup: the plugin is running", WORLD.isEnabled("rumors"))
     T.check("setup: a pool of background rumors", #RUMORS.pool >= 100, #RUMORS.pool)
-    T.eq("setup: nothing injected (every arc is off)", #RUMORS._injected, 0)
+    -- The Pit's seeds (world/pit.lua) are always on: set them aside, so only the test's own rumors are told.
+    T.eq("setup: the Pit's four seeds", T.rumors("PIT"), 4)
+    RUMORS.removeCategory("PIT")
+    T.eq("setup: nothing else injected (every arc is off)", #RUMORS._injected, 0)
 end)
 
 -- ── Background chatter and its cooldown ──────────────────────────────────────

@@ -142,6 +142,16 @@ Gull", "Return to Vesper"); arc objectives are one short line each too.
   quiets them with the drones. Hailed, drones and platforms answer in base64 (decode it).
 - **Hollow ships** in the Maw (deadly — avoid early game)
 - **Concord patrols** do inspections when rep ≥ −200; below that threshold they spawn as hostile and attack on sight
+- **The Pit** (south of the Deep Shroud, nearer it than the Maw; `ee/ragtag/world/pit.lua`): an unsanctioned
+  fighting ring, a 15U loop of dense asteroids with one opening on the west, by the pit boss's station. Rumors point
+  crews at it roughly. Tier 2 ships only (1,000 cr of upgrades). Relay talks to the pit boss and picks one of three
+  opponents (easy, a good match, hard: the Drift's own enemy types, matched by time-to-kill), each with a purse that
+  grows with how tough they are (roughly 150 / 250 / 375 cr for a tier-2 ship; `PIT.PURSE_RATE`). The opponents
+  appear across the ring, hostile, holding their ground; the crew has 60 s to get in through the opening. Lose by
+  not getting in, leaving the ring, yielding or being destroyed; win when every opponent is down or one leaves the
+  ring. No standing is lost for anything that dies in there. One bout at a time; 2 min before the same ship fights
+  again. Every bout is logged in the fight log (`BOUT`, source "pit"). GM: World Plugins... → The Pit...: the bout
+  in progress, End bout (no result), Refill the ring, crew numbers for the fight log
 - **Destroying a ship that was not your enemy costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a friendly Corsair counts as Corsairs), charged to the ship that made the kill. Enemies cost nothing (Corsair patrols and raiders, hostile Concord ships, job targets that turned on the crew), nor do ships in a story-arc fight, Relic or Hollow ships**
 
 ## GM Tools (Buttons)
@@ -155,7 +165,7 @@ The GM screen's buttons, top to bottom:
 - **World Plugins...**: switch each ambient system on or off and tune it: Proximity Spawns
   (per-zone None / Low / Medium / High, "Trigger Spawn Now", "Faction zones: ON/OFF": the faint faction colour over
   each faction's patrol zones on Relay's and Science's long-range radar, on by default; the same switch is at the top of
-  World Plugins...), Station Defenders, Salvage Clusters
+  World Plugins...), Station Defenders, Salvage Clusters, The Pit
   (density, reward), Station Traffic (density), Rumors, Science Database
 - **Jobs...**: work cooldown on/off, job distance (short / medium / long), credits +50 / −50 (a pair
   of buttons per ship when there are several), and GM-written jobs:

@@ -240,6 +240,7 @@
 <circle cx="549.1" cy="89.0" r="89.0" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="44.5" cy="-356.2" r="215.2" fill="#d0662c" fill-opacity="0.05" stroke="#d0662c" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="935.0" cy="1165.0" r="289.4" fill="#d0403a" fill-opacity="0.05" stroke="#d0403a" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="949.8" cy="593.6" r="89.0" fill="#c9a227" fill-opacity="0.05" stroke="#c9a227" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="512.0" cy="512.0" r="423.0" fill="#a58fd0" fill-opacity="0.16" stroke="#a58fd0" stroke-opacity="0.75" stroke-width="3"/>
 <circle cx="430.4" cy="704.9" r="103.9" fill="#a58fd0" fill-opacity="0.16" stroke="#a58fd0" stroke-opacity="0.75" stroke-width="3"/>
 <circle cx="667.8" cy="623.3" r="33.4" fill="#ffcc72"/>
@@ -264,6 +265,8 @@
 <text x="384.0" y="562.9" fill="#e6e1d4" font-size="19" text-anchor="start" stroke="#0d1520" stroke-width="4" paint-order="stroke">Breaker&#39;s Claim</text>
 <rect x="771.1" y="830.5" width="16" height="16" fill="#e6e1d4" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 779.1 838.5)"/>
 <text x="792.1" y="844.8" fill="#e6e1d4" font-size="19" text-anchor="start" stroke="#0d1520" stroke-width="4" paint-order="stroke">Lastchance Outpost</text>
+<rect x="875.0" y="585.6" width="16" height="16" fill="#e6e1d4" stroke="#0d1520" stroke-width="1.5" transform="rotate(45 883.0 593.6)"/>
+<text x="870.0" y="600.0" fill="#e6e1d4" font-size="19" text-anchor="end" stroke="#0d1520" stroke-width="4" paint-order="stroke">The Pit</text>
 <text x="1008" y="37" fill="#e6e1d4" font-size="32" font-weight="700" text-anchor="end" stroke="#0d1520" stroke-width="5" paint-order="stroke">The Rim</text>
 <text x="1008" y="80" fill="#8fa0b3" font-size="16" text-anchor="end" stroke="#0d1520" stroke-width="4" paint-order="stroke">Grid: 20U sectors, named as on Relay</text>
 </svg>

@@ -149,6 +149,7 @@
 <circle cx="-10.0" cy="-943.7" r="120.5" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="-170.7" cy="-110.4" r="140.5" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="-692.7" cy="-1546.0" r="291.1" fill="#d0662c" fill-opacity="0.05" stroke="#d0662c" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="532.1" cy="-261.0" r="120.5" fill="#c9a227" fill-opacity="0.05" stroke="#c9a227" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="512.0" cy="512.0" r="391.5" fill="#d0403a" fill-opacity="0.16" stroke="#d0403a" stroke-opacity="0.75" stroke-width="3"/>
 <circle cx="672.6" cy="672.6" r="39.2" fill="#8cb2ff"/>
 <text x="672.6" y="627.5" fill="#8cb2ff" font-size="18" text-anchor="middle">Pale Sun</text>

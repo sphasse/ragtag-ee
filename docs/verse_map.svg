@@ -376,6 +376,7 @@
 <circle cx="1552.0" cy="476.0" r="176.0" fill="#c9a227" opacity="0.12" stroke="#c9a227" stroke-width="2"/>
 <circle cx="1072.0" cy="208.0" r="116.0" fill="#d0662c" opacity="0.12" stroke="#d0662c" stroke-width="2"/>
 <circle cx="1552.0" cy="1028.0" r="156.0" fill="#c0392b" opacity="0.12" stroke="#c0392b" stroke-width="2"/>
+<circle cx="1560.0" cy="720.0" r="48.0" fill="#c9a227" opacity="0.12" stroke="#c9a227" stroke-width="2"/>
 <circle cx="328.0" cy="216.0" r="20.8" fill="#ffffff"/>
 <text x="328.0" y="189.2" fill="#ffffff" font-size="12" text-anchor="middle">Lumen</text>
 <circle cx="720.0" cy="560.0" r="15.6" fill="#ffeaa5"/>
@@ -436,6 +437,8 @@
 <text x="1157.0" y="992.0" fill="#ff8c3c" font-size="12">Blackwater</text>
 <rect x="1527.0" y="1043.0" width="10" height="10" fill="#e03030" transform="rotate(45 1532.0 1048.0)"/>
 <text x="1541.0" y="1052.0" fill="#e03030" font-size="12">The Maw</text>
+<rect x="1519.0" y="715.0" width="10" height="10" fill="#d9d4c7" transform="rotate(45 1524.0 720.0)"/>
+<text x="1533.0" y="724.0" fill="#d9d4c7" font-size="12">The Pit</text>
 <text x="384.0" y="22.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE CONCORD CORE</text>
 <text x="680.0" y="230.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE ARBITER LINE</text>
 <text x="308.0" y="720.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE ESCROW MARCHES</text>
@@ -450,6 +453,7 @@
 <text x="1324.0" y="466.0" fill="#a58fd0" font-size="15" font-weight="700" text-anchor="middle" opacity="0.8">THE RIM</text>
 <text x="1072.0" y="108.0" fill="#d0662c" font-size="15" font-weight="700" text-anchor="middle">THE BONEYARD</text>
 <text x="1552.0" y="888.0" fill="#c0392b" font-size="15" font-weight="700" text-anchor="middle">THE MAW</text>
+<text x="1560.0" y="688.0" fill="#c9a227" font-size="15" font-weight="700" text-anchor="middle">THE PIT</text>
 <circle cx="1636.0" cy="384.0" r="7" fill="none" stroke="#fff" stroke-width="2"/>
 <text x="1646.0" y="388.0" fill="#fff" font-size="11">black hole</text>
 <circle cx="1616.0" cy="580.0" r="7" fill="none" stroke="#fff" stroke-width="2"/>

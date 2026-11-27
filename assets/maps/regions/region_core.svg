@@ -50,6 +50,7 @@
 <circle cx="1982.4" cy="1352.2" r="91.9" fill="#a58fd0" fill-opacity="0.05" stroke="#a58fd0" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="1641.0" cy="413.5" r="190.4" fill="#d0662c" fill-opacity="0.05" stroke="#d0662c" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="2428.7" cy="1759.2" r="256.0" fill="#d0403a" fill-opacity="0.05" stroke="#d0403a" stroke-opacity="0.3" stroke-width="1.5"/>
+<circle cx="2441.8" cy="1253.7" r="78.8" fill="#c9a227" fill-opacity="0.05" stroke="#c9a227" stroke-opacity="0.3" stroke-width="1.5"/>
 <circle cx="512.0" cy="512.0" r="433.2" fill="#6fa8ff" fill-opacity="0.16" stroke="#6fa8ff" stroke-opacity="0.75" stroke-width="3"/>
 <circle cx="420.1" cy="426.7" r="34.1" fill="#ffffff"/>
 <text x="420.1" y="386.5" fill="#ffffff" font-size="18" text-anchor="middle">Lumen</text>

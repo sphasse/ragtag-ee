@@ -198,6 +198,17 @@ Details: [scenarios/arena/README.md](../scenarios/arena/README.md).
       judging a fair fight? Restore and Reset positions between rounds
 - [ ] A ship lost in a round and made again under its name keeps the GM's upgrades
 
+## 4d. The Pit (tier 2; south of the Deep Shroud)
+
+- [ ] Do the rumors get the crew there ("south of the Deep Shroud ... not as far as the Maw")? Is the ring easy to
+      find once close, and the opening obvious?
+- [ ] The pit boss: the three offers and purses read right; the rules are clear before signing
+- [ ] 60 s to get in through the opening: enough from the station? Is the rock dense enough that going over it
+      hurts (35 a rock)?
+- [ ] The fights: do the easy / good / hard labels feel right? (Rate each on Relay: it goes in the fight log.) Do
+      the opponents stay in the ring? Purses worth the risk (about 150 / 250 / 375 cr)?
+- [ ] Losing: leaving the ring, yielding (hail the station: "We yield."), the 2-minute wait before the next bout
+
 ## 4b. The world
 
 - [ ] Control tint: each faction's patrol zones show a faint colour on Relay's map and Science's long-range radar (Concord
