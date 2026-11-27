@@ -59,7 +59,9 @@ def used() -> dict[str, list[str]]:
         text = f.read_text(encoding="utf-8")
         for m in LITERAL.finditer(text):
             s = m.group(1) if m.group(1) is not None else m.group(2)
-            rel = str(f.relative_to(ROOT / "ee")) if "ee/ragtag" in str(f) else str(f.relative_to(ROOT))
+            # Test the path's parts, not its text: a checkout at .../ragtag-ee/ragtag-ee/ (GitHub's runners)
+            # has "ee/ragtag" in every file's absolute path.
+            rel = str(f.relative_to(ROOT / "ee")) if f.is_relative_to(ROOT / "ee" / "ragtag") else str(f.relative_to(ROOT))
             if s in names and (s, rel) not in NOT_SHIPS:
                 found.setdefault(s, set()).add(rel)
     return {k: sorted(v) for k, v in sorted(found.items())}
