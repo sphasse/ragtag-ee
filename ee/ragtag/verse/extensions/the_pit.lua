@@ -7,7 +7,9 @@ VERSE.extend({
     title = "The Pit: an unsanctioned fighting ring south of the Deep Shroud",
 
     stations = {
-        {cs = "The Pit", tmpl = "Small Station", fac = "Independent", x = 149, y = 32,
+        -- no_defender: no station fighter (world/defenders.lua): it would fly through the ring and join the
+        -- bouts, and nobody could tell whose side it was on.
+        {cs = "The Pit", tmpl = "Small Station", fac = "Independent", x = 149, y = 32, no_defender = true,
          flavor = "The Pit. You fight, you get paid. You run, you don't.",
          desc = "A fight promoter's station beside a ring of asteroids. Bouts for money, no questions asked.",
          lore = "Nobody admits to owning the Pit. A pit boss with a gravel voice takes the sign-ups, books the "

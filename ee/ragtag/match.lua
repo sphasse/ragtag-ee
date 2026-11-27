@@ -19,7 +19,8 @@ MATCH.TARGETS = {             -- target R for each slot, and the order they are 
     {slot = "match", r = 1.3, label = "Good match"},
     {slot = "hard",  r = 0.9, label = "Hard"},
 }
-MATCH.NEAR = 5                -- pick at random among this many groups nearest a target (variety)
+MATCH.NEAR = 5                -- pick at random among this many groups nearest a target (variety) ...
+MATCH.TOLERANCE = 0.15        -- ... that are within this of it (|log(R / target)|: about 15%)
 -- Damage per missile (EmptyEpsilon's missilesystem.cpp); EMP only hits shields, counted at half.
 MATCH.MISSILE_DAMAGE = {Homing = 35, HVLI = 10, Nuke = 160, Mine = 160, EMP = 80}
 -- Measured per type: how much harder (above 1) or softer a type fights than its numbers. 1 until the
@@ -156,18 +157,26 @@ function MATCH.offer(types, ships, r)
         if R > 0 and R < math.huge then scored[#scored + 1] = {group = g, r_value = R, t_crews = tc, t_enemy = te} end
     end
     if #scored == 0 then return nil end
-    local used, out = {}, {}
+    -- Slots are filled in order (easy, match, hard); each must be harder than the one before (a lower R),
+    -- so the three always read easy > good > hard however few groups fit. Within a slot, a group is picked
+    -- at random among the MATCH.NEAR nearest its target that are within MATCH.TOLERANCE of it (variety),
+    -- or the nearest one when none is that close.
+    local used, out, below = {}, {}, math.huge
     for _, t in ipairs(MATCH.TARGETS) do
         table.sort(scored, function(a, b)
             return math.abs(math.log(a.r_value / t.r)) < math.abs(math.log(b.r_value / t.r))
         end)
-        local near = {}
+        local near, nearest = {}, nil
         for _, s in ipairs(scored) do
             local key = MATCH.groupText(s.group)
-            if not used[key] then near[#near + 1] = s end
+            if not used[key] and s.r_value < below then
+                nearest = nearest or s
+                if math.abs(math.log(s.r_value / t.r)) <= MATCH.TOLERANCE then near[#near + 1] = s end
+            end
             if #near >= MATCH.NEAR then break end
         end
-        local pick = near[math.random(math.max(1, #near))]
+        local pick = (#near > 0) and near[math.random(#near)] or nearest
+        if pick then below = pick.r_value end
         if pick then
             used[MATCH.groupText(pick.group)] = true
             out[#out + 1] = {slot = t.slot, label = t.label, target = t.r, group = pick.group,

@@ -147,13 +147,17 @@ Gull", "Return to Vesper"); arc objectives are one short line each too.
   crews at it roughly. Tier 2 ships only (1,000 cr of upgrades). Relay talks to the pit boss and picks one of three
   opponents (easy, a good match, hard: the Drift's own enemy types, matched by time-to-kill), each with a purse that
   grows with how tough they are (roughly 450 / 750 / 1,100 cr for a tier-2 ship; `PIT.PURSE_RATE`). The opponents
-  appear across the ring, hostile, holding their ground (eight luxury yachts, Independent and Concord, watch
-  from round the outside: scans say they are there to watch and bet; they can't be destroyed); the crew has 60 s to get in through the opening. Lose by
+  appear across the ring, hostile, holding their ground (eight luxury yachts, Independent and Concord, parked in
+  small parties of three, two, two and one round the outside, watch: scans say they are there to watch and bet; they can't be destroyed); the crew has 60 s to get in through the opening. Lose by
   not getting in, leaving the ring, yielding or being destroyed; win when every opponent is down or one leaves the
-  ring. No standing is lost for anything that dies in there. One bout at a time; 2 min before the same ship fights
+  ring. When it's over, the pit boss hails the crew with the result (a win and its purse, a runner, a forfeit for
+  leaving the ring or never coming in; held until Relay's channel is free). No standing is lost for anything that
+  dies in there. One bout at a time; 2 min before the same ship fights
   again. The pit boss's station is a port: docked there a ship is repaired (1 hull a second),
   recharged and sold missiles (15 cr each). Every bout is logged in the fight log (`BOUT`, source "pit"). GM: World Plugins... → The Pit...: the bout
   in progress, End bout (no result), Refill the ring, crew numbers for the fight log
+  The Pit's station has no station-defender fighter (`no_defender` in the verse data), so nothing else flies
+  through the ring.
 - **Destroying a ship that was not your enemy costs −200 rep with that ship's faction (Independent, Concord or Corsairs; a friendly Corsair counts as Corsairs), charged to the ship that made the kill. Enemies cost nothing (Corsair patrols and raiders, hostile Concord ships, job targets that turned on the crew), nor do ships in a story-arc fight, Relic or Hollow ships**
 
 ## GM Tools (Buttons)

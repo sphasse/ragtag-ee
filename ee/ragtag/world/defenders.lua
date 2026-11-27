@@ -377,7 +377,9 @@ function _P.init(state)
     _initPickets(state)
 
     for _, d in ipairs(VERSE.STATIONS) do
-        if target_facs[d.fac] then
+        -- no_defender (verse data): a port with no fighter of its own (the Pit: one would fly through the
+        -- ring and join the bouts).
+        if target_facs[d.fac] and not d.no_defender then
             state.slots[d.cs] = {
                 fac        = d.fac,
                 ship       = nil,

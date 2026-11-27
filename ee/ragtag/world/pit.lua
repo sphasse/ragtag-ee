@@ -58,26 +58,40 @@ PIT.RUMORS = {
     "Don't take a stock freighter to the Pit. The pit boss won't even talk to you until you've spent real money on that hull.",
 }
 
--- Spectators: luxury yachts parked round the outside of the ring (clear of the opening and the station),
--- there to watch and bet. Indestructible and idle; one that goes missing comes back between bouts.
-PIT.SPECTATOR_U = 10.5
+-- Spectators: luxury yachts parked round the outside of the ring in small parties (three, two, two and one
+-- on her own), there to watch and bet. Each session a party settles somewhere near its usual spot (`angle`,
+-- give or take PIT.PARTY_JITTER degrees, PIT.SPECTATOR_U to PIT.SPECTATOR_FAR out) and its yachts park
+-- loosely round that point, each pointing at the ring give or take PIT.FACING_JITTER degrees. Always clear
+-- of the opening and the station. Indestructible and idle; one that goes missing comes back to its party.
+PIT.SPECTATOR_U, PIT.SPECTATOR_FAR = 10.0, 11.8
+PIT.PARTY_JITTER  = 12      -- degrees round the ring
+PIT.PARTY_SPREAD  = 0.9     -- U: how far a yacht parks from its party's point
+PIT.YACHT_GAP     = 0.45    -- U: no two yachts closer than this
+PIT.FACING_JITTER = 15      -- degrees off pointing straight at the ring
+PIT.OPENING_CLEAR = 35      -- degrees either side of the opening kept free of yachts
 PIT.YACHT = "Luxury Yacht"   -- ship_templates.lua; a Flavia stands in where that is not loaded
+PIT.PARTIES = {
+    {id = "high_rollers", angle = 40},    -- three
+    {id = "officials",    angle = 140},   -- two
+    {id = "traders",      angle = 205},   -- two
+    {id = "veteran",      angle = 330},   -- one, on her own
+}
 PIT.SPECTATORS = {
-    {angle = 20,  fac = "Independent", cs = "Gilded Wake",
+    {party = "high_rollers", fac = "Independent", cs = "Gilded Wake",
      scan = "Registered to a Lumen shipping family. Here to watch the fights and bet on them: the observation lounge is full, and so is the bar."},
-    {angle = 65,  fac = "Concord",     cs = "Off the Record",
-     scan = "Registered to a Concord official, here to watch the fights and bet on them. Officially, it is not here. Unofficially, it has a large bet on the next bout."},
-    {angle = 110, fac = "Independent", cs = "Lady Fortune",
+    {party = "high_rollers", fac = "Independent", cs = "Lady Fortune",
      scan = "A gambling syndicate's yacht. It takes bets from the other spectators and has never been known to lose money on a night."},
-    {angle = 150, fac = "Independent", cs = "Silk Margin",
-     scan = "A trader's yacht, out to watch and bet. Its owner keeps a book on every crew that fights here."},
-    {angle = 190, fac = "Concord",     cs = "Recess",
-     scan = "Concord-registered, transponder dimmed. Senate staff on a 'fact-finding' trip, betting heavily on the house."},
-    {angle = 225, fac = "Independent", cs = "Golden Hour",
-     scan = "A Rim magnate's yacht, here to watch the fights and bet on them; the magnate's private bookmaker is aboard."},
-    {angle = 320, fac = "Concord",     cs = "Discretion",
+    {party = "high_rollers", fac = "Concord",     cs = "Off the Record",
+     scan = "Registered to a Concord official, here to watch the fights and bet on them. Officially, it is not here. Unofficially, it has a large bet on the next bout."},
+    {party = "officials",    fac = "Concord",     cs = "Recess",
+     scan = "Concord-registered, transponder dimmed. Senate staff on a 'fact-finding' trip, here to watch and betting heavily on the house."},
+    {party = "officials",    fac = "Concord",     cs = "Discretion",
      scan = "A Concord diplomatic yacht that has filed no flight plan. Here to watch, bet, and not be seen doing either."},
-    {angle = 350, fac = "Independent", cs = "Second Wind",
+    {party = "traders",      fac = "Independent", cs = "Silk Margin",
+     scan = "A trader's yacht, out to watch and bet. Its owner keeps a book on every crew that fights here."},
+    {party = "traders",      fac = "Independent", cs = "Golden Hour",
+     scan = "A Rim magnate's yacht, here to watch the fights and bet on them; the magnate's private bookmaker is aboard."},
+    {party = "veteran",      fac = "Independent", cs = "Second Wind",
      scan = "A retired fighter's yacht. She fought here once; now she watches, bets, and heckles over open comms."},
 }
 PIT.SPECTATOR_LINES = {
@@ -149,16 +163,64 @@ function PIT.fillRing(st)
     return #st.rocks
 end
 
--- The spectators: placed once, and any that went missing put back (between bouts).
+-- The bearing (0 = up, clockwise) from the ring's centre to (x, y), and the distance in U.
+local function _bearingFromCentre(x, y)
+    local cx, cy = _centre()
+    return math.deg(math.atan(x - cx, -(y - cy))) % 360, math.sqrt((x - cx) ^ 2 + (y - cy) ^ 2) / U
+end
+
+local function _nearOpening(angle, clear)
+    return math.abs(((angle - PIT.OPEN_ANGLE) + 180) % 360 - 180) < clear
+end
+
+-- Where a party settles this session: near its usual angle, at a random distance in the spectator band.
+local function _partyPoint(st, party)
+    st.party_at = st.party_at or {}
+    local p = st.party_at[party.id]
+    if p then return p.x, p.y end
+    local angle = party.angle + (math.random() * 2 - 1) * PIT.PARTY_JITTER
+    local x, y = _at(angle, PIT.SPECTATOR_U + 0.4 + math.random() * (PIT.SPECTATOR_FAR - PIT.SPECTATOR_U - 0.8))
+    st.party_at[party.id] = {x = x, y = y}
+    return x, y
+end
+
+-- A parking spot for one yacht of `party`: loosely round the party's point, in the spectator band, clear of
+-- the opening and at least PIT.YACHT_GAP from every other yacht.
+local function _yachtSpot(st, party)
+    local px, py = _partyPoint(st, party)
+    local fallback
+    for _ = 1, 40 do
+        local a, r = math.random() * 2 * math.pi, (0.3 + math.random() * 0.7) * PIT.PARTY_SPREAD * U
+        local x, y = px + math.cos(a) * r, py + math.sin(a) * r
+        local ang, d = _bearingFromCentre(x, y)
+        fallback = fallback or {x, y}
+        if d >= PIT.SPECTATOR_U and d <= PIT.SPECTATOR_FAR and not _nearOpening(ang, PIT.OPENING_CLEAR) then
+            local clear = true
+            for _, o in pairs(st.spectators) do
+                if RT.valid(o) then
+                    local ox, oy = o:getPosition()
+                    if (ox - x) ^ 2 + (oy - y) ^ 2 < (PIT.YACHT_GAP * U) ^ 2 then clear = false end
+                end
+            end
+            if clear then return x, y end
+        end
+    end
+    return fallback[1], fallback[2]
+end
+
+-- The spectators: placed once, and any that went missing put back with their party (between bouts).
 function PIT.placeSpectators(st)
     st.spectators = st.spectators or {}
     local tmpl = (__ship_templates and __ship_templates[PIT.YACHT]) and PIT.YACHT or "Flavia"
+    local parties = {}
+    for _, p in ipairs(PIT.PARTIES) do parties[p.id] = p end
     local n = 0
     for i, d in ipairs(PIT.SPECTATORS) do
         if not RT.valid(st.spectators[i]) then
-            local x, y = _at(d.angle, PIT.SPECTATOR_U)
+            local x, y = _yachtSpot(st, parties[d.party])
             local s = CpuShip():setTemplate(tmpl):setFaction(d.fac):setCallSign(d.cs):setPosition(x, y)
-            s:setHeading((d.angle + 180) % 360)   -- facing the ring
+            local from = _bearingFromCentre(x, y)
+            s:setHeading((from + 180 + (math.random() * 2 - 1) * PIT.FACING_JITTER) % 360)   -- roughly at the ring
             s:setCanBeDestroyed(false)
             s:setScanningParameters(1, 1)
             s:setDescriptions("A luxury yacht, parked by the ring.", d.scan)
@@ -285,8 +347,59 @@ local function _standDown(b)
     b.leaving_until = getScenarioTime() + 40
 end
 
--- The bout is over. outcome: "won" or "lost"; why: what the crew is told.
-function PIT.finish(st, outcome, why)
+-- What the pit boss says when a bout is over, by how it ended (`b` the bout, `name` the opponent who ran).
+-- No hail for a yield (the crew is on the line already) or a lost ship (nobody to hail).
+PIT.BOSS_SAYS = {
+    beaten  = function(b) return string.format('"Now THAT is a fight. The crowd\'s on its feet and the books are a mess. '
+        .. '%d credits on your account. Dock and patch up; I\'ll have another card for you."', b.purse) end,
+    ran     = function(b, name) return string.format('"%s turned tail and ran out of my ring. Coward\'s purse is yours: '
+        .. '%d credits. They won\'t be fighting here again."', name or "Your opponent", b.purse) end,
+    left    = function() return '"You left the ring. Rules are rules: that\'s a forfeit, and no purse. '
+        .. 'The crowd paid to see a fight, not a retreat. Come back when you mean it."' end,
+    no_show = function() return '"Clock ran out and you never came through the gate. Forfeit. My fighters got paid '
+        .. 'to stand there, and you made me look bad in front of the yachts."' end,
+}
+
+-- The pit boss hails the crew with the result. A hail can't get through while the crew has a channel open
+-- (often still the sign-up talk with the pit boss), so it is tried again every second for
+-- PIT.HAIL_RETRY_SECS; only then does it go to the ship log. Returns whether a hail is on its way.
+PIT.HAIL_RETRY_SECS = 30
+PIT._hails = PIT._hails or {}
+
+local function _trySend(h)
+    local boss = RT.find(PIT.STATION)
+    return RT.valid(boss) and RT.valid(h.ship) and boss:sendCommsMessage(h.ship, h.text) and true or false
+end
+
+function PIT.hailResult(b, reason, name)
+    local say = PIT.BOSS_SAYS[reason]
+    if not say or not RT.valid(b.ship) then return false end
+    local h = {ship = b.ship, text = say(b, name), give_up = getScenarioTime() + PIT.HAIL_RETRY_SECS}
+    if not _trySend(h) then PIT._hails[#PIT._hails + 1] = h end
+    return true
+end
+
+-- Every frame: the hails still waiting for the crew's comms to be free.
+function PIT.tickHails(now)
+    for i = #PIT._hails, 1, -1 do
+        local h = PIT._hails[i]
+        if not RT.valid(h.ship) then
+            table.remove(PIT._hails, i)
+        elseif now >= (h.next_try or 0) then
+            h.next_try = now + 1
+            if _trySend(h) then
+                table.remove(PIT._hails, i)
+            elseif now >= h.give_up then
+                _log(h.ship, "Pit boss: " .. h.text, "#E0A060")
+                table.remove(PIT._hails, i)
+            end
+        end
+    end
+end
+
+-- The bout is over. outcome: "won" or "lost"; why: the ship-log line; reason: how it ended (PIT.BOSS_SAYS:
+-- the pit boss hails the crew with it), name: the opponent who ran.
+function PIT.finish(st, outcome, why, reason, name)
     local b = st.bout
     if not b then return end
     st.bout = nil
@@ -299,13 +412,15 @@ function PIT.finish(st, outcome, why)
     if b.rec then BOUT.finish(b.rec, outcome) end
     if outcome == "won" then
         RT.addCredits(b.purse, "the Pit: purse", b.ship)
-        _log(b.ship, why .. string.format(" The purse is yours: %d cr.", b.purse), "#80FF80")
         if ACH and ACH.award then ACH.award("pit_winner") end
-    else
-        _log(b.ship, why .. " No purse.", "#FF8080")
+    end
+    -- The pit boss hails with the result (the hail is in the ship log too); without a hail, a log line.
+    if not PIT.hailResult(b, reason, name) and not PIT.BOSS_SAYS[reason] then
+        if outcome == "won" then _log(b.ship, why .. string.format(" The purse is yours: %d cr.", b.purse), "#80FF80")
+        else _log(b.ship, why .. " No purse.", "#FF8080") end
     end
     RT.emit("pit_bout", {ship = RT.valid(b.ship) and b.ship:getCallSign() or "?", phase = outcome, why = why,
-        purse = b.purse, slot = b.slot}, "normal")
+        reason = reason, purse = b.purse, slot = b.slot}, "normal")
 end
 
 local function _liveEnemies(b)
@@ -328,7 +443,7 @@ function PIT.tick(st, now)
         if now > (st.next_fill or 0) then st.next_fill = now + 60; PIT.fillRing(st); PIT.placeSpectators(st) end
         return
     end
-    if not RT.valid(b.ship) then return PIT.finish(st, "lost", "The ship was lost.") end
+    if not RT.valid(b.ship) then return PIT.finish(st, "lost", "The ship was lost.", "destroyed") end
     if b.phase == "countdown" then
         local left = math.ceil(b.deadline - now)
         _shipLines(b.ship, string.format("The Pit: get in! %d s", math.max(0, left)))
@@ -341,21 +456,21 @@ function PIT.tick(st, now)
             _log(b.ship, "The gate's shut. Fight!", "#FFD060")
             RT.emit("pit_bout", {ship = b.ship:getCallSign(), phase = "fighting"}, "normal")
         elseif now >= b.deadline then
-            return PIT.finish(st, "lost", "You never came into the ring. Forfeit.")
+            return PIT.finish(st, "lost", "You never came into the ring. Forfeit.", "no_show")
         end
         return
     end
     -- Fighting.
     BOUT.tick(b.rec, now)
-    if PIT.isOutside(b.ship) then return PIT.finish(st, "lost", "You left the ring. Forfeit.") end
+    if PIT.isOutside(b.ship) then return PIT.finish(st, "lost", "You left the ring. Forfeit.", "left") end
     for _, s in ipairs(_liveEnemies(b)) do
         if PIT.isOutside(s) then
-            return PIT.finish(st, "won", s:getCallSign() .. " ran out of the ring: the bout is yours.")
+            return PIT.finish(st, "won", s:getCallSign() .. " ran out of the ring: the bout is yours.", "ran", s:getCallSign())
         end
         -- Keep them on the crew (orders can drift after a target is lost).
         s:orderAttack(b.ship)
     end
-    if #_liveEnemies(b) == 0 then return PIT.finish(st, "won", "Every opponent is down.") end
+    if #_liveEnemies(b) == 0 then return PIT.finish(st, "won", "Every opponent is down.", "beaten") end
 end
 
 -- ── The pit boss (the station's comms) ───────────────────────────────────────
@@ -371,7 +486,7 @@ function PIT.hook(source, target)
     local ship = RT.playerShip(source) or source
     if st.bout and st.bout.ship == ship then
         addCommsReply("We yield.", function()
-            PIT.finish(st, "lost", "You yielded.")
+            PIT.finish(st, "lost", "You yielded.", "yield")
             setCommsMessage('"Smart. Live to fight another day. No purse, mind."')
             addCommsReply("Back", function(s2, t2) RT.stationComms(s2, t2) end)
         end)
@@ -422,10 +537,13 @@ function P.init(st)
     end
 end
 
-function P.update(st, delta, now) PIT.tick(st, now) end
+function P.update(st, delta, now)
+    PIT.tick(st, now)
+    PIT.tickHails(now)
+end
 
 function P.cleanup(st)
-    if st.bout then PIT.finish(st, "lost", "The Pit closed.") end
+    if st.bout then PIT.finish(st, "lost", "The Pit closed.", "closed") end
     if RUMORS and RUMORS.removeCategory then RUMORS.removeCategory("PIT") end
 end
 

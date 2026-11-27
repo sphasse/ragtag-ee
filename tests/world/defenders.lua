@@ -30,8 +30,13 @@ end)
 -- ── One per friendly station ─────────────────────────────────────────────────
 T.step("every Concord and Independent station has one", function()
     local want = 0
+    T.check("posted: the Pit is marked no_defender", (function()
+        for _, d in ipairs(VERSE.STATIONS) do if d.cs == "The Pit" then return d.no_defender == true end end
+        return false end)())
     for _, d in ipairs(VERSE.STATIONS) do
-        if d.fac == "Concord" or d.fac == "Independent" then
+        if d.no_defender then
+            T.check("posted: none at " .. d.cs .. " (no_defender)", slots()[d.cs] == nil)
+        elseif d.fac == "Concord" or d.fac == "Independent" then
             want = want + 1
             local s = slots()[d.cs]
             T.check("posted: " .. d.cs, s ~= nil and RT.valid(s.ship), s and tostring(s.ship_name))

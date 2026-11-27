@@ -12,7 +12,8 @@
 --       stations = { {cs = "New Station", tmpl = "Small Station", fac = "Independent", x = 10, y = 20, ...} },
 --                  -- optional: desc (one line, the station's scan text), lore (paragraphs for the
 --                  -- Science database's Ports section; "\n\n" between paragraphs), shop (the upgrade lines its
---                  -- shipwright is a base for: "hull", "shields", "beams", ... see RT.UPGRADE_LINES), flavor
+--                  -- shipwright is a base for: "hull", "shields", "beams", ... see RT.UPGRADE_LINES), flavor,
+--                  -- no_defender = true (no station defender fighter: world/defenders.lua; the Pit has none)
 --       regions = { ... }, planets = { ... }, stars = { ... },
 --       nebula_fields = { ... }, asteroid_fields = { ... }, garrisons = { ... },
 --                  -- asteroid_fields kinds: "blob" (x, y, r), "belt" (x1, y1, x2, y2, width), "ring"

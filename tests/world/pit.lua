@@ -69,9 +69,17 @@ end)
 T.step("the spectators", function()
     T.eq("yachts: eight", #st.spectators, #PIT.SPECTATORS)
     local ind, con = 0, 0
+    local by_party, dists = {}, {}
     for i, s in ipairs(st.spectators) do
         local d = PIT.SPECTATORS[i]
-        T.check(d.cs .. ": round the outside of the ring", dist(s) > PIT.OUTSIDE_U and dist(s) < 12, dist(s))
+        by_party[d.party] = by_party[d.party] or {}
+        table.insert(by_party[d.party], s)
+        dists[#dists + 1] = dist(s)
+        T.check(d.cs .. ": round the outside of the ring", dist(s) >= PIT.SPECTATOR_U - 0.01 and dist(s) <= PIT.SPECTATOR_FAR + 0.01, dist(s))
+        local x, y = s:getPosition()
+        local to_centre = math.deg(math.atan(cx - x, -(cy - y))) % 360
+        local off = math.abs(((s:getHeading() - to_centre) + 180) % 360 - 180)
+        T.check(d.cs .. ": roughly facing the ring", off <= PIT.FACING_JITTER + 1, string.format("%.0f degrees off", off))
         T.eq(d.cs .. ": a luxury yacht", s:getTypeName(), PIT.YACHT)
         T.check(d.cs .. ": here to watch and bet (scan)", s:getDescription("fullscan"):find("bet", 1, true) ~= nil,
             s:getDescription("fullscan"))
@@ -83,6 +91,27 @@ T.step("the spectators", function()
         T.check(d.cs .. ": clear of the opening", math.abs(((ang - PIT.OPEN_ANGLE) + 180) % 360 - 180) > 30, ang)
     end
     T.check("yachts: Independent and Concord", ind > 0 and con > 0, ind .. " / " .. con)
+    local sizes = {}
+    for _, p in ipairs(PIT.PARTIES) do sizes[#sizes + 1] = #(by_party[p.id] or {}) end
+    T.eq("parties: three, two, two and one on her own", table.concat(sizes, ","), "3,2,2,1")
+    local function gap(a, b)
+        local ax, ay = a:getPosition(); local bx, by = b:getPosition()
+        return math.sqrt((ax - bx) ^ 2 + (ay - by) ^ 2) / 1000
+    end
+    local all = st.spectators
+    local closest = math.huge
+    for i = 1, #all do for j = i + 1, #all do closest = math.min(closest, gap(all[i], all[j])) end end
+    T.check("parties: no two yachts on top of each other", closest >= PIT.YACHT_GAP - 0.01, closest)
+    for id, members in pairs(by_party) do
+        for i = 2, #members do
+            T.check("party " .. id .. ": parked together", gap(members[1], members[i]) <= 2 * PIT.PARTY_SPREAD + 0.01,
+                gap(members[1], members[i]))
+        end
+    end
+    T.check("parties: apart from each other", gap(by_party.high_rollers[1], by_party.officials[1]) > 4
+        and gap(by_party.traders[1], by_party.veteran[1]) > 4)
+    table.sort(dists)
+    T.check("parties: not all at one distance", dists[#dists] - dists[1] > 0.2, dists[#dists] - dists[1])
     local gone = st.spectators[1]
     gone:destroy()
     T.eq("yachts: a missing one comes back", PIT.placeSpectators(st), #PIT.SPECTATORS)
@@ -147,6 +176,16 @@ T.step("forfeit", function()
     local r = lastRow()
     T.check("forfeit: not in the fight log (they never fought)", not (r and r.source == "pit"))
 end)
+-- The sign-up channel is still open, so the hail waits for it: close it and the hail comes through.
+T.step("the hail waits while the channel is open", function()
+    T.check("hail: queued, not dropped", #PIT._hails == 1 and PIT._hails[1].ship == A, #PIT._hails)
+end)
+T.closeComms()
+T.talk(PIT.STATION, {}, {answer = true, name = "the pit boss"})
+T.step("the pit boss hails: a no-show is a forfeit", function()
+    T.check("hail: a no-show is a forfeit", T.msg():find('never came through the gate', 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
 
 -- ── Every opponent down: won ─────────────────────────────────────────────────
 local rep0 = {}
@@ -174,6 +213,11 @@ T.step("won: the purse, and no standing lost", function()
     local r = lastRow()
     T.check("won: in the fight log", r and r.source == "pit" and r.outcome == "won" and r.slot == "easy", r and BOUT.rowText(r))
 end)
+T.talk(PIT.STATION, {}, {answer = true, name = "the pit boss"})
+T.step("the pit boss hails: a fight well won, and the purse", function()
+    T.check("hail: a fight well won, and the purse", T.msg():find('credits on your account', 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
 
 -- ── An opponent leaves the ring: won ─────────────────────────────────────────
 T.step("book, and go in", function()
@@ -192,6 +236,11 @@ T.step("won by default", function()
     T.check("run: the runner is no longer hostile", not opp[1]:isEnemy(A))
     T.eq("run: won", lastRow().outcome, "won")
 end)
+T.talk(PIT.STATION, {}, {answer = true, name = "the pit boss"})
+T.step("the pit boss hails: the runner, and the purse", function()
+    T.check("hail: the runner, and the purse", T.msg():find('ran out of my ring', 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
 
 -- ── The crew leaves the ring: lost ───────────────────────────────────────────
 T.step("book, go in, then out", function()
@@ -206,6 +255,11 @@ T.step("lost by leaving", function()
     T.eq("leave: no purse", T.credits(A), c0)
     T.eq("leave: lost", lastRow().outcome, "lost")
 end)
+T.talk(PIT.STATION, {}, {answer = true, name = "the pit boss"})
+T.step("the pit boss hails: leaving the ring is a forfeit", function()
+    T.check("hail: leaving the ring is a forfeit", T.msg():find('You left the ring', 1, true) ~= nil, T.msg())
+end)
+T.closeComms()
 
 -- ── Yield ────────────────────────────────────────────────────────────────────
 T.step("book, and think better of it", function()
