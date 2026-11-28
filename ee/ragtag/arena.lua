@@ -28,7 +28,9 @@ function ARENA.reset()
                    phase = "empty", fights = 0,
                    skill_r = 1.0,     -- the crews' skill rating for MATCH (fixed at 1 until it is fitted)
                    offers = nil,      -- MATCH.offer's three opponents, when the GM asked for them
-                   taken = nil}       -- the offer the roster came from ({slot, r_value, ...}), cleared by any edit
+                   taken = nil,       -- the offer the roster came from ({slot, r_value, ...}), cleared by any edit
+                   trim = TRIM and TRIM.settings() or nil,   -- how hard the enemies fight (TRIM), kept across fights
+                   mercy = 1, mercy_min = 1}                 -- this fight's mercy factor, and the lowest it went
 end
 if not ARENA.state then ARENA.reset() end
 
@@ -180,8 +182,10 @@ function ARENA.spawn()
         s:setHeading((heading + 180) % 360)
         s:orderIdle()
         st.enemies[#st.enemies + 1] = {ship = s, template = name, strength = RT.shipStrength(s).total}
+        if TRIM and st.trim then TRIM.capture(s); TRIM.apply(s, st.trim, 1) end
     end
     st.phase, st.spawned_at, st.started_at, st.ended_at, st.result = "frozen", _now(), nil, nil, nil
+    st.mercy, st.mercy_min = 1, 1
     st.spawn_dist_u = st.dist_u
     st.spawn_faction = st.faction
     st.roster_text = ARENA.rosterText()
@@ -221,6 +225,7 @@ function ARENA.start()
         st.bout = BOUT.start{source = "arena", enemies = ents, info = {
             slot = st.spawn_slot, predicted_r = st.predicted_r and math.floor(st.predicted_r * 100 + 0.5) / 100 or nil,
             skill_r = st.skill_r, dist_u = st.spawn_dist_u, faction = st.spawn_faction}}
+        if TRIM and st.trim then TRIM.fields(st.trim, st.bout.info) end
     end
     st.phase = "fighting"
     log("[ARENA] combat started")
@@ -239,7 +244,10 @@ end
 -- Remove every enemy the arena spawned.
 function ARENA.clear()
     local st = ARENA.state
-    if BOUT and st.bout and not st.bout.done then BOUT.finish(st.bout, "stopped") end   -- the GM ended it
+    if BOUT and st.bout and not st.bout.done then   -- the GM ended it
+        st.bout.info.trim_mercy_min = math.floor((st.mercy_min or 1) * 100 + 0.5) / 100
+        BOUT.finish(st.bout, "stopped")
+    end
     for _, e in ipairs(st.enemies) do
         if RT.valid(e.ship) then e.ship:destroy() end
     end
@@ -256,6 +264,7 @@ function ARENA.tick(now)
     local st = ARENA.state
     if BOUT and st.bout and not st.bout.done then BOUT.tick(st.bout, now) end
     if st.phase ~= "fighting" then return end
+    ARENA.tickMercy()
     local result
     if #_liveEnemies() == 0 then result = "won"
     elseif #_players() == 0 then result = "lost" end
@@ -263,6 +272,7 @@ function ARENA.tick(now)
     st.phase, st.result, st.ended_at = "over", result, now or _now()
     local text = ARENA.report()
     if BOUT and st.bout and not st.bout.done then
+        st.bout.info.trim_mercy_min = math.floor(st.mercy_min * 100 + 0.5) / 100
         local rows = BOUT.finish(st.bout, result)
         local lines = {}
         for _, r in ipairs(rows) do lines[#lines + 1] = BOUT.rowText(r) end
@@ -270,6 +280,48 @@ function ARENA.tick(now)
     end
     log("[ARENA] " .. text:gsub("\n", " | "))
     pcall(addGMMessage, text)
+end
+
+-- ── Trim (TRIM) ──────────────────────────────────────────────────────────────
+-- The GM's trim applies at once to every enemy in the arena (from each ship type's own values, so it never
+-- compounds), and to the next spawn. Mercy eases them as the crews' hull goes (ARENA.tickMercy).
+function ARENA.applyTrim()
+    local st = ARENA.state
+    if not (TRIM and st.trim) then return 0 end
+    local n = 0
+    for _, e in ipairs(st.enemies) do
+        if RT.valid(e.ship) and TRIM.apply(e.ship, st.trim, st.mercy or 1) then n = n + 1 end
+    end
+    return n
+end
+
+-- The worst-hit crew ship's hull lost this fight (0..1), from the fight log's trackers.
+function ARENA.crewLoss()
+    local st, worst = ARENA.state, 0
+    for _, t in ipairs((st.bout and st.bout.trackers) or {}) do
+        if t.hull_max and t.hull_max > 0 then worst = math.max(worst, t.hull_lost / t.hull_max) end
+    end
+    return worst
+end
+
+function ARENA.tickMercy()
+    local st = ARENA.state
+    if not (TRIM and st.trim) or (st.trim.mercy or 0) <= 0 then return end
+    local m = math.min(st.mercy or 1, TRIM.mercyFactor(st.trim, ARENA.crewLoss()))   -- it only ever eases
+    if m < (st.mercy or 1) - 0.005 then
+        st.mercy = m
+        st.mercy_min = math.min(st.mercy_min or 1, m)
+        ARENA.applyTrim()
+    end
+end
+
+-- Enemy missiles: their agility by the trim, as each is first seen.
+if BOUT and not ARENA._missile_hook then
+    ARENA._missile_hook = true
+    BOUT.on_missile[#BOUT.on_missile + 1] = function(missile, m, b)
+        local st = ARENA.state
+        if TRIM and st.trim and b == st.bout and m.by.kind == "enemy" then TRIM.onMissile(missile, st.trim, st.mercy or 1) end
+    end
 end
 
 -- ── Restoring the crews ──────────────────────────────────────────────────────
@@ -376,6 +428,10 @@ function ARENA.report()
         L[#L + 1] = string.format("Strength: enemies %d vs crews %d (now)", e_str, p_str)
         if st.predicted_r then
             L[#L + 1] = string.format("Match: %s, R %.2f at spawn (above 1 favours the crews)", st.spawn_slot or "custom", st.predicted_r)
+        end
+        if TRIM and st.trim then
+            L[#L + 1] = string.format("Trim: %s%s", TRIM.text(st.trim),
+                (st.mercy or 1) < 1 and string.format("; mercy now x%.2f", st.mercy) or "")
         end
         local t
         if st.phase == "frozen" and not st.started_at then t = "frozen, not started"
@@ -539,6 +595,36 @@ local function showLog()
     end)
 end
 
+-- Trim: overall, mercy, and each lever (TRIM.LEVERS); changes reach the enemies in the arena at once.
+local showTrim
+local function showLever(id, label)
+    clearGMFunctions()
+    addGMFunction("← Trim", showTrim)
+    local v = ARENA.state.trim.lever[id] or 1
+    addGMFunction(string.format("%s: x%.2f", label, v), function() end)
+    addGMFunction(string.format("%s - (easier)", label), function() TRIM.nudge(ARENA.state.trim, id, -TRIM.STEP); ARENA.applyTrim(); showLever(id, label) end)
+    addGMFunction(string.format("%s + (harder)", label), function() TRIM.nudge(ARENA.state.trim, id, TRIM.STEP); ARENA.applyTrim(); showLever(id, label) end)
+    addGMFunction(label .. ": as built", function() ARENA.state.trim.lever[id] = nil; ARENA.applyTrim(); showLever(id, label) end)
+end
+
+showTrim = function()
+    clearGMFunctions()
+    local tr = ARENA.state.trim
+    addGMFunction("← Arena", showArena)
+    addGMFunction(string.format("Overall - (x%.2f)", tr.overall), function() TRIM.nudge(tr, "overall", -TRIM.STEP); ARENA.applyTrim(); showTrim() end)
+    addGMFunction(string.format("Overall + (x%.2f)", tr.overall), function() TRIM.nudge(tr, "overall", TRIM.STEP); ARENA.applyTrim(); showTrim() end)
+    addGMFunction("Mercy as hull drops: " .. TRIM.mercyLabel(tr), function() TRIM.cycleMercy(tr); showTrim() end)
+    for _, l in ipairs(TRIM.LEVERS) do
+        local id, label = l.id, l.label
+        addGMFunction(string.format("%s: x%.2f", label, tr.lever[id] or 1), function() showLever(id, label) end)
+    end
+    addGMFunction("Reset all (as built)", function()
+        ARENA.state.trim = TRIM.settings()
+        ARENA.applyTrim()
+        showTrim()
+    end)
+end
+
 showArena = function()
     clearGMFunctions()
     local st = ARENA.state
@@ -551,6 +637,7 @@ showArena = function()
     addGMFunction(string.format("Distance - (%dU)", st.dist_u), function() ARENA.nudgeDistance(-1); showArena() end)
     addGMFunction(string.format("Distance + (%dU)", st.dist_u), function() ARENA.nudgeDistance(1); showArena() end)
     addGMFunction("Faction: " .. st.faction, function() ARENA.cycleFaction(); showArena() end)
+    if TRIM and st.trim then addGMFunction("Trim... (" .. TRIM.text(st.trim) .. ")", showTrim) end
     addGMFunction("Spawn enemies (frozen)", function()
         local n, why = ARENA.spawn()
         say(n and ARENA.report() or why)

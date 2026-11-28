@@ -28,6 +28,7 @@ BOUT.SYSTEMS = {"reactor", "beamweapons", "missilesystem", "maneuver", "impulse"
 BOUT.MISSILES = {"Homing", "Nuke", "Mine", "EMP", "HVLI"}
 BOUT.RATINGS = {{1, "1 Far too easy"}, {2, "2 Easy"}, {3, "3 Good fight"}, {4, "4 Hard"}, {5, "5 Far too hard"}}
 BOUT.on_rated = BOUT.on_rated or {}   -- functions(row): a fight was rated (the Pit learns from it)
+BOUT.on_missile = BOUT.on_missile or {}   -- functions(missile, m): a missile first seen in a fight (m.by.kind: "crew"/"enemy")
 BOUT.RATING_STATIONS = {"relay", "operations", "single"}
 
 -- This run of the game: rows from one run share it (scenario Lua has no clock or date).
@@ -311,6 +312,10 @@ local function _sampleMissiles(b)
                             if at then
                                 m = {by = by, at = at}
                                 b.missiles[o] = m
+                                for _, fn in ipairs(BOUT.on_missile) do
+                                    local okh, err = pcall(fn, o, m, b)
+                                    if not okh then log("[BOUT] on_missile: " .. tostring(err)) end
+                                end
                                 if by.kind == "crew" then by.missiles_out = by.missiles_out + 1
                                 else at.missiles_at = at.missiles_at + 1 end
                             end

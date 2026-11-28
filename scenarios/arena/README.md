@@ -26,6 +26,18 @@ of upgrades? Open space, no universe, no jobs or arcs, nothing saved. The rules 
    unhacked, at 100% power with no coolant. **Reset positions** puts the ships back at the centre, facing
    north. **Clear enemies** removes what is left.
 
+## Trim: how hard the enemies fight
+**Trim...** tunes the enemies without adding ships and without changing anything a scan shows (hull, shields,
+beam damage, range and arcs stay as the ship type has them). Each lever multiplies the ship type's own value;
+above 1 is harder: **turn rate, acceleration, top speed, combat boost, beam fire rate, tube reload, missile
+agility** (each enemy missile's homing turn rate as it launches). **Overall** multiplies them all. Steps of 0.05,
+from 0.5 to 1.6. Changes reach the enemies in the arena at once and the next spawn.
+
+**Mercy as hull drops** (Off / Gentle / Strong): as the worst-hit crew ship loses hull in a fight, the enemies ease
+off, from no easing at 10% of the hull lost to 15% (Gentle) or 30% (Strong) easier at 50%, smoothly. It never
+tightens again within a fight. So a fight can open hard (Overall 1.2) and still leave room to recover. The fight log
+records the trim (`trim_*`) and how far the mercy went (`trim_mercy_min`). The rules: `ee/ragtag/trim.lua` (`TRIM`).
+
 ## Three opponents
 **Offer three opponents** builds every group of one to four ships from the arena's types and picks one near
 each target: **Easy** (R about 2.0), **Good match** (1.3) and **Hard** (0.9). R is a race: the time the enemies

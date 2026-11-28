@@ -13,6 +13,7 @@ require("ragtag/gm_console.lua")      -- Ship Upgrades... (GMCONSOLE.addUpgrades
 require("ragtag/ships_used.lua")      -- SCIDB.SHIPS_USED: the ship types the Drift uses
 require("ragtag/bout.lua")            -- BOUT: the fight log (scriptstorage.json), crew numbers, the crews' rating
 require("ragtag/match.lua")           -- MATCH: time-to-kill model, three opponents
+require("ragtag/trim.lua")            -- TRIM: how hard enemies fight, and mercy as the crews' hull goes
 require("ragtag/arena.lua")
 require("ragtag/ship_templates.lua")  -- custom playership templates; must load before init
 
